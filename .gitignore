@@ -1,0 +1,36 @@
+node_modules/
+dist/
+build/
+coverage/
+reports/
+.vite/
+.tanstack/
+storybook-static/
+playwright-report/
+blob-report/
+test-results/
+.stryker-tmp/
+.eslintcache
+*.tsbuildinfo
+*.log
+
+.env
+.env.*
+!.env.example
+
+# O banco SQLite local. O que é versionado são as migrations e os seeds, não os dados.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+template/client/src/lib/api/generated/
+template/client/src/routeTree.gen.ts
+
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+
+# Ajuste local do Claude Code — é de quem programa, não do projeto.
+.claude/settings.local.json

@@ -1,0 +1,38 @@
+[tipo](local): Mensagem
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FORMATO OBRIGATÓRIO:  [tipo](local): Mensagem
+#
+#   [feat](backend): Endpoint de listagem de tarefas com filtro por situação
+#   [fix](web): Erro do formulário some quando o título é corrigido
+#   [chore](docker): Sobe o Node da imagem para a 24 LTS
+#
+# TIPO
+#   feat      funcionalidade nova
+#   fix       correção de defeito
+#   refactor  muda a forma, não o comportamento
+#   test      só teste
+#   docs      só documentação
+#   style     só formatação, sem efeito em runtime
+#   perf      ganho de desempenho
+#   build     build, dependências, empacotamento
+#   ci        pipeline
+#   chore     manutenção que não cabe acima
+#
+# LOCAL
+#   backend    template/server/
+#   web        template/client/
+#   db         template/server/drizzle/, lib/db/ e template/scripts/seed/
+#   contracts  template/shared/
+#   docker     template/docker/
+#   ci         .github/
+#   docs       .md na raiz
+#   deps       atualização de dependência
+#   claude     .claude/ e CLAUDE.md
+#
+# MENSAGEM
+#   Em português. Primeira letra maiúscula. Sem ponto final.
+#   Diga o que a mudança FAZ, não onde você mexeu.
+#
+# Tocou dois locais? São dois commits. Nunca [feat](backend,web).
+# ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,8 @@
+# As migrations são SQL gerado pelo drizzle-kit. Reformatá-las muda o arquivo que o
+# `meta/_journal.json` registrou, e a próxima máquina que rodar do zero aplica outra coisa.
+drizzle/
+
+dist/
+coverage/
+reports/
+data/

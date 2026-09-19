@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm ci)",
+      "Bash(npm run lint*)",
+      "Bash(npm run format*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm test*)",
+      "Bash(npm run test*)",
+      "Bash(npm run build*)",
+      "Bash(npm run dev*)",
+      "Bash(npm run storybook*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run db:generate*)",
+      "Bash(npm run db:migrate*)",
+      "Bash(npm run routes*)",
+      "Bash(npx vitest run*)",
+      "Bash(npm outdated*)",
+      "Bash(npm audit)",
+      "Bash(node -v)",
+      "Bash(npm -v)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git switch*)",
+      "Bash(git add*)",
+      "Bash(git commit -m*)",
+      "Bash(git merge develop*)",
+      "Bash(git merge --abort*)",
+      "Bash(git fetch*)",
+      "Bash(git pull --ff-only*)",
+      "Bash(git switch -c feature/*)",
+      "Bash(git switch -c bugfix/*)"
+    ],
+    "ask": [
+      "Bash(git merge --no-ff*)",
+      "Bash(npm run db:reset*)",
+      "Bash(git push*)",
+      "Bash(git reset*)",
+      "Bash(git clean*)",
+      "Bash(git checkout -- *)",
+      "Bash(git branch -D*)",
+      "Bash(gh pr create*)",
+      "Bash(gh repo*)",
+      "Bash(npm install *)"
+    ],
+    "deny": [
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit -n *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(npm install --force*)",
+      "Bash(npm install --legacy-peer-deps*)",
+      "Read(./template/server/.env)",
+      "Read(./template/client/.env)",
+      "Bash(git switch main*)",
+      "Bash(git checkout main*)",
+      "Bash(git push origin main*)",
+      "Bash(git push -u origin main*)",
+      "Bash(git config project.admin*)",
+      "Bash(git config --local project.admin*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-paths.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-paths.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

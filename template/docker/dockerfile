@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+#
+# Uma imagem só. O Nest serve `/api` e o build estático do client na mesma porta
+# (`ServeStaticModule` em `server/src/app.module.ts`) — nada de Nginx aqui: em produção
+# fica atrás de um Traefik, que já resolve o roteamento por domínio. Um segundo processo
+# só pra servir arquivo estático seria uma peça a mais sem função.
+#
+# Não é a imagem mais enxuta possível: a etapa final carrega o `node_modules` inteiro do
+# monorepo, em vez de reinstalar só as dependências de produção do server. Prioridade 0
+# do CONTRIBUTING — funcionar primeiro — vale aqui: enxugar é otimização para depois.
+#
+# `bookworm-slim` e não `alpine`: o `better-sqlite3` traz o binário pronto para glibc. No
+# alpine (musl) ele tentaria compilar, e a imagem precisaria de python, make e g++ só para
+# isso.
+
+FROM node:24-bookworm-slim AS deps
+WORKDIR /repo
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/package.json
+COPY server/package.json server/package.json
+COPY client/package.json client/package.json
+# `--ignore-scripts`: o `prepare` da raiz configura git e hooks, que não existem (nem fazem
+# sentido) dentro da imagem — e roda antes de os scripts serem copiados. Nenhuma dependência
+# de runtime precisa de script de instalação: o `better-sqlite3` já traz o binário pronto, e
+# um `npm rebuild` aqui o faria tentar COMPILAR, exigindo python e g++ na imagem.
+RUN npm ci --ignore-scripts
+
+FROM deps AS build
+COPY . .
+RUN npm run build -w @template/shared \
+  && npm run build -w server \
+  && npm run build -w client
+
+FROM node:24-bookworm-slim AS app
+WORKDIR /repo
+ENV NODE_ENV=production
+COPY --from=build /repo/node_modules node_modules
+COPY --from=build /repo/shared/package.json shared/package.json
+COPY --from=build /repo/shared/dist shared/dist
+COPY --from=build /repo/server/package.json server/package.json
+COPY --from=build /repo/server/dist server/dist
+# As migrations vão junto: o server as aplica sozinho ao subir.
+COPY --from=build /repo/server/drizzle server/drizzle
+COPY --from=build /repo/client/dist client/dist
+RUN mkdir -p server/data
+EXPOSE 3333
+CMD ["node", "server/dist/main.js"]

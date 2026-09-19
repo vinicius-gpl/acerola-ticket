@@ -1,0 +1,238 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/**
+ * ONDE PROCURAR CLASSE, declarado à mão.
+ *
+ * O Tailwind v4 descobre as fontes sozinho a partir da raiz do projeto, e com o plugin do
+ * Vite essa descoberta não reage a ARQUIVO NOVO: uma tela criada com o servidor no ar usava
+ * classes que nunca eram geradas, e o sintoma era grade responsiva que não respondia — a
+ * página com `lg:grid-cols-3` abrindo em uma coluna só, sem erro nenhum no console.
+ *
+ * Declarado assim, o watcher observa o diretório e a classe existe no primeiro salvamento.
+ */
+@source '../../**/*.{ts,tsx}';
+@source '../../../index.html';
+
+/**
+ * A IDENTIDADE VISUAL DO SISTEMA, EM UM ARQUIVO SÓ.
+ *
+ * No Tailwind v4 a configuração é o próprio CSS: não existe mais `tailwind.config.ts`. Um
+ * token declarado em `@theme` vira classe utilitária sozinho — `--color-brand-blue-800` dá
+ * `bg-brand-blue-800`, `text-brand-blue-800`, `border-brand-blue-800`.
+ *
+ * Isso não é só arrumação: no arranjo anterior a cor morava num `.ts` que o Vite não
+ * observava, e um token novo só aparecia depois de derrubar o servidor à mão. Foi assim que
+ * a barra lateral ficou branca com o azul já definido — a classe `bg-sidebar` nunca chegou
+ * a ser gerada, e `background` sem regra é transparente.
+ *
+ * As cores abaixo são uma paleta neutra de ponto de partida, não a marca de nenhum projeto.
+ * Trocar a marca de um MVP é trocar os valores de `--brand-*` aqui — e só aqui.
+ */
+
+/**
+ * O tema escuro é marcado por `[data-theme='dark']`, e não pela classe `.dark` que o shadcn
+ * assume por padrão. A escolha é do projeto: o atributo é o que o `<html>` já carrega e o
+ * que a preferência gravada no navegador escreve.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ==========================================================================
+   Primitivas da marca — os valores oficiais, sem intenção de uso ainda.
+   ========================================================================== */
+:root {
+  --brand-blue-900: #1e3a8a;
+  --brand-blue-800: #1e40af; /* COR PRINCIPAL (fundo da barra lateral) */
+  --brand-blue-700: #1d4ed8;
+  --brand-blue-600: #2563eb;
+  --brand-blue-500: #3b82f6;
+  --brand-blue-100: #dbeafe;
+
+  --brand-yellow-500: #f59e0b; /* COR DE DESTAQUE (usar com parcimônia) */
+  --brand-yellow-400: #fbbf24;
+  --brand-yellow-300: #fcd34d;
+
+  --ink-900: #111827;
+  --ink-700: #374151;
+  --ink-500: #6b7280;
+  --ink-300: #d1d5db;
+  --ink-100: #f3f4f6;
+
+  --radius: 0.625rem;
+
+  /* ---- Semântica da PÁGINA ---- */
+  --background: #f8fafc;
+  --foreground: var(--ink-900);
+  --card: #ffffff;
+  --card-foreground: var(--ink-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink-900);
+  --primary: var(--brand-blue-800);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ink-100);
+  --secondary-foreground: var(--ink-900);
+  --muted: var(--ink-100);
+  --muted-foreground: var(--ink-500);
+  --accent: var(--brand-blue-100);
+  --accent-foreground: var(--brand-blue-900);
+  --destructive: #dc2626;
+  --border: var(--ink-300);
+  --input: var(--ink-300);
+  --ring: var(--brand-blue-600);
+
+  /**
+   * ---- Semântica da BARRA LATERAL ----
+   *
+   * Ela NÃO segue o tema da página. O shadcn traz estes tokens quase brancos, pensando numa
+   * barra que acompanha o fundo; aqui ela é azul nos dois temas, para dar identidade visual
+   * fixa ao sistema — quem quiser que a barra siga o tema é só apagar este bloco.
+   */
+  --sidebar: var(--brand-blue-800);
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-primary: var(--brand-blue-600);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: var(--brand-yellow-500);
+
+  color-scheme: light;
+}
+
+/**
+ * O tema escuro só TROCA tokens; nenhuma cor tem definição única aqui dentro. Assim não
+ * existe cor que só valha no escuro — que é como uma tela nasce ilegível em um dos dois.
+ */
+:root[data-theme='dark'] {
+  --background: #0b1220;
+  --foreground: var(--ink-100);
+  --card: #111827;
+  --card-foreground: var(--ink-100);
+  --popover: #111827;
+  --popover-foreground: var(--ink-100);
+  --primary: var(--brand-blue-500);
+  --primary-foreground: #ffffff;
+  --secondary: #1f2937;
+  --secondary-foreground: var(--ink-100);
+  --muted: #1f2937;
+  --muted-foreground: #9ca3af;
+  --accent: #1e293b;
+  --accent-foreground: var(--ink-100);
+  --border: rgb(255 255 255 / 0.12);
+  --input: rgb(255 255 255 / 0.12);
+
+  /* A barra continua azul, um tom abaixo: encostar no tom do fundo da página apagaria a
+     separação entre menu e conteúdo. */
+  --sidebar: #16265c;
+
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   O que vira classe utilitária. `inline` porque os valores são `var(...)`:
+   assim a troca de tema muda a variável, e não a classe gerada.
+   ========================================================================== */
+@theme inline {
+  --color-brand-blue-900: var(--brand-blue-900);
+  --color-brand-blue-800: var(--brand-blue-800);
+  --color-brand-blue-700: var(--brand-blue-700);
+  --color-brand-blue-600: var(--brand-blue-600);
+  --color-brand-blue-500: var(--brand-blue-500);
+  --color-brand-blue-100: var(--brand-blue-100);
+
+  --color-brand-yellow-500: var(--brand-yellow-500);
+  --color-brand-yellow-400: var(--brand-yellow-400);
+  --color-brand-yellow-300: var(--brand-yellow-300);
+
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-300: var(--ink-300);
+  --color-ink-100: var(--ink-100);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Foco visível SEMPRE: o sistema é operado no teclado o dia inteiro, e um contorno que
+     some é como alguém digita num campo sem saber em qual campo está. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /**
+   * A BARRA DE ROLAGEM, fina e sem trilho.
+   *
+   * Firefox lê `scrollbar-*`; Chrome/Edge/Safari só respondem aos pseudo-elementos
+   * `::-webkit-scrollbar-*` — as duas declarações convivem porque cobrem navegadores
+   * diferentes, nenhuma é redundante. `-button` escondido tira as setinhas do fim da
+   * barra: no tamanho fino que sobra aqui, elas viram dois quadrados apertados brigando
+   * com o polegar por espaço, não um controle que alguém usa de verdade.
+   */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: var(--radius-lg);
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+}

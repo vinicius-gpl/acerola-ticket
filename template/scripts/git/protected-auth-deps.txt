@@ -1,0 +1,25 @@
+# BIBLIOTECAS DE LOGIN/AUTENTICAÇÃO — não entram: a identidade vem do auth-forward.
+# Uma expressão regular (ERE) por linha, comparada ao NOME do pacote.
+^passport
+^@nestjs/(passport|jwt)$
+^bcrypt
+^argon2
+^jsonwebtoken$
+^jose$
+^express-session$
+^cookie-session$
+^next-auth$
+^@auth/
+^better-auth
+^lucia
+^@lucia-auth/
+^@clerk/
+^@supabase/
+^firebase
+^@firebase/
+^auth0
+^@auth0/
+^keycloak
+^oidc-client
+^openid-client$
+^@okta/

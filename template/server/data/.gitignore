@@ -1,0 +1,4 @@
+# O arquivo do banco local. Cada máquina tem o seu — o que é versionado são as
+# migrations (server/drizzle/) e os seeds (scripts/seed/), não os dados.
+*
+!.gitignore

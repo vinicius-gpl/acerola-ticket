@@ -1,0 +1,24 @@
+# Este compose sobe só a aplicação — um serviço, que responde `/api` e o SPA na mesma porta.
+#
+# O banco é um ARQUIVO SQLite, e ele mora num volume. Sem o volume, cada `up --build`
+# recriaria o container e o arquivo junto: tudo o que foi cadastrado sumiria sem aviso.
+#
+# Em produção fica atrás de um Traefik (ex.: Coolify), que resolve domínio e TLS;
+# localmente é só `-p 3333:3333`.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile
+    env_file:
+      - path: ../server/.env
+        required: false
+    environment:
+      DATABASE_FILE: /repo/server/data/app.db
+    ports:
+      - '3333:3333'
+    volumes:
+      - app-data:/repo/server/data
+
+volumes:
+  app-data:

@@ -1,0 +1,48 @@
+{
+  "name": "template-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Template de MVP — Nest de um lado, React do outro, SQLite no meio.",
+  "engines": {
+    "node": ">=24.0.0 <25.0.0",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w @template/shared && npm run build -w server && npm run build -w client",
+    "test": "npm run test -w @template/shared && npm run test -w server && npm run test -w client",
+    "test:e2e": "npm run test:e2e -w server && npm run test:e2e -w client",
+    "test:mutation": "npm run test:mutation -w @template/shared && npm run test:mutation -w server && npm run test:mutation -w client",
+    "lint": "npm run lint -w @template/shared && npm run lint -w server && npm run lint -w client",
+    "format": "npm run format -w @template/shared && npm run format -w server && npm run format -w client",
+    "typecheck": "npm run typecheck -w @template/shared && npm run typecheck -w server && npm run typecheck -w client && tsc -p scripts",
+    "storybook": "npm run storybook -w client",
+    "api:docs": "npm run docs -w server",
+    "api:client": "npm run api:client -w client",
+    "db:generate": "npm run db:generate -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:studio": "npm run db:studio -w server",
+    "db:reset": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts --reset",
+    "seed:all": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts",
+    "seed:tasks": "npm run build -w @template/shared && tsx scripts/seed/tasks/seed-tasks.ts",
+    "prepare": "cd .. && husky template/.husky && node template/scripts/git/setup-git.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/types": "^19.5.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.13.4",
+    "better-sqlite3": "^13.0.3",
+    "concurrently": "^9.0.1",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "husky": "^9.1.6",
+    "tsx": "^4.19.1",
+    "typescript": "^5.9.3"
+  }
+}

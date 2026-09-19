@@ -1,0 +1,42 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": [
+    { "directory": "template/shared", "changeProcessCWD": true },
+    { "directory": "template/server", "changeProcessCWD": true },
+    { "directory": "template/client", "changeProcessCWD": true }
+  ],
+  "prettier.requireConfig": true,
+  "typescript.tsdk": "template/node_modules/typescript/lib",
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "files.eol": "\n",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/reports": true,
+    "**/storybook-static": true,
+    "**/.husky/_": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/reports": true,
+    "**/storybook-static": true,
+    "**/routeTree.gen.ts": true,
+    "**/drizzle/meta": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.component.tsx": "${capture}.stories.tsx, ${capture}.test.tsx",
+    "*.ts": "${capture}.test.ts",
+    "*.tsx": "${capture}.test.tsx",
+    "package.json": "package-lock.json"
+  }
+}

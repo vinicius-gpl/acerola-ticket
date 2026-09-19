@@ -1,0 +1,1 @@
+cd template && npx --no -- commitlint --edit "$1"
