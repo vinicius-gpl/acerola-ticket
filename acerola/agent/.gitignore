@@ -4,3 +4,4 @@ svelte/wailsjs/
 svelte/package.json.md5
 build/bin/
 *.exe
+*.syso
