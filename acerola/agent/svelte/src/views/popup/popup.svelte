@@ -11,41 +11,56 @@
 
 	const metrics = useMetrics();
 
-	// O Windows não dá foco garantido a uma janela que estava escondida só
-	// porque chamamos WindowShow — é comum ela receber um foco/blur espúrio
-	// logo na hora de aparecer, principalmente quando outra janela em outro monitor
-	// estava ativa. Além disso, a troca de contexto entre monitores no Windows
-	// pode levar algumas centenas de milissegundos para estabilizar.
-	// Por isso marcamos shownAt tanto no "view:change" quanto no "window:shown"
-	// (emitido pelo Go logo após WindowShow de fato rodar) e usamos uma janela
-	// de tolerância de 800ms para nunca fechar a popup indevidamente ao abrir.
-	const BLUR_GRACE_MS = 800;
-	let shownAt = 0;
+	// "Fecha ao perder foco": para evitar fechar a popup logo na hora de abrir
+	// (quando o Windows transfere foco entre monitores e o WebView2 dispara
+	// eventos transitórios de foco/blur), a popup nasce DESARMADA para fechar.
+	// O fechamento por blur só é armado após a janela estar visível e estável.
+	let isArmed = false;
+	let armTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function markShown() {
-		shownAt = Date.now();
+	function disarm() {
+		isArmed = false;
+		if (armTimer) {
+			clearTimeout(armTimer);
+			armTimer = null;
+		}
 	}
 
-	// "Fecha ao perder foco": o WebView2 dispara blur no `window` do DOM
-	// quando a janela nativa perde o foco — não precisa de nenhuma API
-	// extra do Wails pra detectar isso.
+	function armAfterDelay(delayMs = 600) {
+		disarm();
+		armTimer = setTimeout(() => {
+			isArmed = true;
+			armTimer = null;
+		}, delayMs);
+	}
+
 	function onBlur() {
-		if (Date.now() - shownAt < BLUR_GRACE_MS) return;
+		// Se ainda não armou (está no processo de abrir ou trocar de monitor), ignora o blur.
+		if (!isArmed) return;
+		disarm();
 		HideWindow();
 	}
 
 	onMount(() => {
 		const unsubChange = EventsOn('view:change', (view: string) => {
-			if (view === 'popup') markShown();
+			if (view === 'popup') {
+				disarm();
+				armAfterDelay(700);
+			}
 		});
 		const unsubShown = EventsOn('window:shown', (view: string) => {
 			if (view === 'popup') {
-				markShown();
-				window.focus();
+				disarm();
+				armAfterDelay(700);
 			}
 		});
+
 		window.addEventListener('blur', onBlur);
+		window.addEventListener('focus', () => armAfterDelay(400));
+		window.addEventListener('pointerdown', () => armAfterDelay(300));
+
 		return () => {
+			disarm();
 			unsubChange();
 			unsubShown();
 			window.removeEventListener('blur', onBlur);

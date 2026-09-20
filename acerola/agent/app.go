@@ -151,6 +151,7 @@ func (a *App) ViewReady() {
 // volume/rede/bateria do próprio sistema.
 func (a *App) ShowPopup() {
 	a.dispatch(func(ctx context.Context) {
+		runtime.WindowSetAlwaysOnTop(ctx, true)
 		runtime.WindowSetSize(ctx, popupWidth, popupHeight)
 		waX, waY, waW, waH := screen.WorkArea()
 		runtime.WindowSetPosition(ctx,
@@ -170,6 +171,7 @@ func (a *App) ShowPopup() {
 // barra de tarefas nem ficar colado na borda do monitor.
 func (a *App) ShowDashboard() {
 	a.dispatch(func(ctx context.Context) {
+		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
 		waX, waY, waW, waH := screen.WorkArea()
 		runtime.WindowSetPosition(ctx,
@@ -197,6 +199,7 @@ func (a *App) Quit() {
 // existe um X do Windows pra isso (ver docs/ARQUITETURA.md).
 func (a *App) HideWindow() {
 	a.dispatch(func(ctx context.Context) {
+		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowHide(ctx)
 	})
 }
