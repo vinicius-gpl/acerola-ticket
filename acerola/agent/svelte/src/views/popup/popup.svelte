@@ -13,12 +13,18 @@
 
 	// O Windows não dá foco garantido a uma janela que estava escondida só
 	// porque chamamos WindowShow — é comum ela receber um foco/blur espúrio
-	// logo na hora de aparecer, o que fechava a popup na mesma hora que
-	// abria. Por isso ignoramos qualquer blur que aconteça logo depois de um
-	// "view:change" pra "popup" (o Go emite esse evento toda vez que
-	// ShowPopup roda, mesmo que a rota já fosse essa).
-	const BLUR_GRACE_MS = 300;
+	// logo na hora de aparecer, principalmente quando outra janela em outro monitor
+	// estava ativa. Além disso, a troca de contexto entre monitores no Windows
+	// pode levar algumas centenas de milissegundos para estabilizar.
+	// Por isso marcamos shownAt tanto no "view:change" quanto no "window:shown"
+	// (emitido pelo Go logo após WindowShow de fato rodar) e usamos uma janela
+	// de tolerância de 800ms para nunca fechar a popup indevidamente ao abrir.
+	const BLUR_GRACE_MS = 800;
 	let shownAt = 0;
+
+	function markShown() {
+		shownAt = Date.now();
+	}
 
 	// "Fecha ao perder foco": o WebView2 dispara blur no `window` do DOM
 	// quando a janela nativa perde o foco — não precisa de nenhuma API
@@ -29,12 +35,19 @@
 	}
 
 	onMount(() => {
-		const unsubscribe = EventsOn('view:change', (view: string) => {
-			if (view === 'popup') shownAt = Date.now();
+		const unsubChange = EventsOn('view:change', (view: string) => {
+			if (view === 'popup') markShown();
+		});
+		const unsubShown = EventsOn('window:shown', (view: string) => {
+			if (view === 'popup') {
+				markShown();
+				window.focus();
+			}
 		});
 		window.addEventListener('blur', onBlur);
 		return () => {
-			unsubscribe();
+			unsubChange();
+			unsubShown();
 			window.removeEventListener('blur', onBlur);
 		};
 	});

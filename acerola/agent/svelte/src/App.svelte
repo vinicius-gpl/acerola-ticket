@@ -20,11 +20,21 @@
 	// ter sido pintada ainda quando a janela aparecesse, e o usuário via a
 	// tela antiga (ou em branco) por um frame antes de "pular" pra tela
 	// certa. `tick()` espera o Svelte terminar de aplicar a mudança de rota
-	// ao DOM; `requestAnimationFrame` espera o navegador de fato pintar esse
-	// DOM na tela antes de avisar o Go que já pode mostrar a janela.
+	// ao DOM. Como em janelas escondidas o WebView2/Chromium pode suspender
+	// requestAnimationFrame até a janela aparecer, combinamos com um timer
+	// curto para avisar o Go rapidamente sem travar no timeout de 200ms.
 	const unsubscribe = EventsOn('view:change', (view: 'popup' | 'dashboard') => {
 		push(`/${view}`);
-		tick().then(() => requestAnimationFrame(() => ViewReady()));
+		tick().then(() => {
+			let sent = false;
+			const notify = () => {
+				if (sent) return;
+				sent = true;
+				ViewReady();
+			};
+			requestAnimationFrame(notify);
+			setTimeout(notify, 25);
+		});
 	});
 
 	onDestroy(unsubscribe);

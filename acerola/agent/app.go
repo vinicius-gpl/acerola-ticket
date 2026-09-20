@@ -160,6 +160,7 @@ func (a *App) ShowPopup() {
 		runtime.EventsEmit(ctx, "view:change", "popup")
 		a.awaitViewReady()
 		runtime.WindowShow(ctx)
+		runtime.EventsEmit(ctx, "window:shown", "popup")
 	})
 }
 
@@ -178,6 +179,7 @@ func (a *App) ShowDashboard() {
 		runtime.EventsEmit(ctx, "view:change", "dashboard")
 		a.awaitViewReady()
 		runtime.WindowShow(ctx)
+		runtime.EventsEmit(ctx, "window:shown", "dashboard")
 	})
 }
 
