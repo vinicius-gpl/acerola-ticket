@@ -15,17 +15,46 @@ description = "go vet — erros que o compilador não pega"
 run = "go vet ./..."
 
 [tasks.lint]
-description = "golangci-lint — linter completo (estilo, bugs comuns, código morto)"
+description = "golangci-lint — linter completo"
 run = "golangci-lint run ./..."
 
-[tasks.build]
-description = "Compila todos os pacotes"
-run = "go build ./..."
+[tasks.test]
+description = "Testes do Go (src-go/...)"
+run = "go test ./..."
 
-[tasks.run]
-description = "Roda o agente (bandeja + painel web)"
-run = "go run ./cmd/agent"
+[tasks."frontend:lint"]
+description = "Prettier --check no frontend"
+run = "npm run lint --prefix svelte"
+
+[tasks."frontend:test"]
+description = "Testes do frontend (vitest)"
+run = "npm run test --prefix svelte"
+
+[tasks."frontend:check"]
+description = "Typecheck do frontend (svelte-check)"
+run = "npm run check --prefix svelte"
+
+[tasks.build]
+description = "Build de produção via Wails (gera o .exe final)"
+run = "wails build"
+
+[tasks.dev]
+description = "Roda em modo dev (bandeja + painel, hot-reload)"
+run = "wails dev"
 
 [tasks.check]
 description = "Tudo que precisa passar antes de considerar o trabalho pronto"
-depends = ["fmt", "vet", "lint", "build"]
+depends = [
+	"fmt",
+	"vet",
+	"lint",
+	"test",
+	"frontend:lint",
+	"frontend:check",
+	"frontend:test",
+	"build"
+]
+
+[tasks.setup]
+description = "Instala a CLI do Wails (uma vez, ou após trocar versão do Go)"
+run = "go install github.com/wailsapp/wails/v2/cmd/wails@latest"
