@@ -27,6 +27,10 @@ test-results/
 acerola/dashboard/client/src/lib/api/generated/
 acerola/dashboard/client/src/routeTree.gen.ts
 
+# Binários compilados do agente Go — não versionamos build, só o código.
+acerola/agent/*.exe
+acerola/agent/cmd/*/*.exe
+
 .DS_Store
 Thumbs.db
 desktop.ini
