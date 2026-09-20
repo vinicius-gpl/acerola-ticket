@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
+	import XIcon from '@lucide/svelte/icons/x';
 	import { useMetrics } from '$lib/metrics/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
@@ -11,59 +13,86 @@
 
 	const metrics = useMetrics();
 
-	// "Fecha ao perder foco": para evitar fechar a popup logo na hora de abrir
-	// (quando o Windows transfere foco entre monitores e o WebView2 dispara
-	// eventos transitórios de foco/blur), a popup nasce DESARMADA para fechar.
-	// O fechamento por blur só é armado após a janela estar visível e estável.
-	let isArmed = false;
-	let armTimer: ReturnType<typeof setTimeout> | null = null;
+	// "Fecha ao clicar fora": quando a janela perde o foco (blur), deve fechar imediatamente.
+	// Porém, nos primeiros milissegundos após o Windows exibir a janela (especialmente ao abrir
+	// a partir de outro monitor), o SO e o WebView2 podem disparar um blur transitório durante
+	// a troca de foco do primeiro plano. Para não "abrir e fechar" instantaneamente, usamos uma
+	// janela de tolerância de 200ms: se um blur ocorrer nesse intervalo, agendamos uma verificação;
+	// se a janela de fato continuar sem foco ao término da transição, fechamos. Qualquer perda de foco
+	// subsequente fecha a popup imediatamente.
+	const STABILIZATION_MS = 200;
+	let shownAt = 0;
+	let pendingBlurTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function disarm() {
-		isArmed = false;
-		if (armTimer) {
-			clearTimeout(armTimer);
-			armTimer = null;
+	function cancelPendingBlur() {
+		if (pendingBlurTimer) {
+			clearTimeout(pendingBlurTimer);
+			pendingBlurTimer = null;
 		}
 	}
 
-	function armAfterDelay(delayMs = 600) {
-		disarm();
-		armTimer = setTimeout(() => {
-			isArmed = true;
-			armTimer = null;
-		}, delayMs);
+	function onWindowShown() {
+		shownAt = Date.now();
+		cancelPendingBlur();
+		window.focus();
 	}
 
 	function onBlur() {
-		// Se ainda não armou (está no processo de abrir ou trocar de monitor), ignora o blur.
-		if (!isArmed) return;
-		disarm();
+		cancelPendingBlur();
+		const elapsed = Date.now() - shownAt;
+		if (elapsed < STABILIZATION_MS) {
+			pendingBlurTimer = setTimeout(
+				() => {
+					pendingBlurTimer = null;
+					if (!document.hasFocus()) {
+						HideWindow();
+					}
+				},
+				STABILIZATION_MS - elapsed + 50
+			);
+			return;
+		}
+
 		HideWindow();
 	}
 
+	function onFocus() {
+		cancelPendingBlur();
+	}
+
+	function onKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			HideWindow();
+		}
+	}
+
 	onMount(() => {
+		onWindowShown();
+
 		const unsubChange = EventsOn('view:change', (view: string) => {
 			if (view === 'popup') {
-				disarm();
-				armAfterDelay(700);
+				onWindowShown();
 			}
 		});
 		const unsubShown = EventsOn('window:shown', (view: string) => {
 			if (view === 'popup') {
-				disarm();
-				armAfterDelay(700);
+				onWindowShown();
 			}
 		});
 
 		window.addEventListener('blur', onBlur);
-		window.addEventListener('focus', () => armAfterDelay(400));
-		window.addEventListener('pointerdown', () => armAfterDelay(300));
+		window.addEventListener('focus', onFocus);
+		window.addEventListener('pointerdown', onFocus);
+		window.addEventListener('keydown', onKeyDown);
 
 		return () => {
-			disarm();
+			cancelPendingBlur();
 			unsubChange();
 			unsubShown();
 			window.removeEventListener('blur', onBlur);
+			window.removeEventListener('focus', onFocus);
+			window.removeEventListener('pointerdown', onFocus);
+			window.removeEventListener('keydown', onKeyDown);
 		};
 	});
 
@@ -92,7 +121,15 @@
 			<img src="/favicon.svg" alt="" class="h-6 w-6" />
 			<span class="text-sm font-semibold">Acerola Agent</span>
 		</div>
-		<AcerolaThemeToggle />
+		<div class="flex items-center gap-1">
+			<AcerolaThemeToggle />
+			<AcerolaButton
+				events={{ onClick: () => HideWindow() }}
+				ui={{ variant: 'ghost', size: 'icon', title: 'Fechar' }}
+			>
+				<XIcon size={16} />
+			</AcerolaButton>
+		</div>
 	</header>
 
 	{#if metrics.latest}
