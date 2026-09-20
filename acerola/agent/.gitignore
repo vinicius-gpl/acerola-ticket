@@ -5,3 +5,6 @@ svelte/package.json.md5
 build/bin/
 *.exe
 *.syso
+
+*storybook.log
+storybook-static

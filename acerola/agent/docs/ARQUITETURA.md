@@ -46,6 +46,28 @@ deixado de fora). Sem SvelteKit — o app tem só duas telas, então o roteament
 adapter da SvelteKit resolveriam um problema que não existe aqui; um Svelte+Vite comum com
 `svelte-spa-router` (2 rotas: `/popup`, `/dashboard`) já basta.
 
+**Layout do dashboard — inspirado no ReUI.** O ReUI (`reui.io`, biblioteca de blocos sobre
+shadcn/ui) organiza dashboard em três camadas: uma faixa de KPIs no topo (valor grande + selo de
+tendência + sparkline inline), gráficos maiores no meio, e uma tabela de ação embaixo. Seguimos
+essa mesma composição (`dashboard.svelte`): CPU/Memória/Rede/Disco como `AcerolaMetricTile` no
+topo, os mesmos quatro como gráficos maiores logo abaixo (com mais contexto — núcleos, volumes de
+disco), e a tabela de processos + inventário por último. A popup usa o mesmo `AcerolaMetricTile`
+das duas telas, só que empilhado numa coluna só (é a versão "de relance", perto da bandeja) —
+outro princípio do ReUI que seguimos: os mesmos tokens de card, cor e componente aparecem em
+qualquer densidade de tela, só a composição muda.
+
+**Storybook + testes de componente.** Cada `acerola-*` tem um `.stories.svelte`
+(`@storybook/addon-svelte-csf`, o mesmo formato do projeto de referência) e um `.test.ts`
+(Vitest + `@testing-library/svelte`), cobrindo pelo menos um caso feliz e um caso limite. O
+`@storybook/addon-vitest` (que rodaria as stories como teste, via Chromium real) ficou de fora —
+baixar o Chromium do Playwright trava por rede neste ambiente (mesmo problema do bootstrap do
+WebView2 — ver "Como o Go fala com o Svelte" acima). `npm run storybook` (revisão visual) e
+`npm test` (Vitest comum, ambiente jsdom) não dependem disso. jsdom não implementa canvas 2D nem
+`Path2D` — `AcerolaSparkline` usa `uPlot`, que precisa dos dois — então
+`svelte/src/test-setup.ts` injeta um `getContext` e um `Path2D` que aceitam qualquer
+chamada como no-op, só pra o componente montar sem lançar exceção (os testes verificam que ele
+monta, não o desenho em si).
+
 **Gráficos — `uPlot`.** Escolhido no lugar de Chart.js porque é ordens de grandeza mais leve
 (~45 KB vs. várias centenas de KB) e feito especificamente pra série temporal de alta frequência
 — exatamente o caso de CPU/RAM/rede/disco atualizando a cada segundo. Chart.js é mais genérico
@@ -167,6 +189,22 @@ realmente aparecer/sumir. Isso tira a thread do systray da equação: ela nunca 
 esperando a janela responder, então não tem como as duas filas de mensagem travarem uma na
 outra.
 
+## Onde a popup e o dashboard aparecem na tela
+
+A popup ancora no canto inferior direito da área útil da tela — onde a bandeja do Windows
+normalmente vive, imitando o flyout nativo de volume/rede/bateria. O dashboard ancora no canto
+inferior esquerdo, do lado oposto, com respiro tanto da borda do monitor quanto da barra de
+tarefas. Isso não é `WindowCenter` nem um valor fixo: é `runtime.WindowSetPosition(ctx, x, y)`
+calculado a partir da **área útil** do monitor principal (`src-go/screen.WorkArea()`).
+
+"Área útil" (a tela inteira menos a barra de tarefas) importa aqui porque o Wails não expõe
+isso — `runtime.ScreenGetAll` só devolve o tamanho total da tela, e usar esse valor pra
+posicionar colocaria a janela por baixo da barra de tarefas. `src-go/screen/workarea.go` chama
+direto a API nativa do Windows (`SystemParametersInfoW` com `SPI_GETWORKAREA`) — a mesma que o
+Explorer usa internamente pra não deixar janela maximizada cobrir a barra de tarefas. Se essa
+chamada falhar por qualquer motivo, cai num retângulo de fallback (1920×1040) em vez de travar o
+app — errar a posição por alguns pixels é bem menos grave que não abrir.
+
 ## Estrutura de pastas
 
 O Wails **exige** que `main.go` e `app.go` fiquem na raiz do projeto — não existe um campo de
@@ -183,6 +221,7 @@ build/               ícones e manifesto do instalador (convenção do Wails)
 src-go/
   metrics/           coleta (gopsutil) + tipos (Snapshot, Inventory) + Broadcaster
   tray/              menu da bandeja, chamando callbacks do app.go
+  screen/            área útil do monitor (SystemParametersInfoW), pra posicionar as janelas
   assets/            ícone da bandeja embutido no binário (.ico)
   cmd/icongen/       ferramenta de build (não roda em produção): SVG → .ico
 svelte/              frontend (Svelte 5 + Vite), ver REAPROVEITAMENTO.md

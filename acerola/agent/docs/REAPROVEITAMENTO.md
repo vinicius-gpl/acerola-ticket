@@ -49,9 +49,13 @@ e um design system publicado; o agente é um utilitário de bandeja com duas tel
 o restante do ferramental teria custo (tempo de instalação, tamanho de `node_modules`,
 complexidade de build) sem benefício real aqui:
 
-- **Storybook, Stryker (mutação), Playwright e2e, WebdriverIO** — infraestrutura de teste/design
-  system pra um app com várias telas e vários contribuidores. Duas telas pequenas não justificam
-  4 ferramentas de teste diferentes.
+- **Stryker (mutação), Playwright e2e, WebdriverIO** — infraestrutura de teste pra um app com
+  várias telas, vários contribuidores e fluxos de usuário completos pra testar de ponta a ponta.
+  O Storybook, ao contrário, **foi trazido** (ver "Storybook + testes de componente" em
+  `ARQUITETURA.md`) — decisão revista depois da primeira versão deste documento: virou exigência
+  do projeto ter revisão visual de componente e teste de componente (feliz/triste) igual ao
+  projeto de referência, então cada `acerola-*` tem `.stories.svelte` (mesmo addon,
+  `@storybook/addon-svelte-csf`) e `.test.ts`.
 - **Paraglide (i18n)** — o agente já nasce só em português; não há tela pra traduzir.
 - **`bits-ui`** — só entra quando um componente shadcn-svelte precisa de primitivo acessível
   complexo por baixo (Dialog, Select, Popover, Command). Botão/card/badge não precisam; se um dia
