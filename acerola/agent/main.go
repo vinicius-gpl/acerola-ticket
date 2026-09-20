@@ -1,4 +1,4 @@
-// Command acerola-agent é o ponto de entrada do app Wails. Wails exige que
+// Command Acerola Agent é o ponto de entrada do app Wails. Wails exige que
 // main.go e app.go fiquem na raiz do projeto — não há como movê-los pra
 // src-go/ (ver docs/ARQUITETURA.md); todo o resto do código Go mora lá.
 package main

@@ -136,7 +136,7 @@ func (app *App) awaitViewReady() {
 	}
 }
 
-// ViewReady é exposto ao frontend (via Bind): App.svelte chama depois de
+// ViewReady é exposto ao frontend (via Bind): app.svelte chama depois de
 // trocar de rota e esperar o navegador pintar o quadro — ver awaitViewReady.
 func (app *App) ViewReady() {
 	select {

@@ -1,7 +1,14 @@
 {
 	"$schema": "https://wails.io/schemas/config.v2.json",
-	"name": "acerola-agent",
-	"outputfilename": "acerola-agent",
+	"name": "Acerola Agent",
+	"outputfilename": "Acerola Agent",
+	"info": {
+		"companyName": "Acerola",
+		"productName": "Acerola Agent",
+		"productVersion": "0.1.0",
+		"copyright": "Copyright 2026 Acerola",
+		"comments": "Acerola Agent"
+	},
 	"frontend:dir": "svelte",
 	"frontend:install": "npm install",
 	"frontend:build": "npm run build",
