@@ -26,7 +26,7 @@ git --version
 ## 2. Instalar
 
 ```bash
-cd template
+cd acerola
 npm install
 ```
 

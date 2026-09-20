@@ -51,7 +51,7 @@ Siga a skill **`git-fluxo`** sempre, sem exceção e sem a pessoa precisar pedir
 
 O contato do suporte está em **`SUPORTE.md`**. Use o que estiver lá; nunca invente.
 
-**Arquivos protegidos** (listas em `template/scripts/git/protected-*.txt`): identidade/login e
+**Arquivos protegidos** (listas em `acerola/scripts/git/protected-*.txt`): identidade/login e
 a base do projeto (regras de lint, tsconfig, hooks, CI, Docker, `CLAUDE.md`, `.claude/`…). Um
 hook do Claude Code bloqueia a edição e o hook do git bloqueia o commit. **Bloqueio não se
 contorna** — nem por `Bash`, nem por outro caminho: ele indica qual skill seguir.
@@ -100,24 +100,24 @@ Antes de começar uma tarefa, veja se há skill para ela em `.claude/skills/` e 
 
 ## Onde fica cada coisa
 
-O sistema fica em **`template/`** (uma pasta abaixo da raiz). Todo comando `npm` roda lá.
+O sistema fica em **`acerola/`** (uma pasta abaixo da raiz). Todo comando `npm` roda lá.
 
 ```
-template/shared/src/{domain,schemas}/        contrato e regra pura
-template/server/src/lib/db/schema/           tabelas (Drizzle, SQLite)
-template/server/src/modules/<feature>/       API
-template/server/drizzle/                     migrations (geradas — não edite à mão)
-template/client/src/routes/                  telas (só composição)
-template/client/src/lib/view-models/         estado e dados das telas
-template/client/src/lib/ui/{primitives,composers}/   componentes
-template/client/src/lib/ui/navigation.ts     menu lateral
-template/scripts/seed/<entidade>/            dados de teste
+acerola/shared/src/{domain,schemas}/        contrato e regra pura
+acerola/server/src/lib/db/schema/           tabelas (Drizzle, SQLite)
+acerola/server/src/modules/<feature>/       API
+acerola/server/drizzle/                     migrations (geradas — não edite à mão)
+acerola/client/src/routes/                  telas (só composição)
+acerola/client/src/lib/view-models/         estado e dados das telas
+acerola/client/src/lib/ui/{primitives,composers}/   componentes
+acerola/client/src/lib/ui/navigation.ts     menu lateral
+acerola/scripts/seed/<entidade>/            dados de teste
 ```
 
 ## Comandos
 
 ```bash
-cd template
+cd acerola
 npm run dev            # API :3333 + tela :5173
 npm run seed:all       # dados de teste (idempotente)
 npm run db:generate    # depois de mudar tabela

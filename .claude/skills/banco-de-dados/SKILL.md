@@ -5,7 +5,7 @@ description: Cria ou muda tabelas do SQLite com Drizzle — arquivo de schema, r
 
 # Banco de dados (SQLite + Drizzle)
 
-Caminhos relativos a `template/`.
+Caminhos relativos a `acerola/`.
 
 ## Como funciona (explique assim para a pessoa, se ela perguntar)
 

@@ -5,7 +5,7 @@ description: Confere se o trabalho está pronto para entregar pelo Definition of
 
 # Verificar
 
-Rode tudo em `template/`. Pare no primeiro vermelho, corrija, e rode de novo desde aquele passo.
+Rode tudo em `acerola/`. Pare no primeiro vermelho, corrija, e rode de novo desde aquele passo.
 **Não diga que está pronto sem ter visto cada passo passar.**
 
 ## 1. Máquina

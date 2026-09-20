@@ -5,12 +5,12 @@
     "source.fixAll.eslint": "explicit"
   },
   "eslint.workingDirectories": [
-    { "directory": "template/shared", "changeProcessCWD": true },
-    { "directory": "template/server", "changeProcessCWD": true },
-    { "directory": "template/client", "changeProcessCWD": true }
+    { "directory": "acerola/shared", "changeProcessCWD": true },
+    { "directory": "acerola/server", "changeProcessCWD": true },
+    { "directory": "acerola/client", "changeProcessCWD": true }
   ],
   "prettier.requireConfig": true,
-  "typescript.tsdk": "template/node_modules/typescript/lib",
+  "typescript.tsdk": "acerola/node_modules/typescript/lib",
   "files.associations": {
     "*.css": "tailwindcss"
   },

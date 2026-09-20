@@ -24,8 +24,8 @@ test-results/
 *.db-shm
 *.db-journal
 
-template/client/src/lib/api/generated/
-template/client/src/routeTree.gen.ts
+acerola/client/src/lib/api/generated/
+acerola/client/src/routeTree.gen.ts
 
 .DS_Store
 Thumbs.db
