@@ -13,10 +13,10 @@ Direção prevista:
 - Autenticação por **token** (não usuário/senha) — um token por agente, provisionado na
   instalação, permite revogar uma máquina sem afetar as outras.
 - Reaproveitar o `metrics.Broadcaster` já existente: o cliente remoto vira só mais um assinante
-  (`Subscribe()`), do mesmo jeito que o painel web e a bandeja já são hoje. Não deve exigir mexer
-  no `Collector`.
-- Intervalo de envio provavelmente mais espaçado que o 1s do painel local (ex: a cada 30s–1min),
-  para não gerar tráfego/custo desnecessário num parque de muitas máquinas.
+  (`Subscribe()`), do mesmo jeito que hoje o `app.go` assina pra repassar ao Svelte
+  (`forwardSnapshots`, ver `ARQUITETURA.md`). Não deve exigir mexer no `Collector`.
+- Intervalo de envio provavelmente mais espaçado que o 1s do dashboard (ex: a cada 30s–1min), para
+  não gerar tráfego/custo desnecessário num parque de muitas máquinas.
 
 ## Persistência local em caso de falha de rede
 

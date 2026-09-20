@@ -7,7 +7,7 @@ Duas categorias, com propósitos diferentes:
   **provisionamento** — decidir o que instalar, dimensionar recursos, identificar o equipamento
   num parque de máquinas.
 - **Métricas ao vivo** (`metrics.Snapshot`): o que muda a cada segundo. Serve para
-  **diagnóstico/observação em tempo real** — só faz sentido no painel web, com histórico.
+  **diagnóstico/observação em tempo real** — só faz sentido no dashboard, com histórico.
 
 ## Inventário (bandeja + card "Inventário" do painel)
 
@@ -26,7 +26,7 @@ Duas categorias, com propósitos diferentes:
 | Uptime / ligado desde | `host.Info()` | Sinal indireto de manutenção pendente (ex: atualização pedindo reinício há dias). |
 
 MAC e IP só consideram a **primeira interface de rede ativa, não-loopback, com endereço IPv4** —
-critério documentado em `internal/metrics/collector.go` (`primaryInterface`). Numa máquina com
+critério documentado em `src-go/metrics/collector.go` (`primaryInterface`). Numa máquina com
 várias interfaces (Wi-Fi + Ethernet + VPN), isso escolhe "a que a máquina está realmente usando
 para ser alcançada na rede", que é o dado útil para provisionamento; não listamos todas as
 interfaces no inventário para não poluir a bandeja com ruído (a lista completa de tráfego por
@@ -36,7 +36,7 @@ Disco total/livre no inventário são a **soma de todas as partições físicas 
 unidades óticas vazias e it. `disk.Partitions(false)` já filtra montagens virtuais). É o número
 que responde "cabe mais alguma coisa nesta máquina?" de forma direta.
 
-## Métricas ao vivo (painel web, `metrics.Snapshot`)
+## Métricas ao vivo (dashboard, `metrics.Snapshot`)
 
 | Métrica | Fonte | Onde aparece |
 |---|---|---|
@@ -54,7 +54,7 @@ calcula `(atual - anterior) / tempo_decorrido` a cada tick do `Broadcaster` — 
 amostra depois de o agente iniciar sempre mostra taxa zero (ainda não há uma amostra anterior para
 comparar).
 
-A lista de processos é limitada a `topProcessCount` (25, definido em `cmd/agent/main.go`),
+A lista de processos é limitada a `topProcessCount` (25, definido em `app.go`),
 ordenada por uso de CPU. Processos que o agente não consegue inspecionar (permissão negada,
 processo que terminou durante a varredura — comum no Windows para processos de sistema) são
 ignorados silenciosamente; isso é esperado, não um erro do agente.
@@ -63,6 +63,6 @@ ignorados silenciosamente; isso é esperado, não um erro do agente.
 
 É a métrica mais cara de coletar (percorre todos os processos do sistema) e a que menos importa
 para "que máquina é essa e como está equipada" — ela responde "o que está rodando agora", uma
-pergunta de diagnóstico, não de inventário. Por isso só o painel web pede processos ao
-`Broadcaster`; a bandeja atualiza os rótulos usando `Broadcaster.Latest()`, que já vem pronto do
-mesmo tick, sem custo extra.
+pergunta de diagnóstico, não de inventário. Por isso o `Broadcaster` sempre coleta os processos
+(quem decide não mostrá-los é a tela: a popup simplesmente não lê `snap.processes`, só o
+dashboard usa) — ver `ARQUITETURA.md` para como o Go entrega esse snapshot ao Svelte.
