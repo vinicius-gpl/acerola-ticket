@@ -1,0 +1,5 @@
+svelte/dist/
+svelte/node_modules/
+svelte/wailsjs/
+build/bin/
+*.exe

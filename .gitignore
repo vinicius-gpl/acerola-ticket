@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+# Exceção: acerola/agent/build/ não é saída de build, é a pasta que o Wails
+# usa por convenção pra ícones e manifesto do instalador — código-fonte.
+!acerola/agent/build/
 coverage/
 reports/
 .vite/
@@ -26,10 +29,6 @@ test-results/
 
 acerola/dashboard/client/src/lib/api/generated/
 acerola/dashboard/client/src/routeTree.gen.ts
-
-# Binários compilados do agente Go — não versionamos build, só o código.
-acerola/agent/*.exe
-acerola/agent/cmd/*/*.exe
 
 .DS_Store
 Thumbs.db
