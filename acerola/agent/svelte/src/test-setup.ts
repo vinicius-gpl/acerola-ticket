@@ -27,6 +27,16 @@ vi.stubGlobal(
 	}))
 );
 
+// AcerolaSparkline observa o próprio container com ResizeObserver pra
+// redimensionar o uPlot quando a janela nasce escondida (ver comentário em
+// acerola-sparkline.svelte) — o jsdom não implementa essa classe.
+class StubResizeObserver {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', StubResizeObserver);
+
 // O uPlot também usa Path2D pra montar os traçados antes de desenhar — o
 // jsdom não implementa essa classe também.
 class StubPath2D {

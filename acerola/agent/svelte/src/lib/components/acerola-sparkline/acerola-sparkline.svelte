@@ -48,11 +48,24 @@
 		);
 	}
 
+	// A janela nasce escondida (StartHidden, ver app.go) — nesse estado o
+	// WebView2 ainda executa o JS, mas o container tem clientWidth 0 (não há
+	// layout de verdade pra medir). Um listener de "resize" da window não
+	// pega esse primeiro ajuste (mostrar a janela não dispara esse evento),
+	// e o uPlot ficava travado num canvas de 1px pra sempre — daí o gráfico
+	// aparecer torto/vazando da margem do card. ResizeObserver, ao
+	// contrário, dispara assim que o elemento observado ganha um tamanho de
+	// verdade (inclusive na primeira vez que a janela é mostrada), então
+	// corrige sozinho tanto esse caso quanto trocas de tela (popup ↔
+	// dashboard).
 	onMount(() => {
 		build();
-		const resize = () => plot?.setSize({ width: container.clientWidth, height: ui?.height ?? 90 });
-		window.addEventListener('resize', resize);
-		return () => window.removeEventListener('resize', resize);
+		const observer = new ResizeObserver((entries) => {
+			const width = entries[0]?.contentRect.width;
+			if (width) plot?.setSize({ width, height: ui?.height ?? 90 });
+		});
+		observer.observe(container);
+		return () => observer.disconnect();
 	});
 
 	// Cores vêm de variáveis CSS; ao trocar de tema, os valores computados
