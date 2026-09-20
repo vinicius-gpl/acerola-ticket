@@ -24,7 +24,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:             "Acerola Agent",
 		Width:             380,
-		Height:            812,
+		Height:            650,
 		MinWidth:          320,
 		MinHeight:         300,
 		Frameless:         true,
