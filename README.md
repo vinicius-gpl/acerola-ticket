@@ -1,7 +1,7 @@
-# Template de MVP
+# acerola-ticket
 
-Um ponto de partida para construir um **MVP** — a primeira versão de um sistema, para validar
-uma ideia com gente de verdade usando — num padrão consistente de código.
+MVP para validar uma ideia com gente de verdade usando, construído a partir de um template de
+código com padrão consistente.
 
 Foi feito para ser usado **com o Claude Code no VS Code**. Você descreve o que o sistema
 precisa fazer, em português; o Claude constrói seguindo as regras deste repositório. As regras
