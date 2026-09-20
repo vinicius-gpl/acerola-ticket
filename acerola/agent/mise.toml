@@ -1,0 +1,31 @@
+[tools]
+go = "1.27.1"
+golangci-lint = "latest"
+
+[tasks.fmt]
+description = "Verifica formatação (gofmt); falha se algum arquivo precisar de ajuste"
+run = "gofmt -l ."
+
+[tasks."fmt:fix"]
+description = "Aplica a formatação (gofmt -w)"
+run = "gofmt -w ."
+
+[tasks.vet]
+description = "go vet — erros que o compilador não pega"
+run = "go vet ./..."
+
+[tasks.lint]
+description = "golangci-lint — linter completo (estilo, bugs comuns, código morto)"
+run = "golangci-lint run ./..."
+
+[tasks.build]
+description = "Compila todos os pacotes"
+run = "go build ./..."
+
+[tasks.run]
+description = "Roda o agente (bandeja + painel web)"
+run = "go run ./cmd/agent"
+
+[tasks.check]
+description = "Tudo que precisa passar antes de considerar o trabalho pronto"
+depends = ["fmt", "vet", "lint", "build"]
