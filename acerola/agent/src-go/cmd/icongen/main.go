@@ -53,11 +53,28 @@ func main() {
 		pngs = append(pngs, buf.Bytes())
 	}
 
+	// Saída .png: só faz sentido com um tamanho só (ex: build/appicon.png,
+	// que o Wails usa como PNG simples, não como .ico com vários tamanhos).
+	if strings.HasSuffix(strings.ToLower(*out), ".png") {
+		writeSinglePNG(*out, sizes, pngs)
+		return
+	}
+
 	if err := writeICO(*out, sizes, pngs); err != nil {
 		log.Fatalf("error writing ico: %v", err)
 	}
 
 	fmt.Printf("generated %s with sizes %v\n", *out, sizes)
+}
+
+func writeSinglePNG(out string, sizes []int, pngs [][]byte) {
+	if len(pngs) != 1 {
+		log.Fatal("saída .png exige exatamente um tamanho em -sizes")
+	}
+	if err := os.WriteFile(out, pngs[0], 0o644); err != nil {
+		log.Fatalf("error writing png: %v", err)
+	}
+	fmt.Printf("generated %s at %dpx\n", out, sizes[0])
 }
 
 func parseSizes(raw string) ([]int, error) {
