@@ -8,6 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/metrics"
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
 )
 
@@ -16,10 +17,14 @@ const (
 	topProcessCount = 25
 
 	popupWidth  = 340
-	popupHeight = 420
+	popupHeight = 480
 
 	dashboardWidth  = 1100
 	dashboardHeight = 720
+
+	// Espaço entre a janela e a borda da área útil da tela (ou a barra de
+	// tarefas) — sem isso a janela ficaria colada no monitor/na barra.
+	screenMargin = 16
 )
 
 // App é o struct que o Wails expõe pro frontend (via Bind) e que guarda o
@@ -103,21 +108,34 @@ func (a *App) dispatch(action func(context.Context)) {
 }
 
 // ShowPopup é a ação do clique esquerdo na bandeja: encolhe a janela pro
-// tamanho de popup e mostra.
+// tamanho de popup e mostra ancorada no canto inferior direito da área útil
+// da tela — onde a bandeja do Windows normalmente vive — como um flyout de
+// volume/rede/bateria do próprio sistema.
 func (a *App) ShowPopup() {
 	a.dispatch(func(ctx context.Context) {
 		runtime.WindowSetSize(ctx, popupWidth, popupHeight)
+		waX, waY, waW, waH := screen.WorkArea()
+		runtime.WindowSetPosition(ctx,
+			waX+waW-popupWidth-screenMargin,
+			waY+waH-popupHeight-screenMargin,
+		)
 		runtime.EventsEmit(ctx, "view:change", "popup")
 		runtime.WindowShow(ctx)
 	})
 }
 
 // ShowDashboard é a ação do item "Abrir Dashboard" no menu da bandeja:
-// redimensiona pro tamanho cheio, centraliza e mostra.
+// redimensiona pro tamanho cheio e ancora no canto inferior esquerdo da
+// área útil da tela — do lado oposto da bandeja, sem cobrir a barra de
+// tarefas nem ficar colado na borda do monitor.
 func (a *App) ShowDashboard() {
 	a.dispatch(func(ctx context.Context) {
 		runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
-		runtime.WindowCenter(ctx)
+		waX, waY, _, waH := screen.WorkArea()
+		runtime.WindowSetPosition(ctx,
+			waX+screenMargin,
+			waY+waH-dashboardHeight-screenMargin,
+		)
 		runtime.EventsEmit(ctx, "view:change", "dashboard")
 		runtime.WindowShow(ctx)
 	})
