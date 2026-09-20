@@ -34,6 +34,14 @@ run = "npm run test --prefix svelte"
 description = "Typecheck do frontend (svelte-check)"
 run = "npm run check --prefix svelte"
 
+[tasks."frontend:storybook"]
+description = "Sobe o Storybook (revisão visual dos componentes)"
+run = "npm run storybook --prefix svelte"
+
+[tasks."frontend:storybook:build"]
+description = "Build estático do Storybook — valida que todas as stories compilam"
+run = "npm run build-storybook --prefix svelte"
+
 [tasks.build]
 description = "Build de produção via Wails (gera o .exe final)"
 run = "wails build"
@@ -52,6 +60,7 @@ depends = [
 	"frontend:lint",
 	"frontend:check",
 	"frontend:test",
+	"frontend:storybook:build",
 	"build"
 ]
 
