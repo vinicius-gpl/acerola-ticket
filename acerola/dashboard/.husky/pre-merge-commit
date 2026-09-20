@@ -1,0 +1,1 @@
+sh acerola/dashboard/scripts/git/branch-guard.sh merge

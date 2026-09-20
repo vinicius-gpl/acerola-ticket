@@ -1,5 +1,5 @@
 /**
- * A MESMA TRAVA do git (`acerola/scripts/git/branch-guard.sh`), só que ANTES de o Claude
+ * A MESMA TRAVA do git (`acerola/dashboard/scripts/git/branch-guard.sh`), só que ANTES de o Claude
  * escrever — para ele não passar uma hora mexendo num arquivo que o commit vai recusar.
  *
  * Roda como hook `PreToolUse` do Claude Code:
@@ -7,7 +7,7 @@
  *    estrutura do projeto;
  *  - em Bash: recusa instalar biblioteca de login (`npm install passport`…).
  *
- * As listas são as mesmas do hook do git (`acerola/scripts/git/protected-*.txt`): um lugar só.
+ * As listas são as mesmas do hook do git (`acerola/dashboard/scripts/git/protected-*.txt`): um lugar só.
  * Quem administra (`git config project.admin true`) não é barrado.
  *
  * Saída 2 = bloqueia, e o texto do stderr volta para o Claude como motivo — é ele que manda o
@@ -18,7 +18,7 @@ import { readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
-const LISTS_DIR = join(PROJECT_DIR, 'acerola', 'scripts', 'git');
+const LISTS_DIR = join(PROJECT_DIR, 'acerola', 'dashboard', 'scripts', 'git');
 
 function readPatterns(file) {
   try {

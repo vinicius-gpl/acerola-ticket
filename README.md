@@ -51,7 +51,7 @@ Em seguida, peça **`/renomear-projeto`** para o nome do seu MVP aparecer nas te
 <summary>Prefere fazer à mão? São quatro comandos.</summary>
 
 ```bash
-cd acerola             # o sistema fica uma pasta abaixo da raiz
+cd acerola/dashboard             # o sistema fica uma pasta abaixo da raiz
 npm install            # baixa as dependências (demora alguns minutos na primeira vez)
 npm run seed:all       # cria o banco e grava os dados de teste
 npm run dev            # sobe o sistema
@@ -103,53 +103,54 @@ chamar pelo nome, com `/`:
 ## Estrutura
 
 A raiz do repositório só guarda documentação e configuração de equipe. O sistema inteiro vive
-em `acerola/`.
+em `acerola/dashboard/`.
 
 ```
-acerola-ticket/                        # raiz do repositório git
-├── README.md · CONTRIBUTING.md        # para pessoas
-├── CLAUDE.md                          # para o Claude
-├── .claude/skills/                    # as receitas do Claude
-├── .github/                           # CI e modelo de PR
-├── .vscode/                           # configuração e extensões recomendadas
+acerola-ticket/                            # raiz do repositório git
+├── README.md · CONTRIBUTING.md            # para pessoas
+├── CLAUDE.md                              # para o Claude
+├── .claude/skills/                        # as receitas do Claude
+├── .github/                               # CI e modelo de PR
+├── .vscode/                               # configuração e extensões recomendadas
 │
-└── acerola/                           # o sistema — "npm install" roda aqui
-    ├── package.json                   # workspaces: shared, server, client
-    │
-    ├── shared/                        # @template/shared — o CONTRATO entre API e tela
-    │   └── src/
-    │       ├── domain/                # regra de negócio pura (testável sem nada)
-    │       └── schemas/               # schemas Zod: validação na API e no formulário
-    │
-    ├── server/                        # API NestJS
-    │   ├── drizzle/                   # migrations versionadas (geradas)
-    │   ├── data/                      # o arquivo SQLite (NÃO versionado)
-    │   ├── test/                      # E2E da API
-    │   └── src/
-    │       ├── modules/<feature>/     # controller/ service/ repository/ mapper/ dto/
-    │       └── lib/
-    │           ├── auth/              # identidade (mock) + guard de papel
-    │           ├── config/            # variáveis de ambiente (Zod)
-    │           ├── db/                # SQLite, tabelas Drizzle, tradução de erro
-    │           ├── http/              # formato único de erro
-    │           └── policy/            # quem pode o quê
-    │
-    ├── client/                        # tela React
-    │   ├── e2e/                       # E2E da web (Playwright)
-    │   └── src/
-    │       ├── routes/                # uma pasta por tela — só composição
-    │       └── lib/
-    │           ├── vendor/ui/         # ⛔ componentes baixados do shadcn — não se edita
-    │           ├── ui/primitives/     # nossos componentes indivisíveis
-    │           ├── ui/composers/      # nossos componentes compostos (telas)
-    │           ├── ui/navigation.ts   # o menu lateral
-    │           ├── view-models/       # estado e dados de cada tela — zero JSX
-    │           ├── api/               # chamadas à API
-    │           ├── theme/tokens.css   # cores e tipografia da marca
-    │           └── brand/             # nome do projeto na barra lateral
-    │
-    ├── scripts/seed/<entidade>/       # dados de teste versionados
-    └── docker/                        # uma imagem: API + tela na mesma porta
+└── acerola/
+    └── dashboard/                         # o sistema — "npm install" roda aqui
+        ├── package.json                   # workspaces: shared, server, client
+        │
+        ├── shared/                        # @template/shared — o CONTRATO entre API e tela
+        │   └── src/
+        │       ├── domain/                # regra de negócio pura (testável sem nada)
+        │       └── schemas/               # schemas Zod: validação na API e no formulário
+        │
+        ├── server/                        # API NestJS
+        │   ├── drizzle/                   # migrations versionadas (geradas)
+        │   ├── data/                      # o arquivo SQLite (NÃO versionado)
+        │   ├── test/                      # E2E da API
+        │   └── src/
+        │       ├── modules/<feature>/     # controller/ service/ repository/ mapper/ dto/
+        │       └── lib/
+        │           ├── auth/              # identidade (mock) + guard de papel
+        │           ├── config/            # variáveis de ambiente (Zod)
+        │           ├── db/                # SQLite, tabelas Drizzle, tradução de erro
+        │           ├── http/              # formato único de erro
+        │           └── policy/            # quem pode o quê
+        │
+        ├── client/                        # tela React
+        │   ├── e2e/                       # E2E da web (Playwright)
+        │   └── src/
+        │       ├── routes/                # uma pasta por tela — só composição
+        │       └── lib/
+        │           ├── vendor/ui/         # ⛔ componentes baixados do shadcn — não se edita
+        │           ├── ui/primitives/     # nossos componentes indivisíveis
+        │           ├── ui/composers/      # nossos componentes compostos (telas)
+        │           ├── ui/navigation.ts   # o menu lateral
+        │           ├── view-models/       # estado e dados de cada tela — zero JSX
+        │           ├── api/               # chamadas à API
+        │           ├── theme/tokens.css   # cores e tipografia da marca
+        │           └── brand/             # nome do projeto na barra lateral
+        │
+        ├── scripts/seed/<entidade>/       # dados de teste versionados
+        └── docker/                        # uma imagem: API + tela na mesma porta
 ```
 
 ---
@@ -182,7 +183,7 @@ não reescrever o sistema.
 
 ## Comandos
 
-Todos rodam dentro de `acerola/`:
+Todos rodam dentro de `acerola/dashboard/`:
 
 | Comando | O que faz |
 |---|---|
@@ -202,7 +203,7 @@ Todos rodam dentro de `acerola/`:
 ### Docker
 
 ```bash
-cd acerola
+cd acerola/dashboard
 docker compose -f docker/compose.yml up --build
 ```
 
@@ -300,7 +301,7 @@ git config project.admin true
 A chave fica só no `.git/config` do seu clone — não é versionada e não libera mais ninguém.
 Ela libera as duas travas: o hook do git e o hook do Claude Code.
 
-As listas do que é protegido ficam em `acerola/scripts/git/protected-*.txt` (§17 do
+As listas do que é protegido ficam em `acerola/dashboard/scripts/git/protected-*.txt` (§17 do
 CONTRIBUTING).
 
 No GitHub, proteja a `main` (o hook local não pega merge *fast-forward*, e quem tem o clone

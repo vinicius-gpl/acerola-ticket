@@ -13,7 +13,7 @@ Crie uma branch: `feature/remove-tasks-example` (`git-fluxo`).
 
 ## 1. Apagar
 
-Relativo a `acerola/`:
+Relativo a `acerola/dashboard/`:
 
 ```
 shared/src/domain/task-status.util.ts (+ .test.ts)
@@ -44,7 +44,7 @@ client/e2e/tasks.e2e.ts
   de `foreign_keys` e o de `resolveDatabaseFile`; troque o de migration por um que confira que
   `openDatabase(':memory:')` abre sem erro (ou use a tabela da feature nova).
 - `scripts/seed/seed-all.ts` — tirar `seedTasks` e o `report`.
-- `acerola/package.json` — tirar `seed:tasks`.
+- `acerola/dashboard/package.json` — tirar `seed:tasks`.
 - `client/src/lib/ui/navigation.ts` — tirar o item `tasks`.
 - `client/src/routes/index.tsx` — redirecionar para a tela principal nova (ou mostrar um
   `EmptyState` de boas-vindas se ainda não houver nenhuma).

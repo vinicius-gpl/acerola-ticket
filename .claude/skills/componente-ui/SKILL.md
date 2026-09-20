@@ -40,7 +40,7 @@ Dá para resolver com `ui` ou composição de existentes? Faça isso em vez de c
 ## 3. Precisa de componente do shadcn?
 
 ```bash
-cd acerola/client
+cd acerola/dashboard/dashboard/client
 npx shadcn@latest add <nome>
 ```
 
@@ -80,7 +80,7 @@ Select do Radix: use `fireEvent.click` para abrir e escolher (o `userEvent` trav
 ## 7. Verificar
 
 ```bash
-cd acerola
+cd acerola/dashboard
 npx vitest run --root client src/lib/ui/<pasta>/<nome>
 npm run lint -w client
 npm run typecheck -w client

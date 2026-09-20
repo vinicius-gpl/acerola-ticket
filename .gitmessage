@@ -20,11 +20,11 @@
 #   chore     manutenção que não cabe acima
 #
 # LOCAL
-#   backend    acerola/server/
-#   web        acerola/client/
-#   db         acerola/server/drizzle/, lib/db/ e acerola/scripts/seed/
-#   contracts  acerola/shared/
-#   docker     acerola/docker/
+#   backend    acerola/dashboard/server/
+#   web        acerola/dashboard/client/
+#   db         acerola/dashboard/server/drizzle/, lib/db/ e acerola/dashboard/scripts/seed/
+#   contracts  acerola/dashboard/shared/
+#   docker     acerola/dashboard/docker/
 #   ci         .github/
 #   docs       .md na raiz
 #   deps       atualização de dependência
