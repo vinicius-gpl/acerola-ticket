@@ -8,6 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/metrics"
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
 )
 
 const (
@@ -38,7 +39,12 @@ func NewApp() *App {
 }
 
 // startup é chamado pelo Wails quando a janela (ainda escondida) fica
-// pronta. É aqui que guardamos o ctx e ligamos a coleta de métricas.
+// pronta — mas não durante a geração de bindings (`wails build` compila e
+// roda o próprio binário com a tag "bindings" pra descobrir os métodos
+// expostos; o pacote wails garante que OnStartup não é chamado nesse modo).
+// É por isso que a bandeja nasce aqui dentro, e não em main(): se
+// tray.Run — que bloqueia esperando clique — rodasse incondicionalmente em
+// main(), o processo de geração de bindings nunca terminaria.
 func (a *App) startup(ctx context.Context) {
 	a.mu.Lock()
 	a.ctx = ctx
@@ -46,6 +52,11 @@ func (a *App) startup(ctx context.Context) {
 
 	go a.broadcaster.Run(ctx)
 	go a.forwardSnapshots(ctx)
+	go tray.Run(tray.Callbacks{
+		ShowPopup:     a.ShowPopup,
+		ShowDashboard: a.ShowDashboard,
+		Quit:          a.Quit,
+	})
 }
 
 // forwardSnapshots assina o broadcaster e empurra cada leitura pro frontend

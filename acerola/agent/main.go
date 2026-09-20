@@ -9,8 +9,6 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-
-	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
 )
 
 //go:embed all:svelte/dist
@@ -19,37 +17,25 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 
-	// wails.Run bloqueia a goroutine em que roda — tanto ele quanto o
-	// systray travam sua própria thread do sistema operacional por dentro,
-	// então cada um numa goroutine funciona sem os dois brigarem pela
-	// mesma janela de mensagens do Windows (ver docs/ARQUITETURA.md).
-	go func() {
-		// A janela some ao perder o foco (ver svelte/src/views/popup) e volta
-		// via clique na bandeja — nunca fecha o processo sozinha: nasce
-		// escondida, e HideWindowOnClose faz até o Alt+F4/clique no X só
-		// esconder. Quem encerra de fato é "Sair" no menu da bandeja.
-		err := wails.Run(&options.App{
-			Title:             "Acerola Agent",
-			Width:             340,
-			Height:            420,
-			MinWidth:          320,
-			MinHeight:         300,
-			Frameless:         true,
-			StartHidden:       true,
-			HideWindowOnClose: true,
-			BackgroundColour:  &options.RGBA{R: 30, G: 30, B: 46, A: 1}, // catppuccin mocha --base
-			AssetServer:       &assetserver.Options{Assets: assets},
-			OnStartup:         app.startup,
-			Bind:              []interface{}{app},
-		})
-		if err != nil {
-			println("Error:", err.Error())
-		}
-	}()
-
-	tray.Run(tray.Callbacks{
-		ShowPopup:     app.ShowPopup,
-		ShowDashboard: app.ShowDashboard,
-		Quit:          app.Quit,
+	// A janela some ao perder o foco (ver svelte/src/views/popup) e volta via
+	// clique na bandeja — nunca fecha o processo sozinha: nasce escondida, e
+	// HideWindowOnClose faz até o Alt+F4/clique no X só esconder. Quem
+	// encerra de fato é "Sair" no menu da bandeja (ver app.go, startup).
+	err := wails.Run(&options.App{
+		Title:             "Acerola Agent",
+		Width:             340,
+		Height:            420,
+		MinWidth:          320,
+		MinHeight:         300,
+		Frameless:         true,
+		StartHidden:       true,
+		HideWindowOnClose: true,
+		BackgroundColour:  &options.RGBA{R: 30, G: 30, B: 46, A: 1}, // catppuccin mocha --base
+		AssetServer:       &assetserver.Options{Assets: assets},
+		OnStartup:         app.startup,
+		Bind:              []interface{}{app},
 	})
+	if err != nil {
+		println("Error:", err.Error())
+	}
 }
