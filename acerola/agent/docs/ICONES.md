@@ -48,10 +48,19 @@ de SVG que ele nunca usa em produção.
 
 ```bash
 cd acerola/agent
-go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.ico -sizes 16,32,48,256
+go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.ico -sizes 16,32,48,256 -zoom 1.2
 cp icons/tray.ico src-go/assets/tray.ico     # cópia embutida no binário — ver ARQUITETURA.md
 cp icons/tray.ico build/windows/icon.ico     # ícone do .exe e do instalador (convenção do Wails)
 ```
+
+**`-zoom 1.2`**: a arte de origem tem uma margem de respiro ao redor da fruta (comum em ícones
+pensados como "foreground" de ícone adaptativo — o sistema operacional normalmente aplica uma
+máscara e escala por cima). Em 256px essa margem passa despercebida, mas reduzida pra 16×16 na
+bandeja do Windows ela faz a fruta parecer pequena dentro do quadro, perto de ícones de outros
+apps que preenchem o espaço todo. `-zoom` desenha o SVG 20% maior que o quadro e centralizado,
+cortando essa margem nas bordas — implementado em `rasterize()` (`icongen/main.go`) ajustando o
+retângulo de destino do `oksvg` pra ficar maior que o canvas final, então parte do desenho cai
+fora e é naturalmente recortada pelo tamanho do `image.RGBA`.
 
 `build/appicon.png` (usado por algumas etapas de empacotamento do Wails) é gerado à parte, a
 partir de `ic_launcher.svg` (a versão com fundo — é o app inteiro, não o ícone da bandeja), numa
@@ -64,4 +73,6 @@ extra).
 
 O redimensionamento preserva a proporção do `viewBox` original (1254×1254, quadrado) e usa fundo
 transparente fora da arte — não há necessidade de letterboxing aqui porque a arte de origem já é
-quadrada.
+quadrada. `build/appicon.png` e o favicon do painel (que usam `ic_launcher.svg`, a versão com
+fundo) não passam por `-zoom`: ali a margem ao redor da fruta é intencional, o fundo preenche o
+quadro todo.

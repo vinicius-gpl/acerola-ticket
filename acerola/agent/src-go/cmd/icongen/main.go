@@ -26,10 +26,11 @@ func main() {
 	src := flag.String("src", "", "caminho do arquivo .svg de origem")
 	out := flag.String("out", "", "caminho do arquivo .ico de destino")
 	sizesFlag := flag.String("sizes", "16,32,48,256", "tamanhos (px) a incluir no .ico, separados por vírgula")
+	zoom := flag.Float64("zoom", 1.0, "fator de ampliação da arte dentro do quadro (1.2 = +20%, corta a margem)")
 	flag.Parse()
 
 	if *src == "" || *out == "" {
-		log.Fatal("usage: icongen -src file.svg -out file.ico [-sizes 16,32,48,256]")
+		log.Fatal("usage: icongen -src file.svg -out file.ico [-sizes 16,32,48,256] [-zoom 1.0]")
 	}
 
 	sizes, err := parseSizes(*sizesFlag)
@@ -44,7 +45,7 @@ func main() {
 
 	var pngs [][]byte
 	for _, size := range sizes {
-		img := rasterize(icon, size)
+		img := rasterize(icon, size, *zoom)
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, img); err != nil {
 			log.Fatalf("error encoding png %dx%d: %v", size, size, err)
@@ -81,10 +82,15 @@ func loadSVG(path string) (*oksvg.SvgIcon, error) {
 	return oksvg.ReadIconStream(file)
 }
 
-// rasterize desenha o SVG num quadrado size x size, preservando a proporção
-// original e centralizando (letterboxing) quando o viewBox não é quadrado.
-func rasterize(icon *oksvg.SvgIcon, size int) image.Image {
-	icon.SetTarget(0, 0, float64(size), float64(size))
+// rasterize desenha o SVG num quadrado size x size. Com zoom > 1, o viewBox
+// é desenhado maior que o quadro e centralizado, cortando a margem externa
+// — útil quando a arte de origem tem espaço de respiro ao redor (comum em
+// ícones pensados pra sistemas de ícone adaptativo) e por isso parece
+// pequena demais depois de reduzida pra 16x16/32x32 da bandeja.
+func rasterize(icon *oksvg.SvgIcon, size int, zoom float64) image.Image {
+	scaled := float64(size) * zoom
+	offset := (scaled - float64(size)) / 2
+	icon.SetTarget(-offset, -offset, scaled, scaled)
 	rgba := image.NewRGBA(image.Rect(0, 0, size, size))
 	draw.Draw(rgba, rgba.Bounds(), image.Transparent, image.Point{}, draw.Src)
 	scanner := rasterx.NewScannerGV(size, size, rgba, rgba.Bounds())
