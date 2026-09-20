@@ -1,22 +1,41 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 	import { useMetrics } from '$lib/metrics/store.svelte';
 	import { bytes, percent, uptime } from '$lib/utils/format';
 	import { HideWindow } from '../../../wailsjs/go/main/App';
+	import { EventsOn } from '../../../wailsjs/runtime/runtime';
 
 	const metrics = useMetrics();
+
+	// O Windows não dá foco garantido a uma janela que estava escondida só
+	// porque chamamos WindowShow — é comum ela receber um foco/blur espúrio
+	// logo na hora de aparecer, o que fechava a popup na mesma hora que
+	// abria. Por isso ignoramos qualquer blur que aconteça logo depois de um
+	// "view:change" pra "popup" (o Go emite esse evento toda vez que
+	// ShowPopup roda, mesmo que a rota já fosse essa).
+	const BLUR_GRACE_MS = 300;
+	let shownAt = 0;
 
 	// "Fecha ao perder foco": o WebView2 dispara blur no `window` do DOM
 	// quando a janela nativa perde o foco — não precisa de nenhuma API
 	// extra do Wails pra detectar isso.
 	function onBlur() {
+		if (Date.now() - shownAt < BLUR_GRACE_MS) return;
 		HideWindow();
 	}
 
-	onMount(() => window.addEventListener('blur', onBlur));
-	onDestroy(() => window.removeEventListener('blur', onBlur));
+	onMount(() => {
+		const unsubscribe = EventsOn('view:change', (view: string) => {
+			if (view === 'popup') shownAt = Date.now();
+		});
+		window.addEventListener('blur', onBlur);
+		return () => {
+			unsubscribe();
+			window.removeEventListener('blur', onBlur);
+		};
+	});
 </script>
 
 <div
