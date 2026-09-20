@@ -29,12 +29,14 @@ type App struct {
 	mu          sync.RWMutex
 	ctx         context.Context
 	broadcaster *metrics.Broadcaster
+	actions     chan func(context.Context)
 }
 
 func NewApp() *App {
 	collector := metrics.New()
 	return &App{
 		broadcaster: metrics.NewBroadcaster(collector, sampleInterval, topProcessCount),
+		actions:     make(chan func(context.Context), 4),
 	}
 }
 
@@ -52,6 +54,7 @@ func (a *App) startup(ctx context.Context) {
 
 	go a.broadcaster.Run(ctx)
 	go a.forwardSnapshots(ctx)
+	go a.runActions(ctx)
 	go tray.Run(tray.Callbacks{
 		ShowPopup:     a.ShowPopup,
 		ShowDashboard: a.ShowDashboard,
@@ -76,53 +79,64 @@ func (a *App) forwardSnapshots(ctx context.Context) {
 	}
 }
 
-func (a *App) context() (context.Context, bool) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	return a.ctx, a.ctx != nil
+// runActions executa as ações de janela (mostrar, esconder, redimensionar)
+// sempre nesta mesma goroutine neutra — nunca na goroutine que despacha o
+// clique da bandeja. O systray trava sua própria thread do sistema
+// operacional pra bombear mensagens nativas do Windows (ver
+// docs/ARQUITETURA.md); chamar uma função do runtime do Wails direto dali
+// arrisca um deadlock entre a fila de mensagens do systray e a da janela.
+// Por isso ShowPopup/ShowDashboard/Quit só mandam uma função pra este canal
+// — quem clicou nunca espera a ação terminar.
+func (a *App) runActions(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case action := <-a.actions:
+			action(ctx)
+		}
+	}
+}
+
+func (a *App) dispatch(action func(context.Context)) {
+	a.actions <- action
 }
 
 // ShowPopup é a ação do clique esquerdo na bandeja: encolhe a janela pro
 // tamanho de popup e mostra.
 func (a *App) ShowPopup() {
-	ctx, ok := a.context()
-	if !ok {
-		return // clique chegou antes do startup terminar; não deveria acontecer na prática
-	}
-	runtime.WindowSetSize(ctx, popupWidth, popupHeight)
-	runtime.EventsEmit(ctx, "view:change", "popup")
-	runtime.WindowShow(ctx)
+	a.dispatch(func(ctx context.Context) {
+		runtime.WindowSetSize(ctx, popupWidth, popupHeight)
+		runtime.EventsEmit(ctx, "view:change", "popup")
+		runtime.WindowShow(ctx)
+	})
 }
 
 // ShowDashboard é a ação do item "Abrir Dashboard" no menu da bandeja:
 // redimensiona pro tamanho cheio, centraliza e mostra.
 func (a *App) ShowDashboard() {
-	ctx, ok := a.context()
-	if !ok {
-		return
-	}
-	runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
-	runtime.WindowCenter(ctx)
-	runtime.EventsEmit(ctx, "view:change", "dashboard")
-	runtime.WindowShow(ctx)
+	a.dispatch(func(ctx context.Context) {
+		runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
+		runtime.WindowCenter(ctx)
+		runtime.EventsEmit(ctx, "view:change", "dashboard")
+		runtime.WindowShow(ctx)
+	})
 }
 
 // Quit é a ação do item "Sair" no menu da bandeja: encerra o processo de
-// verdade (diferente de fechar a janela, que só esconde — ver main.go).
+// verdade (diferente de esconder a janela — ver main.go e HideWindow).
 func (a *App) Quit() {
-	ctx, ok := a.context()
-	if !ok {
-		return
-	}
-	runtime.Quit(ctx)
+	a.dispatch(func(ctx context.Context) {
+		runtime.Quit(ctx)
+	})
 }
 
-// HidePopup é exposto ao frontend (via Bind) para a view popup chamar
-// quando perde o foco — "fecha ao perder foco" do pedido original.
-func (a *App) HidePopup() {
-	ctx, ok := a.context()
-	if !ok {
-		return
-	}
-	runtime.WindowHide(ctx)
+// HideWindow é exposto ao frontend (via Bind): a popup chama ao perder o
+// foco ("fecha ao perder foco" do pedido original), e o dashboard chama
+// pelo próprio botão de fechar — a janela não tem moldura nativa, então não
+// existe um X do Windows pra isso (ver docs/ARQUITETURA.md).
+func (a *App) HideWindow() {
+	a.dispatch(func(ctx context.Context) {
+		runtime.WindowHide(ctx)
+	})
 }

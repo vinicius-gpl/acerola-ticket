@@ -66,7 +66,8 @@ O Wails resolve esse transporte nativamente:
   ele empurra pro frontend via evento nativo.
 - **Svelte → Go**: métodos do struct `App` (`app.go`) expostos via `Bind` no `wails.Run(...)`
   viram funções JS chamáveis diretamente (`svelte/wailsjs/go/main/App.js`, gerado pelo próprio
-  Wails). A popup usa isso pra pedir `HidePopup()` quando perde o foco.
+  Wails). A popup chama `HideWindow()` ao perder o foco, e o dashboard chama o mesmo método pelo
+botão de fechar do próprio cabeçalho.
 
 ```
 Collector (gopsutil)
@@ -113,19 +114,58 @@ resolveu — ali ela só roda quando o app está realmente abrindo uma janela de
 
 `fyne.io/systray` e o Wails cada um trava a própria goroutine numa thread do sistema operacional
 por dentro (`runtime.LockOSThread()` — confirmado lendo `systray.go:37` e `winc/app.go:23` do
-Wails), então não importa que a bandeja rode numa goroutine disparada de dentro do `OnStartup` em
-vez de `main()`: cada um continua com sua própria janela/loop de mensagens do Windows, sem
-brigar pela mesma fila.
+Wails), então a bandeja rodar numa goroutine disparada de dentro do `OnStartup` em vez de
+`main()` não muda o fato de que cada um cria sua própria janela/loop de mensagens do Windows.
 
 A janela do Wails nasce **escondida** (`StartHidden: true`) e só aparece quando a bandeja pede
 (clique esquerdo → popup, "Abrir Dashboard" no menu → dashboard). Fechar a janela (Alt+F4, X)
 não encerra o processo — só esconde (`HideWindowOnClose: true`); quem encerra de verdade é
 "Sair" no menu da bandeja.
 
+`Frameless: true` tira toda a moldura nativa do Windows — sem barra de título, sem X, sem sombra
+do sistema. Isso é proposital pra popup (é uma "telinha" que aparece perto da bandeja, não uma
+janela de verdade), mas o Wails só tem uma opção de moldura pra janela inteira, então o dashboard
+herda a mesma ausência de moldura. Por isso o dashboard tem seu próprio botão de fechar
+(`XIcon`, no cabeçalho, chamando `HideWindow()`) e ambas as views desenham borda + sombra via CSS
+(`border`, `shadow-2xl` em `popup.svelte`/`dashboard.svelte`) — sem isso a janela ficaria um
+retângulo sem contorno nenhum flutuando sobre o desktop. `[data-drag-region]` (mapeado pra
+`--wails-draggable: drag` em `tailwind.css`) é o que permite arrastar a janela pelo cabeçalho, já
+que não existe barra de título nativa pra isso.
+
 No Windows, clique esquerdo e direito no ícone da bandeja já chegam como eventos distintos no
 `systray` (`WM_LBUTTONUP`/`WM_RBUTTONUP`, verificado em `systray_windows.go`). Por isso a tray só
 registra `SetOnTapped` (clique esquerdo → mostra a popup); sem um handler pro clique direito, o
 próprio systray mostra o menu de texto nativo — não precisamos montar esse comportamento na mão.
+
+## Por que nenhum clique da bandeja chama `runtime.*` diretamente
+
+Testando de verdade (`wails build` gerando o `.exe` e rodando), o clique na bandeja **travava o
+app inteiro** — a janela não abria e nem outros cliques respondiam mais, ficando só o ícone
+parado. A causa: `SetOnTapped(a.ShowPopup)` registra `ShowPopup` pra rodar **direto na thread do
+systray**, a mesma que bombeia `WM_LBUTTONUP`/`WM_RBUTTONUP` — e `ShowPopup` chamava
+`runtime.WindowShow` (e outras funções do pacote `runtime` do Wails) ali mesmo, síncrono. Duas
+janelas nativas diferentes, cada uma com sua própria fila de mensagens travada numa thread só
+sua (a do parágrafo acima) — uma chamando direto na fila da outra e esperando resposta é receita
+pra deadlock entre as duas.
+
+A correção (`app.go`) foi nunca deixar o código dependurado num clique de bandeja tocar
+`runtime.*` diretamente. Existe um canal (`App.actions`) e uma goroutine própria,
+`runActions`, iniciada no `OnStartup` — a única que efetivamente chama `runtime.WindowShow`,
+`WindowSetSize`, `EventsEmit` etc.:
+
+```go
+func (a *App) ShowPopup() {
+    a.dispatch(func(ctx context.Context) {
+        runtime.WindowShow(ctx) // só executa dentro de runActions
+    })
+}
+```
+
+`ShowPopup`/`ShowDashboard`/`Quit` (chamadas pela bandeja) e `HideWindow` (chamada pelo Svelte,
+ver abaixo) só empilham uma função no canal e retornam na hora — nunca esperam a janela
+realmente aparecer/sumir. Isso tira a thread do systray da equação: ela nunca fica bloqueada
+esperando a janela responder, então não tem como as duas filas de mensagem travarem uma na
+outra.
 
 ## Estrutura de pastas
 
