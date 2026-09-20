@@ -10,6 +10,7 @@
 		"checkJs": true,
 		"isolatedModules": true,
 		"strict": true,
+		"skipLibCheck": true,
 		"paths": {
 			"$lib": ["./src/lib"],
 			"$lib/*": ["./src/lib/*"]

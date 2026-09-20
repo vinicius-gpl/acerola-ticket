@@ -1,32 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FakeStorage } from '../../test-utils/fake-storage';
 
 const STORAGE_KEY = 'acerola-agent-theme';
-
-// O jsdom/Node desta máquina expõe um `localStorage` global quebrado (sem
-// `.clear()`, por conta do backend experimental de webstorage do Node 25 —
-// não é algo deste projeto). Um Storage falso e simples, sob nosso controle,
-// evita depender desse detalhe de ambiente.
-class FakeStorage implements Storage {
-	private store = new Map<string, string>();
-	get length() {
-		return this.store.size;
-	}
-	clear() {
-		this.store.clear();
-	}
-	getItem(key: string) {
-		return this.store.get(key) ?? null;
-	}
-	setItem(key: string, value: string) {
-		this.store.set(key, value);
-	}
-	removeItem(key: string) {
-		this.store.delete(key);
-	}
-	key(index: number) {
-		return Array.from(this.store.keys())[index] ?? null;
-	}
-}
 
 async function freshTheme() {
 	// O módulo guarda o tema num $state no escopo do módulo, então cada teste
