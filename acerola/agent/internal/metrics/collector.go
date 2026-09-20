@@ -14,9 +14,9 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 )
 
-// Collector keeps the small amount of state needed to turn gopsutil's
-// cumulative counters (disk/network bytes) into per-second rates: the
-// previous reading and when it was taken.
+// Collector guarda o pouco de estado necessário pra transformar os
+// contadores cumulativos do gopsutil (bytes de disco/rede) em taxas por
+// segundo: a leitura anterior e quando ela foi tirada.
 type Collector struct {
 	mu sync.Mutex
 
@@ -29,8 +29,9 @@ func New() *Collector {
 	return &Collector{}
 }
 
-// Inventory reads the mostly-static, provisioning-relevant facts about this
-// machine. It is cheap enough to call on every tray refresh.
+// Inventory lê os fatos majoritariamente estáticos e relevantes para
+// provisionamento desta máquina. É barato o suficiente pra chamar a cada
+// atualização da bandeja.
 func (c *Collector) Inventory() (Inventory, error) {
 	inv := Inventory{}
 
@@ -73,8 +74,8 @@ func (c *Collector) Inventory() (Inventory, error) {
 	return inv, nil
 }
 
-// Snapshot reads the full live metrics used by the web dashboard, including
-// the top processLimit processes by CPU usage.
+// Snapshot lê as métricas ao vivo completas usadas pelo painel web,
+// incluindo os processLimit processos com maior uso de CPU.
 func (c *Collector) Snapshot(processLimit int) (Snapshot, error) {
 	snap := Snapshot{Timestamp: time.Now()}
 
@@ -158,9 +159,10 @@ func (c *Collector) collectDisks(snap *Snapshot) {
 	}
 }
 
-// collectRates turns the cumulative disk/network counters gopsutil exposes
-// into bytes/second by comparing against the previous call. The first call
-// after startup has no baseline, so it reports zero rates.
+// collectRates transforma os contadores cumulativos de disco/rede que o
+// gopsutil expõe em bytes/segundo, comparando com a chamada anterior. A
+// primeira chamada depois do agente iniciar não tem uma base de comparação,
+// então relata taxa zero.
 func (c *Collector) collectRates(snap *Snapshot) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -169,49 +171,59 @@ func (c *Collector) collectRates(snap *Snapshot) {
 	elapsed := now.Sub(c.lastSampleAt).Seconds()
 	hasBaseline := !c.lastSampleAt.IsZero() && elapsed > 0
 
+	c.collectDiskRate(snap, elapsed, hasBaseline)
+	c.collectNetRate(snap, elapsed, hasBaseline)
+
+	c.lastSampleAt = now
+}
+
+func (c *Collector) collectDiskRate(snap *Snapshot, elapsed float64, hasBaseline bool) {
 	diskIO, err := disk.IOCounters()
-	if err == nil {
-		var readTotal, writeTotal uint64
-		for _, io := range diskIO {
-			readTotal += io.ReadBytes
-			writeTotal += io.WriteBytes
+	if err != nil {
+		return
+	}
+
+	var readTotal, writeTotal uint64
+	for _, io := range diskIO {
+		readTotal += io.ReadBytes
+		writeTotal += io.WriteBytes
+	}
+	if hasBaseline {
+		var prevRead, prevWrite uint64
+		for _, io := range c.lastDiskIO {
+			prevRead += io.ReadBytes
+			prevWrite += io.WriteBytes
 		}
-		if hasBaseline {
-			var prevRead, prevWrite uint64
-			for _, io := range c.lastDiskIO {
-				prevRead += io.ReadBytes
-				prevWrite += io.WriteBytes
-			}
-			snap.DiskIO.ReadBytesPerSec = rate(prevRead, readTotal, elapsed)
-			snap.DiskIO.WriteBytesPerSec = rate(prevWrite, writeTotal, elapsed)
-		}
-		c.lastDiskIO = diskIO
+		snap.DiskIO.ReadBytesPerSec = rate(prevRead, readTotal, elapsed)
+		snap.DiskIO.WriteBytesPerSec = rate(prevWrite, writeTotal, elapsed)
+	}
+	c.lastDiskIO = diskIO
+}
+
+func (c *Collector) collectNetRate(snap *Snapshot, elapsed float64, hasBaseline bool) {
+	netIO, err := gonet.IOCounters(true)
+	if err != nil {
+		return
 	}
 
 	activeNames := activeInterfaceNames()
-	netIO, err := gonet.IOCounters(true)
-	if err == nil {
-		for _, io := range netIO {
-			if !activeNames[io.Name] {
-				continue
-			}
-			stat := NetInterfaceStats{Name: io.Name}
-			if hasBaseline {
-				if prev, ok := c.lastNetIO[io.Name]; ok {
-					stat.BytesSentPerSec = rate(prev.BytesSent, io.BytesSent, elapsed)
-					stat.BytesRecvPerSec = rate(prev.BytesRecv, io.BytesRecv, elapsed)
-				}
-			}
-			snap.Network = append(snap.Network, stat)
+	for _, io := range netIO {
+		if !activeNames[io.Name] {
+			continue
 		}
-		byName := make(map[string]gonet.IOCountersStat, len(netIO))
-		for _, io := range netIO {
-			byName[io.Name] = io
+		stat := NetInterfaceStats{Name: io.Name}
+		if prev, ok := c.lastNetIO[io.Name]; hasBaseline && ok {
+			stat.BytesSentPerSec = rate(prev.BytesSent, io.BytesSent, elapsed)
+			stat.BytesRecvPerSec = rate(prev.BytesRecv, io.BytesRecv, elapsed)
 		}
-		c.lastNetIO = byName
+		snap.Network = append(snap.Network, stat)
 	}
 
-	c.lastSampleAt = now
+	byName := make(map[string]gonet.IOCountersStat, len(netIO))
+	for _, io := range netIO {
+		byName[io.Name] = io
+	}
+	c.lastNetIO = byName
 }
 
 func rate(prev, current uint64, elapsedSeconds float64) float64 {
@@ -221,9 +233,10 @@ func rate(prev, current uint64, elapsedSeconds float64) float64 {
 	return float64(current-prev) / elapsedSeconds
 }
 
-// collectProcesses returns the top `limit` processes by CPU usage. Processes
-// we can't inspect (permission denied, exited mid-scan) are silently
-// skipped — that is expected and not an error condition on Windows.
+// collectProcesses retorna os `limit` processos com maior uso de CPU.
+// Processos que não conseguimos inspecionar (permissão negada, terminou
+// durante a varredura) são ignorados silenciosamente — isso é esperado no
+// Windows, não uma condição de erro.
 func (c *Collector) collectProcesses(limit int) []ProcessStats {
 	if limit <= 0 {
 		return nil
@@ -266,9 +279,9 @@ func (c *Collector) collectProcesses(limit int) []ProcessStats {
 	return stats
 }
 
-// activeInterfaceNames lists network interfaces that are up and not
-// loopback, so disk/network throughput panels and MAC/IP detection ignore
-// virtual and inactive adapters.
+// activeInterfaceNames lista as interfaces de rede que estão ativas e não
+// são loopback, para que os painéis de throughput e a detecção de MAC/IP
+// ignorem adaptadores virtuais e inativos.
 func activeInterfaceNames() map[string]bool {
 	names := map[string]bool{}
 	ifaces, err := gonet.Interfaces()
@@ -284,9 +297,9 @@ func activeInterfaceNames() map[string]bool {
 	return names
 }
 
-// primaryInterface picks the first active, non-loopback interface that has
-// both a MAC address and an IPv4 address — the one relevant for
-// provisioning ("which cable/Wi-Fi is this machine actually using").
+// primaryInterface escolhe a primeira interface ativa e não-loopback que tem
+// MAC e IPv4 — a que importa pra provisionamento ("qual cabo/Wi-Fi essa
+// máquina está realmente usando").
 func primaryInterface() (mac string, ip string) {
 	ifaces, err := gonet.Interfaces()
 	if err != nil {
@@ -302,7 +315,7 @@ func primaryInterface() (mac string, ip string) {
 		for _, addr := range iface.Addrs {
 			candidate := strings.SplitN(addr.Addr, "/", 2)[0]
 			if strings.Contains(candidate, ":") {
-				continue // ignore IPv6 for the simple inventory field
+				continue // ignora IPv6 — o campo de inventário é simples, só IPv4
 			}
 			return iface.HardwareAddr, candidate
 		}
@@ -319,8 +332,8 @@ func hasFlag(flags []string, want string) bool {
 	return false
 }
 
-// physicalDiskTotals sums total/free bytes across distinct local physical
-// partitions, for the tray's "disco total/livre" figure.
+// physicalDiskTotals soma bytes totais/livres entre as partições físicas
+// locais distintas, para o número de "disco total/livre" da bandeja.
 func physicalDiskTotals() (total uint64, free uint64) {
 	partitions, err := disk.Partitions(false)
 	if err != nil {

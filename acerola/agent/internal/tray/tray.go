@@ -1,6 +1,6 @@
-// Package tray runs the Windows system-tray presence of the agent: an icon
-// with a menu showing the current metrics, a shortcut to open the web
-// dashboard, and a quit action.
+// Package tray roda a presença do agente na bandeja do Windows: um ícone
+// com menu mostrando as métricas atuais, um atalho pra abrir o painel web e
+// uma ação de sair.
 package tray
 
 import (
@@ -17,10 +17,10 @@ import (
 
 const refreshInterval = 2 * time.Second
 
-// Run blocks until the tray is quit (via its menu or systray.Quit()). It
-// must run on the main goroutine — that is a systray/platform requirement
-// on Windows. It reads from broadcaster instead of calling the collector
-// directly, so it never races with the web dashboard's own sampling.
+// Run bloqueia até a bandeja ser encerrada (pelo menu ou por
+// systray.Quit()). Precisa rodar na goroutine principal — é uma exigência
+// do systray/da plataforma no Windows. Lê do broadcaster em vez de chamar o
+// coletor direto, pra nunca competir com a amostragem do painel web.
 func Run(broadcaster *metrics.Broadcaster, dashboardURL string) {
 	systray.Run(
 		func() { onReady(broadcaster, dashboardURL) },
@@ -84,8 +84,8 @@ func watchClicks(it items, dashboardURL string) {
 	}
 }
 
-// refreshLoop keeps the menu labels current by polling the broadcaster's
-// latest snapshot at its own (slower) cadence.
+// refreshLoop mantém os rótulos do menu atualizados, consultando o snapshot
+// mais recente do broadcaster na sua própria cadência (mais lenta).
 func refreshLoop(broadcaster *metrics.Broadcaster, it items) {
 	ticker := time.NewTicker(refreshInterval)
 	defer ticker.Stop()
@@ -121,11 +121,11 @@ func orDash(s string) string {
 	return s
 }
 
-// openBrowser shells out to Windows' URL handler. There is no portable
-// stdlib way to open the default browser, and this phase targets Windows
-// only, so a single implementation is enough (see docs/ROADMAP.md).
+// openBrowser chama o manipulador de URL do Windows. Não existe um jeito
+// portável na stdlib de abrir o navegador padrão, e esta fase é só pra
+// Windows, então uma única implementação basta (veja docs/ROADMAP.md).
 func openBrowser(url string) {
 	if err := exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start(); err != nil {
-		log.Printf("tray: falha ao abrir o navegador: %v", err)
+		log.Printf("tray: failed to open browser: %v", err)
 	}
 }

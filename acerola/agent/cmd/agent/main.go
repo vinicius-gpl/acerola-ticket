@@ -1,6 +1,6 @@
-// Command agent is the entry point: it starts the metrics broadcaster, the
-// local web dashboard, and the system tray, then blocks on the tray (which
-// owns the main goroutine, as systray requires on Windows).
+// Command agent é o ponto de entrada: inicia o broadcaster de métricas, o
+// painel web local e a bandeja do sistema, e então bloqueia na bandeja (que
+// é dona da goroutine principal, como o systray exige no Windows).
 package main
 
 import (
@@ -32,9 +32,9 @@ func main() {
 
 	server := webserver.New(dashboardAddr, broadcaster)
 	go func() {
-		log.Printf("dashboard local em http://%s", dashboardAddr)
+		log.Printf("local dashboard at http://%s", dashboardAddr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("erro no servidor web: %v", err)
+			log.Fatalf("web server error: %v", err)
 		}
 	}()
 

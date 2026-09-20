@@ -1,8 +1,8 @@
-// Command icongen rasterizes an SVG source into a multi-resolution Windows
-// .ico file. It exists because the tray (fyne.io/systray) needs an .ico, but
-// our source assets are SVG. Kept as a small one-off tool rather than a
-// build-time dependency so the agent binary itself never needs an SVG
-// rasterizer at runtime — see docs/ICONES.md for the full rationale.
+// Command icongen transforma um SVG de origem num .ico do Windows com várias
+// resoluções. Existe porque a bandeja (fyne.io/systray) exige um .ico, mas os
+// ícones de origem são SVG. É uma ferramenta avulsa, não uma dependência do
+// binário final — assim o agente em si nunca precisa de um rasterizador de
+// SVG em tempo de execução. A justificativa completa está em docs/ICONES.md.
 package main
 
 import (
@@ -27,17 +27,17 @@ func main() {
 	flag.Parse()
 
 	if *src == "" || *out == "" {
-		log.Fatal("uso: icongen -src arquivo.svg -out arquivo.ico [-sizes 16,32,48,256]")
+		log.Fatal("usage: icongen -src file.svg -out file.ico [-sizes 16,32,48,256]")
 	}
 
 	sizes, err := parseSizes(*sizesFlag)
 	if err != nil {
-		log.Fatalf("tamanhos inválidos: %v", err)
+		log.Fatalf("invalid sizes: %v", err)
 	}
 
 	icon, err := loadSVG(*src)
 	if err != nil {
-		log.Fatalf("erro lendo svg: %v", err)
+		log.Fatalf("error reading svg: %v", err)
 	}
 
 	var pngs [][]byte
@@ -45,16 +45,16 @@ func main() {
 		img := rasterize(icon, size)
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, img); err != nil {
-			log.Fatalf("erro codificando png %dx%d: %v", size, size, err)
+			log.Fatalf("error encoding png %dx%d: %v", size, size, err)
 		}
 		pngs = append(pngs, buf.Bytes())
 	}
 
 	if err := writeICO(*out, sizes, pngs); err != nil {
-		log.Fatalf("erro escrevendo ico: %v", err)
+		log.Fatalf("error writing ico: %v", err)
 	}
 
-	fmt.Printf("gerado %s com tamanhos %v\n", *out, sizes)
+	fmt.Printf("generated %s with sizes %v\n", *out, sizes)
 }
 
 func parseSizes(raw string) ([]int, error) {
@@ -78,7 +78,7 @@ func loadSVG(path string) (*oksvg.SvgIcon, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // leitura; erro no close não muda o resultado já lido
 	return oksvg.ReadIconStream(f)
 }
 
@@ -101,12 +101,11 @@ func writeICO(path string, sizes []int, pngs [][]byte) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	count := len(sizes)
 	header := make([]byte, 6)
-	binary.LittleEndian.PutUint16(header[0:2], 0) // reserved
-	binary.LittleEndian.PutUint16(header[2:4], 1) // type: icon
+	binary.LittleEndian.PutUint16(header[0:2], 0) // reservado
+	binary.LittleEndian.PutUint16(header[2:4], 1) // tipo: ícone
 	binary.LittleEndian.PutUint16(header[4:6], uint16(count))
 	if _, err := f.Write(header); err != nil {
 		return err
@@ -119,12 +118,12 @@ func writeICO(path string, sizes []int, pngs [][]byte) error {
 		if size >= 256 {
 			dim = 0 // 0 significa 256 no formato ICO
 		}
-		entry[0] = dim                                // width
-		entry[1] = dim                                // height
-		entry[2] = 0                                  // color count (0 = mais de 256 cores)
-		entry[3] = 0                                  // reserved
-		binary.LittleEndian.PutUint16(entry[4:6], 1)  // color planes
-		binary.LittleEndian.PutUint16(entry[6:8], 32) // bits per pixel
+		entry[0] = dim                                // largura
+		entry[1] = dim                                // altura
+		entry[2] = 0                                  // contagem de cores (0 = mais de 256 cores)
+		entry[3] = 0                                  // reservado
+		binary.LittleEndian.PutUint16(entry[4:6], 1)  // planos de cor
+		binary.LittleEndian.PutUint16(entry[6:8], 32) // bits por pixel
 		binary.LittleEndian.PutUint32(entry[8:12], uint32(len(pngs[i])))
 		binary.LittleEndian.PutUint32(entry[12:16], offset)
 		if _, err := f.Write(entry); err != nil {
@@ -138,5 +137,5 @@ func writeICO(path string, sizes []int, pngs [][]byte) error {
 			return err
 		}
 	}
-	return nil
+	return f.Close() // aqui o erro importa: é onde uma falha de flush em disco apareceria
 }

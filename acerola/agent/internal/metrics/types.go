@@ -1,15 +1,15 @@
-// Package metrics collects local system metrics via gopsutil and normalizes
-// them into the structs consumed by both the tray menu and the web
-// dashboard. See docs/METRICAS.md for what each field means and why it was
-// chosen.
+// Package metrics coleta métricas locais de sistema via gopsutil e as
+// normaliza nas structs consumidas tanto pelo menu da bandeja quanto pelo
+// painel web. Veja docs/METRICAS.md para o significado de cada campo e por
+// que ele foi escolhido.
 package metrics
 
 import "time"
 
-// Inventory holds data that is useful for provisioning/inventory decisions:
-// it changes rarely (never, during a single run, except Uptime/FreeDisk) and
-// answers "what machine is this and how is it equipped", not "how busy is it
-// right now". This is what the tray menu shows.
+// Inventory guarda dados úteis para decisões de provisionamento/inventário:
+// muda raramente (nunca, durante uma execução, exceto Uptime/FreeDisk) e
+// responde "que máquina é essa e como ela está equipada", não "o quanto ela
+// está ocupada agora". É o que o menu da bandeja mostra.
 type Inventory struct {
 	Hostname         string    `json:"hostname"`
 	OS               string    `json:"os"`       // ex: "windows"
@@ -29,13 +29,13 @@ type Inventory struct {
 	BootTime         time.Time `json:"bootTime"`
 }
 
-// CPUStats is the live CPU load, sampled since the previous collection.
+// CPUStats é a carga de CPU ao vivo, amostrada desde a coleta anterior.
 type CPUStats struct {
 	PercentTotal   float64   `json:"percentTotal"`
 	PercentPerCore []float64 `json:"percentPerCore"`
 }
 
-// MemoryStats is live RAM/swap usage.
+// MemoryStats é o uso ao vivo de RAM/swap.
 type MemoryStats struct {
 	TotalBytes      uint64  `json:"totalBytes"`
 	UsedBytes       uint64  `json:"usedBytes"`
@@ -46,7 +46,7 @@ type MemoryStats struct {
 	SwapUsedPercent float64 `json:"swapUsedPercent"`
 }
 
-// DiskStats is usage of a single mounted volume.
+// DiskStats é o uso de um único volume montado.
 type DiskStats struct {
 	Mountpoint  string  `json:"mountpoint"`
 	Fstype      string  `json:"fstype"`
@@ -56,22 +56,23 @@ type DiskStats struct {
 	UsedPercent float64 `json:"usedPercent"`
 }
 
-// DiskIOStats is the aggregated disk throughput since the previous
-// collection (bytes/second across all physical disks).
+// DiskIOStats é o throughput agregado de disco desde a coleta anterior
+// (bytes/segundo somando todos os discos físicos).
 type DiskIOStats struct {
 	ReadBytesPerSec  float64 `json:"readBytesPerSec"`
 	WriteBytesPerSec float64 `json:"writeBytesPerSec"`
 }
 
-// NetInterfaceStats is the throughput of one network interface since the
-// previous collection.
+// NetInterfaceStats é o throughput de uma interface de rede desde a coleta
+// anterior.
 type NetInterfaceStats struct {
 	Name            string  `json:"name"`
 	BytesSentPerSec float64 `json:"bytesSentPerSec"`
 	BytesRecvPerSec float64 `json:"bytesRecvPerSec"`
 }
 
-// ProcessStats describes one running process for the "top processes" panel.
+// ProcessStats descreve um processo em execução, para o painel de "top
+// processos".
 type ProcessStats struct {
 	PID        int32   `json:"pid"`
 	Name       string  `json:"name"`
@@ -80,8 +81,8 @@ type ProcessStats struct {
 	MemBytes   uint64  `json:"memBytes"`
 }
 
-// Snapshot is the full point-in-time reading pushed to the web dashboard.
-// The tray only ever needs Inventory, not a full Snapshot.
+// Snapshot é a leitura completa num instante, enviada ao painel web. A
+// bandeja só precisa de Inventory, nunca de um Snapshot inteiro.
 type Snapshot struct {
 	Timestamp time.Time           `json:"timestamp"`
 	Host      Inventory           `json:"host"`

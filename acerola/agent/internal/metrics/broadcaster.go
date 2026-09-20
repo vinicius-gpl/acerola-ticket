@@ -7,15 +7,16 @@ import (
 	"time"
 )
 
-// Broadcaster is the single place that calls Collector.Snapshot on a timer
-// and fans the result out to any number of subscribers (the tray and every
-// connected dashboard websocket).
+// Broadcaster é o único lugar que chama Collector.Snapshot num timer e
+// distribui o resultado pra quantos assinantes existirem (a bandeja e cada
+// websocket do painel conectado).
 //
-// This matters because gopsutil's non-blocking cpu.Percent(0, ...) keeps its
-// "time of last call" in a package-level variable. If the tray and the web
-// dashboard each called Collector.Snapshot on their own ticker, they would
-// race on that shared state and report wrong CPU percentages. Centralizing
-// collection here means Snapshot is only ever called from one goroutine.
+// Isso importa porque o cpu.Percent(0, ...) não-bloqueante do gopsutil
+// guarda o "instante da última chamada" numa variável de pacote. Se a
+// bandeja e o painel web chamassem Collector.Snapshot cada um no seu
+// próprio timer, eles brigariam por esse estado compartilhado e relatariam
+// percentual de CPU errado. Centralizar a coleta aqui garante que Snapshot
+// só é chamado a partir de uma única goroutine.
 type Broadcaster struct {
 	collector    *Collector
 	interval     time.Duration
@@ -35,8 +36,8 @@ func NewBroadcaster(collector *Collector, interval time.Duration, processLimit i
 	}
 }
 
-// Run collects and broadcasts until ctx is cancelled. Call it once, in its
-// own goroutine.
+// Run coleta e distribui até ctx ser cancelado. Chame uma vez, na própria
+// goroutine.
 func (b *Broadcaster) Run(ctx context.Context) {
 	ticker := time.NewTicker(b.interval)
 	defer ticker.Stop()
@@ -55,7 +56,7 @@ func (b *Broadcaster) Run(ctx context.Context) {
 func (b *Broadcaster) tick() {
 	snap, err := b.collector.Snapshot(b.processLimit)
 	if err != nil {
-		log.Printf("metrics: falha ao coletar snapshot: %v", err)
+		log.Printf("metrics: failed to collect snapshot: %v", err)
 		return
 	}
 
@@ -72,16 +73,16 @@ func (b *Broadcaster) tick() {
 	b.mu.Unlock()
 }
 
-// Latest returns the most recent snapshot without waiting for the next
-// tick. Good enough for the tray, which polls at its own slower cadence.
+// Latest retorna o snapshot mais recente sem esperar o próximo tick. É
+// suficiente pra bandeja, que consulta na sua própria cadência mais lenta.
 func (b *Broadcaster) Latest() Snapshot {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.latest
 }
 
-// Subscribe registers a channel that receives every future snapshot. Call
-// the returned function when done to avoid leaking the channel.
+// Subscribe registra um canal que recebe todo snapshot futuro. Chame a
+// função retornada quando terminar, pra não vazar o canal.
 func (b *Broadcaster) Subscribe() (<-chan Snapshot, func()) {
 	ch := make(chan Snapshot, 1)
 	b.mu.Lock()

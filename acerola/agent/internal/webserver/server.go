@@ -1,6 +1,6 @@
-// Package webserver serves the local btop-style dashboard: static assets
-// over plain HTTP and live metrics over a WebSocket, both bound to
-// localhost only — this phase never talks to anything outside the machine.
+// Package webserver serve o painel local estilo btop: os arquivos estáticos
+// via HTTP simples e as métricas ao vivo via WebSocket, ambos amarrados só
+// ao localhost — nesta fase, nada conversa com fora da máquina.
 package webserver
 
 import (
@@ -15,7 +15,8 @@ import (
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/web"
 )
 
-// Server serves the dashboard UI and streams metrics.Snapshot values to it.
+// Server serve a interface do painel e transmite valores de metrics.Snapshot
+// pra ela.
 type Server struct {
 	addr        string
 	broadcaster *metrics.Broadcaster
@@ -41,8 +42,8 @@ func (s *Server) Handler() http.Handler {
 	return mux
 }
 
-// ListenAndServe blocks serving the dashboard. addr should be a
-// localhost-only address (ex: "127.0.0.1:7890").
+// ListenAndServe bloqueia servindo o painel. addr deve ser um endereço só de
+// localhost (ex: "127.0.0.1:7890").
 func (s *Server) ListenAndServe() error {
 	server := &http.Server{
 		Addr:              s.addr,
@@ -55,10 +56,10 @@ func (s *Server) ListenAndServe() error {
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("webserver: falha no upgrade do websocket: %v", err)
+		log.Printf("webserver: websocket upgrade failed: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }() // a aba já fechou ou a rede caiu; não há o que fazer com o erro
 
 	updates, unsubscribe := s.broadcaster.Subscribe()
 	defer unsubscribe()
@@ -98,7 +99,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 func writeSnapshot(conn *websocket.Conn, snap metrics.Snapshot) error {
 	data, err := json.Marshal(snap)
 	if err != nil {
-		log.Printf("webserver: falha ao serializar snapshot: %v", err)
+		log.Printf("webserver: failed to marshal snapshot: %v", err)
 		return nil
 	}
 	return conn.WriteMessage(websocket.TextMessage, data)

@@ -1,8 +1,9 @@
-// Package web embeds the dashboard's static assets into the agent binary.
-// The embed directive can only reach files inside this same directory tree,
-// which is why the dashboard's HTML/CSS/JS live here rather than being
-// copied in from elsewhere (contrast with internal/assets, which does need
-// a copy because its source .ico lives outside internal/tray's tree).
+// Package web embute os arquivos estáticos do painel no binário do agente.
+// A diretiva embed só alcança arquivos dentro da própria árvore de
+// diretórios, e é por isso que o HTML/CSS/JS do painel moram aqui em vez de
+// serem copiados de outro lugar (diferente de internal/assets, que precisa
+// de uma cópia porque o .ico de origem mora fora da árvore de
+// internal/tray).
 package web
 
 import "embed"

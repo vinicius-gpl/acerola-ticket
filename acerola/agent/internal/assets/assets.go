@@ -1,9 +1,10 @@
-// Package assets embeds the icon files into the compiled binary, so the
-// agent is a single .exe with no external file dependency at runtime.
+// Package assets embute os arquivos de ícone no binário compilado, pra o
+// agente ser um .exe único, sem dependência de arquivo externo em tempo de
+// execução.
 //
-// Go's //go:embed cannot reach outside this package's directory (no ".."
-// in patterns), so these are working copies of the canonical files kept at
-// the project's top-level /icons — see docs/ICONES.md.
+// O //go:embed do Go não alcança fora do diretório deste pacote (sem ".."
+// nos padrões), então isto aqui é uma cópia de trabalho dos arquivos
+// canônicos mantidos em /icons na raiz do projeto — veja docs/ICONES.md.
 package assets
 
 import _ "embed"
