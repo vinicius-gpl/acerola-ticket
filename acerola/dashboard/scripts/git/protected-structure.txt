@@ -1,0 +1,21 @@
+# ESTRUTURA E REGRAS DO PROJETO — só quem administra altera.
+# Mudar estes arquivos para "fazer um erro sumir" (desligar regra de lint, afrouxar tipo,
+# pular hook) esconde o defeito em vez de resolvê-lo. Erro que exige mexer aqui é caso de suporte.
+^CLAUDE\.md$
+^CONTRIBUTING\.md$
+^SUPORTE\.md$
+^\.claude/
+^\.github/
+^acerola/dashboard/\.husky/
+^acerola/dashboard/scripts/git/
+^acerola/dashboard/scripts/tsconfig\.json$
+^acerola/dashboard/commitlint\.config\.js$
+^acerola/dashboard/docker/
+^acerola/dashboard/(shared|server|client)/eslint\.config\.ts$
+^acerola/dashboard/(shared|server|client)/tsconfig[^/]*\.json$
+^acerola/dashboard/(shared|server|client)/vitest[^/]*\.config\.ts$
+^acerola/dashboard/(shared|server|client)/stryker\.config\.json$
+^acerola/dashboard/server/src/lib/db/(open-database\.util|db\.module|db\.token|db\.type)\.ts$
+^acerola/dashboard/server/src/lib/http/http-exception\.filter\.ts$
+^acerola/dashboard/server/src/lib/config/app-config\.module\.ts$
+^acerola/dashboard/server/src/app\.setup\.ts$

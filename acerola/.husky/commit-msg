@@ -1,1 +1,0 @@
-cd acerola && npx --no -- commitlint --edit "$1"

@@ -403,11 +403,11 @@ Formato obrigatório, sem variação:
 
 | Local | Alcance |
 |---|---|
-| `backend` | `acerola/server/` |
-| `web` | `acerola/client/` |
-| `db` | `acerola/server/drizzle/`, `acerola/server/src/lib/db/` e `acerola/scripts/seed/` |
-| `contracts` | `acerola/shared/` (pacote `@template/shared`) |
-| `docker` | `acerola/docker/` |
+| `backend` | `acerola/dashboard/server/` |
+| `web` | `acerola/dashboard/client/` |
+| `db` | `acerola/dashboard/server/drizzle/`, `acerola/dashboard/server/src/lib/db/` e `acerola/dashboard/scripts/seed/` |
+| `contracts` | `acerola/dashboard/shared/` (pacote `@template/shared`) |
+| `docker` | `acerola/dashboard/docker/` |
 | `ci` | `.github/` |
 | `docs` | `.md` na raiz |
 | `deps` | Atualização de dependência |
@@ -619,7 +619,7 @@ e os dados de teste (seeds). Dados reais compartilhados, servidor e publicação
 
 ### Arquivos protegidos
 
-Duas listas, em `acerola/scripts/git/`:
+Duas listas, em `acerola/dashboard/scripts/git/`:
 
 | Lista | O que protege | Por quê |
 |---|---|---|

@@ -12,7 +12,7 @@ Explique para a pessoa em uma frase o que aconteceu antes de corrigir.
 
 O projeto exige **Node 24 LTS**. Com 25 costuma funcionar, mas não é suportado; com 22 ou menos,
 não sobe. Peça para instalar o 24 (https://nodejs.org, "LTS") ou `mise install` na raiz de
-`acerola/`. Depois: apagar `acerola/node_modules` e `npm install` de novo.
+`acerola/dashboard/`. Depois: apagar `acerola/dashboard/node_modules` e `npm install` de novo.
 
 ## `npm install` falha
 
@@ -82,17 +82,17 @@ Skill `resolver-conflito`.
 ## O Tower mostra algo diferente
 
 O Tower lê a configuração de Git-Flow do `.git/config` (feita no `npm install`). Se ele pedir
-para "inicializar o Git-Flow", rode `cd acerola && npm run prepare` e reabra o repositório no
+para "inicializar o Git-Flow", rode `cd acerola/dashboard && npm run prepare` e reabra o repositório no
 Tower. As branches devem ser `main` e `develop`, com prefixo `feature/`.
 
 ## Storybook não abre
 
-`npm run storybook` (em `acerola/`) e http://localhost:6006. Erro de story específica → a story
+`npm run storybook` (em `acerola/dashboard/`) e http://localhost:6006. Erro de story específica → a story
 importa algo que precisa de provider (router, query): veja como `app-shell.stories.tsx` faz.
 
 ## Playwright (`test:e2e` da tela)
 
-Primeira vez: `cd acerola/client && npx playwright install chromium` (baixa um navegador —
+Primeira vez: `cd acerola/dashboard/dashboard/client && npx playwright install chromium` (baixa um navegador —
 avise a pessoa, são ~150 MB). Ele sobe o sistema sozinho, com um banco separado
 (`server/data/e2e.db`).
 

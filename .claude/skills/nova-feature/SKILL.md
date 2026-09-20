@@ -10,7 +10,7 @@ e siga a mesma forma: nomes, comentários (o porquê, em português), estados, t
 já foi removido, siga o CONTRIBUTING.
 
 Nos caminhos abaixo, `<entity>` é o nome em inglês, singular, kebab-case (`customer`), e
-`<entities>` o plural (`customers`). Tudo relativo a `acerola/`.
+`<entities>` o plural (`customers`). Tudo relativo a `acerola/dashboard/`.
 
 ## 0. Entender e confirmar (antes de qualquer código)
 

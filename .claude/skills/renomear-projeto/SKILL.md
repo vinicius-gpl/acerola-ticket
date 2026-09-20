@@ -5,7 +5,7 @@ description: Coloca o nome do MVP onde as pessoas o veem — título da aba do n
 
 # Dar nome ao MVP
 
-**Por padrão, só os nomes visíveis mudam.** A pasta do sistema (hoje `acerola/`) e o pacote
+**Por padrão, só os nomes visíveis mudam.** A pasta do sistema (hoje `acerola/dashboard/`) e o pacote
 interno `@template/shared` não aparecem para quem usa o sistema, e trocá-los mexe na estrutura
 protegida do projeto (hooks, CI, regras) — só quem administra o projeto libera isso, e só
 quando pedir explicitamente.
@@ -26,12 +26,12 @@ Caminhos a partir da raiz do repositório:
 
 | Onde | De | Para |
 |---|---|---|
-| `acerola/client/index.html` | `<title>Template</title>` | `<title><Nome></title>` |
-| `acerola/client/src/lib/brand/brand-mark.tsx` | `'Template'` | `'<Nome>'` (é o que aparece na barra lateral) |
-| `acerola/server/src/main.ts` | `.setTitle('Template')` | `.setTitle('<Nome>')` |
-| `acerola/server/src/main.ts` | `'API do MVP.'` | `'API do <Nome>.'` |
+| `acerola/dashboard/client/index.html` | `<title>Template</title>` | `<title><Nome></title>` |
+| `acerola/dashboard/client/src/lib/brand/brand-mark.tsx` | `'Template'` | `'<Nome>'` (é o que aparece na barra lateral) |
+| `acerola/dashboard/server/src/main.ts` | `.setTitle('Template')` | `.setTitle('<Nome>')` |
+| `acerola/dashboard/server/src/main.ts` | `'API do MVP.'` | `'API do <Nome>.'` |
 | `README.md` | `# Template de MVP` e o primeiro parágrafo | `# <Nome>` e uma ou duas frases do que o MVP faz, na voz da pessoa |
-| `acerola/package.json` | `"description"` | uma frase do MVP |
+| `acerola/dashboard/package.json` | `"description"` | uma frase do MVP |
 
 Não mexa em `CLAUDE.md`, `CONTRIBUTING.md`, `SUPORTE.md`, `.claude/`, `.github/`, hooks nem
 configurações — são protegidos e não carregam o nome do MVP.
@@ -39,7 +39,7 @@ configurações — são protegidos e não carregam o nome do MVP.
 ## 4. Verificar e terminar
 
 ```bash
-cd acerola
+cd acerola/dashboard
 npm run lint && npm run typecheck && npm test
 ```
 
