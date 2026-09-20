@@ -5,22 +5,22 @@ import (
 	"testing"
 )
 
-func TestParseSizes(t *testing.T) {
+func TestParseSizesHappyPath(testingContext *testing.T) {
 	// feliz: lista de tamanhos separada por vírgula, com espaços tolerados
-	got, err := parseSizes("16, 32,48 ,256")
-	if err != nil {
-		t.Fatalf("erro inesperado: %v", err)
+	parsedSizes, parseError := parseSizes("16, 32,48 ,256")
+	if parseError != nil {
+		testingContext.Fatalf("erro inesperado: %v", parseError)
 	}
-	want := []int{16, 32, 48, 256}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("parseSizes = %v, want %v", got, want)
+	expectedSizes := []int{16, 32, 48, 256}
+	if !reflect.DeepEqual(parsedSizes, expectedSizes) {
+		testingContext.Errorf("parseSizes = %v, want %v", parsedSizes, expectedSizes)
 	}
 }
 
-func TestParseSizesInvalido(t *testing.T) {
-	// triste: um dos tamanhos não é número
-	_, err := parseSizes("16,trinta e dois,48")
-	if err == nil {
-		t.Fatal("esperava erro para tamanho não numérico, não veio nenhum")
+func TestParseSizesInvalidFormat(testingContext *testing.T) {
+	// triste: um dos tamanhos não é número e deve gerar erro
+	_, parseError := parseSizes("16,trinta e dois,48")
+	if parseError == nil {
+		testingContext.Fatal("esperava erro para tamanho não numérico, não veio nenhum")
 	}
 }

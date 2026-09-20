@@ -59,26 +59,26 @@ func NewApp() *App {
 // É por isso que a bandeja nasce aqui dentro, e não em main(): se
 // tray.Run — que bloqueia esperando clique — rodasse incondicionalmente em
 // main(), o processo de geração de bindings nunca terminaria.
-func (a *App) startup(ctx context.Context) {
-	a.mu.Lock()
-	a.ctx = ctx
-	a.mu.Unlock()
+func (app *App) startup(ctx context.Context) {
+	app.mu.Lock()
+	app.ctx = ctx
+	app.mu.Unlock()
 
-	go a.broadcaster.Run(ctx)
-	go a.forwardSnapshots(ctx)
-	go a.runActions(ctx)
+	go app.broadcaster.Run(ctx)
+	go app.forwardSnapshots(ctx)
+	go app.runActions(ctx)
 	go tray.Run(tray.Callbacks{
-		ShowPopup:     a.ShowPopup,
-		ShowDashboard: a.ShowDashboard,
-		Quit:          a.Quit,
+		ShowPopup:     app.ShowPopup,
+		ShowDashboard: app.ShowDashboard,
+		Quit:          app.Quit,
 	})
 }
 
 // forwardSnapshots assina o broadcaster e empurra cada leitura pro frontend
 // via evento nativo do Wails (runtime.EventsEmit / runtime.EventsOn) — sem
 // servidor HTTP, sem WebSocket manual, o Wails já resolve esse transporte.
-func (a *App) forwardSnapshots(ctx context.Context) {
-	updates, unsubscribe := a.broadcaster.Subscribe()
+func (app *App) forwardSnapshots(ctx context.Context) {
+	updates, unsubscribe := app.broadcaster.Subscribe()
 	defer unsubscribe()
 
 	for {
@@ -99,19 +99,19 @@ func (a *App) forwardSnapshots(ctx context.Context) {
 // arrisca um deadlock entre a fila de mensagens do systray e a da janela.
 // Por isso ShowPopup/ShowDashboard/Quit só mandam uma função pra este canal
 // — quem clicou nunca espera a ação terminar.
-func (a *App) runActions(ctx context.Context) {
+func (app *App) runActions(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case action := <-a.actions:
+		case action := <-app.actions:
 			action(ctx)
 		}
 	}
 }
 
-func (a *App) dispatch(action func(context.Context)) {
-	a.actions <- action
+func (app *App) dispatch(action func(context.Context)) {
+	app.actions <- action
 }
 
 // awaitViewReady espera o frontend confirmar (via ViewReady) que já trocou
@@ -125,22 +125,22 @@ func (a *App) dispatch(action func(context.Context)) {
 // confirmação atrasada de uma troca de tela anterior antes de esperar por
 // uma nova, e desistimos depois de viewReadyTimeout pra nunca travar a
 // bandeja se o frontend não confirmar.
-func (a *App) awaitViewReady() {
+func (app *App) awaitViewReady() {
 	select {
-	case <-a.viewReady:
+	case <-app.viewReady:
 	default:
 	}
 	select {
-	case <-a.viewReady:
+	case <-app.viewReady:
 	case <-time.After(viewReadyTimeout):
 	}
 }
 
 // ViewReady é exposto ao frontend (via Bind): App.svelte chama depois de
 // trocar de rota e esperar o navegador pintar o quadro — ver awaitViewReady.
-func (a *App) ViewReady() {
+func (app *App) ViewReady() {
 	select {
-	case a.viewReady <- struct{}{}:
+	case app.viewReady <- struct{}{}:
 	default:
 	}
 }
@@ -149,21 +149,21 @@ func (a *App) ViewReady() {
 // tamanho de popup e mostra ancorada no canto inferior direito da área útil
 // da tela — onde a bandeja do Windows normalmente vive — como um flyout de
 // volume/rede/bateria do próprio sistema.
-func (a *App) ShowPopup() {
-	a.dispatch(func(ctx context.Context) {
+func (app *App) ShowPopup() {
+	app.dispatch(func(ctx context.Context) {
 		runtime.WindowSetAlwaysOnTop(ctx, true)
-		waX, waY, waW, waH := screen.WorkArea()
-		h := popupHeight
-		if maxH := waH - (screenMargin * 2); h > maxH {
-			h = maxH
+		areaX, areaY, areaWidth, areaHeight := screen.WorkArea()
+		targetHeight := popupHeight
+		if maxHeight := areaHeight - (screenMargin * 2); targetHeight > maxHeight {
+			targetHeight = maxHeight
 		}
-		runtime.WindowSetSize(ctx, popupWidth, h)
+		runtime.WindowSetSize(ctx, popupWidth, targetHeight)
 		runtime.WindowSetPosition(ctx,
-			waX+waW-popupWidth-screenMargin,
-			waY+waH-h-screenMargin,
+			areaX+areaWidth-popupWidth-screenMargin,
+			areaY+areaHeight-targetHeight-screenMargin,
 		)
 		runtime.EventsEmit(ctx, "view:change", "popup")
-		a.awaitViewReady()
+		app.awaitViewReady()
 		runtime.WindowShow(ctx)
 		runtime.EventsEmit(ctx, "window:shown", "popup")
 	})
@@ -173,17 +173,17 @@ func (a *App) ShowPopup() {
 // redimensiona pro tamanho cheio e ancora no canto inferior direito da
 // área útil da tela — do mesmo lado da bandeja do Windows — sem cobrir a
 // barra de tarefas nem ficar colado na borda do monitor.
-func (a *App) ShowDashboard() {
-	a.dispatch(func(ctx context.Context) {
+func (app *App) ShowDashboard() {
+	app.dispatch(func(ctx context.Context) {
 		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
-		waX, waY, waW, waH := screen.WorkArea()
+		areaX, areaY, areaWidth, areaHeight := screen.WorkArea()
 		runtime.WindowSetPosition(ctx,
-			waX+waW-dashboardWidth-screenMargin,
-			waY+waH-dashboardHeight-screenMargin,
+			areaX+areaWidth-dashboardWidth-screenMargin,
+			areaY+areaHeight-dashboardHeight-screenMargin,
 		)
 		runtime.EventsEmit(ctx, "view:change", "dashboard")
-		a.awaitViewReady()
+		app.awaitViewReady()
 		runtime.WindowShow(ctx)
 		runtime.EventsEmit(ctx, "window:shown", "dashboard")
 	})
@@ -191,8 +191,8 @@ func (a *App) ShowDashboard() {
 
 // Quit é a ação do item "Sair" no menu da bandeja: encerra o processo de
 // verdade (diferente de esconder a janela — ver main.go e HideWindow).
-func (a *App) Quit() {
-	a.dispatch(func(ctx context.Context) {
+func (app *App) Quit() {
+	app.dispatch(func(ctx context.Context) {
 		runtime.Quit(ctx)
 	})
 }
@@ -201,8 +201,8 @@ func (a *App) Quit() {
 // foco ("fecha ao perder foco" do pedido original), e o dashboard chama
 // pelo próprio botão de fechar — a janela não tem moldura nativa, então não
 // existe um X do Windows pra isso (ver docs/ARQUITETURA.md).
-func (a *App) HideWindow() {
-	a.dispatch(func(ctx context.Context) {
+func (app *App) HideWindow() {
+	app.dispatch(func(ctx context.Context) {
 		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowHide(ctx)
 	})

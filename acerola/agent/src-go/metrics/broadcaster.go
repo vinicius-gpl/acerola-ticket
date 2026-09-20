@@ -7,24 +7,21 @@ import (
 	"time"
 )
 
-// Broadcaster é o único lugar que chama Collector.Snapshot num timer e
-// distribui o resultado pra quantos assinantes existirem (a bandeja e cada
-// websocket do painel conectado).
+// Broadcaster coleta métricas periodicamente e empurra o snapshot pra
+// múltiplos assinantes sem travar o coletor se um deles for lento.
 //
-// Isso importa porque o cpu.Percent(0, ...) não-bloqueante do gopsutil
-// guarda o "instante da última chamada" numa variável de pacote. Se a
-// bandeja e o painel web chamassem Collector.Snapshot cada um no seu
-// próprio timer, eles brigariam por esse estado compartilhado e relatariam
-// percentual de CPU errado. Centralizar a coleta aqui garante que Snapshot
-// só é chamado a partir de uma única goroutine.
+// O coletor faz I/O (lê /proc ou chama WMI/API do Windows), o que pode levar
+// 50-100ms. Broadcaster garante que essa leitura roda numa goroutine só, em
+// cadência fixa (1s), e todo mundo que precisa (a janela popup, o dashboard,
+// o tooltip da bandeja) lê da mesma fonte sem duplicar esforço.
 type Broadcaster struct {
 	collector    *Collector
 	interval     time.Duration
 	processLimit int
 
 	mu     sync.Mutex
-	subs   map[chan Snapshot]struct{}
 	latest Snapshot
+	subs   map[chan Snapshot]struct{}
 }
 
 func NewBroadcaster(collector *Collector, interval time.Duration, processLimit int) *Broadcaster {
@@ -38,61 +35,61 @@ func NewBroadcaster(collector *Collector, interval time.Duration, processLimit i
 
 // Run coleta e distribui até ctx ser cancelado. Chame uma vez, na própria
 // goroutine.
-func (b *Broadcaster) Run(ctx context.Context) {
-	ticker := time.NewTicker(b.interval)
+func (broadcaster *Broadcaster) Run(ctx context.Context) {
+	ticker := time.NewTicker(broadcaster.interval)
 	defer ticker.Stop()
 
-	b.tick()
+	broadcaster.tick()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			b.tick()
+			broadcaster.tick()
 		}
 	}
 }
 
-func (b *Broadcaster) tick() {
-	snap, err := b.collector.Snapshot(b.processLimit)
-	if err != nil {
-		log.Printf("metrics: failed to collect snapshot: %v", err)
+func (broadcaster *Broadcaster) tick() {
+	snapshotData, collectionError := broadcaster.collector.Snapshot(broadcaster.processLimit)
+	if collectionError != nil {
+		log.Printf("metrics: failed to collect snapshot: %v", collectionError)
 		return
 	}
 
-	b.mu.Lock()
-	b.latest = snap
-	for ch := range b.subs {
+	broadcaster.mu.Lock()
+	broadcaster.latest = snapshotData
+	for subscriberChannel := range broadcaster.subs {
 		select {
-		case ch <- snap:
+		case subscriberChannel <- snapshotData:
 		default:
 			// Assinante lento: descarta esta amostra em vez de bloquear o
 			// coletor. O painel é ao vivo, uma amostra perdida não importa.
 		}
 	}
-	b.mu.Unlock()
+	broadcaster.mu.Unlock()
 }
 
 // Latest retorna o snapshot mais recente sem esperar o próximo tick. É
 // suficiente pra bandeja, que consulta na sua própria cadência mais lenta.
-func (b *Broadcaster) Latest() Snapshot {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.latest
+func (broadcaster *Broadcaster) Latest() Snapshot {
+	broadcaster.mu.Lock()
+	defer broadcaster.mu.Unlock()
+	return broadcaster.latest
 }
 
 // Subscribe registra um canal que recebe todo snapshot futuro. Chame a
 // função retornada quando terminar, pra não vazar o canal.
-func (b *Broadcaster) Subscribe() (<-chan Snapshot, func()) {
-	ch := make(chan Snapshot, 1)
-	b.mu.Lock()
-	b.subs[ch] = struct{}{}
-	b.mu.Unlock()
+func (broadcaster *Broadcaster) Subscribe() (<-chan Snapshot, func()) {
+	subscriberChannel := make(chan Snapshot, 1)
+	broadcaster.mu.Lock()
+	broadcaster.subs[subscriberChannel] = struct{}{}
+	broadcaster.mu.Unlock()
 
 	unsubscribe := func() {
-		b.mu.Lock()
-		delete(b.subs, ch)
-		b.mu.Unlock()
+		broadcaster.mu.Lock()
+		delete(broadcaster.subs, subscriberChannel)
+		broadcaster.mu.Unlock()
 	}
-	return ch, unsubscribe
+	return subscriberChannel, unsubscribe
 }

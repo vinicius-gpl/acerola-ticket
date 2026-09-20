@@ -32,7 +32,7 @@ func New() *Collector {
 // Inventory lê os fatos majoritariamente estáticos e relevantes para
 // provisionamento desta máquina. É barato o suficiente pra chamar a cada
 // atualização da bandeja.
-func (c *Collector) Inventory() (Inventory, error) {
+func (collector *Collector) Inventory() (Inventory, error) {
 	inv := Inventory{}
 
 	hostInfo, err := host.Info()
@@ -76,29 +76,29 @@ func (c *Collector) Inventory() (Inventory, error) {
 
 // Snapshot lê as métricas ao vivo completas usadas pelo painel web,
 // incluindo os processLimit processos com maior uso de CPU.
-func (c *Collector) Snapshot(processLimit int) (Snapshot, error) {
+func (collector *Collector) Snapshot(processLimit int) (Snapshot, error) {
 	snap := Snapshot{Timestamp: time.Now()}
 
-	inv, err := c.Inventory()
+	inv, err := collector.Inventory()
 	if err != nil {
 		return snap, err
 	}
 	snap.Host = inv
 
-	if err := c.collectCPU(&snap); err != nil {
+	if err := collector.collectCPU(&snap); err != nil {
 		return snap, err
 	}
-	if err := c.collectMemory(&snap); err != nil {
+	if err := collector.collectMemory(&snap); err != nil {
 		return snap, err
 	}
-	c.collectDisks(&snap)
-	c.collectRates(&snap)
-	snap.Processes = c.collectProcesses(processLimit)
+	collector.collectDisks(&snap)
+	collector.collectRates(&snap)
+	snap.Processes = collector.collectProcesses(processLimit)
 
 	return snap, nil
 }
 
-func (c *Collector) collectCPU(snap *Snapshot) error {
+func (collector *Collector) collectCPU(snap *Snapshot) error {
 	total, err := cpu.Percent(0, false)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (c *Collector) collectCPU(snap *Snapshot) error {
 	return nil
 }
 
-func (c *Collector) collectMemory(snap *Snapshot) error {
+func (collector *Collector) collectMemory(snap *Snapshot) error {
 	vmem, err := mem.VirtualMemory()
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (c *Collector) collectMemory(snap *Snapshot) error {
 	return nil
 }
 
-func (c *Collector) collectDisks(snap *Snapshot) {
+func (collector *Collector) collectDisks(snap *Snapshot) {
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		return
@@ -163,21 +163,21 @@ func (c *Collector) collectDisks(snap *Snapshot) {
 // gopsutil expõe em bytes/segundo, comparando com a chamada anterior. A
 // primeira chamada depois do agente iniciar não tem uma base de comparação,
 // então relata taxa zero.
-func (c *Collector) collectRates(snap *Snapshot) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (collector *Collector) collectRates(snap *Snapshot) {
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
 
 	now := time.Now()
-	elapsed := now.Sub(c.lastSampleAt).Seconds()
-	hasBaseline := !c.lastSampleAt.IsZero() && elapsed > 0
+	elapsed := now.Sub(collector.lastSampleAt).Seconds()
+	hasBaseline := !collector.lastSampleAt.IsZero() && elapsed > 0
 
-	c.collectDiskRate(snap, elapsed, hasBaseline)
-	c.collectNetRate(snap, elapsed, hasBaseline)
+	collector.collectDiskRate(snap, elapsed, hasBaseline)
+	collector.collectNetRate(snap, elapsed, hasBaseline)
 
-	c.lastSampleAt = now
+	collector.lastSampleAt = now
 }
 
-func (c *Collector) collectDiskRate(snap *Snapshot, elapsed float64, hasBaseline bool) {
+func (collector *Collector) collectDiskRate(snap *Snapshot, elapsed float64, hasBaseline bool) {
 	diskIO, err := disk.IOCounters()
 	if err != nil {
 		return
@@ -190,17 +190,17 @@ func (c *Collector) collectDiskRate(snap *Snapshot, elapsed float64, hasBaseline
 	}
 	if hasBaseline {
 		var prevRead, prevWrite uint64
-		for _, counters := range c.lastDiskIO {
+		for _, counters := range collector.lastDiskIO {
 			prevRead += counters.ReadBytes
 			prevWrite += counters.WriteBytes
 		}
 		snap.DiskIO.ReadBytesPerSec = rate(prevRead, readTotal, elapsed)
 		snap.DiskIO.WriteBytesPerSec = rate(prevWrite, writeTotal, elapsed)
 	}
-	c.lastDiskIO = diskIO
+	collector.lastDiskIO = diskIO
 }
 
-func (c *Collector) collectNetRate(snap *Snapshot, elapsed float64, hasBaseline bool) {
+func (collector *Collector) collectNetRate(snap *Snapshot, elapsed float64, hasBaseline bool) {
 	netIO, err := gonet.IOCounters(true)
 	if err != nil {
 		return
@@ -212,7 +212,7 @@ func (c *Collector) collectNetRate(snap *Snapshot, elapsed float64, hasBaseline 
 			continue
 		}
 		stat := NetInterfaceStats{Name: counters.Name}
-		if prev, ok := c.lastNetIO[counters.Name]; hasBaseline && ok {
+		if prev, ok := collector.lastNetIO[counters.Name]; hasBaseline && ok {
 			stat.BytesSentPerSec = rate(prev.BytesSent, counters.BytesSent, elapsed)
 			stat.BytesRecvPerSec = rate(prev.BytesRecv, counters.BytesRecv, elapsed)
 		}
@@ -223,7 +223,7 @@ func (c *Collector) collectNetRate(snap *Snapshot, elapsed float64, hasBaseline 
 	for _, counters := range netIO {
 		byName[counters.Name] = counters
 	}
-	c.lastNetIO = byName
+	collector.lastNetIO = byName
 }
 
 func rate(prev, current uint64, elapsedSeconds float64) float64 {
@@ -237,7 +237,7 @@ func rate(prev, current uint64, elapsedSeconds float64) float64 {
 // Processos que não conseguimos inspecionar (permissão negada, terminou
 // durante a varredura) são ignorados silenciosamente — isso é esperado no
 // Windows, não uma condição de erro.
-func (c *Collector) collectProcesses(limit int) []ProcessStats {
+func (collector *Collector) collectProcesses(limit int) []ProcessStats {
 	if limit <= 0 {
 		return nil
 	}
@@ -270,8 +270,8 @@ func (c *Collector) collectProcesses(limit int) []ProcessStats {
 		})
 	}
 
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].CPUPercent > stats[j].CPUPercent
+	sort.Slice(stats, func(firstIndex, secondIndex int) bool {
+		return stats[firstIndex].CPUPercent > stats[secondIndex].CPUPercent
 	})
 	if len(stats) > limit {
 		stats = stats[:limit]

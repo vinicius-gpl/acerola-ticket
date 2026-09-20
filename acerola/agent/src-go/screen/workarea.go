@@ -25,20 +25,20 @@ var (
 	procSystemParametersInfo = user32.NewProc("SystemParametersInfoW")
 )
 
-// WorkArea retorna a área útil do monitor principal (x, y, largura, altura)
+// WorkArea retorna a área útil do monitor principal (originX, originY, width, height)
 // em pixels lógicos. Se a chamada ao Windows falhar por algum motivo,
 // retorna um retângulo de fallback razoável em vez de travar o app — errar
 // a posição da janela por alguns pixels é bem menos grave que não abrir.
-func WorkArea() (x, y, width, height int) {
-	var r rect
-	ret, _, _ := procSystemParametersInfo.Call(
+func WorkArea() (originX, originY, width, height int) {
+	var boundingBox rect
+	resultCall, _, _ := procSystemParametersInfo.Call(
 		spiGetWorkArea,
 		0,
-		uintptr(unsafe.Pointer(&r)), //nolint:gosec // API do Windows exige ponteiro cru aqui
+		uintptr(unsafe.Pointer(&boundingBox)), //nolint:gosec // API do Windows exige ponteiro cru aqui
 		0,
 	)
-	if ret == 0 {
+	if resultCall == 0 {
 		return 0, 0, 1920, 1040
 	}
-	return int(r.Left), int(r.Top), int(r.Right - r.Left), int(r.Bottom - r.Top)
+	return int(boundingBox.Left), int(boundingBox.Top), int(boundingBox.Right - boundingBox.Left), int(boundingBox.Bottom - boundingBox.Top)
 }
