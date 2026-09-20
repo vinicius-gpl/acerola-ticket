@@ -22,12 +22,24 @@
 
 <Story name="Offline" args={{ ui: { tone: 'offline' } }}>
 	{#snippet children()}
-		conectando
+		desconectado
 	{/snippet}
 </Story>
 
-<Story name="Texto vazio (caso limite)" args={{ ui: { tone: 'online' } }}>
+<Story name="Custom Class" args={{ ui: { tone: 'online', class: 'text-xs px-3 py-1 font-bold' } }}>
+	{#snippet children()}
+		personalizado
+	{/snippet}
+</Story>
+
+<Story name="Empty Text (edge case)" args={{ ui: { tone: 'online' } }}>
 	{#snippet children()}
 		{''}
+	{/snippet}
+</Story>
+
+<Story name="Long Text (edge case)">
+	{#snippet children()}
+		Rótulo excessivamente longo para validar layout
 	{/snippet}
 </Story>

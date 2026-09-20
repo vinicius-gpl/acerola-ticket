@@ -136,7 +136,7 @@
 
 	{#if metrics.latest}
 		{@const snap = metrics.latest}
-		<main class="flex-1 overflow-auto p-4">
+		<main class="min-h-0 flex-1 overflow-auto p-4">
 			<!-- Camada 1: métricas — valor + tendência + sparkline compacta,
 			     igual ao padrão de "KPI tile" do ReUI. -->
 			<section class="grid grid-cols-4 gap-3">

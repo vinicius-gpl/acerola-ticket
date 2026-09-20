@@ -7,8 +7,9 @@ beforeEach(() => {
 });
 
 describe('AcerolaThemeToggle', () => {
-	it('alterna o tema da página ao clicar', async () => {
-		// feliz
+	// feliz
+	it('toggles document theme attribute when clicked', async () => {
+		// Ao clicar no botão, o tema raiz do html deve ser alternado (ex: mocha <-> latte)
 		const { getByRole } = render(AcerolaThemeToggle, { props: {} });
 		const button = getByRole('button');
 
@@ -19,8 +20,17 @@ describe('AcerolaThemeToggle', () => {
 		expect(after).not.toBe(before);
 	});
 
-	it('não quebra em cliques repetidos (caso limite)', async () => {
-		// triste
+	// feliz
+	it('renders with proper accessible title attribute', () => {
+		// Garante acessibilidade com title informativo no botão de alternância
+		const { getByRole } = render(AcerolaThemeToggle, { props: {} });
+		const button = getByRole('button');
+		expect(button).toHaveAttribute('title', 'Alternar tema');
+	});
+
+	// triste
+	it('handles repeated rapid toggles without breaking state (edge case)', async () => {
+		// Múltiplos cliques rápidos consecutivos devem alternar o tema deterministicamente sem travar o store
 		const { getByRole } = render(AcerolaThemeToggle, { props: {} });
 		const button = getByRole('button');
 
@@ -30,5 +40,12 @@ describe('AcerolaThemeToggle', () => {
 		await button.click();
 
 		expect(document.documentElement.getAttribute('data-theme')).not.toBe(start);
+	});
+
+	// triste
+	it('initializes safely even when document data-theme was absent (edge case)', () => {
+		// Sem atributo prévio na tag <html>, deve montar e inicializar com tema padrão
+		const { getByRole } = render(AcerolaThemeToggle, { props: {} });
+		expect(getByRole('button')).toBeInTheDocument();
 	});
 });

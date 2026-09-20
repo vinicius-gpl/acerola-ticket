@@ -1,12 +1,26 @@
 <script lang="ts">
-	import AcerolaPopover from './acerola-popover.svelte';
+	import AcerolaPopover, { type AcerolaPopoverProps } from './acerola-popover.svelte';
 
 	let {
 		title = 'Detalhes',
-		description = 'Mais informações'
-	}: { title?: string; description?: string } = $props();
+		description = 'Mais informações',
+		ui,
+		hasContent = true,
+		triggerText = 'Abrir painel'
+	}: {
+		title?: string;
+		description?: string;
+		ui?: AcerolaPopoverProps['ui'];
+		hasContent?: boolean;
+		triggerText?: string;
+	} = $props();
 </script>
 
-<AcerolaPopover data={{ title, description }}>
-	<span>Abrir painel</span>
+<AcerolaPopover data={{ title, description }} {ui}>
+	<span>{triggerText}</span>
+	{#snippet content()}
+		{#if hasContent}
+			<div data-testid="popover-content">Conteúdo interno</div>
+		{/if}
+	{/snippet}
 </AcerolaPopover>

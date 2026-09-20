@@ -14,16 +14,36 @@
 	{/snippet}
 </Story>
 
-<Story name="Sem título">
+<Story name="Without Title">
 	{#snippet children()}
-		<p class="text-sm">Card sem cabeçalho, só conteúdo.</p>
+		<p class="text-sm">Card sem cabeçalho, apenas com corpo de conteúdo.</p>
 	{/snippet}
 </Story>
 
-<Story name="Tamanho pequeno" args={{ data: { title: 'Compacto' }, ui: { size: 'sm' } }}>
+<Story name="Small Size" args={{ data: { title: 'Compacto' }, ui: { size: 'sm' } }}>
 	{#snippet children()}
-		<p class="text-sm">Menos espaçamento interno.</p>
+		<p class="text-sm">Espaçamento interno reduzido para visualizações densas.</p>
 	{/snippet}
 </Story>
 
-<Story name="Sem conteúdo (caso limite)" args={{ data: { title: 'Vazio' } }} />
+<Story
+	name="Custom Styling"
+	args={{ data: { title: 'Destaque' }, ui: { class: 'border-primary/40' } }}
+>
+	{#snippet children()}
+		<p class="text-sm">Borda customizada através da prop ui.</p>
+	{/snippet}
+</Story>
+
+<Story name="Empty Content (edge case)" args={{ data: { title: 'Vazio' } }} />
+
+<Story
+	name="Long Title and Content (edge case)"
+	args={{ data: { title: 'Título extremamente longo para validação de layout do card' } }}
+>
+	{#snippet children()}
+		<p class="text-muted-foreground text-xs">
+			Texto de corpo extenso para assegurar que nenhum elemento quebre os limites do contêiner.
+		</p>
+	{/snippet}
+</Story>

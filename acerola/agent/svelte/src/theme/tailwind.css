@@ -70,13 +70,18 @@
 	--wails-draggable: no-drag;
 }
 
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border) transparent;
+}
+
 ::-webkit-scrollbar {
 	width: 6px;
 	height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-	background: var(--background);
+	background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {

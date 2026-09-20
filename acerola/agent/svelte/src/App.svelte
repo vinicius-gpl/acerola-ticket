@@ -40,6 +40,6 @@
 	onDestroy(unsubscribe);
 </script>
 
-<div class="h-screen w-screen">
+<div class="h-full w-full overflow-hidden">
 	<Router {routes} />
 </div>

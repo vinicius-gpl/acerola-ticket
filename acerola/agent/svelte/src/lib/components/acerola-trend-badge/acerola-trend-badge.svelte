@@ -3,6 +3,7 @@
 
 	export type AcerolaTrendBadgeProps = {
 		data: { trend: Trend; format: (delta: number) => string };
+		ui?: { class?: string };
 	};
 </script>
 
@@ -12,7 +13,7 @@
 	import MinusIcon from '@lucide/svelte/icons/minus';
 	import { cn } from '$lib/utils/cn';
 
-	let { data }: AcerolaTrendBadgeProps = $props();
+	let { data, ui }: AcerolaTrendBadgeProps = $props();
 
 	const toneClass = $derived(
 		{
@@ -23,7 +24,13 @@
 	);
 </script>
 
-<span class={cn('inline-flex items-center gap-0.5 text-xs font-medium tabular-nums', toneClass)}>
+<span
+	class={cn(
+		'inline-flex items-center gap-0.5 text-xs font-medium tabular-nums',
+		toneClass,
+		ui?.class
+	)}
+>
 	{#if data.trend.direction === 'up'}
 		<ArrowUpIcon size={12} />
 	{:else if data.trend.direction === 'down'}

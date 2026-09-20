@@ -14,20 +14,44 @@
 	{/snippet}
 </Story>
 
-<Story name="Ghost (ícone)" args={{ ui: { variant: 'ghost', size: 'icon' } }}>
+<Story name="Ghost Icon" args={{ ui: { variant: 'ghost', size: 'icon', title: 'Fechar' } }}>
 	{#snippet children()}
-		×
+		✕
 	{/snippet}
 </Story>
 
-<Story name="Desabilitado" args={{ ui: { disabled: true } }}>
+<Story name="Outline" args={{ ui: { variant: 'outline' } }}>
+	{#snippet children()}
+		Opções
+	{/snippet}
+</Story>
+
+<Story name="Secondary" args={{ ui: { variant: 'secondary' } }}>
+	{#snippet children()}
+		Secundário
+	{/snippet}
+</Story>
+
+<Story name="Destructive" args={{ ui: { variant: 'destructive' } }}>
+	{#snippet children()}
+		Remover
+	{/snippet}
+</Story>
+
+<Story name="Small Size" args={{ ui: { size: 'sm' } }}>
+	{#snippet children()}
+		Compacto
+	{/snippet}
+</Story>
+
+<Story name="Disabled State" args={{ ui: { disabled: true } }}>
 	{#snippet children()}
 		Indisponível
 	{/snippet}
 </Story>
 
-<Story name="Texto longo (caso limite)" args={{ ui: { class: 'max-w-40' } }}>
+<Story name="Long Text (edge case)" args={{ ui: { class: 'max-w-48' } }}>
 	{#snippet children()}
-		Um rótulo bem mais longo do que o botão normalmente recebe
+		Rótulo excessivamente longo para validar quebra no botão
 	{/snippet}
 </Story>

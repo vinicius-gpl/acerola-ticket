@@ -13,7 +13,7 @@
 </script>
 
 <Story
-	name="Uma série"
+	name="Single Series"
 	args={{
 		data: { timestamps, series: [wave(0)] },
 		ui: { colorVars: ['--chart-5'], fixedMax: 100 }
@@ -21,7 +21,7 @@
 />
 
 <Story
-	name="Duas séries"
+	name="Multi Series"
 	args={{
 		data: { timestamps, series: [wave(0), wave(20)] },
 		ui: { colorVars: ['--chart-5', '--chart-2'] }
@@ -29,7 +29,23 @@
 />
 
 <Story
-	name="Sem dados ainda (caso limite)"
+	name="Fixed Max Scale"
+	args={{
+		data: { timestamps, series: [wave(0)] },
+		ui: { colorVars: ['--chart-3'], fixedMax: 150 }
+	}}
+/>
+
+<Story
+	name="Custom Height"
+	args={{
+		data: { timestamps, series: [wave(0)] },
+		ui: { colorVars: ['--chart-4'], height: 120 }
+	}}
+/>
+
+<Story
+	name="Empty Data (edge case)"
 	args={{
 		data: { timestamps: [], series: [[]] },
 		ui: { colorVars: ['--chart-5'], fixedMax: 100 }
