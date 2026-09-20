@@ -4,7 +4,7 @@
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 	import { useMetrics } from '$lib/metrics/store.svelte';
 	import { bytes, percent, uptime } from '$lib/utils/format';
-	import { HidePopup } from '../../../wailsjs/go/main/App';
+	import { HideWindow } from '../../../wailsjs/go/main/App';
 
 	const metrics = useMetrics();
 
@@ -12,17 +12,20 @@
 	// quando a janela nativa perde o foco — não precisa de nenhuma API
 	// extra do Wails pra detectar isso.
 	function onBlur() {
-		HidePopup();
+		HideWindow();
 	}
 
 	onMount(() => window.addEventListener('blur', onBlur));
 	onDestroy(() => window.removeEventListener('blur', onBlur));
 </script>
 
-<div data-drag-region class="flex h-full flex-col gap-2 p-3">
+<div
+	data-drag-region
+	class="border-border bg-background flex h-full flex-col gap-2 rounded-lg border p-3 shadow-2xl"
+>
 	<header class="flex items-center justify-between">
 		<div class="flex items-center gap-2">
-			<img src="/favicon.svg" alt="" class="h-5 w-5" />
+			<img src="/favicon.svg" alt="" class="h-6 w-6" />
 			<span class="text-sm font-semibold">Acerola Agent</span>
 		</div>
 		<AcerolaThemeToggle />

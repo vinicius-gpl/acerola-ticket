@@ -3,8 +3,11 @@
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaSparkline from '$lib/components/acerola-sparkline/acerola-sparkline.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
+	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
+	import XIcon from '@lucide/svelte/icons/x';
 	import { useMetrics } from '$lib/metrics/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
+	import { HideWindow } from '../../../wailsjs/go/main/App';
 
 	const metrics = useMetrics();
 
@@ -50,13 +53,13 @@
 	});
 </script>
 
-<div class="flex h-full flex-col">
+<div class="border-border bg-background flex h-full flex-col rounded-lg border shadow-2xl">
 	<header
 		data-drag-region
 		class="border-border flex items-center justify-between border-b px-4 py-2"
 	>
 		<div class="flex items-center gap-2">
-			<img src="/favicon.svg" alt="" class="h-6 w-6" />
+			<img src="/favicon.svg" alt="" class="h-7 w-7" />
 			<div>
 				<h1 class="text-sm font-semibold">Acerola Agent</h1>
 				{#if metrics.latest}
@@ -73,6 +76,12 @@
 				{metrics.latest ? 'ao vivo' : 'conectando'}
 			</AcerolaBadge>
 			<AcerolaThemeToggle />
+			<AcerolaButton
+				events={{ onClick: () => HideWindow() }}
+				ui={{ variant: 'ghost', size: 'icon', title: 'Fechar' }}
+			>
+				<XIcon size={16} />
+			</AcerolaButton>
 		</div>
 	</header>
 
