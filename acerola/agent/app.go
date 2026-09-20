@@ -30,11 +30,17 @@ const (
 // App é o struct que o Wails expõe pro frontend (via Bind) e que guarda o
 // contexto da janela — precisamos dele pra chamar qualquer função do pacote
 // runtime (mostrar/esconder janela, emitir evento).
+// viewReadyTimeout limita quanto tempo ShowPopup/ShowDashboard esperam pela
+// confirmação do frontend antes de mostrar a janela de qualquer jeito — sem
+// isso, um evento perdido travaria a bandeja pra sempre.
+const viewReadyTimeout = 200 * time.Millisecond
+
 type App struct {
 	mu          sync.RWMutex
 	ctx         context.Context
 	broadcaster *metrics.Broadcaster
 	actions     chan func(context.Context)
+	viewReady   chan struct{}
 }
 
 func NewApp() *App {
@@ -42,6 +48,7 @@ func NewApp() *App {
 	return &App{
 		broadcaster: metrics.NewBroadcaster(collector, sampleInterval, topProcessCount),
 		actions:     make(chan func(context.Context), 4),
+		viewReady:   make(chan struct{}, 1),
 	}
 }
 
@@ -107,6 +114,37 @@ func (a *App) dispatch(action func(context.Context)) {
 	a.actions <- action
 }
 
+// awaitViewReady espera o frontend confirmar (via ViewReady) que já trocou
+// de rota e pintou a tela nova, antes de mostrar a janela de verdade.
+//
+// EventsEmit só enfileira a mensagem pro processo do WebView2 — ele não
+// espera o JavaScript rodar. Se WindowShow acontecesse logo em seguida, o
+// Windows podia pintar a janela um instante antes da troca de rota chegar,
+// mostrando a tela antiga (ou em branco) do tamanho errado por um frame: a
+// "piscada" ao abrir por cima de outro app com foco. Descartamos qualquer
+// confirmação atrasada de uma troca de tela anterior antes de esperar por
+// uma nova, e desistimos depois de viewReadyTimeout pra nunca travar a
+// bandeja se o frontend não confirmar.
+func (a *App) awaitViewReady() {
+	select {
+	case <-a.viewReady:
+	default:
+	}
+	select {
+	case <-a.viewReady:
+	case <-time.After(viewReadyTimeout):
+	}
+}
+
+// ViewReady é exposto ao frontend (via Bind): App.svelte chama depois de
+// trocar de rota e esperar o navegador pintar o quadro — ver awaitViewReady.
+func (a *App) ViewReady() {
+	select {
+	case a.viewReady <- struct{}{}:
+	default:
+	}
+}
+
 // ShowPopup é a ação do clique esquerdo na bandeja: encolhe a janela pro
 // tamanho de popup e mostra ancorada no canto inferior direito da área útil
 // da tela — onde a bandeja do Windows normalmente vive — como um flyout de
@@ -120,23 +158,25 @@ func (a *App) ShowPopup() {
 			waY+waH-popupHeight-screenMargin,
 		)
 		runtime.EventsEmit(ctx, "view:change", "popup")
+		a.awaitViewReady()
 		runtime.WindowShow(ctx)
 	})
 }
 
 // ShowDashboard é a ação do item "Abrir Dashboard" no menu da bandeja:
-// redimensiona pro tamanho cheio e ancora no canto inferior esquerdo da
-// área útil da tela — do lado oposto da bandeja, sem cobrir a barra de
-// tarefas nem ficar colado na borda do monitor.
+// redimensiona pro tamanho cheio e ancora no canto inferior direito da
+// área útil da tela — do mesmo lado da bandeja do Windows — sem cobrir a
+// barra de tarefas nem ficar colado na borda do monitor.
 func (a *App) ShowDashboard() {
 	a.dispatch(func(ctx context.Context) {
 		runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
-		waX, waY, _, waH := screen.WorkArea()
+		waX, waY, waW, waH := screen.WorkArea()
 		runtime.WindowSetPosition(ctx,
-			waX+screenMargin,
+			waX+waW-dashboardWidth-screenMargin,
 			waY+waH-dashboardHeight-screenMargin,
 		)
 		runtime.EventsEmit(ctx, "view:change", "dashboard")
+		a.awaitViewReady()
 		runtime.WindowShow(ctx)
 	})
 }
