@@ -1,9 +1,0 @@
-# IDENTIDADE E LOGIN — território do auth-forward, que é de quem administra o projeto.
-# Uma expressão regular (ERE) por linha, com o caminho a partir da raiz do repositório.
-# Lido por branch-guard.sh (git) e por .claude/hooks/protect-paths.mjs (Claude Code).
-^template/server/src/lib/auth/
-^template/client/src/lib/auth/
-^template/shared/src/schemas/user\.schema(\.test)?\.ts$
-^template/server/src/lib/db/schema/(users?|sessions?|accounts?|passwords?|credentials?|tokens?|logins?)\.schema\.ts$
-^template/server/src/modules/(auth|users?|sessions?|accounts?|login)/
-^template/client/src/routes/(login|logout|signin|sign-in|signup|sign-up|register|forgot-password|reset-password)(/|\.tsx$)

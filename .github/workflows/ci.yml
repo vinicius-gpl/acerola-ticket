@@ -9,7 +9,7 @@ on:
 
 defaults:
   run:
-    working-directory: template
+    working-directory: acerola
 
 jobs:
   verify:
@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: template/package-lock.json
+          cache-dependency-path: acerola/package-lock.json
 
       - run: npm ci
       - run: npm run lint

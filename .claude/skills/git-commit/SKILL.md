@@ -24,24 +24,24 @@ Uma mudança que toca dois locais são **dois commits**. Os locais:
 
 | Local | Arquivos |
 |---|---|
-| `contracts` | `template/shared/` |
-| `db` | `template/server/src/lib/db/`, `template/server/drizzle/`, `template/scripts/seed/` |
-| `backend` | o resto de `template/server/` |
-| `web` | `template/client/` |
-| `docker` | `template/docker/` |
+| `contracts` | `acerola/shared/` |
+| `db` | `acerola/server/src/lib/db/`, `acerola/server/drizzle/`, `acerola/scripts/seed/` |
+| `backend` | o resto de `acerola/server/` |
+| `web` | `acerola/client/` |
+| `docker` | `acerola/docker/` |
 | `ci` | `.github/` |
 | `docs` | `.md` da raiz |
 | `deps` | só `package.json`/`package-lock.json` por atualização de dependência |
 | `claude` | `.claude/`, `CLAUDE.md` |
 
 Ordem quando é uma feature: `contracts` → `db` → `backend` → `web`.
-Arquivo que não cabe em nenhum (ex.: `template/package.json` com script novo de seed): junte
+Arquivo que não cabe em nenhum (ex.: `acerola/package.json` com script novo de seed): junte
 com o local mais relevante da mesma mudança.
 
 Adicione **por caminho**, nunca `git add -A` às cegas:
 
 ```bash
-git add template/shared
+git add acerola/shared
 git diff --cached --stat     # confira o que vai
 ```
 

@@ -15,7 +15,7 @@ que você fez.
 ## As três regras que nunca quebram
 
 1. **A `main` não é tocada.** Não faça checkout, commit, merge, rebase nem push nela. Ela é de
-   quem administra o projeto — e o git recusa (trava em `template/scripts/git/branch-guard.sh`).
+   quem administra o projeto — e o git recusa (trava em `acerola/scripts/git/branch-guard.sh`).
    Release e hotfix também são dessa pessoa: se pedirem, explique que é com quem administra.
 2. **Na `develop`, nada de commit direto.** Ela só recebe feature pronta, por
    `git merge --no-ff`.
@@ -31,7 +31,7 @@ git branch --list develop
 git remote
 ```
 
-- Sem `gitflow.branch.develop`: rode `cd template && npm run prepare` (configura o Git-Flow do
+- Sem `gitflow.branch.develop`: rode `cd acerola && npm run prepare` (configura o Git-Flow do
   Tower e o template de commit).
 - Sem branch `develop` local:
   - se existe `origin/develop`: `git switch develop` (cria rastreando o remoto);

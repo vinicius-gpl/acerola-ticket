@@ -1,7 +1,7 @@
-# Template de MVP
+# acerola-ticket
 
-Um ponto de partida para construir um **MVP** — a primeira versão de um sistema, para validar
-uma ideia com gente de verdade usando — num padrão consistente de código.
+MVP para validar uma ideia com gente de verdade usando, construído a partir de um template de
+código com padrão consistente.
 
 Foi feito para ser usado **com o Claude Code no VS Code**. Você descreve o que o sistema
 precisa fazer, em português; o Claude constrói seguindo as regras deste repositório. As regras
@@ -51,7 +51,7 @@ Em seguida, peça **`/renomear-projeto`** para o nome do seu MVP aparecer nas te
 <summary>Prefere fazer à mão? São quatro comandos.</summary>
 
 ```bash
-cd template            # o sistema fica uma pasta abaixo da raiz
+cd acerola             # o sistema fica uma pasta abaixo da raiz
 npm install            # baixa as dependências (demora alguns minutos na primeira vez)
 npm run seed:all       # cria o banco e grava os dados de teste
 npm run dev            # sobe o sistema
@@ -103,17 +103,17 @@ chamar pelo nome, com `/`:
 ## Estrutura
 
 A raiz do repositório só guarda documentação e configuração de equipe. O sistema inteiro vive
-em `template/`.
+em `acerola/`.
 
 ```
-template/                              # raiz do repositório git
+acerola-ticket/                        # raiz do repositório git
 ├── README.md · CONTRIBUTING.md        # para pessoas
 ├── CLAUDE.md                          # para o Claude
 ├── .claude/skills/                    # as receitas do Claude
 ├── .github/                           # CI e modelo de PR
 ├── .vscode/                           # configuração e extensões recomendadas
 │
-└── template/                          # o sistema — "npm install" roda aqui
+└── acerola/                           # o sistema — "npm install" roda aqui
     ├── package.json                   # workspaces: shared, server, client
     │
     ├── shared/                        # @template/shared — o CONTRATO entre API e tela
@@ -182,7 +182,7 @@ não reescrever o sistema.
 
 ## Comandos
 
-Todos rodam dentro de `template/`:
+Todos rodam dentro de `acerola/`:
 
 | Comando | O que faz |
 |---|---|
@@ -202,7 +202,7 @@ Todos rodam dentro de `template/`:
 ### Docker
 
 ```bash
-cd template
+cd acerola
 docker compose -f docker/compose.yml up --build
 ```
 
@@ -300,7 +300,7 @@ git config project.admin true
 A chave fica só no `.git/config` do seu clone — não é versionada e não libera mais ninguém.
 Ela libera as duas travas: o hook do git e o hook do Claude Code.
 
-As listas do que é protegido ficam em `template/scripts/git/protected-*.txt` (§17 do
+As listas do que é protegido ficam em `acerola/scripts/git/protected-*.txt` (§17 do
 CONTRIBUTING).
 
 No GitHub, proteja a `main` (o hook local não pega merge *fast-forward*, e quem tem o clone

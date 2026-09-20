@@ -51,7 +51,7 @@ só as linhas.
 
 Nunca diga o caminho do arquivo para a pessoa. Diga **a tela ou a parte** que ela reconhece:
 
-| Arquivo (em `template/`) | Como falar |
+| Arquivo (em `acerola/`) | Como falar |
 |---|---|
 | `client/src/routes/<rota>/...` | "a tela **<título>**" — o título está no `PageHeader` da view que a rota usa |
 | `client/src/lib/ui/composers/<x>-view.component.tsx` | "a tela **<título do PageHeader>**" |
@@ -108,12 +108,12 @@ mudar uma regra que ela criou), sugira **conversar com ela** antes, e mostre o n
 
 - **`package-lock.json`**: fique com a versão da develop e regenere.
   ```bash
-  git checkout --theirs -- template/package-lock.json   # "theirs" = develop, neste merge
+  git checkout --theirs -- acerola/package-lock.json   # "theirs" = develop, neste merge
   ```
-  Resolva o `package.json` à mão (as duas listas somadas) e rode `cd template && npm install`.
+  Resolva o `package.json` à mão (as duas listas somadas) e rode `cd acerola && npm install`.
 - **`server/drizzle/`** (migrations): **nunca** junte SQL à mão.
   1. Fique com **todas** as migrations e o `meta/` da develop (`git checkout --theirs --
-     template/server/drizzle`).
+     acerola/server/drizzle`).
   2. Resolva os arquivos de **schema** (`server/src/lib/db/schema/`) mantendo as duas mudanças.
   3. Apague do disco as migrations que eram **só desta branch** (as que não estão na develop).
   4. `npm run build -w @template/shared && npm run db:generate` — gera uma migration nova com a

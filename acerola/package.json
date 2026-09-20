@@ -2,7 +2,7 @@
   "name": "template-workspace",
   "version": "0.1.0",
   "private": true,
-  "description": "Template de MVP — Nest de um lado, React do outro, SQLite no meio.",
+  "description": "acerola-ticket — Nest de um lado, React do outro, SQLite no meio.",
   "engines": {
     "node": ">=24.0.0 <25.0.0",
     "npm": ">=10"
@@ -30,7 +30,7 @@
     "db:reset": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts --reset",
     "seed:all": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts",
     "seed:tasks": "npm run build -w @template/shared && tsx scripts/seed/tasks/seed-tasks.ts",
-    "prepare": "cd .. && husky template/.husky && node template/scripts/git/setup-git.mjs"
+    "prepare": "cd .. && husky acerola/.husky && node acerola/scripts/git/setup-git.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",

@@ -5,9 +5,10 @@ description: Coloca o nome do MVP onde as pessoas o veem — título da aba do n
 
 # Dar nome ao MVP
 
-**Só os nomes visíveis mudam.** A pasta `template/` e o pacote interno `@template/shared`
-continuam com esses nomes: eles não aparecem para quem usa o sistema, e trocá-los mexe na
-estrutura protegida do projeto (hooks, CI, regras) — isso é do suporte.
+**Por padrão, só os nomes visíveis mudam.** A pasta do sistema (hoje `acerola/`) e o pacote
+interno `@template/shared` não aparecem para quem usa o sistema, e trocá-los mexe na estrutura
+protegida do projeto (hooks, CI, regras) — só quem administra o projeto libera isso, e só
+quando pedir explicitamente.
 
 O nome do repositório no GitHub já é o nome do MVP; é por ele que as pessoas o reconhecem.
 
@@ -25,12 +26,12 @@ Caminhos a partir da raiz do repositório:
 
 | Onde | De | Para |
 |---|---|---|
-| `template/client/index.html` | `<title>Template</title>` | `<title><Nome></title>` |
-| `template/client/src/lib/brand/brand-mark.tsx` | `'Template'` | `'<Nome>'` (é o que aparece na barra lateral) |
-| `template/server/src/main.ts` | `.setTitle('Template')` | `.setTitle('<Nome>')` |
-| `template/server/src/main.ts` | `'API do MVP.'` | `'API do <Nome>.'` |
+| `acerola/client/index.html` | `<title>Template</title>` | `<title><Nome></title>` |
+| `acerola/client/src/lib/brand/brand-mark.tsx` | `'Template'` | `'<Nome>'` (é o que aparece na barra lateral) |
+| `acerola/server/src/main.ts` | `.setTitle('Template')` | `.setTitle('<Nome>')` |
+| `acerola/server/src/main.ts` | `'API do MVP.'` | `'API do <Nome>.'` |
 | `README.md` | `# Template de MVP` e o primeiro parágrafo | `# <Nome>` e uma ou duas frases do que o MVP faz, na voz da pessoa |
-| `template/package.json` | `"description"` | uma frase do MVP |
+| `acerola/package.json` | `"description"` | uma frase do MVP |
 
 Não mexa em `CLAUDE.md`, `CONTRIBUTING.md`, `SUPORTE.md`, `.claude/`, `.github/`, hooks nem
 configurações — são protegidos e não carregam o nome do MVP.
@@ -38,7 +39,7 @@ configurações — são protegidos e não carregam o nome do MVP.
 ## 4. Verificar e terminar
 
 ```bash
-cd template
+cd acerola
 npm run lint && npm run typecheck && npm test
 ```
 

@@ -20,11 +20,11 @@
 #   chore     manutenção que não cabe acima
 #
 # LOCAL
-#   backend    template/server/
-#   web        template/client/
-#   db         template/server/drizzle/, lib/db/ e template/scripts/seed/
-#   contracts  template/shared/
-#   docker     template/docker/
+#   backend    acerola/server/
+#   web        acerola/client/
+#   db         acerola/server/drizzle/, lib/db/ e acerola/scripts/seed/
+#   contracts  acerola/shared/
+#   docker     acerola/docker/
 #   ci         .github/
 #   docs       .md na raiz
 #   deps       atualização de dependência

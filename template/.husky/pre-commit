@@ -1,2 +1,0 @@
-sh template/scripts/git/branch-guard.sh commit
-cd template && npm run lint

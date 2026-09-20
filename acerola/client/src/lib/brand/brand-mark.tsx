@@ -23,7 +23,7 @@ export function BrandMark({ ui }: BrandMarkProps) {
         ui?.className,
       )}
     >
-      Template
+      acerola-ticket
     </span>
   );
 }
