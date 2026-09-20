@@ -115,7 +115,29 @@
 	const netRecvValues = $derived(
 		metrics.history.map((snap) => sumBy(snap.network, (n) => n.bytesRecvPerSec))
 	);
+	const netSentValues = $derived(
+		metrics.history.map((snap) => sumBy(snap.network, (n) => n.bytesSentPerSec))
+	);
 	const diskReadValues = $derived(metrics.history.map((snap) => snap.diskIo.readBytesPerSec));
+	const diskWriteValues = $derived(metrics.history.map((snap) => snap.diskIo.writeBytesPerSec));
+
+	const netTotals = $derived.by(() => {
+		const snap = metrics.latest;
+		if (!snap) return { recv: 0, sent: 0 };
+		return {
+			recv: sumBy(snap.network, (n) => n.bytesRecvPerSec),
+			sent: sumBy(snap.network, (n) => n.bytesSentPerSec)
+		};
+	});
+
+	const diskTotals = $derived.by(() => {
+		const snap = metrics.latest;
+		if (!snap) return { read: 0, write: 0 };
+		return {
+			read: snap.diskIo.readBytesPerSec,
+			write: snap.diskIo.writeBytesPerSec
+		};
+	});
 </script>
 
 <div
@@ -128,6 +150,13 @@
 			<span class="text-sm font-semibold">Acerola Agent</span>
 		</div>
 		<div class="flex items-center gap-1">
+			<AcerolaTooltip data={{ text: metrics.latest ? 'Conectado · Ao vivo' : 'Conectando...' }}>
+				<AcerolaBadge
+					ui={{ tone: metrics.latest ? 'online' : 'default', class: 'text-[10px] px-1.5 py-0 h-5' }}
+				>
+					{metrics.latest ? 'ao vivo' : 'conectando'}
+				</AcerolaBadge>
+			</AcerolaTooltip>
 			<AcerolaThemeToggle />
 			<AcerolaTooltip data={{ text: 'Fechar (Esc)' }}>
 				<AcerolaButton
@@ -156,7 +185,7 @@
 		<AcerolaMetricTile
 			data={{
 				label: 'Memória',
-				value: percent(snap.memory.usedPercent),
+				value: `${percent(snap.memory.usedPercent)} (${bytes(snap.memory.usedBytes)} / ${bytes(snap.memory.totalBytes)})`,
 				trend: trend(snap.memory.usedPercent, last(memValues)),
 				trendFormat: (delta) => `${delta.toFixed(0)}pp`,
 				sparkline: { timestamps, series: [memValues] }
@@ -166,21 +195,41 @@
 
 		<AcerolaMetricTile
 			data={{
-				label: 'Rede (download)',
-				value: bytesPerSec(sumBy(snap.network, (n) => n.bytesRecvPerSec)),
-				sparkline: { timestamps, series: [netRecvValues] }
+				label: 'Rede',
+				value: `↓ ${bytesPerSec(netTotals.recv)} · ↑ ${bytesPerSec(netTotals.sent)}`,
+				sparkline: { timestamps, series: [netRecvValues, netSentValues] }
 			}}
-			ui={{ colorVars: ['--chart-5'] }}
+			ui={{ colorVars: ['--chart-5', '--chart-2'] }}
 		/>
 
 		<AcerolaMetricTile
 			data={{
-				label: 'Disco (leitura)',
-				value: bytesPerSec(snap.diskIo.readBytesPerSec),
-				sparkline: { timestamps, series: [diskReadValues] }
+				label: 'Disco I/O',
+				value: `R: ${bytesPerSec(diskTotals.read)} · W: ${bytesPerSec(diskTotals.write)}`,
+				sparkline: { timestamps, series: [diskReadValues, diskWriteValues] }
 			}}
-			ui={{ colorVars: ['--chart-3'] }}
+			ui={{ colorVars: ['--chart-3', '--chart-1'] }}
 		/>
+
+		{#if snap.processes && snap.processes.length > 0}
+			<AcerolaCard data={{ title: 'Top Processos' }} ui={{ size: 'sm' }}>
+				<div class="flex flex-col gap-1 text-xs tabular-nums">
+					{#each snap.processes.slice(0, 3) as proc (proc.pid)}
+						<div
+							class="hover:bg-muted/40 flex items-center justify-between rounded px-1 py-0.5 transition-colors"
+						>
+							<span class="max-w-[150px] truncate font-medium" title={proc.name}>
+								{proc.name}
+							</span>
+							<div class="text-muted-foreground flex items-center gap-2.5 text-[11px]">
+								<span class="text-foreground font-medium">{proc.cpuPercent.toFixed(1)}%</span>
+								<span>{bytes(proc.memBytes)}</span>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</AcerolaCard>
+		{/if}
 
 		<AcerolaCard data={{ title: 'Máquina' }} ui={{ size: 'sm' }}>
 			<div class="flex flex-col gap-2.5">
@@ -214,8 +263,32 @@
 					</div>
 				</div>
 
-				<!-- Barra de Armazenamento Principal -->
-				{#if snap.host.totalDiskBytes > 0}
+				<!-- Armazenamento / Partições -->
+				{#if snap.disks && snap.disks.length > 0}
+					<div class="flex flex-col gap-1.5">
+						{#each snap.disks as disk (disk.mountpoint)}
+							<div class="flex flex-col gap-0.5">
+								<div class="flex items-center justify-between text-xs">
+									<span
+										class="text-muted-foreground flex max-w-[140px] items-center gap-1 truncate text-[11px] font-medium"
+									>
+										<HardDriveIcon size={11} class="shrink-0" />
+										{disk.mountpoint} ({disk.fstype})
+									</span>
+									<span class="text-[11px] font-medium tabular-nums">
+										{bytes(disk.freeBytes)} livres ({Math.round(100 - disk.usedPercent)}%)
+									</span>
+								</div>
+								<div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+									<div
+										class="bg-chart-3 h-full rounded-full transition-all duration-300"
+										style={`width: ${disk.usedPercent}%`}
+									></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else if snap.host.totalDiskBytes > 0}
 					{@const usedDisk = snap.host.totalDiskBytes - snap.host.freeDiskBytes}
 					{@const diskPct = Math.round((usedDisk / snap.host.totalDiskBytes) * 100)}
 					<div class="flex flex-col gap-1">

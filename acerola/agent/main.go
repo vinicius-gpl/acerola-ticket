@@ -23,8 +23,8 @@ func main() {
 	// encerra de fato é "Sair" no menu da bandeja (ver app.go, startup).
 	err := wails.Run(&options.App{
 		Title:             "Acerola Agent",
-		Width:             340,
-		Height:            624,
+		Width:             380,
+		Height:            812,
 		MinWidth:          320,
 		MinHeight:         300,
 		Frameless:         true,

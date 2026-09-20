@@ -16,8 +16,8 @@ const (
 	sampleInterval  = 1 * time.Second
 	topProcessCount = 25
 
-	popupWidth  = 340
-	popupHeight = 624
+	popupWidth  = 380
+	popupHeight = 812
 
 	dashboardWidth  = 1100
 	dashboardHeight = 720
@@ -152,11 +152,15 @@ func (a *App) ViewReady() {
 func (a *App) ShowPopup() {
 	a.dispatch(func(ctx context.Context) {
 		runtime.WindowSetAlwaysOnTop(ctx, true)
-		runtime.WindowSetSize(ctx, popupWidth, popupHeight)
 		waX, waY, waW, waH := screen.WorkArea()
+		h := popupHeight
+		if maxH := waH - (screenMargin * 2); h > maxH {
+			h = maxH
+		}
+		runtime.WindowSetSize(ctx, popupWidth, h)
 		runtime.WindowSetPosition(ctx,
 			waX+waW-popupWidth-screenMargin,
-			waY+waH-popupHeight-screenMargin,
+			waY+waH-h-screenMargin,
 		)
 		runtime.EventsEmit(ctx, "view:change", "popup")
 		a.awaitViewReady()
