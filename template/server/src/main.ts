@@ -24,10 +24,10 @@ async function bootstrap(): Promise<void> {
     SwaggerModule.createDocument(
       app,
       new DocumentBuilder()
-        .setTitle('Template')
+        .setTitle('acerola-ticket')
         .setDescription(
           [
-            'API do MVP.',
+            'API do acerola-ticket.',
             '',
             'Duas convenções que valem para toda a API:',
             '',
