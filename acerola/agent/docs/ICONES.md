@@ -47,24 +47,25 @@ de rasterização de SVG que ele nunca usa em produção.
 
 ```bash
 cd acerola/agent
-go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.ico -sizes 16,32,48,256 -zoom 1.2
+go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.ico -sizes 16,32,48,256 -zoom 1.44
 cp icons/tray.ico src-go/assets/tray.ico     # cópia embutida no binário — ver ARQUITETURA.md
 cp icons/tray.ico build/windows/icon.ico     # ícone do .exe e do instalador (convenção do Wails)
 
-go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out build/appicon.png -sizes 512 -zoom 1.2
+go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out build/appicon.png -sizes 512 -zoom 1.44
 cp icons/ic_launcher_foreground.svg svelte/public/favicon.svg
 ```
 
-**`-zoom 1.2`**: a arte de origem tem uma margem de respiro ao redor da fruta (comum em ícones
+**`-zoom 1.44`**: a arte de origem tem uma margem de respiro ao redor da fruta (comum em ícones
 pensados como "foreground" de ícone adaptativo — o sistema operacional normalmente aplica uma
 máscara e escala por cima). Em 512px essa margem passa despercebida, mas reduzida pra 16×16 na
 bandeja do Windows ela faz a fruta parecer pequena dentro do quadro, perto de ícones de outros
-apps que preenchem o espaço todo. `-zoom` desenha o SVG 20% maior que o quadro e centralizado,
+apps que preenchem o espaço todo. `-zoom` desenha o SVG maior que o quadro e centralizado,
 cortando essa margem nas bordas — implementado em `rasterize()` (`icongen/main.go`) ajustando o
 retângulo de destino do `oksvg` pra ficar maior que o canvas final, então parte do desenho cai
-fora e é naturalmente recortada pelo tamanho do `image.RGBA`. Usamos o mesmo zoom em todo lugar
-(bandeja e `appicon.png`) por consistência — é a mesma arte, o mesmo recorte, só o tamanho final
-muda.
+fora e é naturalmente recortada pelo tamanho do `image.RGBA`. Começou em 1.2 (+20%); depois de ver
+o ícone da bandeja de perto, ainda parecia pequeno perto dos outros apps, então foi pra 1.44
+(mais +20% em cima do 1.2). Usamos o mesmo zoom em todo lugar (bandeja e `appicon.png`) por
+consistência — é a mesma arte, o mesmo recorte, só o tamanho final muda.
 
 Tamanhos incluídos no `.ico` da bandeja: **16×16 e 32×32** (os dois exigidos, usados em telas
 normal e HiDPI) mais **48×48 e 256×256** (tamanhos padrão do Windows para o Explorer e a caixa
