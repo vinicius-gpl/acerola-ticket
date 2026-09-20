@@ -15,6 +15,8 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
@@ -58,28 +60,25 @@ func main() {
 }
 
 func parseSizes(raw string) ([]int, error) {
-	var sizes []int
-	start := 0
-	for i := 0; i <= len(raw); i++ {
-		if i == len(raw) || raw[i] == ',' {
-			var n int
-			if _, err := fmt.Sscanf(raw[start:i], "%d", &n); err != nil {
-				return nil, err
-			}
-			sizes = append(sizes, n)
-			start = i + 1
+	parts := strings.Split(raw, ",")
+	sizes := make([]int, 0, len(parts))
+	for _, part := range parts {
+		size, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil {
+			return nil, fmt.Errorf("tamanho inválido %q: %w", part, err)
 		}
+		sizes = append(sizes, size)
 	}
 	return sizes, nil
 }
 
 func loadSVG(path string) (*oksvg.SvgIcon, error) {
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = f.Close() }() // leitura; erro no close não muda o resultado já lido
-	return oksvg.ReadIconStream(f)
+	defer func() { _ = file.Close() }() // leitura; erro no close não muda o resultado já lido
+	return oksvg.ReadIconStream(file)
 }
 
 // rasterize desenha o SVG num quadrado size x size, preservando a proporção
@@ -97,7 +96,7 @@ func rasterize(icon *oksvg.SvgIcon, size int) image.Image {
 // writeICO grava um .ico no formato moderno (PNG embutido por entrada), que
 // o Windows suporta desde o Vista e que evita reimplementar o encoder BMP/DIB.
 func writeICO(path string, sizes []int, pngs [][]byte) error {
-	f, err := os.Create(path)
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -107,12 +106,12 @@ func writeICO(path string, sizes []int, pngs [][]byte) error {
 	binary.LittleEndian.PutUint16(header[0:2], 0) // reservado
 	binary.LittleEndian.PutUint16(header[2:4], 1) // tipo: ícone
 	binary.LittleEndian.PutUint16(header[4:6], uint16(count))
-	if _, err := f.Write(header); err != nil {
+	if _, err := file.Write(header); err != nil {
 		return err
 	}
 
 	offset := uint32(6 + count*16)
-	for i, size := range sizes {
+	for index, size := range sizes {
 		entry := make([]byte, 16)
 		dim := byte(size)
 		if size >= 256 {
@@ -124,18 +123,18 @@ func writeICO(path string, sizes []int, pngs [][]byte) error {
 		entry[3] = 0                                  // reservado
 		binary.LittleEndian.PutUint16(entry[4:6], 1)  // planos de cor
 		binary.LittleEndian.PutUint16(entry[6:8], 32) // bits por pixel
-		binary.LittleEndian.PutUint32(entry[8:12], uint32(len(pngs[i])))
+		binary.LittleEndian.PutUint32(entry[8:12], uint32(len(pngs[index])))
 		binary.LittleEndian.PutUint32(entry[12:16], offset)
-		if _, err := f.Write(entry); err != nil {
+		if _, err := file.Write(entry); err != nil {
 			return err
 		}
-		offset += uint32(len(pngs[i]))
+		offset += uint32(len(pngs[index]))
 	}
 
 	for _, data := range pngs {
-		if _, err := f.Write(data); err != nil {
+		if _, err := file.Write(data); err != nil {
 			return err
 		}
 	}
-	return f.Close() // aqui o erro importa: é onde uma falha de flush em disco apareceria
+	return file.Close() // aqui o erro importa: é onde uma falha de flush em disco apareceria
 }

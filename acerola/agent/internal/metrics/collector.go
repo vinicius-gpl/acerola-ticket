@@ -139,18 +139,18 @@ func (c *Collector) collectDisks(snap *Snapshot) {
 		return
 	}
 	seen := map[string]bool{}
-	for _, p := range partitions {
-		if seen[p.Mountpoint] {
+	for _, partition := range partitions {
+		if seen[partition.Mountpoint] {
 			continue
 		}
-		seen[p.Mountpoint] = true
-		usage, err := disk.Usage(p.Mountpoint)
+		seen[partition.Mountpoint] = true
+		usage, err := disk.Usage(partition.Mountpoint)
 		if err != nil || usage.Total == 0 {
 			continue
 		}
 		snap.Disks = append(snap.Disks, DiskStats{
-			Mountpoint:  p.Mountpoint,
-			Fstype:      p.Fstype,
+			Mountpoint:  partition.Mountpoint,
+			Fstype:      partition.Fstype,
 			TotalBytes:  usage.Total,
 			UsedBytes:   usage.Used,
 			FreeBytes:   usage.Free,
@@ -184,15 +184,15 @@ func (c *Collector) collectDiskRate(snap *Snapshot, elapsed float64, hasBaseline
 	}
 
 	var readTotal, writeTotal uint64
-	for _, io := range diskIO {
-		readTotal += io.ReadBytes
-		writeTotal += io.WriteBytes
+	for _, counters := range diskIO {
+		readTotal += counters.ReadBytes
+		writeTotal += counters.WriteBytes
 	}
 	if hasBaseline {
 		var prevRead, prevWrite uint64
-		for _, io := range c.lastDiskIO {
-			prevRead += io.ReadBytes
-			prevWrite += io.WriteBytes
+		for _, counters := range c.lastDiskIO {
+			prevRead += counters.ReadBytes
+			prevWrite += counters.WriteBytes
 		}
 		snap.DiskIO.ReadBytesPerSec = rate(prevRead, readTotal, elapsed)
 		snap.DiskIO.WriteBytesPerSec = rate(prevWrite, writeTotal, elapsed)
@@ -207,21 +207,21 @@ func (c *Collector) collectNetRate(snap *Snapshot, elapsed float64, hasBaseline 
 	}
 
 	activeNames := activeInterfaceNames()
-	for _, io := range netIO {
-		if !activeNames[io.Name] {
+	for _, counters := range netIO {
+		if !activeNames[counters.Name] {
 			continue
 		}
-		stat := NetInterfaceStats{Name: io.Name}
-		if prev, ok := c.lastNetIO[io.Name]; hasBaseline && ok {
-			stat.BytesSentPerSec = rate(prev.BytesSent, io.BytesSent, elapsed)
-			stat.BytesRecvPerSec = rate(prev.BytesRecv, io.BytesRecv, elapsed)
+		stat := NetInterfaceStats{Name: counters.Name}
+		if prev, ok := c.lastNetIO[counters.Name]; hasBaseline && ok {
+			stat.BytesSentPerSec = rate(prev.BytesSent, counters.BytesSent, elapsed)
+			stat.BytesRecvPerSec = rate(prev.BytesRecv, counters.BytesRecv, elapsed)
 		}
 		snap.Network = append(snap.Network, stat)
 	}
 
 	byName := make(map[string]gonet.IOCountersStat, len(netIO))
-	for _, io := range netIO {
-		byName[io.Name] = io
+	for _, counters := range netIO {
+		byName[counters.Name] = counters
 	}
 	c.lastNetIO = byName
 }
@@ -247,22 +247,22 @@ func (c *Collector) collectProcesses(limit int) []ProcessStats {
 	}
 
 	stats := make([]ProcessStats, 0, len(procs))
-	for _, p := range procs {
-		name, err := p.Name()
+	for _, proc := range procs {
+		name, err := proc.Name()
 		if err != nil {
 			continue
 		}
-		cpuPct, err := p.CPUPercent()
+		cpuPct, err := proc.CPUPercent()
 		if err != nil {
 			continue
 		}
-		memPct, _ := p.MemoryPercent()
+		memPct, _ := proc.MemoryPercent()
 		var memBytes uint64
-		if memInfo, err := p.MemoryInfo(); err == nil && memInfo != nil {
+		if memInfo, err := proc.MemoryInfo(); err == nil && memInfo != nil {
 			memBytes = memInfo.RSS
 		}
 		stats = append(stats, ProcessStats{
-			PID:        p.Pid,
+			PID:        proc.Pid,
 			Name:       name,
 			CPUPercent: cpuPct,
 			MemPercent: memPct,
@@ -324,8 +324,8 @@ func primaryInterface() (mac string, ip string) {
 }
 
 func hasFlag(flags []string, want string) bool {
-	for _, f := range flags {
-		if strings.EqualFold(f, want) {
+	for _, flag := range flags {
+		if strings.EqualFold(flag, want) {
 			return true
 		}
 	}
@@ -340,12 +340,12 @@ func physicalDiskTotals() (total uint64, free uint64) {
 		return 0, 0
 	}
 	seen := map[string]bool{}
-	for _, p := range partitions {
-		if seen[p.Mountpoint] {
+	for _, partition := range partitions {
+		if seen[partition.Mountpoint] {
 			continue
 		}
-		seen[p.Mountpoint] = true
-		usage, err := disk.Usage(p.Mountpoint)
+		seen[partition.Mountpoint] = true
+		usage, err := disk.Usage(partition.Mountpoint)
 		if err != nil {
 			continue
 		}

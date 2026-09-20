@@ -28,7 +28,8 @@ func Run(broadcaster *metrics.Broadcaster, dashboardURL string) {
 	)
 }
 
-type items struct {
+// menuItems agrupa os itens de menu que a bandeja mantém atualizados.
+type menuItems struct {
 	host      *systray.MenuItem
 	ip        *systray.MenuItem
 	os        *systray.MenuItem
@@ -50,7 +51,7 @@ func onReady(broadcaster *metrics.Broadcaster, dashboardURL string) {
 	header.Disable()
 	systray.AddSeparator()
 
-	it := items{
+	menu := menuItems{
 		host:   systray.AddMenuItem("Computador: ...", ""),
 		ip:     systray.AddMenuItem("IP local: ...", ""),
 		os:     systray.AddMenuItem("Sistema: ...", ""),
@@ -60,24 +61,25 @@ func onReady(broadcaster *metrics.Broadcaster, dashboardURL string) {
 		uptime: systray.AddMenuItem("Ligado há: ...", ""),
 		mac:    systray.AddMenuItem("MAC: ...", ""),
 	}
-	for _, item := range []*systray.MenuItem{it.host, it.ip, it.os, it.cpu, it.ram, it.disk, it.uptime, it.mac} {
-		item.Disable()
+	labels := []*systray.MenuItem{menu.host, menu.ip, menu.os, menu.cpu, menu.ram, menu.disk, menu.uptime, menu.mac}
+	for _, label := range labels {
+		label.Disable()
 	}
 
 	systray.AddSeparator()
-	it.dashboard = systray.AddMenuItem("Abrir dashboard", "Abre o painel detalhado no navegador")
-	it.quit = systray.AddMenuItem("Sair", "Encerra o agente")
+	menu.dashboard = systray.AddMenuItem("Abrir dashboard", "Abre o painel detalhado no navegador")
+	menu.quit = systray.AddMenuItem("Sair", "Encerra o agente")
 
-	go watchClicks(it, dashboardURL)
-	go refreshLoop(broadcaster, it)
+	go watchClicks(menu, dashboardURL)
+	go refreshLoop(broadcaster, menu)
 }
 
-func watchClicks(it items, dashboardURL string) {
+func watchClicks(menu menuItems, dashboardURL string) {
 	for {
 		select {
-		case <-it.dashboard.ClickedCh:
+		case <-menu.dashboard.ClickedCh:
 			openBrowser(dashboardURL)
-		case <-it.quit.ClickedCh:
+		case <-menu.quit.ClickedCh:
 			systray.Quit()
 			return
 		}
@@ -86,39 +88,39 @@ func watchClicks(it items, dashboardURL string) {
 
 // refreshLoop mantém os rótulos do menu atualizados, consultando o snapshot
 // mais recente do broadcaster na sua própria cadência (mais lenta).
-func refreshLoop(broadcaster *metrics.Broadcaster, it items) {
+func refreshLoop(broadcaster *metrics.Broadcaster, menu menuItems) {
 	ticker := time.NewTicker(refreshInterval)
 	defer ticker.Stop()
 
-	update(broadcaster, it)
+	update(broadcaster, menu)
 	for range ticker.C {
-		update(broadcaster, it)
+		update(broadcaster, menu)
 	}
 }
 
-func update(broadcaster *metrics.Broadcaster, it items) {
+func update(broadcaster *metrics.Broadcaster, menu menuItems) {
 	snap := broadcaster.Latest()
 	if snap.Host.Hostname == "" {
 		return // primeira amostra ainda não chegou
 	}
 
-	it.host.SetTitle(fmt.Sprintf("Computador: %s", snap.Host.Hostname))
-	it.ip.SetTitle(fmt.Sprintf("IP local: %s", orDash(snap.Host.LocalIP)))
-	it.os.SetTitle(fmt.Sprintf("Sistema: %s (%s)", snap.Host.Platform, snap.Host.Arch))
-	it.cpu.SetTitle(fmt.Sprintf("CPU: %.0f%%", snap.CPU.PercentTotal))
-	it.ram.SetTitle(fmt.Sprintf("Memória: %.0f%% (%s de %s)",
+	menu.host.SetTitle(fmt.Sprintf("Computador: %s", snap.Host.Hostname))
+	menu.ip.SetTitle(fmt.Sprintf("IP local: %s", orDash(snap.Host.LocalIP)))
+	menu.os.SetTitle(fmt.Sprintf("Sistema: %s (%s)", snap.Host.Platform, snap.Host.Arch))
+	menu.cpu.SetTitle(fmt.Sprintf("CPU: %.0f%%", snap.CPU.PercentTotal))
+	menu.ram.SetTitle(fmt.Sprintf("Memória: %.0f%% (%s de %s)",
 		snap.Memory.UsedPercent, humanizeBytes(snap.Memory.UsedBytes), humanizeBytes(snap.Memory.TotalBytes)))
-	it.disk.SetTitle(fmt.Sprintf("Disco: %s livres de %s",
+	menu.disk.SetTitle(fmt.Sprintf("Disco: %s livres de %s",
 		humanizeBytes(snap.Host.FreeDiskBytes), humanizeBytes(snap.Host.TotalDiskBytes)))
-	it.uptime.SetTitle(fmt.Sprintf("Ligado há: %s", humanizeUptime(snap.Host.UptimeSeconds)))
-	it.mac.SetTitle(fmt.Sprintf("MAC: %s", orDash(snap.Host.MACAddress)))
+	menu.uptime.SetTitle(fmt.Sprintf("Ligado há: %s", humanizeUptime(snap.Host.UptimeSeconds)))
+	menu.mac.SetTitle(fmt.Sprintf("MAC: %s", orDash(snap.Host.MACAddress)))
 }
 
-func orDash(s string) string {
-	if s == "" {
+func orDash(value string) string {
+	if value == "" {
 		return "—"
 	}
-	return s
+	return value
 }
 
 // openBrowser chama o manipulador de URL do Windows. Não existe um jeito

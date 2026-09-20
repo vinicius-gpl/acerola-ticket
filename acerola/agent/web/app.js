@@ -13,20 +13,20 @@
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
-  function bytes(n) {
-    if (!n || n <= 0) return '0 B';
+  function bytes(byteCount) {
+    if (!byteCount || byteCount <= 0) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let i = 0;
-    let v = n;
-    while (v >= 1024 && i < units.length - 1) {
-      v /= 1024;
-      i += 1;
+    let unitIndex = 0;
+    let value = byteCount;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
     }
-    return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+    return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
   }
 
-  function bytesPerSec(n) {
-    return `${bytes(n)}/s`;
+  function bytesPerSec(byteCount) {
+    return `${bytes(byteCount)}/s`;
   }
 
   function uptime(totalSeconds) {
@@ -52,10 +52,10 @@
     }
 
     push(values) {
-      values.forEach((v, i) => {
-        const s = this.series[i];
-        s.push(v);
-        if (s.length > MAX_POINTS) s.shift();
+      values.forEach((value, seriesIndex) => {
+        const series = this.series[seriesIndex];
+        series.push(value);
+        if (series.length > MAX_POINTS) series.shift();
       });
       this.draw();
     }
@@ -75,22 +75,22 @@
       let max = this.fixedMax;
       if (max === undefined) {
         max = 1;
-        this.series.forEach((s) => s.forEach((v) => { if (v > max) max = v; }));
+        this.series.forEach((series) => series.forEach((value) => { if (value > max) max = value; }));
         max *= 1.2;
       }
 
       const stepX = cssWidth / Math.max(MAX_POINTS - 1, 1);
-      this.series.forEach((s, i) => {
-        if (s.length < 2) return;
-        const offset = MAX_POINTS - s.length;
+      this.series.forEach((series, seriesIndex) => {
+        if (series.length < 2) return;
+        const offset = MAX_POINTS - series.length;
         ctx.beginPath();
-        s.forEach((v, idx) => {
-          const x = (offset + idx) * stepX;
-          const y = cssHeight - Math.min(v / max, 1) * (cssHeight - 2) - 1;
-          if (idx === 0) ctx.moveTo(x, y);
+        series.forEach((value, pointIndex) => {
+          const x = (offset + pointIndex) * stepX;
+          const y = cssHeight - Math.min(value / max, 1) * (cssHeight - 2) - 1;
+          if (pointIndex === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         });
-        ctx.strokeStyle = getCSSVar(this.colorVars[i]);
+        ctx.strokeStyle = getCSSVar(this.colorVars[seriesIndex]);
         ctx.lineWidth = 1.5;
         ctx.stroke();
       });
@@ -108,7 +108,7 @@
     themeToggle.textContent = theme === 'catppuccin-latte' ? '☀️' : '🌙';
     localStorage.setItem(THEME_KEY, theme);
     // Temas trocam as cores das --chart-N; redesenha tudo com as novas.
-    Object.values(charts).forEach((c) => c.draw());
+    Object.values(charts).forEach((chart) => chart.draw());
   }
 
   themeToggle.addEventListener('click', () => {
@@ -184,8 +184,8 @@
       : 'swap: nenhuma';
 
     // Rede (soma de todas as interfaces ativas)
-    const netRecv = (snap.network || []).reduce((sum, n) => sum + n.bytesRecvPerSec, 0);
-    const netSent = (snap.network || []).reduce((sum, n) => sum + n.bytesSentPerSec, 0);
+    const netRecv = (snap.network || []).reduce((sum, iface) => sum + iface.bytesRecvPerSec, 0);
+    const netSent = (snap.network || []).reduce((sum, iface) => sum + iface.bytesSentPerSec, 0);
     el.netRate.textContent = `↓${bytesPerSec(netRecv)} ↑${bytesPerSec(netSent)}`;
     charts.net.push([netRecv, netSent]);
 
@@ -194,13 +194,13 @@
     charts.disk.push([snap.diskIo.readBytesPerSec, snap.diskIo.writeBytesPerSec]);
 
     el.diskVolumes.innerHTML = '';
-    (snap.disks || []).forEach((d) => {
+    (snap.disks || []).forEach((disk) => {
       const row = document.createElement('div');
       row.className = 'disk-volume';
       row.innerHTML = `
-        <span title="${d.mountpoint}">${d.mountpoint}</span>
-        <span class="disk-volume-bar"><span style="width:${d.usedPercent}%"></span></span>
-        <span>${bytes(d.freeBytes)} livres</span>
+        <span title="${disk.mountpoint}">${disk.mountpoint}</span>
+        <span class="disk-volume-bar"><span style="width:${disk.usedPercent}%"></span></span>
+        <span>${bytes(disk.freeBytes)} livres</span>
       `;
       el.diskVolumes.appendChild(row);
     });
@@ -208,14 +208,14 @@
     // Processos
     el.processCount.textContent = `top ${snap.processes.length}`;
     el.processRows.innerHTML = '';
-    snap.processes.forEach((p) => {
+    snap.processes.forEach((proc) => {
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td>${p.pid}</td>
-        <td>${p.name}</td>
-        <td>${p.cpuPercent.toFixed(1)}</td>
-        <td>${p.memPercent.toFixed(1)}</td>
-        <td>${bytes(p.memBytes)}</td>
+        <td>${proc.pid}</td>
+        <td>${proc.name}</td>
+        <td>${proc.cpuPercent.toFixed(1)}</td>
+        <td>${proc.memPercent.toFixed(1)}</td>
+        <td>${bytes(proc.memBytes)}</td>
       `;
       el.processRows.appendChild(row);
     });
