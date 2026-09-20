@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acerola Agent — Monitor de Sistema</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="/favicon.svg" alt="" class="brand-icon" />
+        <div>
+          <h1>Acerola Agent</h1>
+          <p class="subtitle" id="host-summary">conectando…</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="conn-status" id="conn-status" data-state="connecting">conectando</span>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema">🌙</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card card-cpu">
+        <div class="card-header">
+          <h2>CPU</h2>
+          <span class="metric-big" id="cpu-total">—%</span>
+        </div>
+        <canvas id="cpu-chart" class="chart" height="90"></canvas>
+        <div class="core-bars" id="cpu-cores"></div>
+      </section>
+
+      <section class="card card-memory">
+        <div class="card-header">
+          <h2>Memória</h2>
+          <span class="metric-big" id="mem-total">—%</span>
+        </div>
+        <canvas id="mem-chart" class="chart" height="90"></canvas>
+        <div class="stat-line" id="mem-detail">—</div>
+        <div class="stat-line" id="swap-detail">—</div>
+      </section>
+
+      <section class="card card-network">
+        <div class="card-header">
+          <h2>Rede</h2>
+          <span class="metric-big" id="net-rate">—</span>
+        </div>
+        <canvas id="net-chart" class="chart" height="90"></canvas>
+        <div class="legend">
+          <span><i class="dot dot-1"></i> download</span>
+          <span><i class="dot dot-2"></i> upload</span>
+        </div>
+      </section>
+
+      <section class="card card-disk">
+        <div class="card-header">
+          <h2>Disco</h2>
+          <span class="metric-big" id="disk-rate">—</span>
+        </div>
+        <canvas id="disk-chart" class="chart" height="90"></canvas>
+        <div class="legend">
+          <span><i class="dot dot-3"></i> leitura</span>
+          <span><i class="dot dot-4"></i> escrita</span>
+        </div>
+        <div class="disk-bars" id="disk-volumes"></div>
+      </section>
+
+      <section class="card card-processes">
+        <div class="card-header">
+          <h2>Processos</h2>
+          <span class="metric-small" id="process-count">—</span>
+        </div>
+        <table class="process-table">
+          <thead>
+            <tr>
+              <th>PID</th>
+              <th>Nome</th>
+              <th>CPU %</th>
+              <th>Mem %</th>
+              <th>Memória</th>
+            </tr>
+          </thead>
+          <tbody id="process-rows"></tbody>
+        </table>
+      </section>
+
+      <section class="card card-inventory">
+        <div class="card-header">
+          <h2>Inventário</h2>
+        </div>
+        <dl class="inventory-list" id="inventory-list"></dl>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
