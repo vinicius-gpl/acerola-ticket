@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import AcerolaBadge from '$lib/components/acerola-badge/acerola-badge.svelte';
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
+	import AcerolaTooltip from '$lib/components/acerola-tooltip/acerola-tooltip.svelte';
+	import ClockIcon from '@lucide/svelte/icons/clock';
+	import CpuIcon from '@lucide/svelte/icons/cpu';
+	import HardDriveIcon from '@lucide/svelte/icons/hard-drive';
+	import MonitorIcon from '@lucide/svelte/icons/monitor';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { useMetrics } from '$lib/metrics/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
@@ -123,12 +129,14 @@
 		</div>
 		<div class="flex items-center gap-1">
 			<AcerolaThemeToggle />
-			<AcerolaButton
-				events={{ onClick: () => HideWindow() }}
-				ui={{ variant: 'ghost', size: 'icon', title: 'Fechar' }}
-			>
-				<XIcon size={16} />
-			</AcerolaButton>
+			<AcerolaTooltip data={{ text: 'Fechar (Esc)' }}>
+				<AcerolaButton
+					events={{ onClick: () => HideWindow() }}
+					ui={{ variant: 'ghost', size: 'icon', title: 'Fechar' }}
+				>
+					<XIcon size={16} />
+				</AcerolaButton>
+			</AcerolaTooltip>
 		</div>
 	</header>
 
@@ -174,17 +182,72 @@
 			ui={{ colorVars: ['--chart-3'] }}
 		/>
 
-		<AcerolaCard data={{ title: 'Máquina' }}>
-			<dl class="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
-				<dt class="text-muted-foreground">Computador</dt>
-				<dd class="text-right font-medium">{snap.host.hostname}</dd>
-				<dt class="text-muted-foreground">IP local</dt>
-				<dd class="text-right font-medium">{snap.host.localIp || '—'}</dd>
-				<dt class="text-muted-foreground">Disco livre</dt>
-				<dd class="text-right font-medium">{bytes(snap.host.freeDiskBytes)}</dd>
-				<dt class="text-muted-foreground">Ligado há</dt>
-				<dd class="text-right font-medium">{uptime(snap.host.uptimeSeconds)}</dd>
-			</dl>
+		<AcerolaCard data={{ title: 'Máquina' }} ui={{ size: 'sm' }}>
+			<div class="flex flex-col gap-2.5">
+				<!-- Hostname e Sistema Operacional -->
+				<div class="flex items-center justify-between gap-2">
+					<div class="flex min-w-0 items-center gap-1.5">
+						<MonitorIcon size={14} class="text-muted-foreground shrink-0" />
+						<span class="truncate text-xs font-semibold" title={snap.host.hostname}>
+							{snap.host.hostname}
+						</span>
+					</div>
+					<AcerolaBadge ui={{ tone: 'default', class: 'text-[10px] px-1.5 py-0 h-4 shrink-0' }}>
+						{snap.host.platform || snap.host.os}
+					</AcerolaBadge>
+				</div>
+
+				<!-- Grid de Informações: IP Local e Uptime -->
+				<div class="grid grid-cols-2 gap-2 text-xs">
+					<div class="bg-muted/40 flex flex-col gap-0.5 rounded-md p-1.5">
+						<span class="text-muted-foreground text-[10px] font-medium uppercase">IP Local</span>
+						<span class="truncate font-mono text-xs font-medium">{snap.host.localIp || '—'}</span>
+					</div>
+					<div class="bg-muted/40 flex flex-col gap-0.5 rounded-md p-1.5">
+						<span
+							class="text-muted-foreground flex items-center gap-1 text-[10px] font-medium uppercase"
+						>
+							<ClockIcon size={10} />
+							Ligado há
+						</span>
+						<span class="truncate text-xs font-medium">{uptime(snap.host.uptimeSeconds)}</span>
+					</div>
+				</div>
+
+				<!-- Barra de Armazenamento Principal -->
+				{#if snap.host.totalDiskBytes > 0}
+					{@const usedDisk = snap.host.totalDiskBytes - snap.host.freeDiskBytes}
+					{@const diskPct = Math.round((usedDisk / snap.host.totalDiskBytes) * 100)}
+					<div class="flex flex-col gap-1">
+						<div class="flex items-center justify-between text-xs">
+							<span class="text-muted-foreground flex items-center gap-1 text-[11px]">
+								<HardDriveIcon size={11} />
+								Disco principal
+							</span>
+							<span class="text-[11px] font-medium tabular-nums">
+								{bytes(snap.host.freeDiskBytes)} livres ({100 - diskPct}%)
+							</span>
+						</div>
+						<div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+							<div
+								class="bg-chart-3 h-full rounded-full transition-all duration-300"
+								style={`width: ${diskPct}%`}
+							></div>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Detalhes de Processador e Memória -->
+				<div
+					class="text-muted-foreground border-border/50 flex items-center justify-between border-t pt-1 text-[11px]"
+				>
+					<span class="mr-2 flex items-center gap-1 truncate" title={snap.host.cpuModel}>
+						<CpuIcon size={12} class="shrink-0" />
+						{snap.host.logicalCpus} núcleos · {snap.host.arch}
+					</span>
+					<span class="shrink-0 font-medium">RAM: {bytes(snap.host.totalMemoryBytes)}</span>
+				</div>
+			</div>
 		</AcerolaCard>
 	{:else}
 		<p class="text-muted-foreground flex-1 text-sm">Coletando métricas…</p>

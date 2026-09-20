@@ -17,7 +17,7 @@ const (
 	topProcessCount = 25
 
 	popupWidth  = 340
-	popupHeight = 480
+	popupHeight = 624
 
 	dashboardWidth  = 1100
 	dashboardHeight = 720
