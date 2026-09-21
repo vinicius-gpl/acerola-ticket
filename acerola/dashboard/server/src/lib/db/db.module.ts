@@ -4,17 +4,17 @@ import { ENV } from '../config/env.token';
 import { type Env } from '../config/env.schema';
 import { DB } from './db.token';
 import { type Database } from './db.type';
-import { openDatabase, resolveDatabaseFile } from './open-database.util';
+import { describeDatabaseUrl, openDatabase } from './open-database.util';
 
-/** Guardado à parte do provider para o desligamento conseguir fechar o arquivo. */
-let close: (() => void) | null = null;
+/** Guardado à parte do provider para o desligamento conseguir encerrar a conexão. */
+let close: (() => Promise<void>) | null = null;
 
 /**
  * Uma conexão para o processo inteiro.
  *
- * Global porque todo repository precisa dela, e porque ter UMA é parte da garantia: o SQLite
- * aceita um escritor por vez, e duas conexões do mesmo processo disputando o arquivo viram
- * "database is locked" sob carga.
+ * Global porque todo repository precisa dela. Ter UMA também importa no Postgres hospedado,
+ * só que por outro motivo que no SQLite: a Neon cobra por conexão aberta, e um pool por
+ * módulo multiplicaria isso sem o sistema ficar mais rápido.
  */
 @Global()
 @Module({
@@ -22,11 +22,11 @@ let close: (() => void) | null = null;
     {
       provide: DB,
       inject: [ENV],
-      useFactory: (env: Env): Database => {
-        const opened = openDatabase(env.DATABASE_FILE);
+      useFactory: async (env: Env): Promise<Database> => {
+        const opened = await openDatabase(env.DATABASE_URL);
         close = opened.close;
 
-        new Logger(DbModule.name).log(`SQLite em ${resolveDatabaseFile(env.DATABASE_FILE)}`);
+        new Logger(DbModule.name).log(`Postgres em ${describeDatabaseUrl(env.DATABASE_URL)}`);
 
         return opened.db;
       },
@@ -38,13 +38,13 @@ export class DbModule implements OnApplicationShutdown {
   private readonly logger = new Logger(DbModule.name);
 
   /**
-   * Fechar no desligamento grava o que está no WAL de volta no arquivo principal. Sem isso,
-   * copiar só o `app.db` para outra máquina levaria o banco sem as últimas escritas.
+   * Encerrar a conexão no desligamento devolve o assento no pool do servidor. Sem isso, um
+   * processo reiniciado várias vezes vai acumulando conexões zumbis até a Neon recusar novas.
    */
-  onApplicationShutdown(): void {
+  async onApplicationShutdown(): Promise<void> {
     if (!close) return;
 
-    close();
+    await close();
     close = null;
     this.logger.log('Database connection closed.');
   }

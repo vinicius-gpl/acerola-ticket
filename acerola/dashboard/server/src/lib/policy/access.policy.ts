@@ -3,7 +3,8 @@ import { type UserRole } from '@template/shared/schemas/user.schema';
 /**
  * QUEM PODE O QUÊ — num lugar só.
  *
- * A conexão com o banco é única e privilegiada: o SQLite não tem como distinguir quem pediu.
+ * A conexão com o banco é única e privilegiada: o Postgres vê sempre o mesmo usuário, e não
+ * tem como distinguir quem pediu do lado de cá.
  * A decisão de acesso é desta camada, e por isso ela precisa de três propriedades:
  *
  *  1. **Um lugar só.** Toda regra de quem-pode-o-quê mora aqui. `if (user.role === 'admin')`

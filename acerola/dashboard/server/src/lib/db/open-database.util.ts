@@ -1,9 +1,8 @@
-import { mkdirSync } from 'node:fs';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
-import BetterSqlite3 from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
 
 import { type Database } from './db.type';
 import { drizzleSchema } from './drizzle-schema';
@@ -13,9 +12,8 @@ import { drizzleSchema } from './drizzle-schema';
  * foi iniciado.
  *
  * O mesmo server sobe de lugares diferentes: `npm run dev` roda dentro de `server/`, o Docker
- * roda `node server/dist/main.js` da raiz, e os seeds rodam da raiz do workspace. Resolver
- * `./data/app.db` pelo diretório atual abriria TRÊS bancos diferentes, e cada um pareceria
- * vazio para os outros dois.
+ * roda `node server/dist/main.js` da raiz, e os seeds rodam da raiz do workspace. As
+ * migrations precisam ser achadas nos três casos.
  *
  * `src/lib/db` e `dist/lib/db` ficam à mesma distância de `server/`, então a conta vale para
  * o código-fonte e para o build.
@@ -25,51 +23,48 @@ export const SERVER_ROOT = resolve(__dirname, '..', '..', '..');
 /** As migrations versionadas, geradas por `npm run db:generate`. */
 export const MIGRATIONS_FOLDER = join(SERVER_ROOT, 'drizzle');
 
-export const IN_MEMORY = ':memory:';
-
-export function resolveDatabaseFile(file: string): string {
-  if (file === IN_MEMORY) return IN_MEMORY;
-  if (isAbsolute(file)) return file;
-
-  return resolve(SERVER_ROOT, file);
-}
-
 export type OpenDatabase = {
   db: Database;
-  close: () => void;
+  close: () => Promise<void>;
 };
 
 /**
- * Abre o banco, liga as proteções e aplica as migrations pendentes.
+ * Abre a conexão com o Postgres e aplica as migrations pendentes.
  *
- * É a ÚNICA porta para o SQLite: o `DbModule`, os seeds e os testes E2E passam por aqui.
- * Três portas seriam três chances de uma delas esquecer o `foreign_keys` — e o SQLite, por
- * padrão, NÃO verifica chave estrangeira.
+ * É a ÚNICA porta para o banco: o `DbModule`, os seeds e os testes E2E passam por aqui.
+ *
+ * `max: 1` não é economia, é correção: o `migrate` do Drizzle roda uma migration por vez e
+ * precisa que a trava de migração e o DDL aconteçam na MESMA conexão. Com um pool maior, dois
+ * processos subindo ao mesmo tempo (o server e um seed, por exemplo) podem aplicar a mesma
+ * migration duas vezes. Para a carga de um MVP, uma conexão sobra — e a Neon cobra por
+ * conexão aberta.
  */
-export function openDatabase(file: string): OpenDatabase {
-  const path = resolveDatabaseFile(file);
-  if (path !== IN_MEMORY) mkdirSync(dirname(path), { recursive: true });
-
-  const sqlite = new BetterSqlite3(path);
-
-  /* Desligado por padrão no SQLite, por compatibilidade com 2001. Sem isto, apagar um
-     registro deixa os filhos apontando para o nada, sem erro nenhum. */
-  sqlite.pragma('foreign_keys = ON');
-
-  /* WAL deixa leitura e escrita acontecerem ao mesmo tempo. Sem ele, o Drizzle Studio aberto
-     numa aba trava a gravação do server com "database is locked". */
-  if (path !== IN_MEMORY) sqlite.pragma('journal_mode = WAL');
-
-  /* Espera até 5s pelo arquivo liberar, em vez de falhar na hora. Um seed rodando enquanto o
-     server está no ar é o caso comum. */
-  sqlite.pragma('busy_timeout = 5000');
-
-  const db = drizzle(sqlite, { schema: drizzleSchema });
+export async function openDatabase(url: string): Promise<OpenDatabase> {
+  const sql = postgres(url, { max: 1 });
+  const db = drizzle(sql, { schema: drizzleSchema });
 
   /* Migration aplicada na partida: quem clona o projeto roda `npm run dev` e o banco já
      nasce com as tabelas. Esquecer `db:migrate` não é um passo que alguém deveria poder
      esquecer. */
-  migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+  await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 
-  return { db, close: () => sqlite.close() };
+  return { db, close: () => sql.end() };
+}
+
+/**
+ * Esconde a senha da string de conexão, para ela poder ser registrada em log.
+ *
+ * O log de partida diz em que banco o server conectou — e essa informação é útil o bastante
+ * para valer o cuidado de não vazar a credencial junto. Um `.env` errado apontando para o
+ * banco de produção é o tipo de coisa que só se percebe olhando essa linha.
+ */
+export function describeDatabaseUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const database = parsed.pathname.replace(/^\//, '') || '(padrão)';
+
+    return `${parsed.host}/${database}`;
+  } catch {
+    return '(string de conexão ilegível)';
+  }
 }

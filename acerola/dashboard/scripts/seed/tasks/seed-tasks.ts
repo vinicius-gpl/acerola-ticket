@@ -33,9 +33,11 @@ export async function seedTasks(db: Database): Promise<number> {
 
 /* Rodando sozinho (`npm run seed:tasks`), abre o banco e grava só esta entidade. */
 if (require.main === module) {
-  const { db, close } = openSeedDatabase();
-
-  seedTasks(db)
-    .then((count) => report('tarefas', count))
-    .finally(close);
+  void openSeedDatabase().then(async ({ db, close }) => {
+    try {
+      report('tarefas', await seedTasks(db));
+    } finally {
+      await close();
+    }
+  });
 }

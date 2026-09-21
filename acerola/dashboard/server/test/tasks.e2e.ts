@@ -1,28 +1,46 @@
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/app.setup';
 import { parseEnv } from '../src/lib/config/env.schema';
+import { DB } from '../src/lib/db/db.token';
+import { type Database } from '../src/lib/db/db.type';
 
 /**
- * A API inteira, de ponta a ponta, contra um SQLite de verdade em memória: migration,
- * validação do Zod, policy, restrição do banco e filtro de erro. É o que teste de unidade
- * com repository fingido não prova.
+ * A API inteira, de ponta a ponta, contra um Postgres de verdade: migration, validação do
+ * Zod, policy, restrição do banco e filtro de erro. É o que teste de unidade com repository
+ * fingido não prova.
+ *
+ * O banco vem da `TEST_DATABASE_URL`, e precisa ser OUTRO — na Neon, uma branch do banco só
+ * para teste. Estes testes esvaziam as tabelas antes de rodar; apontar para o banco de
+ * trabalho apagaria os dados de quem estivesse usando o sistema.
+ *
+ * Sem `TEST_DATABASE_URL` a suíte é pulada, em vez de falhar: quem só mexeu na tela não
+ * precisa de um banco na nuvem para rodar os testes. No SQLite isso não era questão — o
+ * banco em memória nascia com o processo —, e é o preço de sair de um banco local.
  */
-describe('Tasks API (e2e)', () => {
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+
+describe.skipIf(!testDatabaseUrl)('Tasks API (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    process.env.DATABASE_FILE = ':memory:';
+    process.env.DATABASE_URL = testDatabaseUrl;
     process.env.API_LOG_LEVEL = 'error';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication({ logger: ['error'] });
     setupApp(app, parseEnv(process.env));
     await app.init();
+
+    /* Estado conhecido antes do primeiro teste. `RESTART IDENTITY` zera o contador de `id`
+       junto: sem isso, os ids cresceriam a cada execução e qualquer asserção sobre eles só
+       passaria na primeira vez. */
+    await app.get<Database>(DB).execute(sql`truncate table tasks restart identity cascade`);
   });
 
   afterAll(async () => {

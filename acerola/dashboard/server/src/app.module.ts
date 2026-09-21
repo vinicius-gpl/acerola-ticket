@@ -8,6 +8,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './lib/auth/auth.module';
 import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
+import { StorageModule } from './lib/storage/storage.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 
 /**
@@ -35,6 +36,8 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     /* `@Global` só vale a partir do momento em que o módulo é registrado UMA vez. Sem esta
        linha o token `DB` não existe em lugar nenhum, e todo repository falha na injeção. */
     DbModule,
+    /* Mesma razão do DbModule: `@Global` só passa a valer depois de registrado aqui. */
+    StorageModule,
     AuthModule,
     TasksModule,
   ],
