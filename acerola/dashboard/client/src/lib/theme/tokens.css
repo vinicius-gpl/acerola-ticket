@@ -11,8 +11,8 @@
  *
  * Declarado assim, o watcher observa o diretório e a classe existe no primeiro salvamento.
  */
-@source '../../**/*.{ts,tsx}';
-@source '../../../index.html';
+@source '../../**/*.{ts,tsx,svelte}';
+@source '../../app.html';
 
 /**
  * A IDENTIDADE VISUAL DO SISTEMA, EM UM ARQUIVO SÓ.

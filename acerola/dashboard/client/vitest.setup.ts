@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup } from '@testing-library/svelte';
 import { afterEach } from 'vitest';
 
 /**
@@ -12,9 +12,8 @@ afterEach(() => {
 });
 
 /**
- * O jsdom não implementa Pointer Events nem `scrollIntoView`. Componentes do Radix (o Select
- * baixado em `lib/vendor/ui`, por exemplo) chamam os três ao abrir — sem o stub, o teste
- * quebra com "is not a function" antes de testar o que importa.
+ * O jsdom não implementa Pointer Events nem `scrollIntoView`. Componentes de UI (bits-ui)
+ * chamam ambos ao abrir — sem o stub, o teste quebra com "is not a function" antes de testar o que importa.
  */
 if (!Element.prototype.hasPointerCapture) {
   Element.prototype.hasPointerCapture = () => false;
@@ -30,12 +29,8 @@ if (!Element.prototype.scrollIntoView) {
 }
 
 /**
- * O jsdom também não implementa `matchMedia`. O `Sidebar` do shadcn o consulta na montagem,
- * por `useIsMobile`, para decidir entre a barra e a gaveta — sem o stub toda tela que tem
- * menu quebra antes de renderizar qualquer coisa.
- *
- * O padrão é "não é celular": é o que vale na suíte, e deixar `matches: true` faria os
- * testes exercitarem a gaveta em vez da barra, que não é o caso que eles descrevem.
+ * O jsdom também não implementa `matchMedia`. O `Sidebar` o consulta na montagem para
+ * decidir entre a barra e a gaveta.
  */
 if (!window.matchMedia) {
   window.matchMedia = (query: string): MediaQueryList =>
