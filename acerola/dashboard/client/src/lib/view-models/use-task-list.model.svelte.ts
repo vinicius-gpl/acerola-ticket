@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import {
   calculateTaskProgress,
   type TaskProgress,
@@ -6,7 +6,8 @@ import {
 } from '@template/shared/domain/task-status.util';
 import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
 import { type Task } from '@template/shared/schemas/task.schema';
-import { useState } from 'react';
+
+import { fromStore, toStore } from 'svelte/store';
 
 import { readError } from '../api/http-client';
 import { tasksApi } from '../api/tasks.api';
@@ -63,55 +64,90 @@ export const TASKS_QUERY_KEY = ['tasks'] as const;
  * Abrir o formulário de criar/editar NÃO está aqui: ele tem o próprio view-model
  * (`use-task-form.model.ts`), e a rota compõe os dois.
  */
+function scopeOf(filter: TaskListFilter) {
+  return { search: filter.search.trim() || undefined, status: filter.status || undefined };
+}
+
 export function useTaskListModel(): TaskListModel {
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<TaskListFilter>(EMPTY_FILTER);
-  const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
 
-  const scope = { search: filter.search.trim() || undefined, status: filter.status || undefined };
+  let filter = $state<TaskListFilter>({ ...EMPTY_FILTER });
+  let pendingDelete = $state<Task | null>(null);
 
-  const list = useQuery({
-    queryKey: [...TASKS_QUERY_KEY, 'list', scope],
-    queryFn: () => tasksApi.list({ ...scope, page: 1, pageSize: MAX_PAGE_SIZE }),
-  });
+  /* Esta versão do @tanstack/svelte-query fala em STORE, não em runes: as opções entram como
+     store e o resultado sai como store. `toStore` publica o filtro pra consulta (trocar o
+     filtro troca a queryKey e refaz a busca) e `fromStore` traz o resultado de volta pro
+     mundo dos runes, onde `.current` é reativo. Quando a biblioteca migrar pra runes, some
+     daqui essa ponte e nada mais muda. */
+  const list = fromStore(
+    createQuery(
+      toStore(() => ({
+        queryKey: [...TASKS_QUERY_KEY, 'list', scopeOf(filter)],
+        queryFn: () =>
+          tasksApi.list({ ...scopeOf(filter), page: 1, pageSize: MAX_PAGE_SIZE }),
+      })),
+    ),
+  );
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
 
-  const toggle = useMutation({
-    mutationFn: (task: Task) =>
-      tasksApi.update(task.id, { status: task.status === 'done' ? 'todo' : 'done' }),
-    onSuccess: invalidate,
-  });
+  /* As mutações não precisam de `toStore`: as opções delas não mudam com o tempo. */
+  const toggle = fromStore(
+    createMutation({
+      mutationFn: (task: Task) =>
+        tasksApi.update(task.id, { status: task.status === 'done' ? 'todo' : 'done' }),
+      onSuccess: invalidate,
+    }),
+  );
 
-  const remove = useMutation({
-    mutationFn: (task: Task) => tasksApi.remove(task.id),
-    onSuccess: async () => {
-      setPendingDelete(null);
-      await invalidate();
-    },
-  });
+  const remove = fromStore(
+    createMutation({
+      mutationFn: (task: Task) => tasksApi.remove(task.id),
+      onSuccess: async () => {
+        pendingDelete = null;
+        await invalidate();
+      },
+    }),
+  );
 
   return {
-    data: buildData({ page: list.data, filter, pendingDelete }),
-    state: buildState({ list, toggle, remove, filter }),
+    /* `get` em vez de valor: o objeto é montado uma vez e a tela lê dele a cada mudança. Com
+       valores fixos, a lista congelaria no primeiro carregamento. */
+    get data() {
+      return buildData({ page: list.current.data, filter, pendingDelete });
+    },
+    get state() {
+      return buildState({
+        list: list.current,
+        toggle: toggle.current,
+        remove: remove.current,
+        filter,
+      });
+    },
     actions: {
-      onSearchChange: (search) => setFilter((current) => ({ ...current, search })),
-      onStatusChange: (status) => setFilter((current) => ({ ...current, status })),
-      onClearFilters: () => setFilter(EMPTY_FILTER),
-      onRetry: () => void list.refetch(),
-      onToggleDone: (task) => toggle.mutate(task),
+      onSearchChange: (search) => {
+        filter = { ...filter, search };
+      },
+      onStatusChange: (status) => {
+        filter = { ...filter, status };
+      },
+      onClearFilters: () => {
+        filter = { ...EMPTY_FILTER };
+      },
+      onRetry: () => void list.current.refetch(),
+      onToggleDone: (task) => toggle.current.mutate(task),
       onAskDelete: (task) => {
-        remove.reset();
-        setPendingDelete(task);
+        remove.current.reset();
+        pendingDelete = task;
       },
       /* Cancelar durante a exclusão não desfaz a requisição que já saiu — então não fecha. */
       onCancelDelete: () => {
-        if (remove.isPending) return;
-        setPendingDelete(null);
+        if (remove.current.isPending) return;
+        pendingDelete = null;
       },
       onConfirmDelete: () => {
         if (!pendingDelete) return;
-        remove.mutate(pendingDelete);
+        remove.current.mutate(pendingDelete);
       },
     },
   };

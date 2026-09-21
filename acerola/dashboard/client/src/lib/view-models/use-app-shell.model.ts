@@ -1,4 +1,4 @@
-import { useLocation } from '@tanstack/react-router';
+import { page } from '$app/state';
 import { USER_ROLE_LABELS } from '@template/shared/schemas/user.schema';
 
 import { mockAuth } from '../auth/mock-user';
@@ -22,7 +22,6 @@ export type AppShellModel = {
  */
 export function useAppShellModel(): AppShellModel {
   const user = mockAuth.getUser();
-  const { pathname } = useLocation();
 
   return {
     data: {
@@ -34,7 +33,12 @@ export function useAppShellModel(): AppShellModel {
       },
     },
     /* Qual item está ativo é decidido AQUI, e não no componente: resolver a rota atual é
-       trabalho de view-model; o compositor continua sem saber de roteamento. */
-    state: { activeKey: activeNavKeyOf(pathname) },
+       trabalho de view-model; o compositor continua sem saber de roteamento.
+
+       `get` e não valor: o model é montado uma vez, mas `page` muda a cada navegação. Com um
+       valor fixo, o item aceso congelaria no primeiro que a pessoa abrisse. */
+    get state() {
+      return { activeKey: activeNavKeyOf(page.url.pathname) };
+    },
   };
 }
