@@ -42,7 +42,7 @@ export default {
     'scope-enum': [
       2,
       'always',
-      ['backend', 'web', 'db', 'contracts', 'docker', 'ci', 'docs', 'deps', 'claude'],
+      ['backend', 'web', 'db', 'contracts', 'docker', 'ci', 'docs', 'deps', 'claude', 'agent'],
     ],
 
     'subject-empty': [2, 'never'],

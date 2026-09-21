@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+# Exceção: acerola/agent/build/ não é saída de build, é a pasta que o Wails
+# usa por convenção pra ícones e manifesto do instalador — código-fonte.
+!acerola/agent/build/
 coverage/
 reports/
 .vite/

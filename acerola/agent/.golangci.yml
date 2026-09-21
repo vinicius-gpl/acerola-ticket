@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - errcheck # erro retornado e ignorado sem querer
+    - unused # variável, função ou import morto
+    - ineffassign # atribuição cujo valor nunca é lido
+    - gocyclo # complexidade ciclomática — mesmo limite do ESLint do dashboard
+  settings:
+    gocyclo:
+      min-complexity: 10
+  # "misspell" fica de fora de propósito: é um corretor de inglês, e os
+  # comentários deste projeto são em português — ele erraria constantemente.
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
