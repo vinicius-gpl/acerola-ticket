@@ -31,13 +31,25 @@
 <SidebarMenuItem>
   <!-- `tooltip` é o que salva a barra recolhida: o ícone sozinho nem sempre diz o que é. O
        componente só o mostra quando está em modo ícone. -->
-  <SidebarMenuButton {isActive} tooltip={item.label} size="lg" class="text-base [&_svg]:size-5">
+  <!-- Recolhida, o botão vira um quadrado de 32px e o ícone tem 20: com o padding de 8 que
+       vem do componente, ele não cabe e é cortado, parecendo empurrado para a esquerda.
+       `p-0` devolve o espaço e `justify-center` o põe no meio do quadrado. -->
+  <SidebarMenuButton
+    {isActive}
+    tooltip={item.label}
+    size="lg"
+    class="text-base [&_svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
+  >
     {#snippet child({ props })}
       <a bind:this={linkEl} href={item.to} {...props}>
         <span bind:this={iconEl} class="contents">
           <Icon aria-hidden="true" />
         </span>
-        <span>{item.label}</span>
+        <!-- Recolhida, a barra é só ícone: o rótulo SOME, não encolhe. Sem isto ele fica
+             truncado em "T…" dentro dos 32px do botão, espremendo o ícone junto — a barra
+             perde a leitura de relance e não ganha espaço nenhum. Quem diz o nome ali é o
+             `tooltip` do SidebarMenuButton, logo acima. -->
+        <span class="group-data-[collapsible=icon]:hidden">{item.label}</span>
       </a>
     {/snippet}
   </SidebarMenuButton>
