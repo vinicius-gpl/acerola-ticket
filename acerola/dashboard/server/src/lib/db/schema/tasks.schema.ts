@@ -1,30 +1,30 @@
 import { TASK_STATUSES } from '@template/shared/domain/task-status.util';
 import { sql } from 'drizzle-orm';
-import { check, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { check, index, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * Tarefas — a tabela da feature de EXEMPLO. Uma tabela por arquivo: `<nome>.schema.ts`.
  *
  * Mudou esta estrutura? Rode `npm run db:generate`: o `drizzle-kit` compara com a última
- * migration e escreve a próxima em `server/drizzle/`. A migration é versionada; o arquivo do
- * banco, não.
+ * migration e escreve a próxima em `server/drizzle/`. A migration é versionada.
  *
- * Datas são `integer` em milissegundos: o SQLite não tem tipo de data, e texto ISO ordenado
- * por string quebra quando alguém grava sem fuso. O Drizzle devolve `Date` dos dois jeitos.
+ * Datas são `timestamptz`: o Postgres guarda o instante em UTC e converte na leitura, então
+ * a mesma linha lida de fusos diferentes continua sendo o mesmo momento. É o que o SQLite
+ * não tinha — lá a data era um inteiro em milissegundos, justamente por falta de tipo.
  */
-export const tasks = sqliteTable(
+export const tasks = pgTable(
   'tasks',
   {
-    id: integer('id').primaryKey({ autoIncrement: true }),
+    id: serial('id').primaryKey(),
     title: text('title').notNull(),
     description: text('description'),
     status: text('status', { enum: TASK_STATUSES }).notNull().default('todo'),
-    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
       .notNull()
-      .default(sql`(cast(unixepoch('subsec') * 1000 as integer))`),
+      .defaultNow(),
     /* Quem criou, carimbado no servidor com o e-mail da identidade. Nunca do corpo. */
     createdBy: text('created_by').notNull(),
-    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }),
     updatedBy: text('updated_by'),
   },
   (table) => [

@@ -1,12 +1,11 @@
-import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { config } from 'dotenv';
+import { sql } from 'drizzle-orm';
 
 import {
-  IN_MEMORY,
+  describeDatabaseUrl,
   openDatabase,
-  resolveDatabaseFile,
   SERVER_ROOT,
   type OpenDatabase,
 } from '../../server/src/lib/db/open-database.util';
@@ -24,31 +23,36 @@ import {
  * O banco é aberto pela MESMA função que o server usa. Por isso o seed aplica as migrations
  * antes de gravar, e funciona num clone novo, sem o server ter subido nenhuma vez.
  */
-export function openSeedDatabase(): OpenDatabase {
+export async function openSeedDatabase(): Promise<OpenDatabase> {
   config({ path: join(SERVER_ROOT, '.env'), quiet: true });
   assertNotProduction();
 
-  const file = process.env.DATABASE_FILE ?? './data/app.db';
-  console.log(`Banco: ${resolveDatabaseFile(file)}`);
+  const url = requireDatabaseUrl();
+  console.log(`Banco: ${describeDatabaseUrl(url)}`);
 
-  return openDatabase(file);
+  return openDatabase(url);
 }
 
 /**
- * Apaga o arquivo do banco (e os dois arquivos do WAL que o acompanham), para recriar do zero.
+ * Esvazia as tabelas para recriar do zero.
  *
- * Sem apagar `-wal` e `-shm` junto, o SQLite reaproveitaria o diário de um banco que não existe
- * mais, e o "banco novo" nasceria com restos do antigo.
+ * No SQLite isto apagava o ARQUIVO do banco. Com o Postgres hospedado não existe arquivo para
+ * apagar, e derrubar o banco inteiro na Neon seria destruir o que o painel dela administra —
+ * então o equivalente honesto é limpar as tabelas e deixar a estrutura de pé.
+ *
+ * `TRUNCATE ... RESTART IDENTITY CASCADE` zera junto os contadores de `id`: sem isso, o banco
+ * "recriado" continuaria numerando a partir de onde o antigo parou, e nenhum seed com id fixo
+ * bateria.
  */
-export function deleteDatabaseFile(): void {
+export async function resetDatabase(): Promise<void> {
   config({ path: join(SERVER_ROOT, '.env'), quiet: true });
   assertNotProduction();
 
-  const path = resolveDatabaseFile(process.env.DATABASE_FILE ?? './data/app.db');
-  if (path === IN_MEMORY) return;
-
-  for (const suffix of ['', '-wal', '-shm']) {
-    rmSync(`${path}${suffix}`, { force: true });
+  const opened = await openDatabase(requireDatabaseUrl());
+  try {
+    await opened.db.execute(sql`truncate table tasks restart identity cascade`);
+  } finally {
+    await opened.close();
   }
 }
 
@@ -56,10 +60,17 @@ export function report(entity: string, count: number): void {
   console.log(`  ✔ ${entity}: ${count} registro(s) gravado(s)`);
 }
 
+function requireDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (url) return url;
+
+  throw new Error('DATABASE_URL não definida. Copie server/.env.example para server/.env.');
+}
+
 function assertNotProduction(): void {
   if (process.env.NODE_ENV !== 'production') return;
 
   throw new Error(
-    'Seed refused: NODE_ENV is production. Seeds only run against a local development database.',
+    'Seed refused: NODE_ENV is production. Seeds only run against a development database.',
   );
 }

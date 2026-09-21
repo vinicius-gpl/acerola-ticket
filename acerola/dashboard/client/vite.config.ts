@@ -19,7 +19,7 @@ const CLIENT_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, CLIENT_DIR, '');
-  const apiPort = env.VITE_API_PORT || '3333';
+  const apiPort = env.VITE_API_PORT || '3336';
 
   return {
     plugins: [tailwindcss(), sveltekit()],
@@ -31,8 +31,12 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5173,
-      strictPort: true,
+      port: 5176,
+      /* Porta ocupada não derruba o Vite: ele procura a próxima livre e imprime qual pegou.
+         Aqui isso é seguro, e na API não seria — ninguém aponta para a porta da TELA, então
+         trocá-la não quebra nada; a tela é que aponta para a API (ver o proxy abaixo), e por
+         isso o server avisa alto quando muda de porta. */
+      strictPort: false,
       proxy: {
         '/api': {
           target: `http://localhost:${apiPort}`,
@@ -40,7 +44,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    preview: { port: 5174, strictPort: true },
+    preview: { port: 5177, strictPort: false },
     build: { outDir: 'dist', sourcemap: true },
   };
 });

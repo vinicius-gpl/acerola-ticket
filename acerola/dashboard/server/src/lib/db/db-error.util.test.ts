@@ -8,133 +8,161 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import {
-  constraintColumnsOf,
-  findSqliteError,
+  constraintNameOf,
+  findPostgresError,
   runMaybe,
   runOne,
   runQuery,
   toHttpException,
 } from './db-error.util';
 
-/** O formato em que o Drizzle entrega: o erro da consulta, com o do SQLite em `.cause`. */
-function wrapped(code: string, message: string) {
-  return Object.assign(new Error('Failed query: insert into "tasks" ...'), {
-    cause: Object.assign(new Error(message), { code }),
+/** O formato em que o Drizzle entrega: o erro da consulta, com o do Postgres em `.cause`. */
+function wrapped(code: string, constraintName?: string): Error {
+  const cause = Object.assign(new Error('recusado pelo banco'), {
+    name: 'PostgresError',
+    severity: 'ERROR',
+    code,
+    constraint_name: constraintName,
   });
+
+  return Object.assign(new Error('Failed query: insert into "tasks" ...'), { cause });
 }
 
-describe('findSqliteError', () => {
+describe('findPostgresError', () => {
   // feliz
-  it('finds the SQLite error inside the Drizzle wrapper', () => {
-    const error = wrapped('SQLITE_CONSTRAINT_UNIQUE', 'UNIQUE constraint failed: tasks.title');
+  it('finds the Postgres error inside the Drizzle wrapper', () => {
+    expect(findPostgresError(wrapped('23505'))?.code).toBe('23505');
+  });
 
-    expect(findSqliteError(error)?.code).toBe('SQLITE_CONSTRAINT_UNIQUE');
+  it('finds it however deep it was wrapped', () => {
+    const deep = Object.assign(new Error('outer'), { cause: wrapped('23514') });
+
+    expect(findPostgresError(deep)?.code).toBe('23514');
   });
 
   // triste
-  /* Erro do Node também tem `code`. "Pasta sem permissão" não pode virar "valor inválido". */
-  it('does not mistake a Node system error for a database refusal', () => {
-    expect(findSqliteError(Object.assign(new Error('nope'), { code: 'EACCES' }))).toBeNull();
+  /* Erro do Node também tem `code`. Confundi-los faria "sem permissão no disco" virar
+     "valor inválido", e a tela culparia quem digitou por um problema de servidor. */
+  it('does not mistake a Node error for a database error', () => {
+    expect(findPostgresError(Object.assign(new Error('nope'), { code: 'EACCES' }))).toBeNull();
+    expect(findPostgresError(Object.assign(new Error('nope'), { code: 'ENOENT' }))).toBeNull();
   });
 
-  it('gives up on a cause chain that never ends', () => {
+  /* Um código com a cara de SQLSTATE mas sem as marcas do driver não é do Postgres. */
+  it('requires the driver markers, not just a five-character code', () => {
+    expect(findPostgresError(Object.assign(new Error('x'), { code: 'ABCDE' }))).toBeNull();
+  });
+
+  it('does not loop forever on a cause that points at itself (edge case)', () => {
     const loop: { cause?: unknown } = {};
     loop.cause = loop;
 
-    expect(findSqliteError(loop)).toBeNull();
+    expect(findPostgresError(loop)).toBeNull();
+  });
+
+  it('survives something that is not an object at all (edge case)', () => {
+    expect(findPostgresError(null)).toBeNull();
+    expect(findPostgresError('falhou')).toBeNull();
   });
 });
 
-describe('constraintColumnsOf', () => {
-  it('reads the table and column from the SQLite message', () => {
-    expect(
-      constraintColumnsOf({
-        code: 'SQLITE_CONSTRAINT_UNIQUE',
-        message: 'UNIQUE constraint failed: tasks.title',
-      }),
-    ).toBe('tasks.title');
+describe('constraintNameOf', () => {
+  // feliz
+  /* O Postgres entrega o nome da restrição num campo próprio — não é preciso garimpar o
+     texto da mensagem, como era no SQLite. */
+  it('reads the constraint name the database reported', () => {
+    expect(constraintNameOf({ code: '23514', constraint_name: 'tasks_status_valid' })).toBe(
+      'tasks_status_valid',
+    );
   });
 
-  it('returns empty when the message has no constraint', () => {
-    expect(constraintColumnsOf({ code: 'SQLITE_BUSY', message: 'database is locked' })).toBe('');
+  // triste
+  it('gives an empty key when the database did not name the constraint (edge case)', () => {
+    expect(constraintNameOf({ code: '23505' })).toBe('');
   });
 });
 
 describe('toHttpException', () => {
-  it('turns a duplicate into 409', () => {
-    const exception = toHttpException(
-      wrapped('SQLITE_CONSTRAINT_UNIQUE', 'UNIQUE constraint failed: tasks.title'),
-      'salvar tarefa',
-    );
+  // feliz
+  /* Já existe é 409: a pessoa resolve sozinha, editando o registro que já está lá. */
+  it('turns a unique violation into a conflict', () => {
+    const exception = toHttpException(wrapped('23505'), 'criar tarefa');
 
     expect(exception).toBeInstanceOf(ConflictException);
   });
 
-  it('turns a refused check into 422 with the message written for that check', () => {
-    const exception = toHttpException(
-      wrapped('SQLITE_CONSTRAINT_CHECK', 'CHECK constraint failed: tasks_status_valid'),
-      'salvar tarefa',
-    );
+  /* A checagem do banco tem mensagem própria: "o banco recusou" não diz o que corrigir. */
+  it('uses the message written for the named check', () => {
+    const exception = toHttpException(wrapped('23514', 'tasks_status_valid'), 'criar tarefa');
 
     expect(exception).toBeInstanceOf(UnprocessableEntityException);
-    expect(exception.message).toMatch(/situação da tarefa/);
+    expect(exception.message).toContain('situação da tarefa');
   });
 
-  it('turns a broken reference into 422, telling the person to reload', () => {
-    const exception = toHttpException(
-      wrapped('SQLITE_CONSTRAINT_FOREIGNKEY', 'FOREIGN KEY constraint failed'),
-      'salvar',
-    );
+  it('turns a foreign key violation into something the screen can explain', () => {
+    const exception = toHttpException(wrapped('23503'), 'criar tarefa');
 
     expect(exception).toBeInstanceOf(UnprocessableEntityException);
-    expect(exception.message).toMatch(/Recarregue/);
+    expect(exception.message).toContain('não existe mais');
   });
 
-  /* Ocupado é passageiro: a tela pode dizer "tente de novo" com verdade. */
-  it('turns a locked database into 503', () => {
-    expect(toHttpException(wrapped('SQLITE_BUSY', 'database is locked'), 'salvar')).toBeInstanceOf(
+  it('turns a not-null violation into a refused value', () => {
+    expect(toHttpException(wrapped('23502'), 'criar tarefa')).toBeInstanceOf(
+      UnprocessableEntityException,
+    );
+  });
+
+  /* Ocupado não é defeito permanente: 503 deixa a tela dizer "tente de novo" com verdade. */
+  it('turns a deadlock into a temporary failure, not a permanent one', () => {
+    expect(toHttpException(wrapped('40P01'), 'criar tarefa')).toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(toHttpException(wrapped('08006'), 'criar tarefa')).toBeInstanceOf(
       ServiceUnavailableException,
     );
   });
 
   // triste
-  /* Sem tradução conhecida é 500: chamar de 4xx culparia quem digitou por um defeito nosso. */
-  it('keeps an unknown failure as 500, naming what was being done', () => {
-    const exception = toHttpException(new Error('disk I/O error'), 'listar tarefas');
+  /* Sem tradução conhecida é 500 de propósito: chamar de 4xx faria a tela culpar quem
+     digitou por um defeito nosso, e o problema nunca chegaria até nós. */
+  it('keeps an unknown failure as ours, naming what was being done', () => {
+    const exception = toHttpException(new Error('cabo arrancado'), 'criar tarefa');
 
     expect(exception).toBeInstanceOf(InternalServerErrorException);
-    expect(exception.message).toMatch(/listar tarefas/);
+    expect(exception.message).toContain('criar tarefa');
+    expect(exception.message).toContain('cabo arrancado');
+  });
+
+  it('keeps an unmapped SQLSTATE as ours (edge case)', () => {
+    expect(toHttpException(wrapped('42P01'), 'listar tarefas')).toBeInstanceOf(
+      InternalServerErrorException,
+    );
   });
 });
 
-describe('runQuery / runMaybe / runOne', () => {
-  it('returns what the query returned', async () => {
-    await expect(runQuery(Promise.resolve([1, 2]), 'ler')).resolves.toEqual([1, 2]);
+describe('runQuery, runMaybe e runOne', () => {
+  // feliz
+  it('gives back what the query returned', async () => {
+    await expect(runQuery(Promise.resolve(7), 'contar')).resolves.toBe(7);
+    await expect(runMaybe(Promise.resolve([{ id: 1 }]), 'buscar')).resolves.toEqual({ id: 1 });
+    await expect(runOne(Promise.resolve([{ id: 1 }]), 'buscar')).resolves.toEqual({ id: 1 });
   });
 
-  it('translates the failure instead of letting the raw error through', async () => {
-    const failing = Promise.reject(
-      wrapped('SQLITE_CONSTRAINT_UNIQUE', 'UNIQUE constraint failed: tasks.title'),
-    );
-
-    await expect(runQuery(failing, 'salvar')).rejects.toBeInstanceOf(ConflictException);
-  });
-
-  it('runMaybe answers null when nothing was found', async () => {
-    await expect(runMaybe(Promise.resolve([]), 'ler')).resolves.toBeNull();
+  /* Ausência é resposta legítima para `runMaybe` — e só para ele. */
+  it('answers null when there was nothing to find', async () => {
+    await expect(runMaybe(Promise.resolve([]), 'buscar')).resolves.toBeNull();
   });
 
   // triste
-  /* "Não existe" e "não pude ler" são respostas diferentes, e não podem virar o mesmo null. */
-  it('runMaybe throws when the database refused, instead of answering null', async () => {
-    await expect(
-      runMaybe(Promise.reject(wrapped('SQLITE_BUSY', 'database is locked')), 'ler'),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  it('turns a database refusal into the right status, not into null', async () => {
+    await expect(runMaybe(Promise.reject(wrapped('23505')), 'buscar')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
-  it('runOne turns absence into 404 with the given message', async () => {
-    await expect(runOne(Promise.resolve([]), 'ler', 'Tarefa não encontrada.')).rejects.toThrow(
-      new NotFoundException('Tarefa não encontrada.'),
+  it('turns nothing found into a 404 with the message given', async () => {
+    await expect(runOne(Promise.resolve([]), 'buscar', 'Tarefa não encontrada.')).rejects.toThrow(
+      NotFoundException,
     );
   });
 });
