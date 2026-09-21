@@ -1,0 +1,10 @@
+svelte/dist/
+svelte/node_modules/
+svelte/wailsjs/
+svelte/package.json.md5
+build/bin/
+*.exe
+*.syso
+
+*storybook.log
+storybook-static

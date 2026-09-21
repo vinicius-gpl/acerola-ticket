@@ -1,0 +1,72 @@
+[tools]
+go = "1.27.1"
+golangci-lint = "latest"
+
+[tasks.fmt]
+description = "Verifica formatação (gofmt); falha se algum arquivo precisar de ajuste"
+run = "gofmt -l ."
+
+[tasks."fmt:fix"]
+description = "Aplica a formatação (gofmt -w)"
+run = "gofmt -w ."
+
+[tasks.vet]
+description = "go vet — erros que o compilador não pega"
+run = "go vet ./..."
+
+[tasks.lint]
+description = "golangci-lint — linter completo"
+run = "golangci-lint run ./..."
+
+[tasks.test]
+description = "Testes do Go (src-go/...)"
+run = "go test ./..."
+
+[tasks."frontend:lint"]
+description = "Prettier --check no frontend"
+run = "npm run lint --prefix svelte"
+
+[tasks."frontend:test"]
+description = "Testes do frontend (vitest)"
+run = "npm run test --prefix svelte"
+
+[tasks."frontend:check"]
+description = "Typecheck do frontend (svelte-check)"
+run = "npm run check --prefix svelte"
+
+[tasks."frontend:storybook"]
+description = "Sobe o Storybook (revisão visual dos componentes)"
+run = "npm run storybook --prefix svelte"
+
+[tasks."frontend:storybook:build"]
+description = "Build estático do Storybook — valida que todas as stories compilam"
+run = "npm run build-storybook --prefix svelte"
+
+[tasks.build]
+description = "Build de produção via Wails (gera o .exe final)"
+# -s -w: remove símbolos de depuração e a tabela DWARF do binário final — o
+# netbird faz o mesmo no build deles (.goreleaser_ui.yaml). Não afeta o
+# funcionamento, só deixa o .exe menor.
+run = "wails build -ldflags \"-s -w\""
+
+[tasks.dev]
+description = "Roda em modo dev (bandeja + painel, hot-reload)"
+run = "wails dev"
+
+[tasks.check]
+description = "Tudo que precisa passar antes de considerar o trabalho pronto"
+depends = [
+	"fmt",
+	"vet",
+	"lint",
+	"test",
+	"frontend:lint",
+	"frontend:check",
+	"frontend:test",
+	"frontend:storybook:build",
+	"build"
+]
+
+[tasks.setup]
+description = "Instala a CLI do Wails (uma vez, ou após trocar versão do Go)"
+run = "go install github.com/wailsapp/wails/v2/cmd/wails@latest"
