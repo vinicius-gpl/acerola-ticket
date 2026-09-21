@@ -1,4 +1,4 @@
-import { deleteDatabaseFile, openSeedDatabase, report } from './seed.util';
+import { openSeedDatabase, report, resetDatabase } from './seed.util';
 import { seedTasks } from './tasks/seed-tasks';
 
 /**
@@ -9,20 +9,20 @@ import { seedTasks } from './tasks/seed-tasks';
  * lista, no lugar certo da ordem.
  *
  *   npm run seed:all   → grava por cima do que existe (idempotente)
- *   npm run db:reset   → APAGA o banco, recria as tabelas e grava tudo do zero
+ *   npm run db:reset   → ESVAZIA as tabelas e grava tudo do zero
  */
 async function main(): Promise<void> {
   if (process.argv.includes('--reset')) {
-    deleteDatabaseFile();
-    console.log('Banco apagado. Recriando do zero…');
+    await resetDatabase();
+    console.log('Tabelas esvaziadas. Recriando do zero…');
   }
 
-  const { db, close } = openSeedDatabase();
+  const { db, close } = await openSeedDatabase();
 
   try {
     report('tarefas', await seedTasks(db));
   } finally {
-    close();
+    await close();
   }
 
   console.log('Seeds concluídos.');

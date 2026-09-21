@@ -6,6 +6,7 @@ import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { setupApp } from './app.setup';
 import { parseEnv } from './lib/config/env.schema';
+import { listenOnFirstFreePort } from './lib/http/listen.util';
 
 async function bootstrap(): Promise<void> {
   /* O ambiente é validado ANTES de subir o servidor. Falhar na partida é barato; subir com
@@ -72,11 +73,22 @@ async function bootstrap(): Promise<void> {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(env.API_PORT);
+  /* Porta ocupada não derruba a partida: o server procura a próxima livre. Ver listen.util. */
+  const port = await listenOnFirstFreePort((candidate) => app.listen(candidate), env.API_PORT);
 
   const logger = new Logger('bootstrap');
-  logger.log(`API em http://localhost:${env.API_PORT}/api`);
-  logger.log(`Swagger em http://localhost:${env.API_PORT}/docs`);
+  logger.log(`API em http://localhost:${port}/api`);
+  logger.log(`Swagger em http://localhost:${port}/docs`);
+
+  /* O aviso é alto de propósito: o Vite encaminha `/api` para a porta que ESPERA encontrar
+     (3333, ou VITE_API_PORT). Se a API mudou de porta e ninguém avisar o client, a tela abre
+     e toda requisição falha como "erro de rede" — o sintoma menos informativo que existe. */
+  if (port !== env.API_PORT) {
+    logger.warn(
+      `A porta ${env.API_PORT} estava ocupada; a API subiu na ${port}. ` +
+        `Para a tela achar a API, ponha VITE_API_PORT=${port} no client/.env e reinicie o Vite.`,
+    );
+  }
 }
 
 function logLevels(

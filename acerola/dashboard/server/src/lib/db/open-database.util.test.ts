@@ -1,75 +1,50 @@
 import { isAbsolute, join } from 'node:path';
 
-import { sql } from 'drizzle-orm';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { tasks } from './schema/tasks.schema';
-import {
-  IN_MEMORY,
-  openDatabase,
-  resolveDatabaseFile,
-  SERVER_ROOT,
-  type OpenDatabase,
-} from './open-database.util';
+import { describeDatabaseUrl, MIGRATIONS_FOLDER, SERVER_ROOT } from './open-database.util';
 
-describe('resolveDatabaseFile', () => {
+/**
+ * `openDatabase` não é testada aqui: ela conecta num Postgres de verdade e aplica migrations.
+ * Quem cobre isso é o E2E (`test/tasks.e2e.ts`), que sobe contra o banco de teste da
+ * TEST_DATABASE_URL. No SQLite dava para abrir um banco em memória e testar tudo aqui; o
+ * Postgres não tem equivalente, e fingir um banco testaria o dublê, não o sistema.
+ */
+describe('MIGRATIONS_FOLDER', () => {
+  // feliz
   /* O server sobe de pastas diferentes (dev, Docker, seed). Resolver pelo diretório atual
-     abriria um banco diferente em cada uma. */
-  it('resolves a relative path from the server folder, not from where the process started', () => {
-    expect(resolveDatabaseFile('./data/app.db')).toBe(join(SERVER_ROOT, 'data', 'app.db'));
-  });
-
-  it('keeps an absolute path as it is', () => {
-    const absolute = join(SERVER_ROOT, 'elsewhere.db');
-
-    expect(isAbsolute(absolute)).toBe(true);
-    expect(resolveDatabaseFile(absolute)).toBe(absolute);
-  });
-
-  it('keeps the in-memory marker untouched', () => {
-    expect(resolveDatabaseFile(IN_MEMORY)).toBe(IN_MEMORY);
+     faria as migrations sumirem em duas das três. */
+  it('points at the server folder, not at where the process started', () => {
+    expect(isAbsolute(MIGRATIONS_FOLDER)).toBe(true);
+    expect(MIGRATIONS_FOLDER).toBe(join(SERVER_ROOT, 'drizzle'));
   });
 });
 
-describe('openDatabase', () => {
-  let opened: OpenDatabase | null = null;
-
-  afterEach(() => {
-    opened?.close();
-    opened = null;
-  });
-
+describe('describeDatabaseUrl', () => {
   // feliz
-  it('applies the migrations, so a brand-new database already has the tables', async () => {
-    opened = openDatabase(IN_MEMORY);
+  /* A linha de partida diz em que banco o server conectou — é assim que se percebe um `.env`
+     apontando para o lugar errado. Mas ela vai para o log, então a senha não pode ir junto. */
+  it('names the host and the database without leaking the password', () => {
+    const described = describeDatabaseUrl(
+      'postgresql://app:senha-secreta@ep-exemplo.neon.tech/acerola?sslmode=require',
+    );
 
-    await opened.db.insert(tasks).values({ title: 'Primeira', createdBy: 'dev@template.local' });
-    const rows = await opened.db.select().from(tasks);
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.status).toBe('todo');
-    expect(rows[0]?.createdAt).toBeInstanceOf(Date);
+    expect(described).toBe('ep-exemplo.neon.tech/acerola');
+    expect(described).not.toContain('senha-secreta');
+    expect(described).not.toContain('app');
   });
 
-  /* O SQLite NÃO verifica chave estrangeira por padrão. Se este teste cair, apagar um
-     registro passa a deixar filhos órfãos sem erro nenhum. */
-  it('turns foreign key enforcement on', () => {
-    opened = openDatabase(IN_MEMORY);
-
-    const [row] = opened.db.all<{ foreign_keys: number }>(sql`PRAGMA foreign_keys`);
-
-    expect(row?.foreign_keys).toBe(1);
+  it('says the database is the default one when the string has no path', () => {
+    expect(describeDatabaseUrl('postgresql://app:senha@ep-exemplo.neon.tech')).toBe(
+      'ep-exemplo.neon.tech/(padrão)',
+    );
   });
 
   // triste
-  it('makes the database itself refuse a status that is not on the list', async () => {
-    opened = openDatabase(IN_MEMORY);
-    const db = opened.db;
-
-    await expect(
-      db
-        .insert(tasks)
-        .values({ title: 'X', createdBy: 'dev@template.local', status: 'late' as never }),
-    ).rejects.toThrow();
+  /* Descrever a conexão é conveniência de log: falhar aqui derrubaria a partida por causa de
+     uma linha informativa. */
+  it('does not throw on a string it cannot read (edge case)', () => {
+    expect(describeDatabaseUrl('isto não é uma url')).toBe('(string de conexão ilegível)');
+    expect(describeDatabaseUrl('')).toBe('(string de conexão ilegível)');
   });
 });
