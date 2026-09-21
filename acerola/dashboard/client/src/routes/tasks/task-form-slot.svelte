@@ -16,7 +16,7 @@
 
 <script lang="ts">
   import TaskFormDialog from '$lib/components/task-form-dialog/task-form-dialog.svelte';
-  import { useTaskFormModel } from '$lib/hooks/use-task-form/use-task-form';
+  import { useTaskFormModel } from '$lib/hooks/use-task-form/use-task-form.svelte';
 
   let { task, onClose }: TaskFormSlotProps = $props();
 

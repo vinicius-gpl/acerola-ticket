@@ -11,7 +11,7 @@ import { tasksApi } from '$lib/api/tasks.api';
 import { type TaskFormField } from '$lib/components/task-form-dialog/task-form-dialog.svelte';
 import { type FormFieldState } from '$lib/form-field/form-field.type';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
-import { toFieldState } from '$lib/hooks/form-projection/form-projection';
+import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
 import { TASKS_QUERY_KEY } from '$lib/hooks/use-task-list/use-task-list.svelte';
 
 export type TaskFormModel = {

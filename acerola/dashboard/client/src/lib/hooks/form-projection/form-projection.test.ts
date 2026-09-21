@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { firstErrorMessage, toFieldState } from './form-projection';
+import { firstErrorMessage, toFieldState } from './form-projection.svelte';
 
 describe('toFieldState', () => {
   it('projects the value the field holds', () => {
