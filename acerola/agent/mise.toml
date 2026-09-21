@@ -44,7 +44,10 @@ run = "npm run build-storybook --prefix svelte"
 
 [tasks.build]
 description = "Build de produção via Wails (gera o .exe final)"
-run = "wails build"
+# -s -w: remove símbolos de depuração e a tabela DWARF do binário final — o
+# netbird faz o mesmo no build deles (.goreleaser_ui.yaml). Não afeta o
+# funcionamento, só deixa o .exe menor.
+run = "wails build -ldflags \"-s -w\""
 
 [tasks.dev]
 description = "Roda em modo dev (bandeja + painel, hot-reload)"
