@@ -11,6 +11,8 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
+
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/window"
 )
 
 //go:embed all:svelte/dist
@@ -59,6 +61,10 @@ func main() {
 		Bind:              []interface{}{agentApp},
 		Windows: &windows.Options{
 			WebviewGpuIsDisabled: true,
+			// Nome de classe próprio em vez do "wailsWindow" padrão: é por
+			// ele que o pacote src-go/window encontra o handle da janela
+			// nativa, que o Wails não expõe (ver window.ClassName).
+			WindowClassName: window.ClassName,
 		},
 	})
 	if runError != nil {
