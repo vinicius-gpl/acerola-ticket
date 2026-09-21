@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import type { Snippet } from 'svelte';
-  import type { NavItem } from '$lib/navigation';
+  import type { NavItem } from '$lib/navigation/navigation';
 
   /**
    * A casca do sistema: menu à esquerda, conteúdo à direita.
@@ -45,7 +45,7 @@
     SidebarRail,
     SidebarTrigger,
   } from '$lib/components/ui/sidebar';
-  import { NAV_ITEMS } from '$lib/navigation';
+  import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/app-shell-nav-entry/app-shell-nav-entry.svelte';
 

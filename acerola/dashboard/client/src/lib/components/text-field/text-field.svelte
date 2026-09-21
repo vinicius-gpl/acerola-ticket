@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import type { HTMLInputAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   /**
    * Um campo de formulário: rótulo, entrada e erro.

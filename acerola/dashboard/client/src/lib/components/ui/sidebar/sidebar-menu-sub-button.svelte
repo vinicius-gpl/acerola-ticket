@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLAnchorAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   type Props = HTMLAnchorAttributes & {
     size?: 'sm' | 'md';

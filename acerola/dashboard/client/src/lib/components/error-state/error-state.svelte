@@ -22,7 +22,7 @@
 <script lang="ts">
   import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
   import RotateCw from '@lucide/svelte/icons/rotate-cw';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   let { data, ui, state, actions }: ErrorStateProps = $props();
 

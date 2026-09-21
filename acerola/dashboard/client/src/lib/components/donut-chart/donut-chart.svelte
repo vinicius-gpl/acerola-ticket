@@ -1,6 +1,6 @@
 <script lang="ts" module>
-  import { cn } from '$lib/utils/cn.util';
-  import type { ChartSlice } from '$lib/utils/chart-slice.util';
+  import { cn } from '$lib/utils/cn';
+  import type { ChartSlice } from '$lib/utils/chart-slice';
 
   /**
    * Rosca — para mostrar como um todo se divide (situação, categoria, cidade).
@@ -103,7 +103,7 @@
 </script>
 
 <script lang="ts">
-  import { colorOfSlice } from '$lib/utils/chart-slice.util';
+  import { colorOfSlice } from '$lib/utils/chart-slice';
 
   /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import XIcon from '@lucide/svelte/icons/x';
   import { Dialog as DialogPrimitive } from 'bits-ui';
   import DialogPortal from './dialog-portal.svelte';

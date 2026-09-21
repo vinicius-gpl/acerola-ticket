@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   /**
    * Um campo de texto longo: rótulo, área e erro. Mesmo contrato do `TextField`.

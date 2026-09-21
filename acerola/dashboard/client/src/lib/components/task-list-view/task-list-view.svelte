@@ -68,8 +68,8 @@
   import SearchX from '@lucide/svelte/icons/search-x';
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
-  import { cn } from '$lib/utils/cn.util';
-  import { formatDateTime } from '$lib/utils/format-date.util';
+  import { cn } from '$lib/utils/cn';
+  import { formatDateTime } from '$lib/utils/format-date';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';

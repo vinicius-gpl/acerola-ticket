@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { HTMLButtonAttributes } from 'svelte/elements';
   import { PanelLeft } from 'lucide-svelte';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import { Button } from '$lib/components/ui/button';
   import { useSidebar } from './context.svelte.ts';
 

@@ -57,7 +57,7 @@
 
 <script lang="ts">
   import Loader2 from '@lucide/svelte/icons/loader-2';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import { Button } from '$lib/components/ui/button';
 
   let { data, ui, state, actions }: ActionButtonProps = $props();

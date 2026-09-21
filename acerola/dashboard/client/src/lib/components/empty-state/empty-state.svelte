@@ -12,7 +12,7 @@
 
 <script lang="ts">
   import Inbox from '@lucide/svelte/icons/inbox';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   let { data, ui, children }: EmptyStateProps = $props();
 

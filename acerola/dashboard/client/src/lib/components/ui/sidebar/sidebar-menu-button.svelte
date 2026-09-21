@@ -30,7 +30,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLButtonAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
   import { useSidebar } from './context.svelte.ts';
 

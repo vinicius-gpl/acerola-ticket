@@ -4,9 +4,9 @@
    * próprio ciclo de vida do componente (`$effect` por item). Não é peça pública: nada fora de
    * `app-shell.component.svelte` importa isto.
    */
-  import { highlightIn, popIn } from '$lib/motion/motion.util';
+  import { highlightIn, popIn } from '$lib/motion/motion';
   import { SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from '$lib/components/ui/sidebar';
-  import type { NavItem } from '$lib/navigation';
+  import type { NavItem } from '$lib/navigation/navigation';
 
   let { item, badge, isActive }: { item: NavItem; badge: number | undefined; isActive: boolean } =
     $props();

@@ -7,7 +7,7 @@
     SidebarMenu,
     SidebarProvider,
   } from '$lib/components/ui/sidebar';
-  import type { NavItem } from '$lib/navigation';
+  import type { NavItem } from '$lib/navigation/navigation';
   import AppShellNavEntry from './app-shell-nav-entry.svelte';
 
   /**

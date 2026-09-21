@@ -2,7 +2,7 @@ import { page } from '$app/state';
 import { USER_ROLE_LABELS } from '@template/shared/schemas/user.schema';
 
 import { mockAuth } from '$lib/auth/mock-user';
-import { activeNavKeyOf } from '$lib/navigation';
+import { activeNavKeyOf } from '$lib/navigation/navigation';
 
 export type AppShellModel = {
   data: {

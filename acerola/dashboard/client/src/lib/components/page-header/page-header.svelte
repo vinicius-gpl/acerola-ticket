@@ -10,7 +10,7 @@
 </script>
 
 <script lang="ts">
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   let { data, ui, children }: PageHeaderProps = $props();
 </script>

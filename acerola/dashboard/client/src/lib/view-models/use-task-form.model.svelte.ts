@@ -9,9 +9,9 @@ import {
 import { readError } from '$lib/api/http-client';
 import { tasksApi } from '$lib/api/tasks.api';
 import { type TaskFormField } from '$lib/components/task-form-dialog/task-form-dialog.svelte';
-import { type FormFieldState } from '$lib/form-field.type';
+import { type FormFieldState } from '$lib/form-field/form-field.type';
 import { mirrorStore } from './mirror-store.svelte';
-import { toFieldState } from './form-projection.util';
+import { toFieldState } from './form-projection';
 import { TASKS_QUERY_KEY } from './use-task-list.model.svelte';
 
 export type TaskFormModel = {

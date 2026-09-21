@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import { useIsMobile } from '$lib/hooks/use-mobile.svelte.ts';
   import { TooltipProvider } from '$lib/components/ui/tooltip';
   import { SidebarState, setSidebar } from './context.svelte.ts';

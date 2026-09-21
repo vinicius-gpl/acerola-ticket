@@ -9,7 +9,7 @@
   },
   "aliases": {
     "components": "$lib/components",
-    "utils": "$lib/utils/cn.util",
+    "utils": "$lib/utils/cn",
     "ui": "$lib/components/ui",
     "hooks": "$lib/hooks"
   },

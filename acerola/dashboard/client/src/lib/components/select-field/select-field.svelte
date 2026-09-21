@@ -28,7 +28,7 @@
     SelectTrigger,
     SelectValue,
   } from '$lib/components/ui/select';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   let { data, ui, state, actions }: SelectFieldProps = $props();
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import { Tooltip as TooltipPrimitive } from 'bits-ui';
   import type { Snippet } from 'svelte';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { colorOfSlice, countBy, FALLBACK_COLORS } from './chart-slice.util';
+import { colorOfSlice, countBy, FALLBACK_COLORS } from './chart-slice';
 
 describe('colorOfSlice', () => {
   // feliz

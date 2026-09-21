@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { ChartSlice } from '$lib/utils/chart-slice.util';
+  import type { ChartSlice } from '$lib/utils/chart-slice';
 
   /**
    * Coluna — para comparar quantidades entre categorias (por responsável, por tipo).
@@ -30,7 +30,7 @@
 </script>
 
 <script lang="ts">
-  import { colorOfSlice } from '$lib/utils/chart-slice.util';
+  import { colorOfSlice } from '$lib/utils/chart-slice';
 
   /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */

@@ -57,7 +57,7 @@
 </script>
 
 <script lang="ts">
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
   let { data, ui, state }: StatCardProps = $props();

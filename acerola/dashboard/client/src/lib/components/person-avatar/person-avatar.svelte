@@ -28,7 +28,7 @@
 
 <script lang="ts">
   import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   let { name, avatarUrl, ui }: PersonAvatarProps = $props();
 

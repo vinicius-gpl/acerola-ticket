@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   /**
    * Um selo de situação: texto curto sobre fundo de cor.

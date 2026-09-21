@@ -8,7 +8,7 @@
    * Repetida à mão, essa decisão se perde na primeira tela nova.
    */
   import type { Snippet } from 'svelte';
-  import { cn } from '$lib/utils/cn.util';
+  import { cn } from '$lib/utils/cn';
 
   let {
     ui,
