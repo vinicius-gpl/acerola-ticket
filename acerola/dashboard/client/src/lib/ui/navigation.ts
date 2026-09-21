@@ -1,5 +1,5 @@
 import ListChecks from '@lucide/svelte/icons/list-checks';
-import type { Component } from 'svelte';
+import type { LucideIcon } from '@lucide/svelte';
 
 /**
  * O MENU LATERAL, num lugar só.
@@ -15,7 +15,7 @@ export type NavItem = {
   key: string;
   label: string;
   to: string;
-  icon: Component<any>;
+  icon: LucideIcon;
 };
 
 export const NAV_ITEMS: NavItem[] = [

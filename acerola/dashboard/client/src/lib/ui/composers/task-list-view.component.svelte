@@ -87,15 +87,13 @@
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-10 sm:px-6">
   <PageHeader data={{ title: 'Tarefas', description: 'O que precisa ser feito, e em que pé está.' }}>
-    {#snippet children()}
-      {#if canEdit}
-        <ActionButton
-          data={{ label: 'Nova tarefa' }}
-          ui={{ icon: Plus }}
-          actions={{ onClick: actions.onCreate }}
-        />
-      {/if}
-    {/snippet}
+    {#if canEdit}
+      <ActionButton
+        data={{ label: 'Nova tarefa' }}
+        ui={{ icon: Plus }}
+        actions={{ onClick: actions.onCreate }}
+      />
+    {/if}
   </PageHeader>
 
   <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -149,13 +147,11 @@
       }}
       ui={{ icon: ListChecks }}
     >
-      {#snippet children()}
-        <ActionButton
-          data={{ label: 'Nova tarefa' }}
-          ui={{ icon: Plus }}
-          actions={{ onClick: actions.onCreate }}
-        />
-      {/snippet}
+      <ActionButton
+        data={{ label: 'Nova tarefa' }}
+        ui={{ icon: Plus }}
+        actions={{ onClick: actions.onCreate }}
+      />
     </EmptyState>
   {:else if state.isFilteredOut}
     <EmptyState
@@ -165,13 +161,11 @@
       }}
       ui={{ icon: SearchX }}
     >
-      {#snippet children()}
-        <ActionButton
-          data={{ label: 'Limpar filtros' }}
-          ui={{ variant: 'secondary' }}
-          actions={{ onClick: actions.onClearFilters }}
-        />
-      {/snippet}
+      <ActionButton
+        data={{ label: 'Limpar filtros' }}
+        ui={{ variant: 'secondary' }}
+        actions={{ onClick: actions.onClearFilters }}
+      />
     </EmptyState>
   {:else}
     <section class="flex flex-col gap-3" aria-label="Lista de tarefas">

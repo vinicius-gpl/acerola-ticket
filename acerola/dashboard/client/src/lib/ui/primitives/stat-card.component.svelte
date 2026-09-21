@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { Component } from 'svelte';
+  import type { LucideIcon } from '@lucide/svelte';
 
   export type StatCardTone = 'brand' | 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -13,7 +13,7 @@
       tone?: StatCardTone;
       size?: 'md' | 'lg';
       className?: string;
-      icon?: Component<any>;
+      icon?: LucideIcon;
     };
     state?: { isLoading?: boolean };
   };

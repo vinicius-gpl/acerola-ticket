@@ -17,9 +17,7 @@
 
 <Story name="Default">
   <AppErrorBoundary>
-    {#snippet children()}
-      <div class="text-ink-700 p-8 text-sm">Conteúdo normal, sem erro nenhum.</div>
-    {/snippet}
+    <div class="text-ink-700 p-8 text-sm">Conteúdo normal, sem erro nenhum.</div>
   </AppErrorBoundary>
 </Story>
 
@@ -29,8 +27,6 @@
 -->
 <Story name="CaughtError">
   <AppErrorBoundary>
-    {#snippet children()}
-      {bomb()}
-    {/snippet}
+    {bomb()}
   </AppErrorBoundary>
 </Story>

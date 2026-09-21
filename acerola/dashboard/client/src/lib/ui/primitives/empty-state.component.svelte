@@ -1,9 +1,10 @@
 <script lang="ts" module>
-  import type { Component, Snippet } from 'svelte';
+  import type { LucideIcon } from '@lucide/svelte';
+  import type { Snippet } from 'svelte';
 
   export type EmptyStateProps = {
     data: { title: string; description?: string };
-    ui?: { icon?: Component<any>; className?: string };
+    ui?: { icon?: LucideIcon; className?: string };
     /** A ação sugerida, já montada (normalmente um `ActionButton`). */
     children?: Snippet;
   };

@@ -23,9 +23,7 @@
 
 <Story name="Default">
   <AppShell data={{ user }} state={{ activeKey: 'tasks' }}>
-    {#snippet children()}
-      <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
-    {/snippet}
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
 </Story>
 
@@ -36,9 +34,7 @@
     data={{ user, badges: { tasks: 3, reports: 12 } }}
     state={{ activeKey: 'tasks' }}
   >
-    {#snippet children()}
-      <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
-    {/snippet}
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
 </Story>
 
@@ -49,30 +45,24 @@
     data={{ user, badges: { tasks: 3, reports: 12 } }}
     state={{ isCollapsed: true, activeKey: 'tasks' }}
   >
-    {#snippet children()}
-      <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
-    {/snippet}
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
 </Story>
 
 <!-- Sem identidade: o rodapé não quebra. -->
 <Story name="WithoutUser">
   <AppShell>
-    {#snippet children()}
-      <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
-    {/snippet}
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
 </Story>
 
 <!-- Caso limite: conteúdo mais alto que a tela não deve empurrar o menu para fora. -->
 <Story name="TallContent">
   <AppShell data={{ user }} state={{ activeKey: 'tasks' }}>
-    {#snippet children()}
-      <div class="text-ink-700 space-y-4 p-8 text-sm">
-        {#each Array.from({ length: 30 }, (_, index) => index) as index (index)}
-          <p>Linha de conteúdo {index + 1}, só para esticar a tela.</p>
-        {/each}
-      </div>
-    {/snippet}
+    <div class="text-ink-700 space-y-4 p-8 text-sm">
+      {#each Array.from({ length: 30 }, (_, index) => index) as index (index)}
+        <p>Linha de conteúdo {index + 1}, só para esticar a tela.</p>
+      {/each}
+    </div>
   </AppShell>
 </Story>

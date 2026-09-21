@@ -1,6 +1,6 @@
 <script lang="ts" module>
+  import type { LucideIcon } from '@lucide/svelte';
   import { tv } from 'tailwind-variants';
-  import type { Component } from 'svelte';
 
   export const actionButton = tv({
     base: 'font-semibold',
@@ -22,7 +22,7 @@
     ui?: {
       variant?: ActionButtonVariant;
       size?: 'sm' | 'md';
-      icon?: Component<any>;
+      icon?: LucideIcon;
       /** Só o ícone aparece; o rótulo vira `aria-label` e dica. Use com parcimônia. */
       isIconOnly?: boolean;
       className?: string;
@@ -39,7 +39,7 @@
     data: ActionButtonProps['data'],
     ui: ActionButtonProps['ui'],
     isBusy: boolean,
-  ): { Icon: Component<any> | undefined; label: string | null; accessibleName: string | undefined } {
+  ): { Icon: LucideIcon | undefined; label: string | null; accessibleName: string | undefined } {
     const text = isBusy ? (data.loadingLabel ?? data.label) : data.label;
     const Icon = isBusy ? Loader2 : ui?.icon;
     if (ui?.isIconOnly) return { Icon, label: null, accessibleName: data.label };
