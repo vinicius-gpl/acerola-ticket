@@ -1,6 +1,16 @@
 <script lang="ts" module>
   import type { LucideIcon } from '@lucide/svelte';
 
+  /**
+   * O número que se lê de relance, no alto do painel.
+   *
+   * O `tone` não é enfeite: é o que permite varrer a fileira de cartões sem ler rótulo por
+   * rótulo — vermelho puxa o olho para o que está vencido. Com ícone, o quadrado sólido
+   * substitui a barra lateral; as duas juntas seriam a mesma informação dita duas vezes.
+   *
+   * O `hint` existe para número que EXCLUI algo ("exclui 1.067 arquivados"). Sem ele, dois
+   * painéis contando a mesma coisa de formas diferentes discordam, e ninguém descobre por quê.
+   */
   export type StatCardTone = 'brand' | 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
   export type StatCardProps = {

@@ -1,4 +1,13 @@
 <script lang="ts" module>
+  /**
+   * Campo de seleção — o mesmo em filtro e em formulário.
+   *
+   * O `EMPTY_VALUE` abaixo resolve um conflito entre duas regras: para o sistema, "nenhum
+   * filtro" é a string vazia; para o componente baixado, valor vazio significa "nada
+   * selecionado", e ele então mostra o placeholder em vez da opção "Todos". Traduzir a
+   * string vazia para uma sentinela na entrada e de volta na saída mantém a opção visível
+   * sem contaminar o contrato de quem usa o campo, que continua recebendo `''`.
+   */
   export type SelectFieldOption = { value: string; label: string };
 
   export type SelectFieldProps = {
