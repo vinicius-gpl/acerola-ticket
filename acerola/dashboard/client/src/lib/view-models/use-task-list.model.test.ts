@@ -1,23 +1,16 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type Task } from '@template/shared/schemas/task.schema';
-import { act, renderHook, waitFor } from '@testing-library/react';
-import { type ReactNode } from 'react';
+import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
-import { useTaskListModel } from './use-task-list.model.svelte.ts';
+import Harness from './use-task-list-harness.test.svelte';
+import { type TaskListModel } from './use-task-list.model.svelte';
 
-vi.mock('../api/tasks.api', () => ({
+vi.mock('$lib/api/tasks.api', () => ({
   tasksApi: { list: vi.fn(), update: vi.fn(), remove: vi.fn() },
 }));
 
 const { tasksApi } = await import('$lib/api/tasks.api');
-
-function wrapper({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-}
 
 function task(overrides: Partial<Task> = {}): Task {
   return {
@@ -37,11 +30,19 @@ function page(items: Task[], total = items.length) {
   return { items, total, page: 1, pageSize: 200 };
 }
 
-async function renderModel() {
-  const view = renderHook(() => useTaskListModel(), { wrapper });
-  await waitFor(() => expect(view.result.current.state.isLoading).toBe(false));
+/** Monta o model. O objeto devolvido tem getters, então continua vivo enquanto o teste roda. */
+function mountModel(): TaskListModel {
+  let model!: TaskListModel;
+  render(Harness, { props: { onReady: (ready: TaskListModel) => (model = ready) } });
 
-  return view;
+  return model;
+}
+
+async function mountLoadedModel(): Promise<TaskListModel> {
+  const model = mountModel();
+  await waitFor(() => expect(model.state.isLoading).toBe(false));
+
+  return model;
 }
 
 describe('useTaskListModel', () => {
@@ -57,17 +58,17 @@ describe('useTaskListModel', () => {
 
   // feliz
   it('loads the tasks and computes the progress', async () => {
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
 
-    expect(result.current.data.tasks).toHaveLength(2);
-    expect(result.current.data.progress).toEqual({ percentage: 50, done: 1, total: 2 });
+    expect(model.data.tasks).toHaveLength(2);
+    expect(model.data.progress).toEqual({ percentage: 50, done: 1, total: 2 });
   });
 
   it('sends the filter to the API, trimmed', async () => {
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
 
-    act(() => result.current.actions.onSearchChange('  contrato  '));
-    act(() => result.current.actions.onStatusChange('done'));
+    model.actions.onSearchChange('  contrato  ');
+    model.actions.onStatusChange('done');
 
     await waitFor(() =>
       expect(vi.mocked(tasksApi.list).mock.calls.at(-1)?.[0]).toMatchObject({
@@ -78,24 +79,24 @@ describe('useTaskListModel', () => {
   });
 
   it('toggles a task between done and todo', async () => {
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
 
-    act(() => result.current.actions.onToggleDone(task({ id: 7, status: 'todo' })));
+    model.actions.onToggleDone(task({ id: 7, status: 'todo' }));
 
     await waitFor(() => expect(tasksApi.update).toHaveBeenCalledWith(7, { status: 'done' }));
   });
 
   it('asks before deleting, and deletes only on confirm', async () => {
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
     const target = task({ id: 9 });
 
-    act(() => result.current.actions.onAskDelete(target));
-    expect(result.current.data.pendingDelete).toEqual(target);
+    model.actions.onAskDelete(target);
+    expect(model.data.pendingDelete).toEqual(target);
     expect(tasksApi.remove).not.toHaveBeenCalled();
 
-    act(() => result.current.actions.onConfirmDelete());
+    model.actions.onConfirmDelete();
 
-    await waitFor(() => expect(result.current.data.pendingDelete).toBeNull());
+    await waitFor(() => expect(model.data.pendingDelete).toBeNull());
     expect(tasksApi.remove).toHaveBeenCalledWith(9);
   });
 
@@ -104,31 +105,31 @@ describe('useTaskListModel', () => {
   it('is empty only after the query is done, never while loading', () => {
     vi.mocked(tasksApi.list).mockReturnValue(new Promise(() => {}));
 
-    const { result } = renderHook(() => useTaskListModel(), { wrapper });
+    const model = mountModel();
 
-    expect(result.current.state.isLoading).toBe(true);
-    expect(result.current.state.isEmpty).toBe(false);
+    expect(model.state.isLoading).toBe(true);
+    expect(model.state.isEmpty).toBe(false);
   });
 
   it('tells "nothing exists" apart from "the filter hid everything"', async () => {
     vi.mocked(tasksApi.list).mockResolvedValue(page([]));
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
 
-    expect(result.current.state.isEmpty).toBe(true);
-    expect(result.current.state.isFilteredOut).toBe(false);
+    expect(model.state.isEmpty).toBe(true);
+    expect(model.state.isFilteredOut).toBe(false);
 
-    act(() => result.current.actions.onStatusChange('done'));
+    model.actions.onStatusChange('done');
 
-    await waitFor(() => expect(result.current.state.isFilteredOut).toBe(true));
-    expect(result.current.state.isEmpty).toBe(false);
+    await waitFor(() => expect(model.state.isFilteredOut).toBe(true));
+    expect(model.state.isEmpty).toBe(false);
   });
 
   it('brings the API failure with its reason', async () => {
     vi.mocked(tasksApi.list).mockRejectedValue(new ApiError(503, 'O banco está ocupado.'));
 
-    const { result } = renderHook(() => useTaskListModel(), { wrapper });
+    const model = mountModel();
 
-    await waitFor(() => expect(result.current.state.error).toBe('O banco está ocupado.'));
+    await waitFor(() => expect(model.state.error).toBe('O banco está ocupado.'));
   });
 
   /* O modal fica aberto com o motivo: fechar faria a pessoa achar que excluiu. */
@@ -136,21 +137,21 @@ describe('useTaskListModel', () => {
     vi.mocked(tasksApi.remove).mockRejectedValue(
       new ApiError(403, 'Excluir tarefas é uma ação de administrador.'),
     );
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
 
-    act(() => result.current.actions.onAskDelete(task()));
-    act(() => result.current.actions.onConfirmDelete());
+    model.actions.onAskDelete(task());
+    model.actions.onConfirmDelete();
 
     await waitFor(() =>
-      expect(result.current.state.deleteError).toBe('Excluir tarefas é uma ação de administrador.'),
+      expect(model.state.deleteError).toBe('Excluir tarefas é uma ação de administrador.'),
     );
-    expect(result.current.data.pendingDelete).not.toBeNull();
+    expect(model.data.pendingDelete).not.toBeNull();
   });
 
   it('says the list was cut when more matched than came back', async () => {
     vi.mocked(tasksApi.list).mockResolvedValue(page([task()], 250));
-    const { result } = await renderModel();
+    const model = await mountLoadedModel();
 
-    expect(result.current.state.isTruncated).toBe(true);
+    expect(model.state.isTruncated).toBe(true);
   });
 });

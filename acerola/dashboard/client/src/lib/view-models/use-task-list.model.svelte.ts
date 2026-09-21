@@ -7,9 +7,10 @@ import {
 import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
 import { type Task } from '@template/shared/schemas/task.schema';
 
-import { fromStore, toStore } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
+import { mirrorStore } from './mirror-store.svelte';
 import { tasksApi } from '$lib/api/tasks.api';
 
 export type TaskListFilter = {
@@ -71,27 +72,33 @@ function scopeOf(filter: TaskListFilter) {
 export function useTaskListModel(): TaskListModel {
   const queryClient = useQueryClient();
 
-  let filter = $state<TaskListFilter>({ ...EMPTY_FILTER });
+  /* O filtro mora numa STORE, e não num `$state`: esta versão do @tanstack/svelte-query
+     recebe as opções como store e é ela quem decide quando refazer a busca. Com `$state` e
+     uma ponte `toStore`, duas mudanças seguidas de filtro (buscar e depois filtrar por
+     situação) chegavam à consulta como uma emissão só, com o valor do meio — a API era
+     chamada sem a situação.
+
+     A leitura volta para o mundo dos runes por `mirrorStore`, e NÃO por `fromStore` — ver o
+     comentário lá, é o que impede a consulta de buscar em laço. Quando a biblioteca migrar
+     para runes, tudo isto vira `$state`. */
+  const filterStore = writable<TaskListFilter>({ ...EMPTY_FILTER });
+  const filter = mirrorStore(filterStore);
+
   let pendingDelete = $state<Task | null>(null);
 
-  /* Esta versão do @tanstack/svelte-query fala em STORE, não em runes: as opções entram como
-     store e o resultado sai como store. `toStore` publica o filtro pra consulta (trocar o
-     filtro troca a queryKey e refaz a busca) e `fromStore` traz o resultado de volta pro
-     mundo dos runes, onde `.current` é reativo. Quando a biblioteca migrar pra runes, some
-     daqui essa ponte e nada mais muda. */
-  const list = fromStore(
+  const list = mirrorStore(
     createQuery(
-      toStore(() => ({
-        queryKey: [...TASKS_QUERY_KEY, 'list', scopeOf(filter)],
-        queryFn: () => tasksApi.list({ ...scopeOf(filter), page: 1, pageSize: MAX_PAGE_SIZE }),
+      derived(filterStore, (current) => ({
+        queryKey: [...TASKS_QUERY_KEY, 'list', scopeOf(current)],
+        queryFn: () => tasksApi.list({ ...scopeOf(current), page: 1, pageSize: MAX_PAGE_SIZE }),
       })),
     ),
   );
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
 
-  /* As mutações não precisam de `toStore`: as opções delas não mudam com o tempo. */
-  const toggle = fromStore(
+  /* As mutações não precisam de store nas opções: elas não mudam com o tempo. */
+  const toggle = mirrorStore(
     createMutation({
       mutationFn: (task: Task) =>
         tasksApi.update(task.id, { status: task.status === 'done' ? 'todo' : 'done' }),
@@ -99,7 +106,7 @@ export function useTaskListModel(): TaskListModel {
     }),
   );
 
-  const remove = fromStore(
+  const remove = mirrorStore(
     createMutation({
       mutationFn: (task: Task) => tasksApi.remove(task.id),
       onSuccess: async () => {
@@ -113,26 +120,20 @@ export function useTaskListModel(): TaskListModel {
     /* `get` em vez de valor: o objeto é montado uma vez e a tela lê dele a cada mudança. Com
        valores fixos, a lista congelaria no primeiro carregamento. */
     get data() {
-      return buildData({ page: list.current.data, filter, pendingDelete });
+      return buildData({ page: list.current.data, filter: filter.current, pendingDelete });
     },
     get state() {
       return buildState({
         list: list.current,
         toggle: toggle.current,
         remove: remove.current,
-        filter,
+        filter: filter.current,
       });
     },
     actions: {
-      onSearchChange: (search) => {
-        filter = { ...filter, search };
-      },
-      onStatusChange: (status) => {
-        filter = { ...filter, status };
-      },
-      onClearFilters: () => {
-        filter = { ...EMPTY_FILTER };
-      },
+      onSearchChange: (search) => filterStore.update((current) => ({ ...current, search })),
+      onStatusChange: (status) => filterStore.update((current) => ({ ...current, status })),
+      onClearFilters: () => filterStore.set({ ...EMPTY_FILTER }),
       onRetry: () => void list.current.refetch(),
       onToggleDone: (task) => toggle.current.mutate(task),
       onAskDelete: (task) => {
