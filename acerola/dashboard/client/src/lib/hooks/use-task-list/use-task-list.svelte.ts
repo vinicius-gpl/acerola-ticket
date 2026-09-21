@@ -10,7 +10,7 @@ import { type Task } from '@template/shared/schemas/task.schema';
 import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
-import { mirrorStore } from './mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { tasksApi } from '$lib/api/tasks.api';
 
 export type TaskListFilter = {

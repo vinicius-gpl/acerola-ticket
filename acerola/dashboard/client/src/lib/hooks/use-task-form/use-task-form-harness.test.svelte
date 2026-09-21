@@ -2,7 +2,7 @@
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
   import { type Task } from '@template/shared/schemas/task.schema';
 
-  import { useTaskFormModel, type TaskFormModel } from './use-task-form.model.svelte';
+  import { useTaskFormModel, type TaskFormModel } from './use-task-form.svelte';
 
   /** Mesma ideia do use-task-list-harness. */
   let {

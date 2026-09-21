@@ -3,8 +3,8 @@ import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
-import Harness from './use-task-form.model-harness.test.svelte';
-import { type TaskFormModel } from './use-task-form.model.svelte';
+import Harness from './use-task-form-harness.test.svelte';
+import { type TaskFormModel } from './use-task-form.svelte';
 
 vi.mock('$lib/api/tasks.api', () => ({
   tasksApi: { create: vi.fn(), update: vi.fn() },

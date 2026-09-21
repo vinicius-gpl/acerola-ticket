@@ -1,7 +1,7 @@
 <script lang="ts">
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
 
-  import { useTaskListModel, type TaskListModel } from './use-task-list.model.svelte';
+  import { useTaskListModel, type TaskListModel } from './use-task-list.svelte';
 
   /**
    * View-model com consulta só existe dentro de um componente: é dali que vêm o QueryClient e

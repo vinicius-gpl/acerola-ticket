@@ -4,7 +4,7 @@
 
   import AppErrorBoundary from '$lib/components/app-error-boundary/app-error-boundary.svelte';
   import AppShell from '$lib/components/app-shell/app-shell.svelte';
-  import { useAppShellModel } from '$lib/view-models/use-app-shell.model';
+  import { useAppShellModel } from '$lib/hooks/use-app-shell/use-app-shell';
   import '$lib/theme/tokens.css';
 
   /**

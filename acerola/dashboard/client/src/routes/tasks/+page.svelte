@@ -3,7 +3,7 @@
 
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import TaskListView from '$lib/components/task-list-view/task-list-view.svelte';
-  import { useTaskListModel } from '$lib/view-models/use-task-list.model.svelte';
+  import { useTaskListModel } from '$lib/hooks/use-task-list/use-task-list.svelte';
   import TaskFormSlot from './task-form-slot.svelte';
 
   /**

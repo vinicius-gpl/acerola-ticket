@@ -139,8 +139,8 @@ export default tseslint.config(
     },
   },
   {
-    // Seção 3 — o view-model é o oposto: estado e dados, e zero template.
-    files: ['src/lib/view-models/**/*.ts'],
+    // Seção 3 — o hook é o oposto do componente: estado e dados, e zero template.
+    files: ['src/lib/hooks/**/*.ts'],
     rules: {
       'no-restricted-syntax': [
         'error',
