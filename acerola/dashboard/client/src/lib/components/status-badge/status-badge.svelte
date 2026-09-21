@@ -21,7 +21,7 @@
     success: 'bg-emerald-100 text-emerald-700',
     warning: 'bg-amber-100 text-amber-800',
     danger: 'bg-red-100 text-red-700',
-    brand: 'bg-brand-blue-100 text-brand-blue-900',
+    brand: 'bg-primary/15 text-primary',
   };
 </script>
 

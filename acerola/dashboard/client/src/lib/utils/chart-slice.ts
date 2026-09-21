@@ -11,21 +11,27 @@
  * valor desenhado e tooltip — a cor nunca é o único jeito de saber qual fatia é qual.
  */
 export const CATEGORY_COLORS: Record<string, string> = {
-  Concluída: '#10b981',
-  'Em andamento': '#3b82f6',
-  'A fazer': '#9ca3af',
+  Concluída: 'var(--chart-4)',
+  'Em andamento': 'var(--chart-5)',
+  'A fazer': 'var(--muted-foreground)',
 };
 
-/** A lista de reserva, na ordem — percorrida, nunca sorteada. */
+/**
+ * A lista de reserva, na ordem — percorrida, nunca sorteada.
+ *
+ * São variáveis CSS, e não valores fixos, porque a paleta tem duas versões: o verde do
+ * Catppuccin claro é escuro demais para o fundo escuro, e vice-versa. O `fill` do SVG aceita
+ * `var(...)`, então o gráfico troca de cor junto com o tema sem uma linha de JavaScript.
+ */
 export const FALLBACK_COLORS = [
-  '#3b82f6',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
-  '#06b6d4',
-  '#ec4899',
-  '#84cc16',
+  'var(--chart-5)',
+  'var(--chart-4)',
+  'var(--chart-3)',
+  'var(--chart-1)',
+  'var(--primary)',
+  'var(--chart-2)',
+  'var(--accent-hero)',
+  'var(--muted-foreground)',
 ];
 
 export type ChartSlice = { label: string; value: number };

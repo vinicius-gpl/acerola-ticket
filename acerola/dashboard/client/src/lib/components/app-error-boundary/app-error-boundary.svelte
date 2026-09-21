@@ -41,7 +41,7 @@
         <button
           type="button"
           onclick={() => window.location.reload()}
-          class="bg-brand-blue-800 mt-4 rounded-xs px-4 py-2 text-sm font-semibold text-white"
+          class="bg-primary text-primary-foreground mt-4 rounded-xs px-4 py-2 text-sm font-semibold"
         >
           Recarregar
         </button>

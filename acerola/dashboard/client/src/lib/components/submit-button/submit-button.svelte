@@ -29,8 +29,8 @@
   aria-busy={isBusy}
   class={cn(
     'inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5',
-    'bg-brand-blue-800 text-sm font-semibold text-white transition-colors',
-    'hover:bg-brand-blue-900 disabled:cursor-not-allowed disabled:opacity-60',
+    'bg-primary text-primary-foreground text-sm font-semibold transition-colors',
+    'hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60',
     ui?.className,
   )}
 >
