@@ -17,8 +17,8 @@ describe('parseEnv', () => {
     expect(parseEnv(secrets)).toEqual({
       ...secrets,
       NODE_ENV: 'development',
-      API_PORT: 3333,
-      API_CORS_ORIGIN: 'http://localhost:5173',
+      API_PORT: 3336,
+      API_CORS_ORIGIN: 'http://localhost:5176',
       API_LOG_LEVEL: 'log',
       R2_SIGNED_URL_TTL_SECONDS: 300,
     });
