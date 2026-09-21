@@ -45,3 +45,18 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+/**
+ * O jsdom não implementa `ResizeObserver`. Os gráficos (`ColumnChart`, `DonutChart`) se medem
+ * com ele para saber onde desenhar — sem o stub, o teste quebra antes de renderizar qualquer
+ * coisa. O observador não dispara: no jsdom todo elemento tem tamanho zero de qualquer forma,
+ * e o que os testes conferem é o que foi desenhado e o que é anunciado ao leitor de tela, não
+ * a geometria.
+ */
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}

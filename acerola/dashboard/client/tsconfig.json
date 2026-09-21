@@ -29,6 +29,7 @@
     "*.config.ts",
     "*.config.js",
     "vitest.setup.ts",
+    "tests/**/*.ts",
     ".storybook/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "storybook-static"]

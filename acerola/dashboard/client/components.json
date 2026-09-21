@@ -8,9 +8,9 @@
     "cssVariables": true
   },
   "aliases": {
-    "components": "$lib/vendor/ui",
-    "utils": "$lib/utils/cn.util",
-    "ui": "$lib/vendor/ui",
+    "components": "$lib/components",
+    "utils": "$lib/utils/cn",
+    "ui": "$lib/components/ui",
     "hooks": "$lib/hooks"
   },
   "typescript": true

@@ -22,10 +22,7 @@ export default defineConfig(({ mode }) => {
   const apiPort = env.VITE_API_PORT || '3333';
 
   return {
-    plugins: [
-      tailwindcss(),
-      sveltekit(),
-    ],
+    plugins: [tailwindcss(), sveltekit()],
     resolve: {
       alias: {
         'lucide-svelte': '@lucide/svelte',
