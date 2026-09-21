@@ -22,10 +22,7 @@ var (
 func TrimWorkingSet() {
 	debug.FreeOSMemory()
 
-	currentProcessHandle, processError := windows.GetCurrentProcess()
-	if processError == nil {
-		_, _, _ = procEmptyWorkingSet.Call(uintptr(currentProcessHandle))
-	}
+	_, _, _ = procEmptyWorkingSet.Call(uintptr(windows.CurrentProcess()))
 
 	trimChildProcesses(uint32(os.Getpid()))
 }
@@ -35,7 +32,7 @@ func trimChildProcesses(parentProcessID uint32) {
 	if snapshotError != nil {
 		return
 	}
-	defer windows.CloseHandle(snapshotHandle)
+	defer func() { _ = windows.CloseHandle(snapshotHandle) }()
 
 	var processEntry windows.ProcessEntry32
 	processEntry.Size = uint32(unsafe.Sizeof(processEntry))
