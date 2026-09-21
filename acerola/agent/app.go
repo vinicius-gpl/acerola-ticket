@@ -234,11 +234,21 @@ func (app *App) Quit() {
 // foco ("fecha ao perder foco" do pedido original), e o dashboard chama
 // pelo próprio botão de fechar — a janela não tem moldura nativa, então não
 // existe um X do Windows pra isso (ver docs/ARQUITETURA.md).
+//
+// Esconder a janela nativa não desmonta a tela: sem o passo extra abaixo, a
+// Popup ou o Dashboard continuariam vivos em segundo plano — com todos os
+// gráficos (uPlot) e popovers de processo retendo memória — e o
+// TrimWorkingSet não teria o que devolver de verdade ao Windows. Por isso a
+// janela some primeiro (resposta instantânea ao clique) e só depois a tela
+// troca pra "idle" (ver svelte/src/views/idle), que desmonta tudo antes do
+// trim rodar.
 func (app *App) HideWindow() {
 	app.dispatch(func(ctx context.Context) {
 		app.setVisible(false)
 		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowHide(ctx)
+		runtime.EventsEmit(ctx, "view:change", "idle")
+		app.awaitViewReady()
 		memory.TrimWorkingSet()
 	})
 }

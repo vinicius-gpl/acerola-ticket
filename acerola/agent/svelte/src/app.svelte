@@ -2,14 +2,20 @@
 	import Router, { push } from 'svelte-spa-router';
 	import { onDestroy, tick } from 'svelte';
 	import Dashboard from './views/dashboard/dashboard.svelte';
+	import Idle from './views/idle/idle.svelte';
 	import Popup from './views/popup/popup.svelte';
 	import { ViewReady } from '../wailsjs/go/main/App';
 	import { EventsOn } from '../wailsjs/runtime/runtime';
 
+	// O app nasce escondido na bandeja (StartHidden, ver main.go) — a rota
+	// inicial (antes de qualquer "view:change" do Go) precisa ser a "idle"
+	// vazia, não a Popup: montar a Popup de cara já gastaria memória com
+	// gráficos (uPlot) que ninguém está vendo ainda.
 	const routes = {
 		'/popup': Popup,
 		'/dashboard': Dashboard,
-		'*': Popup
+		'/idle': Idle,
+		'*': Idle
 	};
 
 	// O Go decide qual view mostrar (ver app.go, ShowPopup/ShowDashboard) e
