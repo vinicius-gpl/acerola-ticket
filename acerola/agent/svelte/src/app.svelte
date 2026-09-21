@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Router, { push } from 'svelte-spa-router';
 	import { onDestroy, tick } from 'svelte';
-	import Dashboard from './views/dashboard/dashboard.svelte';
-	import Idle from './views/idle/idle.svelte';
-	import Popup from './views/popup/popup.svelte';
+	import Dashboard from './routes/dashboard/dashboard.svelte';
+	import Idle from './routes/idle/idle.svelte';
+	import Popup from './routes/popup/popup.svelte';
 	import { ViewReady } from '../wailsjs/go/main/App';
 	import { EventsOn } from '../wailsjs/runtime/runtime';
 
