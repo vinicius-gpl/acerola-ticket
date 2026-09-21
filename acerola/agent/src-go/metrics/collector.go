@@ -23,6 +23,22 @@ type Collector struct {
 	lastSampleAt time.Time
 	lastDiskIO   map[string]disk.IOCountersStat
 	lastNetIO    map[string]gonet.IOCountersStat
+
+	// CPU por processo tem o mesmo problema dos bytes de disco/rede: o
+	// sistema só oferece um contador cumulativo (segundos de CPU desde que
+	// o processo nasceu). Guardamos a leitura anterior de cada PID pra
+	// calcular quanto ele gastou *neste* intervalo.
+	lastProcessCPU map[int32]processCPUSample
+	lastProcessAt  time.Time
+}
+
+// processCPUSample é a leitura anterior de um processo. O instante de
+// criação entra junto porque o Windows reaproveita PID: sem ele, um
+// processo novo que herdou o número de um morto apareceria com um pico
+// absurdo de CPU na primeira amostra.
+type processCPUSample struct {
+	createdAtMillis int64
+	cpuSeconds      float64
 }
 
 func New() *Collector {
@@ -51,7 +67,16 @@ func (collector *Collector) Inventory() (Inventory, error) {
 	cpuInfo, err := cpu.Info()
 	if err == nil && len(cpuInfo) > 0 {
 		inv.CPUModel = strings.TrimSpace(cpuInfo[0].ModelName)
-		inv.PhysicalCPUs = int(cpuInfo[0].Cores)
+	}
+
+	// O campo `Cores` de cpu.Info() mente no Windows: o gopsutil preenche
+	// ele com a contagem *lógica* (ver cpu_windows.go, `Cores:
+	// int32(logicalCount)`), então num processador de 6 núcleos com
+	// hyperthreading o inventário mostrava 12 físicos e 12 lógicos. Quem
+	// sabe separar os dois é cpu.Counts.
+	physical, err := cpu.Counts(false)
+	if err == nil {
+		inv.PhysicalCPUs = physical
 	}
 	logical, err := cpu.Counts(true)
 	if err == nil {
@@ -93,7 +118,7 @@ func (collector *Collector) Snapshot(processLimit int) (Snapshot, error) {
 	}
 	collector.collectDisks(&snap)
 	collector.collectRates(&snap)
-	snap.Processes = collector.collectProcesses(processLimit)
+	snap.Processes = collector.collectProcesses(processLimit, snap.Host.LogicalCPUs)
 
 	return snap, nil
 }
@@ -233,11 +258,16 @@ func rate(prev, current uint64, elapsedSeconds float64) float64 {
 	return float64(current-prev) / elapsedSeconds
 }
 
-// collectProcesses retorna os `limit` processos com maior uso de CPU.
-// Processos que não conseguimos inspecionar (permissão negada, terminou
-// durante a varredura) são ignorados silenciosamente — isso é esperado no
-// Windows, não uma condição de erro.
-func (collector *Collector) collectProcesses(limit int) []ProcessStats {
+// namedInstance é um processo recém-lido do sistema, ainda solto. O nome do
+// executável é o que vai juntá-lo aos irmãos em topProcessGroups.
+type namedInstance struct {
+	name     string
+	instance ProcessInstance
+}
+
+// collectProcesses retorna os `limit` aplicativos que mais consomem CPU, com
+// os processos de mesmo executável já somados.
+func (collector *Collector) collectProcesses(limit, logicalCPUs int) []ProcessStats {
 	if limit <= 0 {
 		return nil
 	}
@@ -246,37 +276,191 @@ func (collector *Collector) collectProcesses(limit int) []ProcessStats {
 		return nil
 	}
 
-	stats := make([]ProcessStats, 0, len(procs))
+	return topProcessGroups(collector.readProcessInstances(procs, logicalCPUs), limit)
+}
+
+// readProcessInstances lê o que interessa de cada processo. Processos que
+// não conseguimos inspecionar (permissão negada, terminou durante a
+// varredura) são ignorados silenciosamente — isso é esperado no Windows,
+// não uma condição de erro.
+//
+// Não usamos o `CPUPercent()` do gopsutil de propósito: ele divide o tempo
+// de CPU pela idade do processo, ou seja, devolve a média da vida inteira
+// dele. Um processo que martelou a CPU no início e agora está parado
+// continuaria aparecendo pesado pra sempre. Aqui a conta é entre esta
+// amostra e a anterior, como já é feito pra disco e rede.
+func (collector *Collector) readProcessInstances(procs []*process.Process, logicalCPUs int) []namedInstance {
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	now := time.Now()
+	elapsed := now.Sub(collector.lastProcessAt).Seconds()
+
+	previousSamples := collector.lastProcessCPU
+	currentSamples := make(map[int32]processCPUSample, len(procs))
+
+	instances := make([]namedInstance, 0, len(procs))
 	for _, proc := range procs {
-		name, err := proc.Name()
-		if err != nil {
+		instance, sample, readable := readOneProcess(proc, previousSamples, elapsed, logicalCPUs)
+		if !readable {
 			continue
 		}
-		cpuPct, err := proc.CPUPercent()
-		if err != nil {
-			continue
-		}
-		memPct, _ := proc.MemoryPercent()
-		var memBytes uint64
-		if memInfo, err := proc.MemoryInfo(); err == nil && memInfo != nil {
-			memBytes = memInfo.RSS
-		}
-		stats = append(stats, ProcessStats{
-			PID:        proc.Pid,
-			Name:       name,
-			CPUPercent: cpuPct,
-			MemPercent: memPct,
-			MemBytes:   memBytes,
-		})
+		currentSamples[proc.Pid] = sample
+		instances = append(instances, instance)
 	}
 
-	sort.Slice(stats, func(firstIndex, secondIndex int) bool {
-		return stats[firstIndex].CPUPercent > stats[secondIndex].CPUPercent
-	})
-	if len(stats) > limit {
-		stats = stats[:limit]
+	// Trocar o mapa inteiro (em vez de atualizar) descarta sozinho os
+	// processos que morreram desde a amostra anterior.
+	collector.lastProcessCPU = currentSamples
+	collector.lastProcessAt = now
+
+	return instances
+}
+
+// readOneProcess lê um processo. O último retorno é falso quando não
+// conseguimos inspecioná-lo (permissão negada, terminou durante a varredura)
+// — esperado no Windows, não um erro do agente.
+func readOneProcess(
+	proc *process.Process,
+	previousSamples map[int32]processCPUSample,
+	elapsed float64,
+	logicalCPUs int,
+) (namedInstance, processCPUSample, bool) {
+	name, err := proc.Name()
+	if err != nil {
+		return namedInstance{}, processCPUSample{}, false
 	}
-	return stats
+	times, err := proc.Times()
+	if err != nil {
+		return namedInstance{}, processCPUSample{}, false
+	}
+	createdAtMillis, err := proc.CreateTime()
+	if err != nil {
+		return namedInstance{}, processCPUSample{}, false
+	}
+
+	sample := processCPUSample{
+		createdAtMillis: createdAtMillis,
+		// User + System em vez de Total(): num processo os outros campos
+		// (idle, iowait...) são sempre zero, e somar só os dois que
+		// importam deixa claro o que está sendo medido.
+		cpuSeconds: times.User + times.System,
+	}
+
+	memPercent, _ := proc.MemoryPercent()
+	var memBytes uint64
+	if memInfo, err := proc.MemoryInfo(); err == nil && memInfo != nil {
+		memBytes = memInfo.RSS
+	}
+
+	return namedInstance{
+		name: name,
+		instance: ProcessInstance{
+			PID:        proc.Pid,
+			CPUPercent: processCPUSince(previousSamples, proc.Pid, sample, elapsed, logicalCPUs),
+			MemPercent: memPercent,
+			MemBytes:   memBytes,
+		},
+	}, sample, true
+}
+
+// processCPUSince calcula quanto o processo consumiu desde a amostra
+// anterior. Sem amostra anterior — na primeira leitura depois que o agente
+// sobe — ou com o PID reaproveitado por outro processo, devolve zero, igual
+// às taxas de disco e rede.
+func processCPUSince(
+	previousSamples map[int32]processCPUSample,
+	pid int32,
+	sample processCPUSample,
+	elapsed float64,
+	logicalCPUs int,
+) float64 {
+	prior, seen := previousSamples[pid]
+	if !seen || prior.createdAtMillis != sample.createdAtMillis {
+		return 0
+	}
+	return processCPUPercent(prior.cpuSeconds, sample.cpuSeconds, elapsed, logicalCPUs)
+}
+
+// processCPUPercent converte dois contadores cumulativos em "quanto da
+// máquina este processo usou no intervalo".
+//
+// A divisão pelo número de núcleos lógicos é o que faltava: os segundos de
+// CPU somam todos os núcleos, então um processo ocupando dois núcleos o
+// intervalo inteiro daria 200%. Dividindo, a coluna passa a significar a
+// mesma coisa que o medidor de CPU no alto da tela — e que o Gerenciador de
+// Tarefas.
+func processCPUPercent(previousSeconds, currentSeconds, elapsedSeconds float64, logicalCPUs int) float64 {
+	if elapsedSeconds <= 0 || logicalCPUs <= 0 {
+		return 0
+	}
+
+	consumed := currentSeconds - previousSeconds
+	// Contador que anda pra trás não existe num processo vivo; se acontecer
+	// (PID reciclado que escapou da checagem), zero é mais honesto que um
+	// número negativo.
+	if consumed <= 0 {
+		return 0
+	}
+
+	percent := 100 * consumed / (elapsedSeconds * float64(logicalCPUs))
+	// Descompasso de alguns milissegundos entre a leitura do relógio e a do
+	// contador pode estourar 100 por frações. A tela mostra "% da máquina";
+	// acima disso não existe.
+	if percent > 100 {
+		return 100
+	}
+	return percent
+}
+
+// topProcessGroups junta os processos de mesmo executável num grupo só,
+// somando CPU e memória, e devolve os `limit` grupos que mais consomem CPU.
+//
+// Dentro de cada grupo os processos ficam do mais pesado pro mais leve, que
+// é a ordem útil quando a pessoa abre a linha pra investigar. A ordenação é
+// estável nos dois níveis pra lista não dançar na tela entre uma amostra e
+// outra quando dois grupos empatam.
+func topProcessGroups(instances []namedInstance, limit int) []ProcessStats {
+	if limit <= 0 {
+		return nil
+	}
+
+	byName := make(map[string]*ProcessStats, len(instances))
+	// A ordem de chegada serve de desempate estável: percorrer o mapa
+	// direto daria uma ordem diferente a cada amostra.
+	arrivalOrder := make([]string, 0, len(instances))
+
+	for _, item := range instances {
+		group, exists := byName[item.name]
+		if !exists {
+			group = &ProcessStats{Name: item.name}
+			byName[item.name] = group
+			arrivalOrder = append(arrivalOrder, item.name)
+		}
+
+		group.InstanceCount++
+		group.CPUPercent += item.instance.CPUPercent
+		group.MemPercent += item.instance.MemPercent
+		group.MemBytes += item.instance.MemBytes
+		group.Instances = append(group.Instances, item.instance)
+	}
+
+	groups := make([]ProcessStats, 0, len(arrivalOrder))
+	for _, name := range arrivalOrder {
+		group := byName[name]
+		sort.SliceStable(group.Instances, func(firstIndex, secondIndex int) bool {
+			return group.Instances[firstIndex].CPUPercent > group.Instances[secondIndex].CPUPercent
+		})
+		groups = append(groups, *group)
+	}
+
+	sort.SliceStable(groups, func(firstIndex, secondIndex int) bool {
+		return groups[firstIndex].CPUPercent > groups[secondIndex].CPUPercent
+	})
+	if len(groups) > limit {
+		groups = groups[:limit]
+	}
+	return groups
 }
 
 // activeInterfaceNames lista as interfaces de rede que estão ativas e não

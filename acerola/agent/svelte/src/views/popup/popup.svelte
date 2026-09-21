@@ -219,7 +219,7 @@
 				{#if snap.processes && snap.processes.length > 0}
 					<AcerolaCard data={{ title: 'Top Processos' }} ui={{ size: 'sm' }}>
 						<div class="flex flex-col gap-1 text-xs tabular-nums">
-							{#each snap.processes.slice(0, 3) as proc (proc.pid)}
+							{#each snap.processes.slice(0, 3) as proc (proc.name)}
 								<div
 									class="hover:bg-muted/40 flex items-center justify-between gap-2 rounded px-1 py-0.5 transition-colors"
 								>

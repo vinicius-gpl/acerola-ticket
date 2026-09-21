@@ -56,12 +56,25 @@ export type NetInterfaceStats = {
 	bytesRecvPerSec: number;
 };
 
-export type ProcessStats = {
+// Um processo individual dentro de um grupo — uma aba do Chrome, por
+// exemplo. Espelha metrics.ProcessInstance no Go.
+export type ProcessInstance = {
 	pid: number;
-	name: string;
 	cpuPercent: number;
 	memPercent: number;
 	memBytes: number;
+};
+
+// Um aplicativo: todos os processos do mesmo executável somados. Espelha
+// metrics.ProcessStats no Go — ver src-go/metrics/types.go para o porquê do
+// agrupamento.
+export type ProcessStats = {
+	name: string;
+	instanceCount: number;
+	cpuPercent: number;
+	memPercent: number;
+	memBytes: number;
+	instances: ProcessInstance[];
 };
 
 export type Snapshot = {
