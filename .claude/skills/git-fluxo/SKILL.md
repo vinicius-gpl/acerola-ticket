@@ -143,7 +143,7 @@ Skill `verificar` inteira. Vermelho → corrija na branch, commite, repita.
 ```bash
 git switch develop
 git pull --ff-only                         # se houver remoto
-git merge --no-ff feature/<nome> -m "Merge branch 'feature/<nome>' into develop"
+git merge --no-ff feature/<nome> -m "[merge](<escopo>): <o que passou a existir>"
 ```
 
 - O Claude Code vai pedir confirmação para o `git merge --no-ff`: é a segunda trava, de
