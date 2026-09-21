@@ -1,8 +1,8 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 
-import { AppShell } from '../lib/ui/composers/app-shell.component';
-import { EmptyState } from '../lib/ui/primitives/empty-state.component';
-import { useAppShellModel } from '../lib/view-models/use-app-shell.model';
+import AppShell from '$lib/components/app-shell/app-shell.svelte';
+import EmptyState from '$lib/components/empty-state/empty-state.svelte';
+import { useAppShellModel } from '$lib/view-models/use-app-shell.model';
 
 /**
  * A rota raiz só compõe. Nenhuma regra de negócio, nenhum `useQuery` solto — a seção 3 do

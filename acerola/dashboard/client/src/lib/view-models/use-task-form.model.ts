@@ -6,12 +6,12 @@ import {
   type TaskFormValues,
 } from '@template/shared/schemas/task.schema';
 
-import { readError } from '../api/http-client';
-import { tasksApi } from '../api/tasks.api';
-import { type TaskFormField } from '../ui/composers/task-form-dialog.component';
-import { type FormFieldState } from '../ui/form-field.type';
+import { readError } from '$lib/api/http-client';
+import { tasksApi } from '$lib/api/tasks.api';
+import { type TaskFormField } from '$lib/components/task-form-dialog/task-form-dialog.svelte';
+import { type FormFieldState } from '$lib/form-field.type';
 import { toFieldState } from './form-projection.util';
-import { TASKS_QUERY_KEY } from './use-task-list.model';
+import { TASKS_QUERY_KEY } from './use-task-list.model.svelte.ts';
 
 export type TaskFormModel = {
   data: {

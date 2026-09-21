@@ -9,8 +9,8 @@ import { type Task } from '@template/shared/schemas/task.schema';
 
 import { fromStore, toStore } from 'svelte/store';
 
-import { readError } from '../api/http-client';
-import { tasksApi } from '../api/tasks.api';
+import { readError } from '$lib/api/http-client';
+import { tasksApi } from '$lib/api/tasks.api';
 
 export type TaskListFilter = {
   search: string;
@@ -83,8 +83,7 @@ export function useTaskListModel(): TaskListModel {
     createQuery(
       toStore(() => ({
         queryKey: [...TASKS_QUERY_KEY, 'list', scopeOf(filter)],
-        queryFn: () =>
-          tasksApi.list({ ...scopeOf(filter), page: 1, pageSize: MAX_PAGE_SIZE }),
+        queryFn: () => tasksApi.list({ ...scopeOf(filter), page: 1, pageSize: MAX_PAGE_SIZE }),
       })),
     ),
   );

@@ -1,4 +1,4 @@
-import { type FormFieldState } from '../ui/form-field.type';
+import { type FormFieldState } from '$lib/form-field.type';
 
 /**
  * Traduz o estado do formulário no que a view entende: valor e erro, e nada mais.

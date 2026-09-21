@@ -3,9 +3,9 @@ import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { AppErrorBoundary } from './lib/ui/composers/app-error-boundary.component';
+import AppErrorBoundary from '$lib/components/app-error-boundary/app-error-boundary.svelte';
 import { routeTree } from './routeTree.gen';
-import './lib/theme/tokens.css';
+import '$lib/theme/tokens.css';
 
 /**
  * A WEB NÃO GUARDA SESSÃO, e não manda identidade.

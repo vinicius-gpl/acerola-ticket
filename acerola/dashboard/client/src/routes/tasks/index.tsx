@@ -2,11 +2,11 @@ import { createFileRoute } from '@tanstack/react-router';
 import { type Task } from '@template/shared/schemas/task.schema';
 import { useState } from 'react';
 
-import { ConfirmDialog } from '../../lib/ui/composers/confirm-dialog.component';
-import { TaskFormDialog } from '../../lib/ui/composers/task-form-dialog.component';
-import { TaskListView } from '../../lib/ui/composers/task-list-view.component';
-import { useTaskFormModel } from '../../lib/view-models/use-task-form.model';
-import { useTaskListModel } from '../../lib/view-models/use-task-list.model';
+import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
+import TaskFormDialog from '$lib/components/task-form-dialog/task-form-dialog.svelte';
+import TaskListView from '$lib/components/task-list-view/task-list-view.svelte';
+import { useTaskFormModel } from '$lib/view-models/use-task-form.model';
+import { useTaskListModel } from '$lib/view-models/use-task-list.model.svelte.ts';
 
 /**
  * A rota só compõe: chama os models e entrega para as views (CONTRIBUTING §3).

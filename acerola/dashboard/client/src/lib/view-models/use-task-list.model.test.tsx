@@ -4,14 +4,14 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiError } from '../api/http-client';
-import { useTaskListModel } from './use-task-list.model';
+import { ApiError } from '$lib/api/http-client';
+import { useTaskListModel } from './use-task-list.model.svelte.ts';
 
 vi.mock('../api/tasks.api', () => ({
   tasksApi: { list: vi.fn(), update: vi.fn(), remove: vi.fn() },
 }));
 
-const { tasksApi } = await import('../api/tasks.api');
+const { tasksApi } = await import('$lib/api/tasks.api');
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

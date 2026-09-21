@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
  * Além das regras gerais do CONTRIBUTING, aqui vivem as três separações que a seção 3 e a
  * seção 5 não negociam:
  *
- *  - componente baixado nunca é importado fora de `lib/ui`;
+ *  - componente baixado (`lib/components/ui`) nunca é importado fora de `lib/components`;
  *  - componente de UI nunca busca o próprio dado;
  *  - view-model nunca desenha.
  */
@@ -34,15 +34,16 @@ const NO_BARREL = {
 
 export default tseslint.config(
   {
-    /* `lib/vendor` é território do CLI (shadcn-svelte) — a seção 5 do CONTRIBUTING proíbe
-       editar ali, então também não cobramos nosso lint de um arquivo que a CLI sobrescreve
-       inteiro a cada `add`. */
+    /* `lib/components/ui` é território do CLI (shadcn-svelte) — não editamos ali, então
+       também não cobramos nosso lint de um arquivo que a CLI sobrescreve inteiro a cada
+       `add`. É também o único lugar onde `index.ts` é permitido: a CLI só sabe gerar
+       barril, e brigar com ela custaria a capacidade de atualizar componente. */
     ignores: [
       'dist/**',
       'coverage/**',
       'storybook-static/**',
       '.svelte-kit/**',
-      'src/lib/vendor/**',
+      'src/lib/components/ui/**',
     ],
   },
   js.configs.recommended,
@@ -84,9 +85,9 @@ export default tseslint.config(
           patterns: [
             ...NO_BARREL.patterns,
             {
-              group: ['**/lib/vendor/**'],
+              group: ['**/lib/components/ui/**'],
               message:
-                'Componente baixado só é importado de dentro de `lib/ui`. Envolva-o num primitivo nosso.',
+                'Componente baixado só é importado de dentro de `lib/components`. Envolva-o num componente nosso.',
             },
           ],
         },
@@ -113,15 +114,16 @@ export default tseslint.config(
     },
   },
   {
-    // `lib/ui` é a fronteira: é o único lugar que pode encostar no vendor.
-    files: ['src/lib/ui/**/*.{ts,svelte}'],
+    // `lib/components` é a fronteira: é o único lugar que pode encostar no baixado.
+    files: ['src/lib/components/**/*.{ts,svelte}'],
+    ignores: ['src/lib/components/ui/**'],
     rules: { 'no-restricted-imports': ['error', NO_BARREL] },
   },
   {
     /* Seção 3 — a view é função pura de props. Hook de dado aqui é o defeito que torna a
        tela impossível de atualizar por linha e impossível de testar sem subir rede. */
-    files: ['src/lib/ui/**/*.svelte'],
-    ignores: ['src/lib/ui/**/*.stories.svelte'],
+    files: ['src/lib/components/**/*.svelte'],
+    ignores: ['src/lib/components/ui/**', 'src/lib/components/**/*.stories.svelte'],
     rules: {
       'no-restricted-syntax': [
         'error',

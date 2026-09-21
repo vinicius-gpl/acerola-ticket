@@ -1,8 +1,8 @@
 import { page } from '$app/state';
 import { USER_ROLE_LABELS } from '@template/shared/schemas/user.schema';
 
-import { mockAuth } from '../auth/mock-user';
-import { activeNavKeyOf } from '../ui/navigation';
+import { mockAuth } from '$lib/auth/mock-user';
+import { activeNavKeyOf } from '$lib/navigation';
 
 export type AppShellModel = {
   data: {
