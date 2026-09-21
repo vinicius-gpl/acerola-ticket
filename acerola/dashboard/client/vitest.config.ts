@@ -13,7 +13,7 @@ export default defineConfig({
       '@template/shared': fileURLToPath(new URL('../shared/src', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       $lib: fileURLToPath(new URL('./src/lib', import.meta.url)),
-      $app: fileURLToPath(new URL('./src/lib/test-utils/app-mock', import.meta.url)),
+      $app: fileURLToPath(new URL('./tests/app-mock', import.meta.url)),
     },
   },
   test: {
