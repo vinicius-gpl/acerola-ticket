@@ -20,22 +20,24 @@ export default {
   },
 
   /**
-   * Commit de MERGE não segue o formato, e não deve seguir: a mensagem é gerada pelo git, o
-   * Gitflow exige um a cada `feature`, `release` ou `hotfix` fechada, e o `--no-ff` existe
-   * justamente para que ele apareça no histórico.
+   * Commit de MERGE segue o formato como qualquer outro: `[merge](escopo): Mensagem`. O
+   * fechamento de uma feature é a entrada mais importante do histórico — é ela que diz o que
+   * passou a existir no sistema —, e deixá-la com o texto automático do git (`Merge branch
+   * 'x' into develop`) desperdiça justamente a linha que alguém vai ler daqui a seis meses.
    *
-   * Sem esta exceção, fechar uma feature só sai com `--no-verify` — e `--no-verify` não
-   * desliga só esta regra: desliga o `pre-commit` inteiro junto, lint incluído. Uma trava
-   * que obriga a contorná-la deixa de ser uma trava.
+   * Por isso `merge` entra na lista de tipos abaixo, e não existe mais exceção aqui.
+   *
+   * A consequência prática: merge precisa de `-m`. Um `git merge` ou `git pull` que gere a
+   * mensagem sozinho vai ser recusado pelo hook — e recusar é o certo, porque é exatamente o
+   * caso que se quer evitar.
    */
-  ignores: [(message) => /^Merge (branch|remote-tracking branch|pull request|tag) /.test(message)],
 
   rules: {
     'type-empty': [2, 'never'],
     'type-enum': [
       2,
       'always',
-      ['feat', 'fix', 'refactor', 'test', 'docs', 'style', 'perf', 'build', 'ci', 'chore'],
+      ['feat', 'fix', 'refactor', 'test', 'docs', 'style', 'perf', 'build', 'ci', 'chore', 'merge'],
     ],
 
     'scope-empty': [2, 'never'],
