@@ -1,6 +1,10 @@
 package metrics
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+)
 
 func TestRateHappyPath(testingContext *testing.T) {
 	// feliz: contador cresceu normalmente entre duas amostras
@@ -143,5 +147,74 @@ func TestTopProcessGroupsWithZeroLimit(testingContext *testing.T) {
 
 	if groups := topProcessGroups(chromeLikeInstances(), -5); groups != nil {
 		testingContext.Errorf("groups = %v, want nil for negative limit", groups)
+	}
+}
+
+func TestInventoryCoreCountsComeFromCounts(testingContext *testing.T) {
+	// feliz: físicos e lógicos saem de cpu.Counts, não do campo Cores de cpu.Info() — que no Windows devolve o número lógico nos dois
+	inventory, err := New().Inventory()
+	if err != nil {
+		testingContext.Fatalf("Inventory() failed: %v", err)
+	}
+
+	if inventory.PhysicalCPUs <= 0 || inventory.LogicalCPUs <= 0 {
+		testingContext.Fatalf("core counts = %d physical / %d logical, want both positive",
+			inventory.PhysicalCPUs, inventory.LogicalCPUs)
+	}
+
+	if inventory.PhysicalCPUs > inventory.LogicalCPUs {
+		testingContext.Errorf("physical (%d) > logical (%d), which cannot happen",
+			inventory.PhysicalCPUs, inventory.LogicalCPUs)
+	}
+
+	expectedPhysical, err := cpu.Counts(false)
+	if err == nil && inventory.PhysicalCPUs != expectedPhysical {
+		testingContext.Errorf("physical = %d, want %d (cpu.Counts(false))",
+			inventory.PhysicalCPUs, expectedPhysical)
+	}
+}
+
+func TestProcessCPUPercentSharesTheWholeMachine(testingContext *testing.T) {
+	// feliz: um núcleo ocupado o segundo inteiro, numa máquina de 12 lógicos, é 1/12 da máquina
+	got := processCPUPercent(10, 11, 1, 12)
+
+	expected := 100.0 / 12
+	if got < expected-0.001 || got > expected+0.001 {
+		testingContext.Errorf("cpu percent = %f, want %f", got, expected)
+	}
+}
+
+func TestProcessCPUPercentCountsEveryCore(testingContext *testing.T) {
+	// feliz: dois núcleos ocupados pesam o dobro de um — é a soma que importa, não o maior núcleo
+	single := processCPUPercent(0, 1, 1, 12)
+	double := processCPUPercent(0, 2, 1, 12)
+
+	if double <= single {
+		testingContext.Errorf("two cores (%f) should weigh more than one (%f)", double, single)
+	}
+}
+
+func TestProcessCPUPercentWithoutBaseline(testingContext *testing.T) {
+	// triste: sem intervalo não há taxa a calcular, e zero é mais honesto que dividir por zero
+	if got := processCPUPercent(10, 20, 0, 12); got != 0 {
+		testingContext.Errorf("cpu percent = %f, want 0 for zero elapsed", got)
+	}
+
+	if got := processCPUPercent(10, 20, 1, 0); got != 0 {
+		testingContext.Errorf("cpu percent = %f, want 0 for zero logical CPUs", got)
+	}
+}
+
+func TestProcessCPUPercentWithCounterGoingBackwards(testingContext *testing.T) {
+	// triste: PID reciclado pode fazer o contador andar pra trás; zero em vez de número negativo (caso limite)
+	if got := processCPUPercent(50, 10, 1, 12); got != 0 {
+		testingContext.Errorf("cpu percent = %f, want 0 when the counter goes backwards", got)
+	}
+}
+
+func TestProcessCPUPercentClampsAboveHundred(testingContext *testing.T) {
+	// triste: descompasso entre relógio e contador não pode passar de 100% da máquina (caso limite)
+	if got := processCPUPercent(0, 100, 1, 12); got != 100 {
+		testingContext.Errorf("cpu percent = %f, want 100 (clamped)", got)
 	}
 }

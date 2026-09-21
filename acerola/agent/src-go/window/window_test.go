@@ -12,12 +12,28 @@ func TestIsWindows11StableResult(testingContext *testing.T) {
 	}
 }
 
-func TestHandleWithoutWindow(testingContext *testing.T) {
-	// triste: rodando nos testes não existe janela Wails, então o handle vem zerado em vez de inválido
-	handle := Handle()
+func TestHandleLooksUpTheAgentClass(testingContext *testing.T) {
+	// feliz: Handle procura exatamente a classe registrada em main.go — o resultado varia conforme o agente esteja aberto ou não
+	if Handle() != handleOfClass(ClassName) {
+		testingContext.Error("Handle() must look up ClassName")
+	}
+}
+
+func TestHandleOfUnknownClass(testingContext *testing.T) {
+	// triste: classe que não existe devolve handle zerado em vez de lixo
+	handle := handleOfClass("AcerolaClassThatDoesNotExist")
 
 	if handle != 0 {
-		testingContext.Errorf("handle = %v, want 0 outside the app", handle)
+		testingContext.Errorf("handle = %v, want 0 for an unknown class", handle)
+	}
+}
+
+func TestHandleOfInvalidClassName(testingContext *testing.T) {
+	// triste: nome com byte nulo não converte pra UTF-16 e devolve zero sem chamar o Windows (caso limite)
+	handle := handleOfClass("Acerola" + string(rune(0)) + "Agent")
+
+	if handle != 0 {
+		testingContext.Errorf("handle = %v, want 0 for an unconvertible class name", handle)
 	}
 }
 

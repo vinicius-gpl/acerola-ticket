@@ -51,12 +51,20 @@ var (
 // Handle localiza a janela nativa do agente. Devolve 0 se ela ainda não
 // existir — quem chama trata isso como "não dá pra posicionar agora".
 func Handle() windows.HWND {
-	className, conversionError := windows.UTF16PtrFromString(ClassName)
+	return handleOfClass(ClassName)
+}
+
+// handleOfClass é o Handle parametrizado, pra que o teste possa procurar uma
+// classe que com certeza não existe: o Handle() de verdade acha ou não acha
+// dependendo de o agente estar aberto na máquina naquele momento, o que não
+// serve como asserção.
+func handleOfClass(className string) windows.HWND {
+	namePointer, conversionError := windows.UTF16PtrFromString(className)
 	if conversionError != nil {
 		return 0
 	}
 
-	handle, _, _ := procFindWindow.Call(uintptr(unsafe.Pointer(className)), 0) //nolint:gosec // API do Windows exige ponteiro cru aqui
+	handle, _, _ := procFindWindow.Call(uintptr(unsafe.Pointer(namePointer)), 0) //nolint:gosec // API do Windows exige ponteiro cru aqui
 	return windows.HWND(handle)
 }
 
