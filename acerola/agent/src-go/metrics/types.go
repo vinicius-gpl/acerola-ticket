@@ -71,14 +71,29 @@ type NetInterfaceStats struct {
 	BytesRecvPerSec float64 `json:"bytesRecvPerSec"`
 }
 
-// ProcessStats descreve um processo em execução, para o painel de "top
-// processos".
-type ProcessStats struct {
+// ProcessInstance é um processo individual dentro de um grupo — uma aba do
+// Chrome, por exemplo. Só aparece quando a pessoa abre a linha do grupo.
+type ProcessInstance struct {
 	PID        int32   `json:"pid"`
-	Name       string  `json:"name"`
 	CPUPercent float64 `json:"cpuPercent"`
 	MemPercent float32 `json:"memPercent"`
 	MemBytes   uint64  `json:"memBytes"`
+}
+
+// ProcessStats descreve um aplicativo no painel de "top processos": todos os
+// processos do mesmo executável somados num grupo só.
+//
+// Sem esse agrupamento o painel mente. O Chrome abre dezenas de processos
+// (um por aba, extensão, GPU) e olhar um de cada vez dá a impressão de que
+// ele usa 400 MB quando o total é 2,6 GB. É o mesmo agrupamento que o
+// Gerenciador de Tarefas do Windows faz.
+type ProcessStats struct {
+	Name          string            `json:"name"`
+	InstanceCount int               `json:"instanceCount"`
+	CPUPercent    float64           `json:"cpuPercent"`
+	MemPercent    float32           `json:"memPercent"`
+	MemBytes      uint64            `json:"memBytes"`
+	Instances     []ProcessInstance `json:"instances"`
 }
 
 // Snapshot é a leitura completa num instante, enviada ao painel web. A

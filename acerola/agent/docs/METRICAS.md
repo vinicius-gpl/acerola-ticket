@@ -46,7 +46,7 @@ que responde "cabe mais alguma coisa nesta máquina?" de forma direta.
 | Uso por partição (total/usado/livre/%) | `disk.Partitions()` + `disk.Usage()` | barras por volume |
 | Taxa de leitura/escrita em disco (bytes/s) | `disk.IOCounters()`, com taxa calculada entre duas amostras | gráfico |
 | Taxa de download/upload por interface ativa (bytes/s) | `net.IOCounters(true)`, com taxa calculada entre duas amostras | gráfico (soma de todas as interfaces ativas) |
-| Top processos por CPU (PID, nome, CPU%, mem%, memória) | `process.Processes()` | tabela |
+| Top aplicativos por CPU (nome, nº de processos, CPU%, mem%, memória) | `process.Processes()`, agrupado por executável | tabela que abre por processo |
 
 As taxas de disco e rede não existem prontas no gopsutil — ele só expõe contadores cumulativos
 (bytes desde o boot). O `Collector` guarda a amostra anterior e o instante em que foi tirada, e
@@ -54,10 +54,34 @@ calcula `(atual - anterior) / tempo_decorrido` a cada tick do `Broadcaster` — 
 amostra depois de o agente iniciar sempre mostra taxa zero (ainda não há uma amostra anterior para
 comparar).
 
-A lista de processos é limitada a `topProcessCount` (25, definido em `app.go`),
-ordenada por uso de CPU. Processos que o agente não consegue inspecionar (permissão negada,
-processo que terminou durante a varredura — comum no Windows para processos de sistema) são
-ignorados silenciosamente; isso é esperado, não um erro do agente.
+A lista é limitada a `topProcessCount` (25, definido em `app.go`) e ordenada por uso de CPU.
+Processos que o agente não consegue inspecionar (permissão negada, processo que terminou durante a
+varredura — comum no Windows para processos de sistema) são ignorados silenciosamente; isso é
+esperado, não um erro do agente.
+
+## Por que os processos são agrupados por executável
+
+Um aplicativo moderno não é um processo só. O Chrome abre um processo por aba, extensão e GPU;
+o VS Code faz o mesmo. Listando processo a processo, a tabela mostrava o maior pedaço do Chrome
+(uns 400 MB) como se fosse o Chrome inteiro, quando o total passava de 2,6 GB — o painel mentia
+justamente sobre o aplicativo que mais pesa na máquina.
+
+Por isso `topProcessGroups` (em `collector.go`) soma CPU e memória de todos os processos com o
+mesmo nome de executável e devolve **grupos**, não processos. O limite de 25 corta grupos: um
+aplicativo com 40 processos ocupa uma linha, não a tabela inteira. Cada grupo carrega seus
+processos em `Instances`, e a tabela do dashboard abre a linha para mostrá-los — é o mesmo
+agrupamento que o Gerenciador de Tarefas do Windows faz.
+
+Duas consequências que valem saber:
+
+- **A memória somada tende a ficar um pouco acima do Gerenciador de Tarefas.** O gopsutil entrega
+  o *working set* de cada processo (`PROCESS_MEMORY_COUNTERS.WorkingSetSize`), que inclui páginas
+  compartilhadas entre os processos do mesmo aplicativo; somando, essas páginas são contadas mais
+  de uma vez. O Gerenciador usa o *working set* privado. A diferença é pequena perto do erro que
+  existia antes, e corrigi-la exigiria ler contadores do Windows na mão.
+- **Aplicativos diferentes com o mesmo nome de executável caem no mesmo grupo** (dois `node.exe`
+  de projetos distintos, por exemplo). É o mesmo comportamento da aba "Detalhes" do Gerenciador,
+  e abrir a linha mostra os PIDs separados.
 
 ## Por que a lista de processos não entra no inventário nem na bandeja
 

@@ -233,10 +233,15 @@ func rate(prev, current uint64, elapsedSeconds float64) float64 {
 	return float64(current-prev) / elapsedSeconds
 }
 
-// collectProcesses retorna os `limit` processos com maior uso de CPU.
-// Processos que não conseguimos inspecionar (permissão negada, terminou
-// durante a varredura) são ignorados silenciosamente — isso é esperado no
-// Windows, não uma condição de erro.
+// namedInstance é um processo recém-lido do sistema, ainda solto. O nome do
+// executável é o que vai juntá-lo aos irmãos em topProcessGroups.
+type namedInstance struct {
+	name     string
+	instance ProcessInstance
+}
+
+// collectProcesses retorna os `limit` aplicativos que mais consomem CPU, com
+// os processos de mesmo executável já somados.
 func (collector *Collector) collectProcesses(limit int) []ProcessStats {
 	if limit <= 0 {
 		return nil
@@ -246,7 +251,15 @@ func (collector *Collector) collectProcesses(limit int) []ProcessStats {
 		return nil
 	}
 
-	stats := make([]ProcessStats, 0, len(procs))
+	return topProcessGroups(readProcessInstances(procs), limit)
+}
+
+// readProcessInstances lê o que interessa de cada processo. Processos que
+// não conseguimos inspecionar (permissão negada, terminou durante a
+// varredura) são ignorados silenciosamente — isso é esperado no Windows,
+// não uma condição de erro.
+func readProcessInstances(procs []*process.Process) []namedInstance {
+	instances := make([]namedInstance, 0, len(procs))
 	for _, proc := range procs {
 		name, err := proc.Name()
 		if err != nil {
@@ -261,22 +274,67 @@ func (collector *Collector) collectProcesses(limit int) []ProcessStats {
 		if memInfo, err := proc.MemoryInfo(); err == nil && memInfo != nil {
 			memBytes = memInfo.RSS
 		}
-		stats = append(stats, ProcessStats{
-			PID:        proc.Pid,
-			Name:       name,
-			CPUPercent: cpuPct,
-			MemPercent: memPct,
-			MemBytes:   memBytes,
+		instances = append(instances, namedInstance{
+			name: name,
+			instance: ProcessInstance{
+				PID:        proc.Pid,
+				CPUPercent: cpuPct,
+				MemPercent: memPct,
+				MemBytes:   memBytes,
+			},
 		})
 	}
+	return instances
+}
 
-	sort.Slice(stats, func(firstIndex, secondIndex int) bool {
-		return stats[firstIndex].CPUPercent > stats[secondIndex].CPUPercent
-	})
-	if len(stats) > limit {
-		stats = stats[:limit]
+// topProcessGroups junta os processos de mesmo executável num grupo só,
+// somando CPU e memória, e devolve os `limit` grupos que mais consomem CPU.
+//
+// Dentro de cada grupo os processos ficam do mais pesado pro mais leve, que
+// é a ordem útil quando a pessoa abre a linha pra investigar. A ordenação é
+// estável nos dois níveis pra lista não dançar na tela entre uma amostra e
+// outra quando dois grupos empatam.
+func topProcessGroups(instances []namedInstance, limit int) []ProcessStats {
+	if limit <= 0 {
+		return nil
 	}
-	return stats
+
+	byName := make(map[string]*ProcessStats, len(instances))
+	// A ordem de chegada serve de desempate estável: percorrer o mapa
+	// direto daria uma ordem diferente a cada amostra.
+	arrivalOrder := make([]string, 0, len(instances))
+
+	for _, item := range instances {
+		group, exists := byName[item.name]
+		if !exists {
+			group = &ProcessStats{Name: item.name}
+			byName[item.name] = group
+			arrivalOrder = append(arrivalOrder, item.name)
+		}
+
+		group.InstanceCount++
+		group.CPUPercent += item.instance.CPUPercent
+		group.MemPercent += item.instance.MemPercent
+		group.MemBytes += item.instance.MemBytes
+		group.Instances = append(group.Instances, item.instance)
+	}
+
+	groups := make([]ProcessStats, 0, len(arrivalOrder))
+	for _, name := range arrivalOrder {
+		group := byName[name]
+		sort.SliceStable(group.Instances, func(firstIndex, secondIndex int) bool {
+			return group.Instances[firstIndex].CPUPercent > group.Instances[secondIndex].CPUPercent
+		})
+		groups = append(groups, *group)
+	}
+
+	sort.SliceStable(groups, func(firstIndex, secondIndex int) bool {
+		return groups[firstIndex].CPUPercent > groups[secondIndex].CPUPercent
+	})
+	if len(groups) > limit {
+		groups = groups[:limit]
+	}
+	return groups
 }
 
 // activeInterfaceNames lista as interfaces de rede que estão ativas e não
