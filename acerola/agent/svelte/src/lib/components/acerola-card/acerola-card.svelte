@@ -26,7 +26,7 @@
 <!-- border-border/ring-0: toda AcerolaCard usa moldura de borda sólida fina,
      não o ring translúcido do vendor — é essa borda que faz o cartão parecer
      "recortado" do fundo, em vez de só uma mancha de cor um pouco mais clara. -->
-<Card.Root size={ui?.size ?? 'default'} class={cn('border-border ring-0 border', ui?.class)}>
+<Card.Root size={ui?.size ?? 'default'} class={cn('border-border border ring-0', ui?.class)}>
 	{#if data?.title}
 		<Card.Header>
 			<Card.Title class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
