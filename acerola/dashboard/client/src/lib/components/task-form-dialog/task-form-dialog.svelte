@@ -4,7 +4,7 @@
     TASK_STATUSES,
     type TaskStatus,
   } from '@template/shared/domain/task-status.util';
-  import { type FormFieldState } from '$lib/form-field/form-field.type';
+  import { type FormFieldState } from '$lib/types/form-field.type';
 
   export type TaskFormField = 'title' | 'description' | 'status';
 

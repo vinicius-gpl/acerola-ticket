@@ -29,7 +29,7 @@
 </script>
 
 <script lang="ts">
-  import { BrandMark } from '$lib/brand/brand-mark';
+  import { BrandMark } from '$lib/components/brand-mark/brand-mark';
   import {
     Sidebar,
     SidebarContent,

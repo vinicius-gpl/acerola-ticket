@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/svelte';
 import { afterEach, vi } from 'vitest';
-import { FakeStorage } from './test-utils/fake-storage';
+import { FakeStorage } from './tests/fake-storage';
 
 // @testing-library/svelte não desmonta os componentes sozinho entre testes
 // — sem isso, o segundo teste de um arquivo ainda vê o DOM montado pelo

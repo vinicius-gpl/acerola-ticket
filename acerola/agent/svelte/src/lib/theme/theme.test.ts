@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FakeStorage } from '../../test-utils/fake-storage';
+import { FakeStorage } from '../../tests/fake-storage';
 
 const STORAGE_KEY = 'acerola-agent-theme';
 
