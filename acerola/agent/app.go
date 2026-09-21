@@ -7,6 +7,7 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/memory"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/metrics"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
@@ -36,11 +37,12 @@ const (
 const viewReadyTimeout = 200 * time.Millisecond
 
 type App struct {
-	mu          sync.RWMutex
-	ctx         context.Context
-	broadcaster *metrics.Broadcaster
-	actions     chan func(context.Context)
-	viewReady   chan struct{}
+	mu              sync.RWMutex
+	ctx             context.Context
+	broadcaster     *metrics.Broadcaster
+	actions         chan func(context.Context)
+	viewReady       chan struct{}
+	isWindowVisible bool
 }
 
 func NewApp() *App {
@@ -50,6 +52,18 @@ func NewApp() *App {
 		actions:     make(chan func(context.Context), 4),
 		viewReady:   make(chan struct{}, 1),
 	}
+}
+
+func (app *App) isVisible() bool {
+	app.mu.RLock()
+	defer app.mu.RUnlock()
+	return app.isWindowVisible
+}
+
+func (app *App) setVisible(visible bool) {
+	app.mu.Lock()
+	app.isWindowVisible = visible
+	app.mu.Unlock()
 }
 
 // startup é chamado pelo Wails quando a janela (ainda escondida) fica
@@ -72,11 +86,20 @@ func (app *App) startup(ctx context.Context) {
 		ShowDashboard: app.ShowDashboard,
 		Quit:          app.Quit,
 	})
+
+	// Como o app nasce oculto na bandeja, libera a memória de inicialização
+	// após o WebView2 concluir a carga inicial.
+	go func() {
+		time.Sleep(1 * time.Second)
+		memory.TrimWorkingSet()
+	}()
 }
 
 // forwardSnapshots assina o broadcaster e empurra cada leitura pro frontend
 // via evento nativo do Wails (runtime.EventsEmit / runtime.EventsOn) — sem
 // servidor HTTP, sem WebSocket manual, o Wails já resolve esse transporte.
+// Para economizar memória (RAM) e CPU da WebView2, apenas emite eventos
+// quando a janela estiver de fato visível na tela.
 func (app *App) forwardSnapshots(ctx context.Context) {
 	updates, unsubscribe := app.broadcaster.Subscribe()
 	defer unsubscribe()
@@ -86,7 +109,9 @@ func (app *App) forwardSnapshots(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case snap := <-updates:
-			runtime.EventsEmit(ctx, "metrics:snapshot", snap)
+			if app.isVisible() {
+				runtime.EventsEmit(ctx, "metrics:snapshot", snap)
+			}
 		}
 	}
 }
@@ -151,6 +176,7 @@ func (app *App) ViewReady() {
 // volume/rede/bateria do próprio sistema.
 func (app *App) ShowPopup() {
 	app.dispatch(func(ctx context.Context) {
+		app.setVisible(true)
 		runtime.WindowSetAlwaysOnTop(ctx, true)
 		areaX, areaY, areaWidth, areaHeight := screen.WorkArea()
 		targetHeight := popupHeight
@@ -165,6 +191,9 @@ func (app *App) ShowPopup() {
 		runtime.EventsEmit(ctx, "view:change", "popup")
 		app.awaitViewReady()
 		runtime.WindowShow(ctx)
+		if latestSnapshot := app.broadcaster.Latest(); !latestSnapshot.Timestamp.IsZero() {
+			runtime.EventsEmit(ctx, "metrics:snapshot", latestSnapshot)
+		}
 		runtime.EventsEmit(ctx, "window:shown", "popup")
 	})
 }
@@ -175,6 +204,7 @@ func (app *App) ShowPopup() {
 // barra de tarefas nem ficar colado na borda do monitor.
 func (app *App) ShowDashboard() {
 	app.dispatch(func(ctx context.Context) {
+		app.setVisible(true)
 		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowSetSize(ctx, dashboardWidth, dashboardHeight)
 		areaX, areaY, areaWidth, areaHeight := screen.WorkArea()
@@ -185,6 +215,9 @@ func (app *App) ShowDashboard() {
 		runtime.EventsEmit(ctx, "view:change", "dashboard")
 		app.awaitViewReady()
 		runtime.WindowShow(ctx)
+		if latestSnapshot := app.broadcaster.Latest(); !latestSnapshot.Timestamp.IsZero() {
+			runtime.EventsEmit(ctx, "metrics:snapshot", latestSnapshot)
+		}
 		runtime.EventsEmit(ctx, "window:shown", "dashboard")
 	})
 }
@@ -203,7 +236,9 @@ func (app *App) Quit() {
 // existe um X do Windows pra isso (ver docs/ARQUITETURA.md).
 func (app *App) HideWindow() {
 	app.dispatch(func(ctx context.Context) {
+		app.setVisible(false)
 		runtime.WindowSetAlwaysOnTop(ctx, false)
 		runtime.WindowHide(ctx)
+		memory.TrimWorkingSet()
 	})
 }
