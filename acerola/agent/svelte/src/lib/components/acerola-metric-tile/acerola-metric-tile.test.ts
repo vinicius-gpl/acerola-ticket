@@ -56,6 +56,19 @@ describe('AcerolaMetricTile', () => {
 		expect(card?.className).toContain('custom-tile-class');
 	});
 
+	// feliz
+	it('renders segmented bar instead of sparkline when bar data is present', () => {
+		// Métrica de capacidade (memória, disco) usa o medidor, não a série temporal
+		const { container, queryByRole } = render(AcerolaMetricTile, {
+			props: {
+				data: { label: 'Memória', value: '93%', bar: { percent: 93 } },
+				ui: { colorVars: ['--chart-4'] }
+			}
+		});
+		expect(queryByRole('progressbar')).toBeInTheDocument();
+		expect(container.querySelector('canvas')).not.toBeInTheDocument();
+	});
+
 	// triste
 	it('does not render sparkline canvas when sparkline prop is missing (edge case)', () => {
 		// Sem série histórica, não deve alocar o container de canvas do uPlot

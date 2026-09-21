@@ -4,6 +4,7 @@
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
+	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 	import AcerolaTooltip from '$lib/components/acerola-tooltip/acerola-tooltip.svelte';
 	import ClockIcon from '@lucide/svelte/icons/clock';
@@ -192,9 +193,9 @@
 						value: `${percent(snap.memory.usedPercent)} (${bytes(snap.memory.usedBytes)} / ${bytes(snap.memory.totalBytes)})`,
 						trend: trend(snap.memory.usedPercent, last(memValues)),
 						trendFormat: (delta) => `${delta.toFixed(0)}pp`,
-						sparkline: { timestamps, series: [memValues] }
+						bar: { percent: snap.memory.usedPercent }
 					}}
-					ui={{ colorVars: ['--chart-4'], fixedMax: 100 }}
+					ui={{ colorVars: ['--chart-4'] }}
 				/>
 
 				<AcerolaMetricTile
@@ -286,12 +287,10 @@
 												{bytes(disk.freeBytes)} livres ({Math.round(100 - disk.usedPercent)}%)
 											</span>
 										</div>
-										<div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-											<div
-												class="bg-chart-3 h-full rounded-full transition-all duration-300"
-												style={`width: ${disk.usedPercent}%`}
-											></div>
-										</div>
+										<AcerolaSegmentedBar
+											data={{ percent: disk.usedPercent }}
+											ui={{ colorVar: '--chart-3', segments: 24, height: 8 }}
+										/>
 									</div>
 								{/each}
 							</div>
@@ -308,12 +307,10 @@
 										{bytes(snap.host.freeDiskBytes)} livres ({100 - diskPct}%)
 									</span>
 								</div>
-								<div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-									<div
-										class="bg-chart-3 h-full rounded-full transition-all duration-300"
-										style={`width: ${diskPct}%`}
-									></div>
-								</div>
+								<AcerolaSegmentedBar
+									data={{ percent: diskPct }}
+									ui={{ colorVar: '--chart-3', segments: 24, height: 8 }}
+								/>
 							</div>
 						{/if}
 

@@ -4,6 +4,7 @@
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
 	import AcerolaPopover from '$lib/components/acerola-popover/acerola-popover.svelte';
+	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
 	import AcerolaSeparator from '$lib/components/acerola-separator/acerola-separator.svelte';
 	import AcerolaSparkline from '$lib/components/acerola-sparkline/acerola-sparkline.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
@@ -137,164 +138,196 @@
 	{#if metrics.latest}
 		{@const snap = metrics.latest}
 		<main class="min-h-0 flex-1 overflow-auto p-4">
-			<!-- Camada 1: métricas — valor + tendência + sparkline compacta,
-			     igual ao padrão de "KPI tile" do ReUI. -->
-			<section class="grid grid-cols-4 gap-3">
-				<AcerolaTooltip
-					data={{ text: 'Uso agregado de processamento em todos os núcleos lógicos' }}
-					ui={{ side: 'bottom', triggerClass: 'w-full' }}
-				>
-					<div class="w-full">
-						<AcerolaMetricTile
-							data={{
-								label: 'CPU',
-								value: percent(snap.cpu.percentTotal),
-								trend: trend(snap.cpu.percentTotal, last(cpuValues)),
-								trendFormat: (delta) => `${delta.toFixed(0)}pp`,
-								sparkline: { timestamps, series: [cpuValues] }
-							}}
-							ui={{ colorVars: ['--chart-5'], fixedMax: 100 }}
-						/>
-					</div>
-				</AcerolaTooltip>
-				<AcerolaTooltip
-					data={{ text: 'Percentual de uso da memória física (RAM) do sistema' }}
-					ui={{ side: 'bottom', triggerClass: 'w-full' }}
-				>
-					<div class="w-full">
-						<AcerolaMetricTile
-							data={{
-								label: 'Memória',
-								value: percent(snap.memory.usedPercent),
-								trend: trend(snap.memory.usedPercent, last(memValues)),
-								trendFormat: (delta) => `${delta.toFixed(0)}pp`,
-								sparkline: { timestamps, series: [memValues] }
-							}}
-							ui={{ colorVars: ['--chart-4'], fixedMax: 100 }}
-						/>
-					</div>
-				</AcerolaTooltip>
-				<AcerolaTooltip
-					data={{ text: 'Velocidade agregada de download na rede por segundo' }}
-					ui={{ side: 'bottom', triggerClass: 'w-full' }}
-				>
-					<div class="w-full">
-						<AcerolaMetricTile
-							data={{
-								label: 'Rede ↓',
-								value: bytesPerSec(netTotals.recv),
-								sparkline: { timestamps, series: [netRecvValues] }
-							}}
-							ui={{ colorVars: ['--chart-5'] }}
-						/>
-					</div>
-				</AcerolaTooltip>
-				<AcerolaTooltip
-					data={{ text: 'Velocidade agregada de leitura nos discos por segundo' }}
-					ui={{ side: 'bottom', triggerClass: 'w-full' }}
-				>
-					<div class="w-full">
-						<AcerolaMetricTile
-							data={{
-								label: 'Disco ↓',
-								value: bytesPerSec(snap.diskIo.readBytesPerSec),
-								sparkline: { timestamps, series: [diskReadValues] }
-							}}
-							ui={{ colorVars: ['--chart-3'] }}
-						/>
-					</div>
-				</AcerolaTooltip>
+			<!-- Camada 1: métricas — valor + tendência + medidor compacto. As quatro
+			     ficam dentro de UMA moldura (mesmo bg-card da tela, borda fina por
+			     fora) com os cartõezinhos colados (gap-1, sem ring próprio) — lê
+			     como "um bloco só, dividido em quatro números", não quatro caixas
+			     soltas competindo por atenção. -->
+			<section class="border-border bg-card rounded-xl border p-1">
+				<div class="grid grid-cols-4 gap-1">
+					<AcerolaTooltip
+						data={{ text: 'Uso agregado de processamento em todos os núcleos lógicos' }}
+						ui={{ side: 'bottom', triggerClass: 'w-full h-full' }}
+					>
+						<div class="h-full w-full">
+							<AcerolaMetricTile
+								data={{
+									label: 'CPU',
+									value: percent(snap.cpu.percentTotal),
+									trend: trend(snap.cpu.percentTotal, last(cpuValues)),
+									trendFormat: (delta) => `${delta.toFixed(0)}pp`,
+									sparkline: { timestamps, series: [cpuValues] }
+								}}
+								ui={{
+									colorVars: ['--chart-5'],
+									fixedMax: 100,
+									class: 'rounded-lg border border-border ring-0'
+								}}
+							/>
+						</div>
+					</AcerolaTooltip>
+					<AcerolaTooltip
+						data={{ text: 'Percentual de uso da memória física (RAM) do sistema' }}
+						ui={{ side: 'bottom', triggerClass: 'w-full h-full' }}
+					>
+						<div class="h-full w-full">
+							<AcerolaMetricTile
+								data={{
+									label: 'Memória',
+									value: percent(snap.memory.usedPercent),
+									trend: trend(snap.memory.usedPercent, last(memValues)),
+									trendFormat: (delta) => `${delta.toFixed(0)}pp`,
+									bar: { percent: snap.memory.usedPercent }
+								}}
+								ui={{
+									colorVars: ['--chart-4'],
+									class: 'rounded-lg border border-border ring-0'
+								}}
+							/>
+						</div>
+					</AcerolaTooltip>
+					<AcerolaTooltip
+						data={{ text: 'Velocidade agregada de download na rede por segundo' }}
+						ui={{ side: 'bottom', triggerClass: 'w-full h-full' }}
+					>
+						<div class="h-full w-full">
+							<AcerolaMetricTile
+								data={{
+									label: 'Rede ↓',
+									value: bytesPerSec(netTotals.recv),
+									sparkline: { timestamps, series: [netRecvValues] }
+								}}
+								ui={{
+									colorVars: ['--chart-5'],
+									class: 'rounded-lg border border-border ring-0'
+								}}
+							/>
+						</div>
+					</AcerolaTooltip>
+					<AcerolaTooltip
+						data={{ text: 'Velocidade agregada de leitura nos discos por segundo' }}
+						ui={{ side: 'bottom', triggerClass: 'w-full h-full' }}
+					>
+						<div class="h-full w-full">
+							<AcerolaMetricTile
+								data={{
+									label: 'Disco ↓',
+									value: bytesPerSec(snap.diskIo.readBytesPerSec),
+									sparkline: { timestamps, series: [diskReadValues] }
+								}}
+								ui={{
+									colorVars: ['--chart-3'],
+									class: 'rounded-lg border border-border ring-0'
+								}}
+							/>
+						</div>
+					</AcerolaTooltip>
+				</div>
 			</section>
 
 			<!-- Camada 2: gráficos maiores, com mais contexto por métrica. -->
 			<section class="mt-3 grid grid-cols-2 gap-3">
-				<AcerolaCard data={{ title: 'CPU por núcleo' }}>
-					<AcerolaSparkline
-						data={{ timestamps, series: [cpuValues] }}
-						ui={{ colorVars: ['--chart-5'], fixedMax: 100, height: 110 }}
-					/>
-					<div class="mt-2 grid grid-cols-8 gap-0.5">
-						{#each snap.cpu.percentPerCore as pct, index (index)}
-							<AcerolaTooltip
-								data={{ text: `Núcleo ${index}: ${pct.toFixed(1)}%` }}
-								ui={{ side: 'top', class: 'text-xs' }}
-							>
-								<div class="bg-surface h-3 w-full cursor-pointer overflow-hidden rounded-sm">
-									<div
-										class="bg-chart-5 h-full transition-all duration-300"
-										style={`width:${pct}%`}
-									></div>
-								</div>
-							</AcerolaTooltip>
-						{/each}
-					</div>
-				</AcerolaCard>
-
-				<AcerolaCard data={{ title: 'Memória' }}>
-					<AcerolaSparkline
-						data={{ timestamps, series: [memValues] }}
-						ui={{ colorVars: ['--chart-4'], fixedMax: 100, height: 110 }}
-					/>
-					<p class="text-muted-foreground mt-2 text-xs tabular-nums">
-						{bytes(snap.memory.usedBytes)} usados de {bytes(snap.memory.totalBytes)}
-					</p>
-				</AcerolaCard>
-
-				<AcerolaCard data={{ title: 'Rede' }}>
-					<AcerolaSparkline
-						data={{ timestamps, series: [netRecvValues, netSentValues] }}
-						ui={{ colorVars: ['--chart-5', '--chart-2'], height: 110 }}
-					/>
-					<div class="text-muted-foreground mt-2 flex gap-4 text-xs">
-						<AcerolaTooltip data={{ text: 'Recebimento de pacotes (Download)' }}>
-							<span class="inline-flex cursor-pointer items-center">
-								<span class="bg-chart-5 mr-1 inline-block h-2 w-2 rounded-full"></span>
-								↓ {bytesPerSec(netTotals.recv)}
-							</span>
-						</AcerolaTooltip>
-						<AcerolaTooltip data={{ text: 'Envio de pacotes (Upload)' }}>
-							<span class="inline-flex cursor-pointer items-center">
-								<span class="bg-chart-2 mr-1 inline-block h-2 w-2 rounded-full"></span>
-								↑ {bytesPerSec(netTotals.sent)}
-							</span>
-						</AcerolaTooltip>
-					</div>
-				</AcerolaCard>
-
-				<AcerolaCard data={{ title: 'Disco' }}>
-					<AcerolaSparkline
-						data={{ timestamps, series: [diskReadValues, diskWriteValues] }}
-						ui={{ colorVars: ['--chart-3', '--chart-1'], height: 110 }}
-					/>
-					<div class="mt-2 flex flex-col gap-1.5">
-						{#each snap.disks as disk (disk.mountpoint)}
-							<div class="grid grid-cols-[3.5rem_1fr_auto] items-center gap-2 text-xs">
-								<span class="truncate font-medium" title={disk.mountpoint}>{disk.mountpoint}</span>
+				<div class="border-border bg-card rounded-xl border p-1">
+					<AcerolaCard data={{ title: 'CPU por núcleo' }} ui={{ class: 'rounded-lg h-full' }}>
+						<AcerolaSparkline
+							data={{ timestamps, series: [cpuValues] }}
+							ui={{ colorVars: ['--chart-5'], fixedMax: 100, height: 110 }}
+						/>
+						<div class="mt-2 grid grid-cols-8 gap-0.5">
+							{#each snap.cpu.percentPerCore as pct, index (index)}
 								<AcerolaTooltip
-									data={{
-										text: `${disk.mountpoint} (${disk.fstype}): ${disk.usedPercent.toFixed(1)}% ocupado · ${bytes(disk.usedBytes)} usados de ${bytes(disk.totalBytes)}`
-									}}
-									ui={{ triggerClass: 'w-full' }}
+									data={{ text: `Núcleo ${index}: ${pct.toFixed(1)}%` }}
+									ui={{ side: 'top', class: 'text-xs' }}
 								>
-									<span
-										class="bg-surface block h-1.5 w-full cursor-pointer overflow-hidden rounded-full"
-									>
-										<span
-											class="bg-primary block h-full transition-all duration-300"
-											style={`width:${disk.usedPercent}%`}
-										></span>
-									</span>
+									<div class="bg-surface h-3 w-full cursor-pointer overflow-hidden rounded-sm">
+										<div
+											class="bg-chart-5 h-full transition-all duration-300"
+											style={`width:${pct}%`}
+										></div>
+									</div>
 								</AcerolaTooltip>
-								<span class="text-muted-foreground">{bytes(disk.freeBytes)} livres</span>
-							</div>
-						{/each}
-					</div>
-				</AcerolaCard>
+							{/each}
+						</div>
+					</AcerolaCard>
+				</div>
+
+				<div class="border-border bg-card rounded-xl border p-1">
+					<AcerolaCard data={{ title: 'Memória' }} ui={{ class: 'rounded-lg h-full' }}>
+						<div class="flex items-center justify-between">
+							<span class="text-2xl font-semibold tabular-nums"
+								>{percent(snap.memory.usedPercent)}</span
+							>
+							<span class="text-muted-foreground text-xs tabular-nums">
+								{bytes(snap.memory.usedBytes)} usados de {bytes(snap.memory.totalBytes)}
+							</span>
+						</div>
+						<div class="mt-3">
+							<AcerolaSegmentedBar
+								data={{ percent: snap.memory.usedPercent }}
+								ui={{ colorVar: '--chart-4', height: 22 }}
+							/>
+						</div>
+					</AcerolaCard>
+				</div>
+
+				<div class="border-border bg-card rounded-xl border p-1">
+					<AcerolaCard data={{ title: 'Rede' }} ui={{ class: 'rounded-lg h-full' }}>
+						<AcerolaSparkline
+							data={{ timestamps, series: [netRecvValues, netSentValues] }}
+							ui={{ colorVars: ['--chart-5', '--chart-2'], height: 110 }}
+						/>
+						<div class="text-muted-foreground mt-2 flex gap-4 text-xs">
+							<AcerolaTooltip data={{ text: 'Recebimento de pacotes (Download)' }}>
+								<span class="inline-flex cursor-pointer items-center">
+									<span class="bg-chart-5 mr-1 inline-block h-2 w-2 rounded-full"></span>
+									↓ {bytesPerSec(netTotals.recv)}
+								</span>
+							</AcerolaTooltip>
+							<AcerolaTooltip data={{ text: 'Envio de pacotes (Upload)' }}>
+								<span class="inline-flex cursor-pointer items-center">
+									<span class="bg-chart-2 mr-1 inline-block h-2 w-2 rounded-full"></span>
+									↑ {bytesPerSec(netTotals.sent)}
+								</span>
+							</AcerolaTooltip>
+						</div>
+					</AcerolaCard>
+				</div>
+
+				<div class="border-border bg-card rounded-xl border p-1">
+					<AcerolaCard data={{ title: 'Disco' }} ui={{ class: 'rounded-lg h-full' }}>
+						<AcerolaSparkline
+							data={{ timestamps, series: [diskReadValues, diskWriteValues] }}
+							ui={{ colorVars: ['--chart-3', '--chart-1'], height: 110 }}
+						/>
+						<div class="mt-2 flex flex-col gap-1.5">
+							{#each snap.disks as disk (disk.mountpoint)}
+								<div class="grid grid-cols-[3.5rem_1fr_auto] items-center gap-2 text-xs">
+									<span class="truncate font-medium" title={disk.mountpoint}
+										>{disk.mountpoint}</span
+									>
+									<AcerolaTooltip
+										data={{
+											text: `${disk.mountpoint} (${disk.fstype}): ${disk.usedPercent.toFixed(1)}% ocupado · ${bytes(disk.usedBytes)} usados de ${bytes(disk.totalBytes)}`
+										}}
+										ui={{ triggerClass: 'w-full' }}
+									>
+										<AcerolaSegmentedBar
+											data={{ percent: disk.usedPercent }}
+											ui={{ colorVar: '--chart-3', segments: 20, height: 10 }}
+										/>
+									</AcerolaTooltip>
+									<span class="text-muted-foreground">{bytes(disk.freeBytes)} livres</span>
+								</div>
+							{/each}
+						</div>
+					</AcerolaCard>
+				</div>
 			</section>
 
 			<!-- Camada 3: ação — tabela de processos e inventário. -->
 			<section class="mt-3 grid grid-cols-3 gap-3">
-				<AcerolaCard data={{ title: 'Processos' }} ui={{ class: 'col-span-2' }}>
+				<div class="border-border bg-card col-span-2 rounded-xl border p-1">
+					<AcerolaCard data={{ title: 'Processos' }} ui={{ class: 'rounded-lg h-full' }}>
 					<div class="max-h-64 overflow-auto">
 						<table class="w-full text-xs tabular-nums">
 							<thead>
@@ -368,9 +401,11 @@
 						</table>
 					</div>
 				</AcerolaCard>
+				</div>
 
-				<AcerolaCard data={{ title: 'Inventário' }}>
-					<dl class="flex flex-col gap-1.5 text-xs">
+				<div class="border-border bg-card rounded-xl border p-1">
+					<AcerolaCard data={{ title: 'Inventário' }} ui={{ class: 'rounded-lg h-full' }}>
+						<dl class="flex flex-col gap-1.5 text-xs">
 						<div class="flex items-center justify-between">
 							<dt class="text-muted-foreground">Hostname</dt>
 							<AcerolaTooltip data={{ text: `Nome do host: ${snap.host.hostname}` }}>
@@ -423,6 +458,7 @@
 						</div>
 					</dl>
 				</AcerolaCard>
+				</div>
 			</section>
 		</main>
 	{:else}

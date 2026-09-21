@@ -19,6 +19,10 @@
 	let plot: uPlot | undefined;
 	const theme = useTheme();
 
+	// Curva suavizada (em vez de ponto a ponto) com a área até a base pintada —
+	// visual de "onda", que lê melhor num card pequeno do que uma linha seca.
+	const smoothPath = uPlot.paths.spline!();
+
 	function cssVar(name: string): string {
 		return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 	}
@@ -39,7 +43,9 @@
 					...colorVars.map((colorVar) => ({
 						stroke: cssVar(colorVar),
 						width: 1.5,
-						points: { show: false }
+						points: { show: false },
+						paths: smoothPath,
+						fill: `color-mix(in srgb, ${cssVar(colorVar)} 22%, transparent)`
 					}))
 				]
 			},
