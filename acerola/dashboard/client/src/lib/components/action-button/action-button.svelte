@@ -6,7 +6,7 @@
     base: 'font-semibold',
     variants: {
       variant: {
-        primary: 'bg-brand-blue-800 hover:bg-brand-blue-900 text-white',
+        primary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
         secondary: 'border-input bg-card text-foreground hover:bg-accent border',
         ghost: 'text-ink-700 hover:bg-accent hover:text-accent-foreground bg-transparent shadow-none',
         danger: 'bg-red-600 text-white hover:bg-red-700',

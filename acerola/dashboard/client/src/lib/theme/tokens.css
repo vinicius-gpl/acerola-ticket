@@ -18,16 +18,16 @@
  * A IDENTIDADE VISUAL DO SISTEMA, EM UM ARQUIVO SÓ.
  *
  * No Tailwind v4 a configuração é o próprio CSS: não existe mais `tailwind.config.ts`. Um
- * token declarado em `@theme` vira classe utilitária sozinho — `--color-brand-blue-800` dá
- * `bg-brand-blue-800`, `text-brand-blue-800`, `border-brand-blue-800`.
+ * token declarado em `@theme` vira classe utilitária sozinho — `--color-surface` dá
+ * `bg-surface`, `text-surface`, `border-surface`.
  *
  * Isso não é só arrumação: no arranjo anterior a cor morava num `.ts` que o Vite não
  * observava, e um token novo só aparecia depois de derrubar o servidor à mão. Foi assim que
  * a barra lateral ficou branca com o azul já definido — a classe `bg-sidebar` nunca chegou
  * a ser gerada, e `background` sem regra é transparente.
  *
- * As cores abaixo são uma paleta neutra de ponto de partida, não a marca de nenhum projeto.
- * Trocar a marca de um MVP é trocar os valores de `--brand-*` aqui — e só aqui.
+ * A paleta é o Catppuccin, a mesma do agente (`acerola/agent`). Trocar a identidade de um
+ * MVP é trocar os valores desta seção — e só desta seção.
  */
 
 /**
@@ -38,63 +38,86 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* ==========================================================================
-   Primitivas da marca — os valores oficiais, sem intenção de uso ainda.
+   A PALETA — Catppuccin, a mesma do agente.
+
+   Os valores vêm de `acerola/agent/svelte/src/theme/catppuccin.css`, sem alteração:
+   Latte no tema claro, Mocha no escuro. Os dois sistemas passaram a ser a mesma
+   identidade visual, e copiar os valores (em vez de inventar equivalentes) é o que
+   garante que continuem iguais quando um dos dois mudar.
    ========================================================================== */
 :root {
-  --brand-blue-900: #1e3a8a;
-  --brand-blue-800: #1e40af; /* COR PRINCIPAL (fundo da barra lateral) */
-  --brand-blue-700: #1d4ed8;
-  --brand-blue-600: #2563eb;
-  --brand-blue-500: #3b82f6;
-  --brand-blue-100: #dbeafe;
+  /* Tons de fundo, do mais fundo ao mais alto. `surface` é o que sobe acima do fundo. */
+  --crust: #dce0e8;
+  --mantle: #e6e9ef;
+  --base: #eff1f5;
+  --surface: #ccd0da;
 
-  --brand-yellow-500: #f59e0b; /* COR DE DESTAQUE (usar com parcimônia) */
-  --brand-yellow-400: #fbbf24;
-  --brand-yellow-300: #fcd34d;
-
-  --ink-900: #111827;
-  --ink-700: #374151;
-  --ink-500: #6b7280;
-  --ink-300: #d1d5db;
-  --ink-100: #f3f4f6;
+  /* Texto um degrau abaixo do principal: o corpo de texto longo, que cansa menos. */
+  --subtext: #5c5f77;
 
   --radius: 0.625rem;
 
   /* ---- Semântica da PÁGINA ---- */
-  --background: #f8fafc;
-  --foreground: var(--ink-900);
-  --card: #ffffff;
-  --card-foreground: var(--ink-900);
-  --popover: #ffffff;
-  --popover-foreground: var(--ink-900);
-  --primary: var(--brand-blue-800);
-  --primary-foreground: #ffffff;
-  --secondary: var(--ink-100);
-  --secondary-foreground: var(--ink-900);
-  --muted: var(--ink-100);
-  --muted-foreground: var(--ink-500);
-  --accent: var(--brand-blue-100);
-  --accent-foreground: var(--brand-blue-900);
-  --destructive: #dc2626;
-  --border: var(--ink-300);
-  --input: var(--ink-300);
-  --ring: var(--brand-blue-600);
+  --background: #eff1f5;
+  --foreground: #4c4f69;
+  --card: #ccd0da;
+  --card-foreground: #4c4f69;
+  --popover: #e6e9ef;
+  --popover-foreground: #4c4f69;
+  --primary: #8839ef;
+  --primary-foreground: #eff1f5;
+  --secondary: #bcc0cc;
+  --secondary-foreground: #4c4f69;
+  --muted: #bcc0cc;
+  --muted-foreground: #6c6f85;
+  --accent: #bcc0cc;
+  --accent-foreground: #4c4f69;
+  --accent-hero: #ea76cb;
+  --accent-hero-foreground: var(--primary-foreground);
+  --destructive: #d20f39;
+  --destructive-foreground: var(--primary-foreground);
+  --border: #acb0be;
+  --input: #acb0be;
+  --ring: #8839ef;
+
+  /* As cores de categoria dos gráficos. Ver utils/chart-slice.ts. */
+  --chart-1: #d20f39;
+  --chart-2: #fe640b;
+  --chart-3: #df8e1d;
+  --chart-4: #40a02b;
+  --chart-5: #209fb5;
 
   /**
    * ---- Semântica da BARRA LATERAL ----
    *
-   * Ela NÃO segue o tema da página. O shadcn traz estes tokens quase brancos, pensando numa
-   * barra que acompanha o fundo; aqui ela é azul nos dois temas, para dar identidade visual
-   * fixa ao sistema — quem quiser que a barra siga o tema é só apagar este bloco.
+   * Ela SEGUE o tema, como no agente. Antes era azul fixa nos dois temas para dar
+   * identidade; a identidade agora vem da paleta inteira, e uma barra que ignora o tema
+   * seria a única parte da tela a ignorá-lo.
    */
-  --sidebar: var(--brand-blue-800);
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-primary: var(--brand-blue-600);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgb(255 255 255 / 0.08);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgb(255 255 255 / 0.1);
-  --sidebar-ring: var(--brand-yellow-500);
+  --sidebar: #e6e9ef;
+  --sidebar-foreground: #4c4f69;
+  --sidebar-primary: #8839ef;
+  --sidebar-primary-foreground: #eff1f5;
+  --sidebar-accent: #ccd0da;
+  --sidebar-accent-foreground: #4c4f69;
+  --sidebar-border: #acb0be;
+  --sidebar-ring: #8839ef;
+
+  /**
+   * ---- Apelidos da paleta antiga ----
+   *
+   * `ink-*` era uma escala de cinzas FIXA, igual nos dois temas. Agora aponta para os
+   * tokens semânticos: as 44 telas que já usam `text-ink-700` ou `border-ink-300`
+   * passaram a acompanhar o tema sem precisar ser reescritas uma a uma.
+   *
+   * A escala `brand-*` foi embora: quem a usava agora usa `primary`, porque os pares que
+   * fixavam `text-white` sobre azul ficariam ilegíveis sobre o roxo do Catppuccin.
+   */
+  --ink-900: var(--foreground);
+  --ink-700: var(--subtext);
+  --ink-500: var(--muted-foreground);
+  --ink-300: var(--border);
+  --ink-100: var(--surface);
 
   color-scheme: light;
 }
@@ -104,26 +127,47 @@
  * existe cor que só valha no escuro — que é como uma tela nasce ilegível em um dos dois.
  */
 :root[data-theme='dark'] {
-  --background: #0b1220;
-  --foreground: var(--ink-100);
-  --card: #111827;
-  --card-foreground: var(--ink-100);
-  --popover: #111827;
-  --popover-foreground: var(--ink-100);
-  --primary: var(--brand-blue-500);
-  --primary-foreground: #ffffff;
-  --secondary: #1f2937;
-  --secondary-foreground: var(--ink-100);
-  --muted: #1f2937;
-  --muted-foreground: #9ca3af;
-  --accent: #1e293b;
-  --accent-foreground: var(--ink-100);
-  --border: rgb(255 255 255 / 0.12);
-  --input: rgb(255 255 255 / 0.12);
+  --crust: #11111b;
+  --mantle: #181825;
+  --base: #1e1e2e;
+  --surface: #313244;
 
-  /* A barra continua azul, um tom abaixo: encostar no tom do fundo da página apagaria a
-     separação entre menu e conteúdo. */
-  --sidebar: #16265c;
+  --subtext: #bac2de;
+
+  --background: #1e1e2e;
+  --foreground: #cdd6f4;
+  --card: #313244;
+  --card-foreground: #cdd6f4;
+  --popover: #313244;
+  --popover-foreground: #cdd6f4;
+  --primary: #cba6f7;
+  --primary-foreground: #1e1e2e;
+  --secondary: #45475a;
+  --secondary-foreground: #cdd6f4;
+  --muted: #45475a;
+  --muted-foreground: #a6adc8;
+  --accent: #45475a;
+  --accent-foreground: #cdd6f4;
+  --accent-hero: #f5c2e7;
+  --destructive: #f38ba8;
+  --border: #585b70;
+  --input: #45475a;
+  --ring: #cba6f7;
+
+  --chart-1: #f38ba8;
+  --chart-2: #fab387;
+  --chart-3: #f9e2af;
+  --chart-4: #a6e3a1;
+  --chart-5: #74c7ec;
+
+  --sidebar: #181825;
+  --sidebar-foreground: #cdd6f4;
+  --sidebar-primary: #cba6f7;
+  --sidebar-primary-foreground: #1e1e2e;
+  --sidebar-accent: #313244;
+  --sidebar-accent-foreground: #cdd6f4;
+  --sidebar-border: #585b70;
+  --sidebar-ring: #cba6f7;
 
   color-scheme: dark;
 }
@@ -133,16 +177,11 @@
    assim a troca de tema muda a variável, e não a classe gerada.
    ========================================================================== */
 @theme inline {
-  --color-brand-blue-900: var(--brand-blue-900);
-  --color-brand-blue-800: var(--brand-blue-800);
-  --color-brand-blue-700: var(--brand-blue-700);
-  --color-brand-blue-600: var(--brand-blue-600);
-  --color-brand-blue-500: var(--brand-blue-500);
-  --color-brand-blue-100: var(--brand-blue-100);
-
-  --color-brand-yellow-500: var(--brand-yellow-500);
-  --color-brand-yellow-400: var(--brand-yellow-400);
-  --color-brand-yellow-300: var(--brand-yellow-300);
+  --color-crust: var(--crust);
+  --color-mantle: var(--mantle);
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-subtext: var(--subtext);
 
   --color-ink-900: var(--ink-900);
   --color-ink-700: var(--ink-700);
@@ -164,10 +203,19 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hero: var(--accent-hero);
+  --color-accent-hero-foreground: var(--accent-hero-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -183,7 +231,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* A mesma do agente: nenhuma fonte baixada, a do sistema. */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @layer base {
@@ -217,8 +266,8 @@
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -227,7 +276,11 @@
 
   ::-webkit-scrollbar-thumb {
     background-color: var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
   }
 
   ::-webkit-scrollbar-button {

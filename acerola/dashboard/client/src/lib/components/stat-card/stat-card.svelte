@@ -29,7 +29,7 @@
   };
 
   const TONE_BAR: Record<StatCardTone, string> = {
-    brand: 'bg-brand-blue-700',
+    brand: 'bg-primary',
     neutral: 'bg-ink-300',
     success: 'bg-emerald-500',
     warning: 'bg-amber-500',
@@ -38,7 +38,7 @@
   };
 
   const TONE_VALUE: Record<StatCardTone, string> = {
-    brand: 'text-brand-blue-800',
+    brand: 'text-primary',
     neutral: 'text-ink-900',
     success: 'text-emerald-600',
     warning: 'text-amber-600',
@@ -47,7 +47,7 @@
   };
 
   const TONE_ICON: Record<StatCardTone, string> = {
-    brand: 'bg-brand-blue-800 text-white',
+    brand: 'bg-primary text-primary-foreground',
     neutral: 'bg-ink-700 text-white',
     success: 'bg-emerald-600 text-white',
     warning: 'bg-amber-600 text-white',
