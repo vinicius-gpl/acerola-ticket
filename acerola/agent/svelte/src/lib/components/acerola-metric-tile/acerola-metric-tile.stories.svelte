@@ -32,6 +32,20 @@
 />
 
 <Story
+	name="Segmented Bar Instead Of Sparkline"
+	args={{
+		data: {
+			label: 'Memória',
+			value: '93% (14.8 GB / 15.8 GB)',
+			trend: { direction: 'flat', delta: 0 },
+			trendFormat: (delta: number) => `${delta.toFixed(0)}pp`,
+			bar: { percent: 93 }
+		},
+		ui: { colorVars: ['--chart-4'] }
+	}}
+/>
+
+<Story
 	name="Multiple Series Sparkline"
 	args={{
 		data: {
