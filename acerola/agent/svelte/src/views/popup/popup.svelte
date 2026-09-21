@@ -193,9 +193,9 @@
 						value: `${percent(snap.memory.usedPercent)} (${bytes(snap.memory.usedBytes)} / ${bytes(snap.memory.totalBytes)})`,
 						trend: trend(snap.memory.usedPercent, last(memValues)),
 						trendFormat: (delta) => `${delta.toFixed(0)}pp`,
-						bar: { percent: snap.memory.usedPercent }
+						sparkline: { timestamps, series: [memValues] }
 					}}
-					ui={{ colorVars: ['--chart-4'] }}
+					ui={{ colorVars: ['--chart-4'], fixedMax: 100 }}
 				/>
 
 				<AcerolaMetricTile
