@@ -3,7 +3,7 @@ import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
-import Harness from './use-task-list-harness.test.svelte';
+import Harness from './use-task-list.model-harness.test.svelte';
 import { type TaskListModel } from './use-task-list.model.svelte';
 
 vi.mock('$lib/api/tasks.api', () => ({
