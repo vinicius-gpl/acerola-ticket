@@ -1,4 +1,5 @@
-import { ListChecks, type LucideIcon } from 'lucide-react';
+import ListChecks from '@lucide/svelte/icons/list-checks';
+import type { LucideIcon } from '@lucide/svelte';
 
 /**
  * O MENU LATERAL, num lugar só.

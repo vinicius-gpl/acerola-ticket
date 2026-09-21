@@ -1,4 +1,4 @@
-import { type Preview } from '@storybook/react';
+import { type Preview } from '@storybook/svelte';
 
 import '../src/lib/theme/tokens.css';
 

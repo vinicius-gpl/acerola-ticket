@@ -8,6 +8,7 @@ coverage/
 reports/
 .vite/
 .tanstack/
+.svelte-kit/
 storybook-static/
 playwright-report/
 blob-report/

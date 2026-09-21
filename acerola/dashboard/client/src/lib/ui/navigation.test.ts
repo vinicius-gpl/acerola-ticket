@@ -1,4 +1,4 @@
-import { ListChecks } from 'lucide-react';
+import ListChecks from '@lucide/svelte/icons/list-checks';
 import { describe, expect, it } from 'vitest';
 
 import { activeNavKeyOf, type NavItem } from './navigation';
