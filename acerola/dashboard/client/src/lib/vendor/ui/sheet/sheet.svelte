@@ -9,6 +9,6 @@
   }: SheetPrimitive.RootProps & { children?: Snippet } = $props();
 </script>
 
-<SheetPrimitive.Root bind:open data-slot="sheet" {...restProps}>
+<SheetPrimitive.Root bind:open {...restProps}>
   {@render children?.()}
 </SheetPrimitive.Root>

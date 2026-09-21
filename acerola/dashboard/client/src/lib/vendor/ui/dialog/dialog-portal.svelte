@@ -8,6 +8,6 @@
   }: DialogPrimitive.PortalProps & { children?: Snippet } = $props();
 </script>
 
-<DialogPrimitive.Portal data-slot="dialog-portal" {...restProps}>
+<DialogPrimitive.Portal {...restProps}>
   {@render children?.()}
 </DialogPrimitive.Portal>

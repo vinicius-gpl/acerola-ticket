@@ -9,6 +9,6 @@
   }: TooltipPrimitive.RootProps & { children?: Snippet } = $props();
 </script>
 
-<TooltipPrimitive.Root bind:open data-slot="tooltip" {...restProps}>
+<TooltipPrimitive.Root bind:open {...restProps}>
   {@render children?.()}
 </TooltipPrimitive.Root>

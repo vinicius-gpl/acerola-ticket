@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,18 +7,18 @@ import { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog.compone
 function renderDialog(overrides: Partial<ConfirmDialogProps> = {}) {
   const actions = { onConfirm: vi.fn(), onCancel: vi.fn() };
 
-  render(
-    <ConfirmDialog
-      data={{
+  render(ConfirmDialog, {
+    props: {
+      data: {
         title: 'Excluir esta tarefa?',
         description: 'Não dá para desfazer.',
         confirmLabel: 'Excluir tarefa',
-      }}
-      state={{ isOpen: true }}
-      actions={actions}
-      {...overrides}
-    />,
-  );
+      },
+      state: { isOpen: true },
+      actions,
+      ...overrides,
+    },
+  });
 
   return actions;
 }

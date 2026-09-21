@@ -8,6 +8,6 @@
   }: SheetPrimitive.PortalProps & { children?: Snippet } = $props();
 </script>
 
-<SheetPrimitive.Portal data-slot="sheet-portal" {...restProps}>
+<SheetPrimitive.Portal {...restProps}>
   {@render children?.()}
 </SheetPrimitive.Portal>

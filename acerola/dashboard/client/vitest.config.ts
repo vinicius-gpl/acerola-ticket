@@ -21,6 +21,16 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,js}'],
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
+    /* `@lucide/svelte`, `bits-ui` e as libs que ele usa por baixo (`runed`, `svelte-toolbelt`)
+       distribuem `.svelte`/`.svelte.js` cru, para o bundler do consumidor compilar. Sem isto,
+       o Vitest trata o pacote como externo: além do erro de extensão desconhecida, uma
+       dependência externa carrega uma cópia separada do runtime do Svelte, e `setContext`
+       chamado por ela não enxerga o componente sendo montado pelo Vite. */
+    server: {
+      deps: {
+        inline: [/@lucide\/svelte/, /bits-ui/, /runed/, /svelte-toolbelt/],
+      },
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,svelte}'],

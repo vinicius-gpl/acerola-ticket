@@ -20,11 +20,7 @@
     "noEmit": true,
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
-    "types": ["vite/client"],
-    "paths": {
-      "@template/shared/*": ["../shared/src/*"],
-      "@/*": ["./src/*"]
-    }
+    "types": ["vite/client"]
   },
   "include": [
     "src/**/*.ts",

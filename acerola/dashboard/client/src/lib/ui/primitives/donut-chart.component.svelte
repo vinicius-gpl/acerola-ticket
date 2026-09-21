@@ -61,6 +61,8 @@
     for (let i = 0; i < slices.length; i++) {
       const slice = slices[i];
       const color = colors[i];
+      if (!slice || color === undefined) continue;
+
       const percent = slice.value / total;
       const sweep = percent * 360 - gap;
 
@@ -103,7 +105,9 @@
 <script lang="ts">
   import { colorOfSlice } from '$lib/utils/chart-slice.util';
 
-  let { data, state, ui, actions }: DonutChartProps = $props();
+  /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
+     compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
+  let { data, state: chartState, ui, actions }: DonutChartProps = $props();
 
   let tooltipSlice: ChartSlice | null = $state(null);
   let tooltipX = $state(0);
@@ -114,7 +118,7 @@
   const arcs = $derived(buildArcs(data.slices, colors));
 </script>
 
-{#if state?.isLoading}
+{#if chartState?.isLoading}
   <div class="bg-muted h-full w-full animate-pulse rounded-lg"></div>
 {:else if data.slices.length === 0}
   <p class="text-muted-foreground flex h-full items-center justify-center text-xs">

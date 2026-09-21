@@ -40,6 +40,8 @@
     size?: SidebarMenuButtonSize;
     tooltip?: string;
     children?: Snippet;
+    /** Troca o `<button>` pelo elemento que a marcação passar — usado pro item de menu virar link. */
+    child?: Snippet<[{ props: Record<string, unknown> }]>;
   };
 
   let {
@@ -49,40 +51,43 @@
     tooltip,
     class: className,
     children,
+    child: renderChild,
     ...restProps
   }: Props = $props();
 
   const sidebar = useSidebar();
+
+  const buttonProps = $derived({
+    'data-slot': 'sidebar-menu-button',
+    'data-sidebar': 'menu-button',
+    'data-size': size,
+    'data-active': isActive,
+    class: cn(sidebarMenuButtonVariants({ variant, size }), className),
+    ...restProps,
+  });
 </script>
 
 {#snippet buttonEl()}
-  <button
-    data-slot="sidebar-menu-button"
-    data-sidebar="menu-button"
-    data-size={size}
-    data-active={isActive}
-    class={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-    {...restProps}
-  >
-    {@render children?.()}
-  </button>
+  {#if renderChild}
+    {@render renderChild({ props: buttonProps })}
+  {:else}
+    <button {...buttonProps}>
+      {@render children?.()}
+    </button>
+  {/if}
 {/snippet}
 
 {#if tooltip}
   <Tooltip>
     <TooltipTrigger>
       {#snippet child({ props })}
-        <button
-          data-slot="sidebar-menu-button"
-          data-sidebar="menu-button"
-          data-size={size}
-          data-active={isActive}
-          class={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-          {...props}
-          {...restProps}
-        >
-          {@render children?.()}
-        </button>
+        {#if renderChild}
+          {@render renderChild({ props: { ...buttonProps, ...props } })}
+        {:else}
+          <button {...buttonProps} {...props}>
+            {@render children?.()}
+          </button>
+        {/if}
       {/snippet}
     </TooltipTrigger>
     <TooltipContent

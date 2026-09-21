@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import type { HTMLInputAttributes } from 'svelte/elements';
   import { cn } from '$lib/utils/cn.util';
 
   /**
@@ -16,7 +17,7 @@
       name: string;
       value: string;
       placeholder?: string;
-      autoComplete?: string;
+      autoComplete?: HTMLInputAttributes['autocomplete'];
     };
     ui?: {
       type?: TextFieldType;

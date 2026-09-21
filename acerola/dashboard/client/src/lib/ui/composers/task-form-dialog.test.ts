@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -13,14 +13,14 @@ const fields = {
 function renderForm(overrides: Partial<TaskFormDialogProps> = {}) {
   const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn(), onClose: vi.fn() };
 
-  render(
-    <TaskFormDialog
-      data={{ mode: 'create', fields }}
-      state={{ isOpen: true }}
-      actions={actions}
-      {...overrides}
-    />,
-  );
+  render(TaskFormDialog, {
+    props: {
+      data: { mode: 'create', fields },
+      state: { isOpen: true },
+      actions,
+      ...overrides,
+    },
+  });
 
   return actions;
 }

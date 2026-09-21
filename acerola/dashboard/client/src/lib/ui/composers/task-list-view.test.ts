@@ -1,5 +1,5 @@
 import { type Task } from '@template/shared/schemas/task.schema';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -33,25 +33,25 @@ function renderView(
     onRetry: vi.fn(),
   };
 
-  render(
-    <TaskListView
-      data={{
+  render(TaskListView, {
+    props: {
+      data: {
         tasks: [task],
         total: 1,
         progress: { percentage: 0, done: 0, total: 1 },
         filter: { search: '', status: '' },
         ...overrides.data,
-      }}
-      state={{
+      },
+      state: {
         isLoading: false,
         isEmpty: false,
         isFilteredOut: false,
         error: null,
         ...overrides.state,
-      }}
-      actions={actions}
-    />,
-  );
+      },
+      actions,
+    },
+  });
 
   return actions;
 }

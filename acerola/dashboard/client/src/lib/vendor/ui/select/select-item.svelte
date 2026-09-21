@@ -10,7 +10,7 @@
     label = value,
     disabled = false,
     ref = $bindable(null),
-    children,
+    children: itemChildren,
     ...restProps
   }: SelectPrimitive.ItemProps & { children?: Snippet } = $props();
 </script>
@@ -36,6 +36,6 @@
         <CheckIcon class="size-4" />
       {/if}
     </span>
-    {@render children?.()}
+    {@render itemChildren?.()}
   {/snippet}
 </SelectPrimitive.Item>

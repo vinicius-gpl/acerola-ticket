@@ -9,6 +9,6 @@
   }: TooltipPrimitive.ProviderProps & { children?: Snippet } = $props();
 </script>
 
-<TooltipPrimitive.Provider {delayDuration} data-slot="tooltip-provider" {...restProps}>
+<TooltipPrimitive.Provider {delayDuration} {...restProps}>
   {@render children?.()}
 </TooltipPrimitive.Provider>

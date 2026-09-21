@@ -29,7 +29,7 @@
 <Select
   type="single"
   value={selectedValue}
-  onValueChange={(val) => {
+  onValueChange={(val: string | undefined) => {
     if (val !== undefined) {
       actions.onChange(val === EMPTY_VALUE ? '' : val);
     }
