@@ -1,4 +1,6 @@
+import { sessions } from './schema/sessions.schema';
 import { tasks } from './schema/tasks.schema';
+import { users } from './schema/users.schema';
 
 /**
  * O objeto de schema que o Drizzle exige para as consultas relacionais.
@@ -12,6 +14,8 @@ import { tasks } from './schema/tasks.schema';
  */
 export const drizzleSchema = {
   tasks,
+  users,
+  sessions,
 };
 
 export type DrizzleSchema = typeof drizzleSchema;
