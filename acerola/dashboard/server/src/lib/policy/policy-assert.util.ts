@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { type UserRole } from '@template/shared/schemas/user.schema';
 
-import { canCreate, canModifyRecord, canRead, isAdmin } from './access.policy';
+import { canAttendTicket, canCreate, canModifyRecord, canRead, isAdmin } from './access.policy';
 
 /**
  * A policy em forma de recusa — a ponte entre "pode?" e "então pare aqui".
@@ -25,6 +25,13 @@ export function assertCanCreate(role: UserRole | null | undefined, what: string)
   if (canCreate(role)) return;
 
   throw new ForbiddenException(`Seu perfil não permite criar ${what}.`);
+}
+
+/** Atender um chamado: assumir, mudar a situação, registrar o que foi feito. */
+export function assertCanAttendTicket(role: UserRole | null | undefined): void {
+  if (canAttendTicket(role)) return;
+
+  throw new ForbiddenException('Seu perfil não permite atender chamados.');
 }
 
 export function assertIsAdmin(role: UserRole | null | undefined, what: string): void {

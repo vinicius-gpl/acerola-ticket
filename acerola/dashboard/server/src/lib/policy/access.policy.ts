@@ -72,6 +72,21 @@ export function isOwnRecord(
 }
 
 /**
+ * ATENDER um chamado — assumir, mudar a situação, registrar o que foi feito.
+ *
+ * Chamado não tem dono do lado de cá: quem o abriu não tem login, e quem atende é o time de
+ * TI inteiro. Por isso a regra não é `canModifyRecord` (que pergunta "é seu?"), e sim
+ * "entrou no painel, atende" — um chamado parado esperando o gerente certo é pior para quem
+ * está sem impressora do que um chamado atendido por quem estava disponível.
+ *
+ * Existe como função própria, e não como `canRead` reaproveitado, porque é uma decisão
+ * diferente: no dia em que só o gerente puder encerrar chamado, é esta linha que muda.
+ */
+export function canAttendTicket(role: UserRole | null | undefined): boolean {
+  return canRead(role);
+}
+
+/**
  * Alterar ou excluir um registro: o seu, sempre; o de outra pessoa, só gerente ou
  * administrador.
  */

@@ -2,6 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
 import {
+  canAttendTicket,
   canCreate,
   canManageAnyRecord,
   canModifyRecord,
@@ -9,7 +10,12 @@ import {
   isAdmin,
   isOwnRecord,
 } from './access.policy';
-import { assertCanCreate, assertCanModifyRecord, assertIsAdmin } from './policy-assert.util';
+import {
+  assertCanAttendTicket,
+  assertCanCreate,
+  assertCanModifyRecord,
+  assertIsAdmin,
+} from './policy-assert.util';
 
 const ANA = 'ana@empresa.com.br';
 const BIA = 'bia@empresa.com.br';
@@ -100,5 +106,33 @@ describe('policy-assert', () => {
 
   it('refuses an admin action for a manager', () => {
     expect(() => assertIsAdmin('manager', 'Gerenciar pessoas')).toThrow(ForbiddenException);
+  });
+});
+
+describe('canAttendTicket', () => {
+  // feliz
+  it('lets anyone on the IT panel attend, because a ticket has no owner on this side', () => {
+    expect(canAttendTicket('user')).toBe(true);
+    expect(canAttendTicket('manager')).toBe(true);
+    expect(canAttendTicket('admin')).toBe(true);
+  });
+
+  // triste
+  it('refuses someone with no role at all', () => {
+    expect(canAttendTicket(null)).toBe(false);
+    expect(canAttendTicket(undefined)).toBe(false);
+  });
+});
+
+describe('assertCanAttendTicket', () => {
+  // feliz
+  it('lets an identified person through', () => {
+    expect(() => assertCanAttendTicket('user')).not.toThrow();
+  });
+
+  // triste
+  it('refuses a request with no identity, saying what was being attempted', () => {
+    expect(() => assertCanAttendTicket(null)).toThrow(ForbiddenException);
+    expect(() => assertCanAttendTicket(null)).toThrow(/atender chamados/i);
   });
 });
