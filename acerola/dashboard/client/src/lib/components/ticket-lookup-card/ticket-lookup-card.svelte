@@ -100,7 +100,7 @@
   {:else if ticket}
     <dl class="bg-muted/40 mt-4 grid gap-2 rounded-lg p-4 text-sm sm:grid-cols-2">
       <div class="sm:col-span-2 flex flex-wrap items-center gap-2">
-        <span class="text-ink-900 text-base font-bold">{ticket.protocol}</span>
+        <span class="text-ink-900 text-[1rem] font-bold">{ticket.protocol}</span>
         <StatusBadge
           data={{ label: ticketStatusLabel(ticket.status) }}
           ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
