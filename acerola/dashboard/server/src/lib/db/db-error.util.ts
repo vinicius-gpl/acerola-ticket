@@ -75,7 +75,12 @@ export function constraintNameOf(error: PostgresErrorShape): string {
  * A chave é o nome da restrição no banco. Exemplo, quando existir:
  * `'customers_email_unique': 'Já existe um cliente com este e-mail.'`
  */
-const CONFLICT_MESSAGES: Record<string, string> = {};
+const CONFLICT_MESSAGES: Record<string, string> = {
+  /* O nome vem da própria máquina e é a chave pela qual o agente se encontra: duas linhas com
+     o mesmo nome fariam a telemetria de uma cair na ficha da outra. */
+  'computers.name':
+    'Já existe um computador com esse nome. Abra o cadastro existente em vez de criar outro.',
+};
 
 /** Mensagem por `check` do banco, pela mesma chave. */
 const CHECK_MESSAGES: Record<string, string> = {
@@ -84,6 +89,11 @@ const CHECK_MESSAGES: Record<string, string> = {
   tickets_priority_valid: 'A urgência do chamado precisa ser Baixa, Média ou Alta.',
   tickets_department_valid: 'O departamento precisa ser um dos da lista.',
   tickets_problem_type_valid: 'O tipo de problema precisa ser um dos da lista.',
+  computers_health_status_valid: 'A situação de saúde precisa ser uma das opções da lista.',
+  computers_department_valid: 'O departamento precisa ser um dos da lista.',
+  computers_health_score_range: 'A nota de saúde precisa ficar entre 0 e 100.',
+  computer_alerts_metric_valid: 'A medida do alerta precisa ser processador, memória ou disco.',
+  computer_alerts_status_valid: 'A situação do alerta precisa ser ativa ou recuperada.',
 };
 
 /** Códigos SQLSTATE. A lista do Postgres é estável há décadas; os nomes vão nos comentários. */
