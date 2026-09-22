@@ -3,22 +3,28 @@ import { readFileSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Lê `TEST_DATABASE_URL` do `server/.env` sem depender do `dotenv` (o client não tem essa
- * lib): é só uma variável, e ela já vem documentada em `server/.env.example`.
+ * Lê uma variável do `server/.env` sem depender do `dotenv` (o client não tem essa lib): são
+ * poucas, e todas já vêm documentadas em `server/.env.example`.
  */
-function readTestDatabaseUrl(): string | undefined {
-  if (process.env.TEST_DATABASE_URL) return process.env.TEST_DATABASE_URL;
+function readServerEnv(name: string): string | undefined {
+  if (process.env[name]) return process.env[name];
   try {
     const envFile = readFileSync('../server/.env', 'utf8');
 
-    return envFile.match(/^TEST_DATABASE_URL=(.*)$/m)?.[1]?.trim() || undefined;
+    return envFile.match(new RegExp(`^${name}=(.*)$`, 'm'))?.[1]?.trim() || undefined;
   } catch {
     return undefined;
   }
 }
 
-const testDatabaseUrl = readTestDatabaseUrl();
+const testDatabaseUrl = readServerEnv('TEST_DATABASE_URL');
 if (testDatabaseUrl) process.env.TEST_DATABASE_URL = testDatabaseUrl;
+
+/* A conta que o teste usa para entrar. Vive no Neon Auth, não no banco — ver `e2e/e2e-user.ts`. */
+for (const name of ['E2E_USER_EMAIL', 'E2E_USER_PASSWORD']) {
+  const value = readServerEnv(name);
+  if (value) process.env[name] = value;
+}
 
 /**
  * E2E da WEB: o navegador de verdade, a API de verdade e um banco descartável.
@@ -28,16 +34,14 @@ if (testDatabaseUrl) process.env.TEST_DATABASE_URL = testDatabaseUrl;
  * quem está desenvolvendo, que perderia os dados a cada execução.
  *
  * Sem `TEST_DATABASE_URL` no `server/.env`, o teste em si é pulado (ver `e2e/tasks.e2e.ts`) em
- * vez de arriscar rodar contra o banco de trabalho.
+ * vez de arriscar rodar contra o banco de trabalho. O login acontece no Neon Auth, então o
+ * teste também precisa de uma conta de teste de verdade (`E2E_USER_EMAIL`/`E2E_USER_PASSWORD`).
  *
  * Na primeira vez, baixe o navegador:  npx playwright install chromium
  */
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
-  /* Cria a conta de teste antes de QUALQUER teste rodar — sem ela, `/tasks` (que agora exige
-     login) rejeitaria logo de cara. `global-setup.ts` mesmo pula sozinho sem `TEST_DATABASE_URL`. */
-  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],

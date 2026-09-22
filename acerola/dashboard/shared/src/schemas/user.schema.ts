@@ -1,45 +1,49 @@
 import { z } from 'zod';
 
 /**
- * Identidade — a FORMA de quem está usando o sistema, não importa de onde ela veio.
+ * Identidade — a FORMA de quem está usando o sistema.
  *
- * A identidade pode chegar de três jeitos: login próprio (tabela `users`, ver
- * `server/src/lib/db/schema/users.schema.ts`), `auth-forward` (um proxy na frente injeta os
- * cabeçalhos) ou, sem nenhum dos dois configurado, ninguém entra — a requisição recebe 401
- * (`server/src/lib/auth/authentication.middleware.ts`).
- *
- * Este arquivo continua sendo só a FORMA, não o cadastro: o que o servidor precisa saber para
- * decidir permissão e para carimbar autoria. O contrato de login em si (e-mail e senha) mora
- * em `auth.schema.ts`.
+ * Quem autentica é o **Neon Auth**: a tela manda e-mail e senha direto para lá, recebe um
+ * token assinado e o envia à API a cada requisição. A API confere a assinatura (JWKS) e lê o
+ * cadastro em `neon_auth.user`, no mesmo banco. Este arquivo não é o cadastro — é só o que o
+ * servidor precisa para decidir permissão e carimbar autoria.
  *
  * A consequência prática que mais importa: `createdBy` e `updatedBy` vêm de quem está na
- * requisição, e nunca do corpo. Isso vale com login ou sem ele.
+ * requisição, e nunca do corpo.
  */
-export const userRoleSchema = z.enum(['admin', 'editor', 'viewer']);
+
+/**
+ * Os três papéis do sistema, do menor para o maior.
+ *
+ * Eles moram na coluna `role` de `neon_auth.user` e são trocados no painel da Neon — o
+ * sistema lê, nunca escreve. Papel desconhecido (ou vazio) cai em `user`, o mais restrito:
+ * quem chega sem papel definido precisa receber MENOS acesso, nunca mais.
+ */
+export const userRoleSchema = z.enum(['user', 'manager', 'admin']);
 
 export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  user: 'Usuário',
+  manager: 'Gerente',
   admin: 'Administrador',
-  editor: 'Edição',
-  viewer: 'Consulta',
 };
 
 export function userRoleLabel(role: UserRole): string {
   return USER_ROLE_LABELS[role];
 }
 
+/** O papel de quem entrou sem papel definido no Neon Auth: o mais restrito que existe. */
+export const DEFAULT_USER_ROLE: UserRole = 'user';
+
 /**
  * Quem está usando o sistema agora.
  *
- * O `id` é o que o provedor de identidade mandar: com login próprio, é o `id` da tabela
- * `users` (como texto); com `auth-forward`, é o que o proxy mandou. `SessionUser` nunca carrega
- * senha nem token — só o que a policy e a autoria precisam.
+ * O `id` é o id da pessoa no Neon Auth (`neon_auth.user.id`), que é o `sub` do token.
+ * `SessionUser` nunca carrega senha nem token — só o que a policy e a autoria precisam.
  *
- * E a sessão nunca é persistida no navegador: num escritório de máquinas compartilhadas,
- * `localStorage` faria a próxima pessoa herdar a conta da anterior — inclusive o crédito do
- * trabalho dela. A sessão do login próprio vive num cookie `HttpOnly`, que o JavaScript da
- * tela nem consegue ler.
+ * A sessão não é guardada por nós: quem a mantém é o Neon Auth, no navegador. Nossa API é
+ * sem estado — cada requisição chega com o token e é conferida do zero.
  */
 export const sessionUserSchema = z.object({
   id: z.string().min(1),

@@ -14,34 +14,49 @@ import { type UserRole } from '@template/shared/schemas/user.schema';
  *     não passa.
  *  3. **Testável sem banco.** São funções puras de (quem, o quê) → pode ou não.
  *
+ * Os três papéis do sistema, e o que cada um ganha em relação ao anterior:
+ *
+ * | Papel     | Enxerga tudo | Cria | Mexe no que é seu | Mexe no dos outros | Pessoas e ajustes |
+ * |-----------|--------------|------|-------------------|--------------------|-------------------|
+ * | `user`    | sim          | sim  | sim               | não                | não               |
+ * | `manager` | sim          | sim  | sim               | sim                | não               |
+ * | `admin`   | sim          | sim  | sim               | sim                | sim               |
+ *
  * O cuidado que fica com quem programa: esquecer de chamar a policy é uma porta aberta. É por
  * isso que a checagem vive no service, no mesmo lugar onde a escrita acontece, e não num
  * passo separado que alguém possa pular.
  */
 
-/** Quem está identificado enxerga o cadastro inteiro. */
+const ROLES: UserRole[] = ['user', 'manager', 'admin'];
+
+/** Quem está identificado enxerga o cadastro inteiro — os três papéis leem tudo. */
 export function canRead(role: UserRole | null | undefined): boolean {
   if (!role) return false;
 
-  return role === 'admin' || role === 'editor' || role === 'viewer';
+  return ROLES.includes(role);
 }
 
-/** `viewer` é somente leitura. */
-export function canEdit(role: UserRole | null | undefined): boolean {
-  return role === 'admin' || role === 'editor';
+/** Criar é de todo mundo: quem só pudesse olhar não teria por que entrar no sistema. */
+export function canCreate(role: UserRole | null | undefined): boolean {
+  return canRead(role);
 }
 
 export function isAdmin(role: UserRole | null | undefined): boolean {
   return role === 'admin';
 }
 
-/** Excluir não tem volta: é decisão de administrador. */
-export function canDelete(role: UserRole | null | undefined): boolean {
-  return isAdmin(role);
+/**
+ * Mexer no que é DOS OUTROS — alterar ou excluir registro de outra pessoa.
+ *
+ * É o que separa `user` de `manager`: os dois trabalham, mas só o segundo responde pelo
+ * trabalho alheio.
+ */
+export function canManageAnyRecord(role: UserRole | null | undefined): boolean {
+  return role === 'manager' || isAdmin(role);
 }
 
 /**
- * "Isto é meu?" — a comparação que decide remoção do que a própria pessoa criou.
+ * "Isto é meu?" — a comparação que decide o acesso ao próprio registro.
  *
  * Compara sem diferenciar caixa porque e-mail não diferencia: gravar "Ana@empresa.com.br" e
  * comparar com "ana@..." faria a pessoa perder o acesso ao que ela mesma escreveu.
@@ -56,14 +71,17 @@ export function isOwnRecord(
   return actorEmail.trim().toLowerCase() === recordEmail.trim().toLowerCase();
 }
 
-/** Remover o que é seu, ou ser administrador. O que é de outra pessoa, só o administrador. */
-export function canRemoveOwnRecord(
+/**
+ * Alterar ou excluir um registro: o seu, sempre; o de outra pessoa, só gerente ou
+ * administrador.
+ */
+export function canModifyRecord(
   role: UserRole | null | undefined,
   actorEmail: string | null | undefined,
   recordEmail: string | null | undefined,
 ): boolean {
-  if (isAdmin(role)) return true;
-  if (!canEdit(role)) return false;
+  if (!canRead(role)) return false;
+  if (canManageAnyRecord(role)) return true;
 
   return isOwnRecord(actorEmail, recordEmail);
 }

@@ -15,6 +15,13 @@
       "when": 1790039289521,
       "tag": "0001_furry_lenny_balinger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790079396618,
+      "tag": "0002_pretty_strong_guy",
+      "breakpoints": true
     }
   ]
 }

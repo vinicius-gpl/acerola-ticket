@@ -59,9 +59,14 @@ export const envSchema = z.object({
   R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
 
   /**
-   * A URL do Neon Auth (o mesmo endereço do `VITE_NEON_AUTH_URL` do client, sem o prefixo
-   * `VITE_`). O server usa para buscar as chaves públicas (JWKS) e conferir a assinatura do
-   * token que a tela manda — nunca para logar por conta própria.
+   * O endereço do Neon Auth — quem faz o login das pessoas.
+   *
+   * É a MESMA URL do `VITE_NEON_AUTH_URL` do client, sem o prefixo `VITE_`: a tela manda
+   * e-mail e senha para lá, e o servidor usa o mesmo endereço para buscar a chave pública
+   * (`/.well-known/jwks.json`) e conferir a assinatura do token que a tela apresenta.
+   *
+   * Sem padrão de propósito: cada projeto da Neon tem o seu, e um endereço errado aqui não
+   * falharia na partida — falharia no primeiro login, parecendo senha errada.
    */
   NEON_AUTH_URL: z
     .string()

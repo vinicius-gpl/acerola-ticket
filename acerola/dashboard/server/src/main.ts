@@ -37,36 +37,23 @@ async function bootstrap(): Promise<void> {
             '',
             '## Autenticação',
             '',
-            'Duas formas de chegar autenticado, nesta ordem de prioridade:',
+            'Quem autentica é o **Neon Auth**, não esta API: a tela manda e-mail e senha direto para lá e recebe um token assinado.',
             '',
-            '1. **Login próprio** — `POST /api/auth/login` com e-mail e senha abre uma sessão e grava um cookie `HttpOnly`. É o caminho normal pela tela.',
-            '2. **Cabeçalhos encaminhados** (`auth-forward`) — quando o projeto fica atrás de um proxy que já autenticou a pessoa, ele injeta `x-forwarded-user-id`, `x-forwarded-user-email`, `x-forwarded-user-name` e `x-forwarded-user-role`.',
+            'Toda requisição precisa apresentar esse token em `Authorization: Bearer <token>`. O servidor confere a assinatura pela chave pública da Neon (JWKS) e lê o papel da pessoa no cadastro (`neon_auth.user`) a cada chamada — papel trocado ou conta banida no painel valem na requisição seguinte.',
             '',
-            'Uma requisição sem sessão e sem cabeçalhos recebe 401 (exceto `/api/auth/login`, que precisa ficar acessível para abrir a primeira sessão). Cabeçalhos presentes e malformados são recusados com 401, mesmo que haja uma sessão de cookie válida — nunca completa o que faltou.',
+            'Sem token, ou com token vencido, inválido ou de conta que não existe mais: 401.',
           ].join('\n'),
         )
         .setVersion('0.1.0')
-        /* Não é `addBearerAuth`: o login de verdade autentica por cookie, que o navegador já
-           manda sozinho. O "Authorize" do Swagger só precisa oferecer o caminho alternativo,
-           de quem está experimentando a API como se fosse o auth-forward. */
-        .addApiKey(
+        .addBearerAuth(
           {
-            type: 'apiKey',
-            in: 'header',
-            name: 'x-forwarded-user-email',
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
             description:
-              'E-mail de quem está pedindo. Em produção quem preenche é o proxy; aqui serve para experimentar a API como outra pessoa.',
+              'O token que o Neon Auth entrega à tela depois do login. Para experimentar aqui, faça login no sistema e copie o token da chamada que o navegador já faz.',
           },
-          'auth-forward',
-        )
-        .addApiKey(
-          {
-            type: 'apiKey',
-            in: 'header',
-            name: 'x-forwarded-user-role',
-            description: 'Perfil: `admin`, `editor` ou `viewer`. Decide o que a policy permite.',
-          },
-          'auth-forward-role',
+          'neon-auth',
         )
         .build(),
     ),

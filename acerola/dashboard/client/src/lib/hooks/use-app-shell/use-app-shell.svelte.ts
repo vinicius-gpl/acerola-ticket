@@ -3,7 +3,7 @@ import { page } from '$app/state';
 import { useQueryClient } from '@tanstack/svelte-query';
 import { USER_ROLE_LABELS, type SessionUser } from '@template/shared/schemas/user.schema';
 
-import { authApi } from '$lib/api/auth.api';
+import { neonAuth } from '$lib/auth/neon-auth.client';
 import { activeNavKeyOf } from '$lib/navigation/navigation';
 
 export type AppShellModel = {
@@ -49,14 +49,16 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
       return { activeKey: activeNavKeyOf(page.url.pathname) };
     },
     actions: {
-      /* Best-effort: mesmo se `/auth/logout` falhar (rede caída), a pessoa ainda sai — o
-         cookie que sobrar é inútil sozinho, e a guarda pede sessão de novo no próximo /me. */
+      /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
+         estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não
+         pode falhar — sem ele, os dados da pessoa anterior continuariam na tela do próximo
+         que entrasse nesta mesma máquina. */
       onLogout: () => {
         void (async () => {
           try {
-            await authApi.logout();
+            await neonAuth.signOut();
           } catch {
-            // segue para o `finally` mesmo assim — sair não pode depender da API responder.
+            // segue para o `finally` mesmo assim — sair não pode depender de rede.
           } finally {
             queryClient.clear();
             void goto('/login');

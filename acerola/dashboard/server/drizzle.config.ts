@@ -20,6 +20,14 @@ export default defineConfig({
   schema: './src/lib/db/schema/*.schema.ts',
   out: './drizzle',
   dbCredentials: { url: databaseUrl },
+  /**
+   * Só o schema `public` entra nas migrations.
+   *
+   * O banco também tem o schema `neon_auth`, criado e mantido pelo Neon Auth. Sem este
+   * limite, `npm run db:generate` veria aquelas tabelas como "não declaradas" e escreveria
+   * uma migration apagando o cadastro de pessoas inteiro.
+   */
+  schemaFilter: ['public'],
   verbose: true,
   strict: true,
 });

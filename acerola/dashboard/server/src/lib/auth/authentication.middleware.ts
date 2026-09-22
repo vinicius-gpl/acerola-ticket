@@ -1,69 +1,37 @@
-import { Injectable, UnauthorizedException, type NestMiddleware } from '@nestjs/common';
+import { Injectable, type NestMiddleware } from '@nestjs/common';
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { parseCookies } from './cookie.util';
-import { hasForwardedHeaders, readForwardedIdentity } from './identity.provider';
+import { IdentityProvider } from './identity.provider';
+import { readBearerToken } from './neon-token.util';
 import { type RequestUser } from './request-user.type';
-import { SessionRepository } from './session.repository';
-import { SESSION_COOKIE_NAME } from './session-token.util';
 
 /**
- * Autenticação: quem é você, se alguém. Roda antes de tudo, em toda requisição da API.
+ * Autenticação: quem é você. Roda antes de tudo, em toda requisição da API.
  *
  * É middleware, e não guard, de propósito. Guard é sobre PERMISSÃO — ele já recebe a
  * requisição sabendo quem está pedindo. Aqui ainda não se sabe, e resolver identidade dentro
  * de um guard misturaria as duas perguntas num lugar só: a que vale para o sistema inteiro
  * ("tem alguém aí?") e a que muda por rota ("essa pessoa pode isto?").
  *
- * Duas origens de identidade, nesta ordem, e a primeira que bater vence:
- *
- *  1. **Cookie de sessão** (login próprio).
- *  2. **Cabeçalhos encaminhados** (`auth-forward`) — quando o projeto está atrás de um proxy
- *     que já autentica.
- *
- * SEM identidade, o middleware NÃO recusa mais sozinho — ele só deixa `request.user` vazio.
- * Quem decide se isso é um problema é o `RolesGuard`: rota com `@Public()` (como
- * `/api/auth/login`) segue sem identidade nenhuma; qualquer outra rota, sem identidade, o
- * guard responde 401. Recusar aqui, no middleware, bloquearia até a própria rota de login.
+ * Este middleware NÃO recusa ninguém: ele só carimba na requisição quem conseguiu provar
+ * quem é. Recusar é do `RolesGuard`, que é global e sabe quais rotas são públicas
+ * (`@Public()`). Se a recusa morasse aqui, rota pública nenhuma conseguiria existir.
  */
 @Injectable()
 export class AuthenticationMiddleware implements NestMiddleware {
-  constructor(private readonly sessions: SessionRepository) {}
+  constructor(private readonly identity: IdentityProvider) {}
 
   async use(request: Request, _response: Response, next: NextFunction): Promise<void> {
-    const token = parseCookies(request.headers.cookie)[SESSION_COOKIE_NAME];
-    if (token) {
-      const identity = await this.sessions.findIdentityByToken(token);
-      if (identity) {
-        attach(request, identity);
+    const token = readBearerToken(request.headers.authorization);
+    if (!token) return next();
 
-        return next();
-      }
-      /* Cookie presente mas a sessão não bate com nada válido (expirada, encerrada, forjada):
-         cai para a próxima origem, e não direto para "sem identidade" — um `auth-forward`
-         configurado ao lado do login próprio continua funcionando. */
-    }
+    const user = await this.identity.resolve(token);
+    if (user) attach(request, user);
 
-    const forwardedIdentity = readForwardedIdentity(request.headers);
-    if (forwardedIdentity) {
-      attach(request, forwardedIdentity);
-
-      return next();
-    }
-
-    /* Cabeçalho veio e não formou identidade válida: o provedor está mal configurado. Isto
-       SEMPRE é erro, mesmo numa rota `@Public()` — um proxy que manda cabeçalho quebrado é um
-       problema de infraestrutura que vale a pena aparecer alto, não silenciar. */
-    if (hasForwardedHeaders(request.headers)) {
-      throw new UnauthorizedException(
-        'A identidade encaminhada está incompleta ou inválida. Fale com quem administra o acesso.',
-      );
-    }
-
-    next();
+    return next();
   }
 }
 
-function attach(request: Request, identity: RequestUser): void {
-  (request as Request & { user?: RequestUser }).user = identity;
+function attach(request: Request, user: RequestUser): void {
+  (request as Request & { user?: RequestUser }).user = user;
 }

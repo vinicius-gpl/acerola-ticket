@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { type UserRole } from '@template/shared/schemas/user.schema';
 
-import { canDelete, canEdit, canRead, canRemoveOwnRecord, isAdmin } from './access.policy';
+import { canCreate, canModifyRecord, canRead, isAdmin } from './access.policy';
 
 /**
  * A policy em forma de recusa — a ponte entre "pode?" e "então pare aqui".
@@ -21,17 +21,10 @@ export function assertCanRead(role: UserRole | null | undefined, what: string): 
   throw new ForbiddenException(`Seu perfil não permite consultar ${what}.`);
 }
 
-export function assertCanEdit(role: UserRole | null | undefined, what: string): void {
-  if (canEdit(role)) return;
+export function assertCanCreate(role: UserRole | null | undefined, what: string): void {
+  if (canCreate(role)) return;
 
-  throw new ForbiddenException(`Seu perfil é somente leitura e não permite alterar ${what}.`);
-}
-
-/** Excluir leva registros filhos junto (`on delete cascade`): é decisão de administrador. */
-export function assertCanDelete(role: UserRole | null | undefined, what: string): void {
-  if (canDelete(role)) return;
-
-  throw new ForbiddenException(`Excluir ${what} é uma ação de administrador.`);
+  throw new ForbiddenException(`Seu perfil não permite criar ${what}.`);
 }
 
 export function assertIsAdmin(role: UserRole | null | undefined, what: string): void {
@@ -41,20 +34,20 @@ export function assertIsAdmin(role: UserRole | null | undefined, what: string): 
 }
 
 /**
- * Remover o que é seu, ou ser administrador.
+ * Alterar ou excluir um registro.
  *
- * O que outra pessoa escreveu, ninguém além do administrador apaga — e a recusa diz isso com
- * todas as letras, em vez de um "sem permissão" que vira chamado.
+ * O que outra pessoa criou só é mexido por gerente ou administrador — e a recusa diz isso
+ * com todas as letras, em vez de um "sem permissão" que vira chamado.
  */
-export function assertCanRemoveOwnRecord(
+export function assertCanModifyRecord(
   role: UserRole | null | undefined,
   actorEmail: string | null | undefined,
   recordEmail: string | null | undefined,
   what: string,
 ): void {
-  if (canRemoveOwnRecord(role, actorEmail, recordEmail)) return;
+  if (canModifyRecord(role, actorEmail, recordEmail)) return;
 
   throw new ForbiddenException(
-    `${what} só pode ser removido por quem o criou ou por um administrador.`,
+    `${what} foi criada por outra pessoa. Só quem criou, um gerente ou um administrador pode alterá-la.`,
   );
 }

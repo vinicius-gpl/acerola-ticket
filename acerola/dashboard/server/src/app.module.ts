@@ -9,7 +9,7 @@ import { AuthModule } from './lib/auth/auth.module';
 import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
 import { StorageModule } from './lib/storage/storage.module';
-import { AuthModule as AuthFeatureModule } from './modules/auth/auth.module';
+import { AuthApiModule } from './modules/auth/auth.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 
 /**
@@ -40,7 +40,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     /* Mesma razão do DbModule: `@Global` só passa a valer depois de registrado aqui. */
     StorageModule,
     AuthModule,
-    AuthFeatureModule,
+    AuthApiModule,
     TasksModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],

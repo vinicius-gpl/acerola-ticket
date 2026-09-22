@@ -75,6 +75,15 @@
           }}
         />
 
+        <!-- Também é por aqui que entra quem NUNCA teve senha: conta criada no painel da Neon
+             nasce sem senha, e este link é o caminho de definir a primeira. -->
+        <a
+          href="/forgot-password"
+          class="text-muted-foreground hover:text-foreground self-end text-sm underline-offset-4 hover:underline"
+        >
+          Esqueci minha senha
+        </a>
+
         {#if state?.error}
           <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
         {/if}

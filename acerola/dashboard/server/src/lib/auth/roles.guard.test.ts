@@ -7,7 +7,12 @@ import { IS_PUBLIC } from './public.decorator';
 import { type RequestUser } from './request-user.type';
 import { RolesGuard } from './roles.guard';
 
-const editor: RequestUser = { id: '1', email: 'ana@empresa.com.br', name: 'Ana', role: 'editor' };
+const manager: RequestUser = {
+  id: '1',
+  email: 'ana@empresa.com.br',
+  name: 'Ana',
+  role: 'manager',
+};
 
 function makeContext(user: RequestUser | undefined): ExecutionContext {
   return {
@@ -34,13 +39,13 @@ describe('RolesGuard', () => {
   it('allows an identified request when the route requires no specific role', () => {
     const guard = new RolesGuard(makeReflector({}));
 
-    expect(guard.canActivate(makeContext(editor))).toBe(true);
+    expect(guard.canActivate(makeContext(manager))).toBe(true);
   });
 
   it('allows a role listed in @Roles()', () => {
-    const guard = new RolesGuard(makeReflector({ roles: ['admin', 'editor'] }));
+    const guard = new RolesGuard(makeReflector({ roles: ['admin', 'manager'] }));
 
-    expect(guard.canActivate(makeContext(editor))).toBe(true);
+    expect(guard.canActivate(makeContext(manager))).toBe(true);
   });
 
   // triste
@@ -53,6 +58,6 @@ describe('RolesGuard', () => {
   it('refuses a role not listed in @Roles(), with 403 naming who can', () => {
     const guard = new RolesGuard(makeReflector({ roles: ['admin'] }));
 
-    expect(() => guard.canActivate(makeContext(editor))).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(makeContext(manager))).toThrow(ForbiddenException);
   });
 });

@@ -2,45 +2,46 @@ import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
 import {
-  canDelete,
-  canEdit,
+  canCreate,
+  canManageAnyRecord,
+  canModifyRecord,
   canRead,
-  canRemoveOwnRecord,
   isAdmin,
   isOwnRecord,
 } from './access.policy';
-import { assertCanDelete, assertCanEdit, assertCanRemoveOwnRecord } from './policy-assert.util';
+import { assertCanCreate, assertCanModifyRecord, assertIsAdmin } from './policy-assert.util';
+
+const ANA = 'ana@empresa.com.br';
+const BIA = 'bia@empresa.com.br';
 
 describe('access.policy', () => {
   // feliz
-  it('lets every known role read', () => {
-    expect(canRead('admin')).toBe(true);
-    expect(canRead('editor')).toBe(true);
-    expect(canRead('viewer')).toBe(true);
+  it('lets every role read and create', () => {
+    for (const role of ['user', 'manager', 'admin'] as const) {
+      expect(canRead(role)).toBe(true);
+      expect(canCreate(role)).toBe(true);
+    }
   });
 
-  it('lets admin and editor write', () => {
-    expect(canEdit('admin')).toBe(true);
-    expect(canEdit('editor')).toBe(true);
+  it('keeps other people records for manager and admin only', () => {
+    expect(canManageAnyRecord('manager')).toBe(true);
+    expect(canManageAnyRecord('admin')).toBe(true);
+    expect(canManageAnyRecord('user')).toBe(false);
+  });
+
+  it('knows who is an admin', () => {
+    expect(isAdmin('admin')).toBe(true);
+    expect(isAdmin('manager')).toBe(false);
   });
 
   // triste
   /* Fechado por padrão: sem papel, nada passa. */
   it('closes everything when there is no role', () => {
     expect(canRead(null)).toBe(false);
-    expect(canEdit(undefined)).toBe(false);
-    expect(canDelete(null)).toBe(false);
+    expect(canCreate(undefined)).toBe(false);
+    expect(canManageAnyRecord(null)).toBe(false);
     expect(isAdmin(undefined)).toBe(false);
-  });
-
-  it('keeps viewer read-only', () => {
-    expect(canEdit('viewer')).toBe(false);
-    expect(canDelete('viewer')).toBe(false);
-  });
-
-  it('keeps deleting as an admin decision, even for an editor', () => {
-    expect(canDelete('editor')).toBe(false);
-    expect(canDelete('admin')).toBe(true);
+    expect(canModifyRecord(null, ANA, ANA)).toBe(false);
   });
 });
 
@@ -52,49 +53,52 @@ describe('isOwnRecord', () => {
 
   // triste
   it('never matches when one side is missing', () => {
-    expect(isOwnRecord(null, 'ana@empresa.com.br')).toBe(false);
-    expect(isOwnRecord('ana@empresa.com.br', null)).toBe(false);
+    expect(isOwnRecord(null, ANA)).toBe(false);
+    expect(isOwnRecord(ANA, null)).toBe(false);
   });
 });
 
-describe('canRemoveOwnRecord', () => {
-  it('lets an editor remove what they created', () => {
-    expect(canRemoveOwnRecord('editor', 'ana@empresa.com.br', 'ana@empresa.com.br')).toBe(true);
+describe('canModifyRecord', () => {
+  // feliz
+  it('lets anyone change their own record', () => {
+    expect(canModifyRecord('user', ANA, ANA)).toBe(true);
   });
 
-  it('lets an admin remove what someone else created', () => {
-    expect(canRemoveOwnRecord('admin', 'chefe@empresa.com.br', 'ana@empresa.com.br')).toBe(true);
+  it('lets manager and admin change what others created', () => {
+    expect(canModifyRecord('manager', BIA, ANA)).toBe(true);
+    expect(canModifyRecord('admin', BIA, ANA)).toBe(true);
   });
 
   // triste
-  it('does not let an editor remove what someone else created', () => {
-    expect(canRemoveOwnRecord('editor', 'bia@empresa.com.br', 'ana@empresa.com.br')).toBe(false);
+  it('stops a plain user on someone else record', () => {
+    expect(canModifyRecord('user', BIA, ANA)).toBe(false);
   });
 
-  /* Escalada de privilégio: viewer não escreve, nem no que "é dele". */
-  it('does not let a viewer remove even their own record', () => {
-    expect(canRemoveOwnRecord('viewer', 'ana@empresa.com.br', 'ana@empresa.com.br')).toBe(false);
+  /* Registro sem autor gravado não vira "de todo mundo": só quem manda em tudo mexe nele. */
+  it('does not turn an authorless record into everyone record', () => {
+    expect(canModifyRecord('user', BIA, null)).toBe(false);
+    expect(canModifyRecord('manager', BIA, null)).toBe(true);
   });
 });
 
-describe('policy-assert.util', () => {
-  it('passes silently when allowed', () => {
-    expect(() => assertCanEdit('editor', 'a tarefa')).not.toThrow();
+describe('policy-assert', () => {
+  // feliz
+  it('says nothing when the action is allowed', () => {
+    expect(() => assertCanCreate('user', 'tarefas')).not.toThrow();
+    expect(() => assertCanModifyRecord('user', ANA, ANA, 'Esta tarefa')).not.toThrow();
+    expect(() => assertIsAdmin('admin', 'Gerenciar pessoas')).not.toThrow();
   });
 
   // triste
-  it('refuses with 403 and says what was being attempted', () => {
-    expect(() => assertCanEdit('viewer', 'a tarefa')).toThrow(ForbiddenException);
-    expect(() => assertCanEdit('viewer', 'a tarefa')).toThrow(/a tarefa/);
+  /* A mensagem é parte da regra: ela precisa dizer o que resolve, não só "sem permissão". */
+  it('explains who can change a record from someone else', () => {
+    expect(() => assertCanModifyRecord('user', BIA, ANA, 'Esta tarefa')).toThrow(
+      ForbiddenException,
+    );
+    expect(() => assertCanModifyRecord('user', BIA, ANA, 'Esta tarefa')).toThrow(/gerente/i);
   });
 
-  it('says deleting is an admin action', () => {
-    expect(() => assertCanDelete('editor', 'a tarefa')).toThrow(/administrador/);
-  });
-
-  it('says who can remove a record that belongs to someone else', () => {
-    expect(() =>
-      assertCanRemoveOwnRecord('editor', 'bia@empresa.com.br', 'ana@empresa.com.br', 'A tarefa'),
-    ).toThrow(/quem o criou/);
+  it('refuses an admin action for a manager', () => {
+    expect(() => assertIsAdmin('manager', 'Gerenciar pessoas')).toThrow(ForbiddenException);
   });
 });

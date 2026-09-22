@@ -26,6 +26,7 @@
   "dependencies": {
     "@internationalized/date": "^3.12.4",
     "@lucide/svelte": "^1.7.0",
+    "@neondatabase/neon-js": "^0.7.0-beta",
     "@sveltejs/adapter-static": "^3.0.10",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/svelte-form": "^1.33.5",

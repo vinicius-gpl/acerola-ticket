@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import { sessionUserSchema, USER_ROLE_LABELS, userRoleSchema } from './user.schema';
+import {
+  DEFAULT_USER_ROLE,
+  sessionUserSchema,
+  USER_ROLE_LABELS,
+  userRoleSchema,
+} from './user.schema';
 
 describe('userRoleSchema', () => {
   it('has a screen label for every role', () => {
     for (const role of userRoleSchema.options) {
       expect(USER_ROLE_LABELS[role]).toBeTruthy();
     }
+  });
+
+  it('knows the three roles of the system', () => {
+    expect(userRoleSchema.options).toEqual(['user', 'manager', 'admin']);
+  });
+
+  /* Quem chega sem papel definido no Neon Auth precisa receber MENOS acesso, nunca mais. */
+  it('falls back to the most restricted role', () => {
+    expect(DEFAULT_USER_ROLE).toBe('user');
   });
 
   // triste

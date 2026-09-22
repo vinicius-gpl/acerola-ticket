@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { E2E_USER } from './global-setup';
+import { E2E_USER, NO_E2E_USER } from './e2e-user';
 
 /**
  * O fluxo principal da feature de exemplo, como a pessoa faz: logar, abrir, errar, corrigir,
@@ -12,15 +12,16 @@ import { E2E_USER } from './global-setup';
  * o banco de trabalho.
  */
 test.skip(!process.env.TEST_DATABASE_URL, 'Precisa de TEST_DATABASE_URL no server/.env');
+test.skip(!E2E_USER, NO_E2E_USER);
 
 test('creates a task after fixing an empty title', async ({ page }) => {
   const title = `Tarefa E2E ${Date.now()}`;
 
-  /* Login próprio, do jeito que a pessoa faz: `/tasks` exige sessão, então o primeiro passo
-     de QUALQUER fluxo agora é este. */
+  /* Entrar é o primeiro passo de QUALQUER fluxo agora: `/tasks` exige sessão, e quem
+     autentica é o Neon Auth. */
   await page.goto('/login');
-  await page.getByLabel('E-mail').fill(E2E_USER.email);
-  await page.getByLabel('Senha').fill(E2E_USER.password);
+  await page.getByLabel('E-mail').fill(E2E_USER!.email);
+  await page.getByLabel('Senha').fill(E2E_USER!.password);
   await page.getByRole('button', { name: 'Entrar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Tarefas' })).toBeVisible();

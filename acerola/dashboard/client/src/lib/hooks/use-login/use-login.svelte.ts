@@ -3,8 +3,7 @@ import { createMutation } from '@tanstack/svelte-query';
 import { loginRequestSchema, type LoginInput } from '@template/shared/schemas/auth.schema';
 import { goto } from '$app/navigation';
 
-import { authApi } from '$lib/api/auth.api';
-import { readError } from '$lib/api/http-client';
+import { neonAuth } from '$lib/auth/neon-auth.client';
 import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
@@ -22,17 +21,42 @@ export type LoginModel = {
 };
 
 /**
- * O login: e-mail, senha, entrar. Mesmo padrão do `useTaskFormModel` — o MESMO schema que a
- * API valida, TanStack Form para o estado dos campos, `mirrorStore` para a mutação virar runes.
+ * A MESMA mensagem para "e-mail não existe" e "senha errada" — de propósito.
  *
- * Sucesso navega para `/tasks`: não há nada para mostrar na tela de login depois de logar, e
- * `goto` aqui (não no componente) é o que o CONTRIBUTING §3 pede — navegação é decisão do
- * hook, nunca do componente de UI.
+ * Mensagens diferentes confirmariam para quem está tentando adivinhar que um e-mail
+ * específico tem conta no sistema. É a diferença entre "senha errada" (vaza que a conta
+ * existe) e "e-mail ou senha incorretos" (não vaza nada).
+ */
+const INVALID_CREDENTIALS = 'E-mail ou senha incorretos.';
+
+const UNAVAILABLE =
+  'Não consegui falar com o serviço de login. Confira sua internet e tente de novo.';
+
+/**
+ * O login: e-mail, senha, entrar.
+ *
+ * Quem confere a senha é o **Neon Auth**, direto daqui — a nossa API não participa e nunca vê
+ * a senha de ninguém. Deu certo, a sessão passa a existir no navegador e `/tasks` já abre;
+ * a guarda de rota confirma com `/api/auth/me` e é ali que o papel da pessoa aparece.
+ *
+ * Mesmo padrão do `useTaskFormModel`: o MESMO schema que valida o formulário, TanStack Form
+ * para o estado dos campos, `mirrorStore` para a mutação virar runes. E o `goto` mora aqui,
+ * não no componente (CONTRIBUTING §3) — navegação é decisão do hook.
  */
 export function useLoginModel(): LoginModel {
   const login = mirrorStore(
     createMutation({
-      mutationFn: (values: LoginInput) => authApi.login(values),
+      mutationFn: async (values: LoginInput) => {
+        const result = await neonAuth.signIn.email({
+          email: values.email.trim(),
+          password: values.password,
+        });
+
+        /* A biblioteca NÃO lança em credencial errada: ela devolve `error` preenchido. Sem
+           esta conversão, senha errada passaria como sucesso e a tela navegaria para uma
+           `/tasks` que a guarda devolveria para cá — um pisca-pisca sem explicação. */
+        if (result.error) throw new Error(readSignInError(result.error.status));
+      },
       onSuccess: () => goto('/tasks'),
     }),
   );
@@ -65,7 +89,10 @@ export function useLoginModel(): LoginModel {
       };
     },
     get state() {
-      return { isSubmitting: login.current.isPending, error: readError(login.current.error) };
+      return {
+        isSubmitting: login.current.isPending,
+        error: login.current.error ? login.current.error.message : null,
+      };
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
@@ -73,4 +100,17 @@ export function useLoginModel(): LoginModel {
       onSubmit: () => void form.handleSubmit(),
     },
   };
+}
+
+/**
+ * Serviço fora do ar não é senha errada.
+ *
+ * Mandar a pessoa "conferir a senha" quando o problema é a internet faz ela digitar de novo
+ * três vezes antes de desconfiar. Só o que o Neon Auth recusa por credencial vira
+ * `INVALID_CREDENTIALS`.
+ */
+function readSignInError(status: number | undefined): string {
+  if (status === 401 || status === 403 || status === 400) return INVALID_CREDENTIALS;
+
+  return UNAVAILABLE;
 }
