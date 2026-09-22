@@ -18,6 +18,25 @@ Direção prevista:
 - Intervalo de envio provavelmente mais espaçado que o 1s do dashboard (ex: a cada 30s–1min), para
   não gerar tráfego/custo desnecessário num parque de muitas máquinas.
 
+## Recepção no dashboard central (`acerola/dashboard`)
+
+O agente ainda não envia nada (item acima). Mas o lado que vai receber — o dashboard — já está
+com a direção combinada, para o agente ter um alvo pronto quando chegar a vez dele:
+
+- Cada computador é criado **no dashboard primeiro** (só um nome), o que gera um token aleatório
+  mostrado uma única vez. Esse token é o que se cola no agente na instalação — sem ele o agente
+  não conecta. Só o hash do token fica salvo no banco, nunca o valor original (mesmo princípio
+  de senha).
+- "Online"/"offline" não é um campo salvo: é ter, ou não, uma conexão WebSocket aberta agora.
+  Assim nenhum computador fica preso em "online" depois de queda de energia ou crash do agente.
+- WebSocket puro (`@nestjs/websockets` + `@nestjs/platform-ws`), não Socket.IO — o protocolo é
+  bem mais simples de falar a partir de um cliente Go, o que interessa quando este agente vira
+  esse cliente.
+- Histórico: cada snapshot recebido grava uma amostra enxuta (CPU%, memória%, disco%, rede) numa
+  tabela de série temporal, para gráfico de uso ao longo do tempo; amostras com mais de 7 dias
+  são limpas automaticamente. O snapshot completo (processos, discos, interfaces de rede) fica
+  guardado só o **mais recente**, para a tela de detalhe — isso não precisa de histórico.
+
 ## Persistência local em caso de falha de rede
 
 Consequência direta do item acima: se o agente vai depender de rede para reportar, precisa
