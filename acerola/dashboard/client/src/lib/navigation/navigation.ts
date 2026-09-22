@@ -8,7 +8,7 @@ import type { LucideIcon } from '@lucide/svelte';
  * lista e o `useAppShellModel` decide o item ativo a partir dela — duas listas separadas
  * divergiriam no primeiro item acrescentado, e o menu acenderia o item errado.
  *
- * `to` é a rota do TanStack Router (a pasta em `src/routes`). O item fica aceso também nas
+ * `to` é a rota do SvelteKit (a pasta em `src/routes`). O item fica aceso também nas
  * subrotas: `/tasks/42` acende "Tarefas".
  */
 export type NavItem = {
