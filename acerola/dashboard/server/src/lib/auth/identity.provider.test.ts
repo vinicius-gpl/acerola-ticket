@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { type Database } from '../db/db.type';
-import { type NeonAuthUserRow } from '../db/schema/neon-auth-user.schema';
+import { type NeonAuthUserRow } from '../db/neon-auth-user.table';
 import { IdentityProvider } from './identity.provider';
 import { type NeonTokenClaims, type NeonTokenVerifier } from './neon-token.util';
 

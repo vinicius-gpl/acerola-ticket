@@ -1,4 +1,4 @@
-import { neonAuthUsers } from './schema/neon-auth-user.schema';
+import { neonAuthUsers } from './neon-auth-user.table';
 import { tasks } from './schema/tasks.schema';
 
 /**
@@ -13,7 +13,7 @@ import { tasks } from './schema/tasks.schema';
  */
 export const drizzleSchema = {
   tasks,
-  /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.schema.ts`. */
+  /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */
   neonAuthUsers,
 };
 

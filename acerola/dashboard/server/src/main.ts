@@ -37,32 +37,23 @@ async function bootstrap(): Promise<void> {
             '',
             '## Autenticação',
             '',
-            'Esta API **não tem login**. A identidade chega pronta, do proxy que já autenticou a pessoa, nos cabeçalhos `x-forwarded-user-id`, `x-forwarded-user-email`, `x-forwarded-user-name` e `x-forwarded-user-role`.',
+            'Quem autentica é o **Neon Auth**, não esta API: a tela manda e-mail e senha direto para lá e recebe um token assinado.',
             '',
-            'Uma requisição SEM nenhum desses cabeçalhos assume o usuário de demonstração (administrador). Uma requisição COM os cabeçalhos presentes e malformados é recusada com 401 — e nunca cai no usuário de demonstração.',
+            'Toda requisição precisa apresentar esse token em `Authorization: Bearer <token>`. O servidor confere a assinatura pela chave pública da Neon (JWKS) e lê o papel da pessoa no cadastro (`neon_auth.user`) a cada chamada — papel trocado ou conta banida no painel valem na requisição seguinte.',
+            '',
+            'Sem token, ou com token vencido, inválido ou de conta que não existe mais: 401.',
           ].join('\n'),
         )
         .setVersion('0.1.0')
-        /* Não é `addBearerAuth`: não existe token para enviar. O que autentica é o conjunto
-           de cabeçalhos que o proxy injeta, e é isso que o "Authorize" do Swagger oferece. */
-        .addApiKey(
+        .addBearerAuth(
           {
-            type: 'apiKey',
-            in: 'header',
-            name: 'x-forwarded-user-email',
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
             description:
-              'E-mail de quem está pedindo. Em produção quem preenche é o proxy; aqui serve para experimentar a API como outra pessoa.',
+              'O token que o Neon Auth entrega à tela depois do login. Para experimentar aqui, faça login no sistema e copie o token da chamada que o navegador já faz.',
           },
-          'auth-forward',
-        )
-        .addApiKey(
-          {
-            type: 'apiKey',
-            in: 'header',
-            name: 'x-forwarded-user-role',
-            description: 'Perfil: `admin`, `editor` ou `viewer`. Decide o que a policy permite.',
-          },
-          'auth-forward-role',
+          'neon-auth',
         )
         .build(),
     ),

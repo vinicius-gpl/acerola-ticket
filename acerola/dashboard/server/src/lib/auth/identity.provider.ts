@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm';
 import { runMaybe } from '../db/db-error.util';
 import { DB } from '../db/db.token';
 import { type Database } from '../db/db.type';
-import { neonAuthUsers, type NeonAuthUserRow } from '../db/schema/neon-auth-user.schema';
+import { neonAuthUsers, type NeonAuthUserRow } from '../db/neon-auth-user.table';
 import { NEON_TOKEN_VERIFIER } from './neon-token.token';
 import { type NeonTokenVerifier } from './neon-token.util';
 

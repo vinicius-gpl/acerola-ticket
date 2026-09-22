@@ -8,9 +8,11 @@ import { boolean, pgSchema, text, timestamp } from 'drizzle-orm/pg-core';
  * papel de quem entrou, e nunca escreve aqui. Quem cria, remove e promove pessoas é o painel
  * da Neon.
  *
- * Por isso NÃO existe migration para esta tabela — quem a cria e a mantém é a Neon. O
- * `drizzle.config.ts` limita a geração de migrations ao schema `public` justamente para que
- * `npm run db:generate` nunca tente criar (ou pior, apagar) o que não é nosso.
+ * Por isso este arquivo mora FORA de `schema/` e não se chama `.schema.ts`: aquela pasta é o
+ * que o `drizzle-kit` lê para gerar migrations, e tabela que não é nossa não pode entrar
+ * nela. Sem esse cuidado, `npm run db:generate` tentaria criar — ou pior, apagar — o cadastro
+ * de pessoas inteiro. O `drizzle.config.ts` ainda limita a geração ao schema `public`, como
+ * segunda trava.
  *
  * Os nomes das colunas são em camelCase entre aspas porque foi assim que o Better Auth — o
  * motor por trás do Neon Auth — as criou. Não é o padrão do resto do projeto, e não pode ser
