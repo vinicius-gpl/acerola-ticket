@@ -4,7 +4,12 @@ import { expect, test } from '@playwright/test';
  * O fluxo principal da feature de exemplo, como a pessoa faz: abrir, errar, corrigir, criar.
  *
  * O título leva a hora no nome para o teste não depender do que já existe no banco.
+ *
+ * Sem `TEST_DATABASE_URL` (ver `playwright.config.ts`), pula em vez de arriscar rodar contra
+ * o banco de trabalho.
  */
+test.skip(!process.env.TEST_DATABASE_URL, 'Precisa de TEST_DATABASE_URL no server/.env');
+
 test('creates a task after fixing an empty title', async ({ page }) => {
   const title = `Tarefa E2E ${Date.now()}`;
 
