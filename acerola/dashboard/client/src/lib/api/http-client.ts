@@ -1,3 +1,5 @@
+import { readAuthToken } from '$lib/auth/neon-auth.client';
+
 import { type ApiErrorBody } from './api-error.type';
 
 /**
@@ -29,11 +31,14 @@ export type RequestOptions = {
 };
 
 /**
- * A WEB NÃO MANDA IDENTIDADE, e isso é a regra — não uma pendência.
+ * A WEB NUNCA AFIRMA QUEM É — ela APRESENTA uma prova.
  *
- * Quem diz quem é a pessoa é o servidor (hoje, a pessoa fixa do mock; depois, o proxy de
- * auth-forward). Mandar `x-forwarded-user-*` daqui seria pior que inútil: o navegador passaria
- * a AFIRMAR quem ele é, e qualquer pessoa poderia dizer que é administradora.
+ * O que vai no cabeçalho é o token assinado pelo Neon Auth, e o servidor confere a assinatura
+ * antes de acreditar em qualquer coisa. É a diferença entre dizer "sou administrador" (o que
+ * qualquer pessoa poderia escrever) e mostrar um crachá que só a Neon consegue emitir.
+ *
+ * Requisição sem token sai assim mesmo, sem cabeçalho: a API responde 401 e a guarda de rota
+ * manda para o login. Barrar aqui só esconderia o motivo.
  */
 export async function apiRequest<TResponse>(
   path: string,
@@ -42,7 +47,7 @@ export async function apiRequest<TResponse>(
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
     method: options.method ?? 'GET',
     signal: options.signal,
-    headers: options.body === undefined ? {} : { 'Content-Type': 'application/json' },
+    headers: await buildHeaders(options),
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
 
@@ -67,6 +72,16 @@ async function toApiError(response: Response): Promise<ApiError> {
     response.status,
     `Não consegui falar com o servidor (${response.status}). Tente de novo em instantes.`,
   );
+}
+
+async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+
+  const token = await readAuthToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  return headers;
 }
 
 async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {

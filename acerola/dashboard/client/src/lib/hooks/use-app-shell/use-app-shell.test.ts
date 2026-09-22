@@ -5,9 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Harness from './use-app-shell-harness.test.svelte';
 import { type AppShellModel } from './use-app-shell.svelte';
 
-vi.mock('$lib/api/auth.api', () => ({ authApi: { logout: vi.fn() } }));
+vi.mock('$lib/auth/neon-auth.client', () => ({
+  neonAuth: { signOut: vi.fn() },
+  readAuthToken: vi.fn().mockResolvedValue(null),
+}));
 
-const { authApi } = await import('$lib/api/auth.api');
+const { neonAuth } = await import('$lib/auth/neon-auth.client');
 const { goto } = await import('$app/navigation');
 
 function user(overrides: Partial<SessionUser> = {}): SessionUser {
@@ -22,34 +25,36 @@ function mountModel(overrides: Partial<SessionUser> = {}): AppShellModel {
 }
 
 beforeEach(() => {
-  vi.mocked(authApi.logout).mockReset().mockResolvedValue(undefined);
+  vi.mocked(neonAuth.signOut).mockReset().mockResolvedValue(undefined as never);
   vi.mocked(goto).mockClear();
 });
 
 describe('useAppShellModel', () => {
   // feliz
   it('translates the session user into what the shell shows', () => {
-    const model = mountModel({ name: 'Ana Souza', email: 'ana@empresa.com.br', role: 'editor' });
+    const model = mountModel({ name: 'Ana Souza', email: 'ana@empresa.com.br', role: 'manager' });
 
     expect(model.data.user).toEqual({
       name: 'Ana Souza',
       email: 'ana@empresa.com.br',
-      role: 'Edição',
+      role: 'Gerente',
     });
   });
 
-  it('logs out and navigates to /login', async () => {
+  it('logs out at Neon Auth and navigates to /login', async () => {
     const model = mountModel();
 
     model.actions.onLogout();
 
-    await waitFor(() => expect(authApi.logout).toHaveBeenCalledOnce());
+    await waitFor(() => expect(neonAuth.signOut).toHaveBeenCalledOnce());
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/login'));
   });
 
   // triste
-  it('still navigates to /login even when the logout request fails', async () => {
-    vi.mocked(authApi.logout).mockRejectedValueOnce(new Error('network down'));
+  /* Sair não pode depender de rede: quem clicou em "Sair" precisa sair da tela de qualquer
+     jeito, e a sessão que sobrar do lado da Neon vence sozinha. */
+  it('still navigates to /login even when the sign out request fails', async () => {
+    vi.mocked(neonAuth.signOut).mockRejectedValueOnce(new Error('network down'));
     const model = mountModel();
 
     model.actions.onLogout();
