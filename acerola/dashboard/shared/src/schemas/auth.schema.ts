@@ -21,3 +21,47 @@ export const loginRequestSchema = z.object({
 });
 
 export type LoginInput = z.input<typeof loginRequestSchema>;
+
+/**
+ * O CONTRATO de "esqueci minha senha": só o e-mail.
+ *
+ * A resposta é sempre a mesma, exista a conta ou não — dizer "esse e-mail não está cadastrado"
+ * contaria a quem está tentando adivinhar quais e-mails existem no sistema.
+ */
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string({ required_error: 'Informe o e-mail' })
+    .trim()
+    .min(1, 'Informe o e-mail')
+    .email('Informe um e-mail válido'),
+});
+
+export type ForgotPasswordInput = z.input<typeof forgotPasswordSchema>;
+
+/** O tamanho mínimo de senha do Neon Auth. Repetido aqui para o erro aparecer ANTES do envio. */
+export const PASSWORD_MIN_LENGTH = 8;
+
+/**
+ * O CONTRATO de "definir nova senha": a senha e a confirmação.
+ *
+ * A confirmação existe porque a pessoa não vê o que digita. Sem ela, um dedo errado vira uma
+ * senha que ninguém conhece — e a única saída seria repetir o processo inteiro do e-mail.
+ *
+ * O erro da confirmação aponta para o campo da confirmação, não para o da senha: é nele que a
+ * pessoa precisa mexer.
+ */
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string({ required_error: 'Informe a nova senha' })
+      .min(PASSWORD_MIN_LENGTH, `A senha precisa de pelo menos ${PASSWORD_MIN_LENGTH} caracteres`),
+    passwordConfirmation: z
+      .string({ required_error: 'Repita a nova senha' })
+      .min(1, 'Repita a nova senha'),
+  })
+  .refine((values) => values.password === values.passwordConfirmation, {
+    path: ['passwordConfirmation'],
+    message: 'As duas senhas precisam ser iguais',
+  });
+
+export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
