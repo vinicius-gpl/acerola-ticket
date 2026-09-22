@@ -1,3 +1,4 @@
+import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 import ListChecks from '@lucide/svelte/icons/list-checks';
 import type { LucideIcon } from '@lucide/svelte';
 
@@ -19,6 +20,7 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
+  { key: 'tickets', label: 'Chamados', to: '/tickets', icon: LifeBuoy },
   { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks },
 ];
 

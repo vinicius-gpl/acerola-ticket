@@ -48,7 +48,7 @@ export async function apiRequest<TResponse>(
     method: options.method ?? 'GET',
     signal: options.signal,
     headers: await buildHeaders(options),
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: toRequestBody(options.body),
   });
 
   if (response.status === 204) return undefined as TResponse;
@@ -74,9 +74,27 @@ async function toApiError(response: Response): Promise<ApiError> {
   );
 }
 
+/**
+ * O corpo da requisição.
+ *
+ * `FormData` passa inteiro, sem virar texto: é assim que um arquivo (o print de um chamado)
+ * viaja junto dos campos. Serializá-lo como JSON mandaria `{}` e o arquivo sumiria em
+ * silêncio — o pior tipo de falha, porque a requisição dá certo.
+ */
+function toRequestBody(body: unknown): BodyInit | undefined {
+  if (body === undefined) return undefined;
+  if (body instanceof FormData) return body;
+
+  return JSON.stringify(body);
+}
+
 async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  /* Com `FormData` o cabeçalho NÃO é escrito aqui: o navegador precisa montá-lo sozinho para
+     incluir o `boundary` que separa os campos. Escrevê-lo à mão quebra a leitura no servidor. */
+  if (options.body !== undefined && !(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const token = await readAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;
