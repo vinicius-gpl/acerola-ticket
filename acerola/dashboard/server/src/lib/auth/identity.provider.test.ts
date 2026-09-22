@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   FORWARDED_IDENTITY_HEADERS,
   hasForwardedHeaders,
-  MOCK_IDENTITY,
   readForwardedIdentity,
 } from './identity.provider';
 
@@ -37,8 +36,8 @@ describe('readForwardedIdentity', () => {
     expect(readForwardedIdentity(repeated)?.role).toBe('editor');
   });
 
-  /* Sem nenhum cabeçalho é o caso NORMAL no MVP: não há auth-forward ainda, e quem chama cai
-     no mock. Isso é diferente de cabeçalho quebrado. */
+  /* Sem nenhum cabeçalho é o caso normal para quem loga pela tela: não há auth-forward
+     configurado. Isso é diferente de cabeçalho quebrado. */
   it('returns null when nothing was forwarded', () => {
     expect(readForwardedIdentity({})).toBeNull();
     expect(readForwardedIdentity({ 'content-type': 'application/json' })).toBeNull();
@@ -86,20 +85,5 @@ describe('hasForwardedHeaders', () => {
   it('does not confuse a request without provider with a broken provider', () => {
     expect(hasForwardedHeaders({})).toBe(false);
     expect(hasForwardedHeaders({ authorization: 'Bearer something' })).toBe(false);
-  });
-});
-
-describe('MOCK_IDENTITY', () => {
-  /* O mock não é um desvio do caminho: ele tem a mesma forma de uma identidade encaminhada,
-     e passa pela mesma validação. O dia do auth-forward muda a origem, não o contrato. */
-  it('has the same shape as a forwarded identity', () => {
-    const asHeaders = {
-      [FORWARDED_IDENTITY_HEADERS.id]: MOCK_IDENTITY.id,
-      [FORWARDED_IDENTITY_HEADERS.email]: MOCK_IDENTITY.email,
-      [FORWARDED_IDENTITY_HEADERS.name]: MOCK_IDENTITY.name,
-      [FORWARDED_IDENTITY_HEADERS.role]: MOCK_IDENTITY.role,
-    };
-
-    expect(readForwardedIdentity(asHeaders)).toEqual(MOCK_IDENTITY);
   });
 });

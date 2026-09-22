@@ -57,6 +57,17 @@ export const envSchema = z.object({
    * identidade. Ele existe para o navegador baixar AGORA, não para ser guardado.
    */
   R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
+
+  /**
+   * A URL do Neon Auth (o mesmo endereço do `VITE_NEON_AUTH_URL` do client, sem o prefixo
+   * `VITE_`). O server usa para buscar as chaves públicas (JWKS) e conferir a assinatura do
+   * token que a tela manda — nunca para logar por conta própria.
+   */
+  NEON_AUTH_URL: z
+    .string()
+    .trim()
+    .min(1, 'Informe a URL do Neon Auth (NEON_AUTH_URL)')
+    .url('NEON_AUTH_URL precisa ser uma URL completa'),
 });
 
 export type Env = z.infer<typeof envSchema>;
