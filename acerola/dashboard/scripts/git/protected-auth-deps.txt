@@ -1,25 +1,10 @@
-# BIBLIOTECAS DE LOGIN/AUTENTICAÇÃO — não entram: a identidade vem do auth-forward.
-# Uma expressão regular (ERE) por linha, comparada ao NOME do pacote.
-^passport
-^@nestjs/(passport|jwt)$
-^bcrypt
-^argon2
-^jsonwebtoken$
-^jose$
-^express-session$
-^cookie-session$
-^next-auth$
-^@auth/
-^better-auth
-^lucia
-^@lucia-auth/
-^@clerk/
-^@supabase/
-^firebase
-^@firebase/
-^auth0
-^@auth0/
-^keycloak
-^oidc-client
-^openid-client$
-^@okta/
+# BIBLIOTECAS DE LOGIN/AUTENTICAÇÃO — antes bloqueadas por a identidade vir só do auth-forward.
+#
+# CONTRIBUTING §17 mudou essa política: o projeto pode usar autenticação própria, um provedor
+# externo (ex.: Better Auth) ou auth-forward, conforme a necessidade. Bibliotecas de
+# autenticação entram quando fizerem parte da tarefa pedida — evitando criar um segundo
+# mecanismo concorrente sem necessidade.
+#
+# Esta lista fica vazia de propósito (sem padrão nenhum, nada bate). Continua sendo lida por
+# branch-guard.sh (git) e por .claude/hooks/protect-paths.mjs (Claude Code); se um dia a
+# política mudar de novo, os nomes de pacote voltam aqui.
