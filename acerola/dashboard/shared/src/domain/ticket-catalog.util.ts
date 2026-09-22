@@ -1,3 +1,12 @@
+import {
+  DEPARTMENT_LABELS,
+  DEPARTMENTS,
+  type Department,
+  departmentLabel,
+  departmentOptions,
+  isDepartment,
+} from './department.util';
+
 /**
  * As duas listas fechadas que quem abre um chamado escolhe: o departamento e o tipo de
  * problema.
@@ -6,51 +15,27 @@
  * ("quais departamentos mais pedem", "qual problema mais aparece"). Com texto livre, "RH",
  * "rh" e "Recursos Humanos" viram três departamentos diferentes e o gráfico mente.
  *
- * Departamento novo? Acrescente aqui e rode `npm run db:generate`: a checagem do banco é
- * gerada desta mesma lista, então o formulário e o Postgres nunca discordam.
+ * Tipo de problema novo entra aqui. Departamento novo entra em `department.util.ts`, que é
+ * de onde os daqui vêm.
  */
 
 /**
- * Os departamentos são nomes próprios da empresa — não se traduzem. A chave é a versão sem
- * acento e em minúscula do próprio nome, para caber em coluna e URL sem escapar nada.
+ * O departamento de um chamado é o MESMO cadastro de departamentos do sistema — a lista mora
+ * em `department.util.ts`, porque computador também pertence a um departamento. Os nomes
+ * abaixo existem só para o resto da feature continuar lendo "ticketDepartment…", sem uma
+ * segunda lista que possa divergir da primeira.
  */
-export const TICKET_DEPARTMENTS = [
-  'analyze',
-  'certificado',
-  'comercial',
-  'contabil',
-  'cs',
-  'financeiro',
-  'fiscal',
-  'paralegal',
-  'pessoal',
-  'recepcao',
-  'rh',
-] as const;
+export const TICKET_DEPARTMENTS = DEPARTMENTS;
 
-export type TicketDepartment = (typeof TICKET_DEPARTMENTS)[number];
+export type TicketDepartment = Department;
 
-export const TICKET_DEPARTMENT_LABELS: Record<TicketDepartment, string> = {
-  analyze: 'ANALYZE',
-  certificado: 'CERTIFICADO',
-  comercial: 'COMERCIAL',
-  contabil: 'CONTÁBIL',
-  cs: 'CS',
-  financeiro: 'FINANCEIRO',
-  fiscal: 'FISCAL',
-  paralegal: 'PARALEGAL',
-  pessoal: 'PESSOAL',
-  recepcao: 'RECEPÇÃO',
-  rh: 'RH',
-};
+export const TICKET_DEPARTMENT_LABELS = DEPARTMENT_LABELS;
 
-export function ticketDepartmentLabel(department: TicketDepartment): string {
-  return TICKET_DEPARTMENT_LABELS[department];
-}
+export const ticketDepartmentLabel = departmentLabel;
 
-export function isTicketDepartment(value: unknown): value is TicketDepartment {
-  return typeof value === 'string' && (TICKET_DEPARTMENTS as readonly string[]).includes(value);
-}
+export const isTicketDepartment = isDepartment;
+
+export const ticketDepartmentOptions = departmentOptions;
 
 /**
  * Tipo de problema. Ao contrário do departamento, estes são categorias comuns de suporte e
@@ -88,11 +73,6 @@ export function ticketProblemTypeLabel(type: TicketProblemType): string {
 
 export function isTicketProblemType(value: unknown): value is TicketProblemType {
   return typeof value === 'string' && (TICKET_PROBLEM_TYPES as readonly string[]).includes(value);
-}
-
-/** As opções na ordem em que aparecem no `select`, já com o rótulo pronto. */
-export function ticketDepartmentOptions(): { value: TicketDepartment; label: string }[] {
-  return TICKET_DEPARTMENTS.map((value) => ({ value, label: TICKET_DEPARTMENT_LABELS[value] }));
 }
 
 export function ticketProblemTypeOptions(): { value: TicketProblemType; label: string }[] {
