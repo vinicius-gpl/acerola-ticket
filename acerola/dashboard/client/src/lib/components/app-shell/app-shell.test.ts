@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import BarChart3 from '@lucide/svelte/icons/chart-column';
 import ListChecks from '@lucide/svelte/icons/list-checks';
 import { createRawSnippet } from 'svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import AppShell, { type AppShellProps } from './app-shell.svelte';
 
@@ -55,5 +56,23 @@ describe('AppShell', () => {
     renderShell({});
 
     expect(screen.getByText('Visitante')).toBeInTheDocument();
+  });
+
+  it('does nothing if "Sair" is clicked without an onLogout handler', async () => {
+    renderShell({});
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
+  });
+});
+
+describe('AppShell logout', () => {
+  // feliz
+  it('calls onLogout when "Sair" is clicked', async () => {
+    const onLogout = vi.fn();
+    renderShell({ actions: { onLogout } });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
+
+    expect(onLogout).toHaveBeenCalledOnce();
   });
 });

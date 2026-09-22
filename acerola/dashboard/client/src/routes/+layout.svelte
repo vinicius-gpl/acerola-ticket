@@ -3,17 +3,19 @@
   import type { Snippet } from 'svelte';
 
   import AppErrorBoundary from '$lib/components/app-error-boundary/app-error-boundary.svelte';
-  import AppShell from '$lib/components/app-shell/app-shell.svelte';
-  import { useAppShellModel } from '$lib/hooks/use-app-shell/use-app-shell.svelte';
   import '$lib/theme/tokens.css';
 
   /**
    * A WEB NÃO GUARDA SESSÃO, e não manda identidade.
    *
-   * O template não tem login: a identidade é decidida no servidor (hoje, a pessoa fixa do
-   * mock; depois, o proxy de auth-forward). Nada de token no `localStorage` — num escritório
-   * de máquinas compartilhadas, a próxima pessoa a abrir o sistema herdaria a conta da
-   * anterior.
+   * A sessão do login próprio é um cookie `HttpOnly` — o JavaScript da tela nem consegue lê-lo,
+   * então não há nada aqui para guardar ou mandar. Nada de token no `localStorage`: num
+   * escritório de máquinas compartilhadas, a próxima pessoa a abrir o sistema herdaria a conta
+   * da anterior.
+   *
+   * A casca (menu lateral) NÃO mora aqui: ela é de `routes/(app)/+layout.svelte`, que também
+   * exige sessão válida. Este layout raiz vale para a tela de login também, então só tem o que
+   * toda tela precisa — cliente de dados e captura de erro.
    */
   let { children }: { children: Snippet } = $props();
 
@@ -33,14 +35,10 @@
       },
     },
   });
-
-  const shell = useAppShellModel();
 </script>
 
 <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
-    <AppShell data={shell.data} state={shell.state}>
-      {@render children()}
-    </AppShell>
+    {@render children()}
   </QueryClientProvider>
 </AppErrorBoundary>

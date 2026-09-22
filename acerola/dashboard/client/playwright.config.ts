@@ -35,6 +35,9 @@ if (testDatabaseUrl) process.env.TEST_DATABASE_URL = testDatabaseUrl;
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
+  /* Cria a conta de teste antes de QUALQUER teste rodar — sem ela, `/tasks` (que agora exige
+     login) rejeitaria logo de cara. `global-setup.ts` mesmo pula sozinho sem `TEST_DATABASE_URL`. */
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
