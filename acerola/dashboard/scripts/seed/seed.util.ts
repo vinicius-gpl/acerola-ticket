@@ -50,7 +50,7 @@ export async function resetDatabase(): Promise<void> {
 
   const opened = await openDatabase(requireDatabaseUrl());
   try {
-    await opened.db.execute(sql`truncate table tasks restart identity cascade`);
+    await opened.db.execute(sql`truncate table tasks, users, sessions restart identity cascade`);
   } finally {
     await opened.close();
   }

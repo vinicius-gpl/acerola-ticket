@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { AuthenticationMiddleware } from './authentication.middleware';
 import { RolesGuard } from './roles.guard';
+import { SessionRepository } from './session.repository';
 
 /**
  * Duas perguntas, dois mecanismos, nesta ordem:
@@ -16,7 +17,7 @@ import { RolesGuard } from './roles.guard';
  * — guard por controller — faz rota nova nascer aberta, e ninguém revisa a ausência de algo.
  */
 @Module({
-  providers: [{ provide: APP_GUARD, useClass: RolesGuard }],
+  providers: [{ provide: APP_GUARD, useClass: RolesGuard }, SessionRepository],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

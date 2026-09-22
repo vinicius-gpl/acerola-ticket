@@ -9,6 +9,7 @@ const secrets = {
   R2_ACCESS_KEY_ID: 'chave-de-exemplo',
   R2_SECRET_ACCESS_KEY: 'segredo-de-exemplo',
   R2_BUCKET: 'arquivos',
+  NEON_AUTH_URL: 'https://ep-exemplo.neonauth.us-east-2.aws.neon.build/acerola/auth',
 };
 
 describe('parseEnv', () => {
@@ -42,6 +43,11 @@ describe('parseEnv', () => {
   it('refuses to start when a secret is missing, naming it', () => {
     expect(() => parseEnv({})).toThrow(/DATABASE_URL/);
     expect(() => parseEnv({ DATABASE_URL: secrets.DATABASE_URL })).toThrow(/R2_ACCOUNT_ID/);
+    expect(() => parseEnv({ ...secrets, NEON_AUTH_URL: undefined })).toThrow(/NEON_AUTH_URL/);
+  });
+
+  it('refuses a NEON_AUTH_URL that is not a URL', () => {
+    expect(() => parseEnv({ ...secrets, NEON_AUTH_URL: 'nao-e-url' })).toThrow(/NEON_AUTH_URL/);
   });
 
   /* Apontar o server para um banco que não é Postgres falharia muito depois, com uma

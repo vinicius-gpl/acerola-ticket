@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+import { E2E_USER } from './global-setup';
+
 /**
- * O fluxo principal da feature de exemplo, como a pessoa faz: abrir, errar, corrigir, criar.
+ * O fluxo principal da feature de exemplo, como a pessoa faz: logar, abrir, errar, corrigir,
+ * criar.
  *
  * O título leva a hora no nome para o teste não depender do que já existe no banco.
  *
@@ -13,7 +16,13 @@ test.skip(!process.env.TEST_DATABASE_URL, 'Precisa de TEST_DATABASE_URL no serve
 test('creates a task after fixing an empty title', async ({ page }) => {
   const title = `Tarefa E2E ${Date.now()}`;
 
-  await page.goto('/');
+  /* Login próprio, do jeito que a pessoa faz: `/tasks` exige sessão, então o primeiro passo
+     de QUALQUER fluxo agora é este. */
+  await page.goto('/login');
+  await page.getByLabel('E-mail').fill(E2E_USER.email);
+  await page.getByLabel('Senha').fill(E2E_USER.password);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
   await expect(page.getByRole('heading', { name: 'Tarefas' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Nova tarefa' }).first().click();

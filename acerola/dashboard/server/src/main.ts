@@ -37,14 +37,18 @@ async function bootstrap(): Promise<void> {
             '',
             '## Autenticação',
             '',
-            'Esta API **não tem login**. A identidade chega pronta, do proxy que já autenticou a pessoa, nos cabeçalhos `x-forwarded-user-id`, `x-forwarded-user-email`, `x-forwarded-user-name` e `x-forwarded-user-role`.',
+            'Duas formas de chegar autenticado, nesta ordem de prioridade:',
             '',
-            'Uma requisição SEM nenhum desses cabeçalhos assume o usuário de demonstração (administrador). Uma requisição COM os cabeçalhos presentes e malformados é recusada com 401 — e nunca cai no usuário de demonstração.',
+            '1. **Login próprio** — `POST /api/auth/login` com e-mail e senha abre uma sessão e grava um cookie `HttpOnly`. É o caminho normal pela tela.',
+            '2. **Cabeçalhos encaminhados** (`auth-forward`) — quando o projeto fica atrás de um proxy que já autenticou a pessoa, ele injeta `x-forwarded-user-id`, `x-forwarded-user-email`, `x-forwarded-user-name` e `x-forwarded-user-role`.',
+            '',
+            'Uma requisição sem sessão e sem cabeçalhos recebe 401 (exceto `/api/auth/login`, que precisa ficar acessível para abrir a primeira sessão). Cabeçalhos presentes e malformados são recusados com 401, mesmo que haja uma sessão de cookie válida — nunca completa o que faltou.',
           ].join('\n'),
         )
         .setVersion('0.1.0')
-        /* Não é `addBearerAuth`: não existe token para enviar. O que autentica é o conjunto
-           de cabeçalhos que o proxy injeta, e é isso que o "Authorize" do Swagger oferece. */
+        /* Não é `addBearerAuth`: o login de verdade autentica por cookie, que o navegador já
+           manda sozinho. O "Authorize" do Swagger só precisa oferecer o caminho alternativo,
+           de quem está experimentando a API como se fosse o auth-forward. */
         .addApiKey(
           {
             type: 'apiKey',

@@ -25,11 +25,13 @@
     };
     ui?: { items?: readonly NavItem[] };
     state?: { isCollapsed?: boolean; activeKey?: string };
+    actions?: { onLogout?: () => void };
   };
 </script>
 
 <script lang="ts">
-  import { BrandMark } from '$lib/components/brand-mark/brand-mark';
+  import LogOut from '@lucide/svelte/icons/log-out';
+import { BrandMark } from '$lib/components/brand-mark/brand-mark';
   import {
     Sidebar,
     SidebarContent,
@@ -49,7 +51,7 @@
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/app-shell-nav-entry/app-shell-nav-entry.svelte';
 
-  let { children, data, ui, state }: AppShellProps = $props();
+  let { children, data, ui, state, actions }: AppShellProps = $props();
 
   const items = $derived(ui?.items ?? NAV_ITEMS);
   const userName = $derived(data?.user?.name ?? 'Visitante');
@@ -94,10 +96,17 @@
             </span>
           </SidebarMenuButton>
         </SidebarMenuItem>
+        <SidebarMenuItem>
+          <!-- Sem `tooltip=`: nesse componente baixado, o `props` do gatilho do tooltip é
+               espalhado DEPOIS do `onclick` que passamos e o sobrescreve (bug do vendor, não
+               editamos `lib/components/ui/`). O rótulo continua visível, só some junto com o
+               resto quando a barra recolhe para ícones. -->
+          <SidebarMenuButton onclick={actions?.onLogout}>
+            <LogOut />
+            <span>Sair</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       </SidebarMenu>
-      <!-- Não há botão "Sair": o template não tem login. Quem encerra a sessão é o provedor de
-           identidade que fica na frente dele — um botão aqui prometeria um efeito que a
-           aplicação não tem como cumprir. -->
     </SidebarFooter>
 
     <!-- A borda arrastável: recolher também pela lateral, sem procurar o botão. -->

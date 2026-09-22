@@ -3,8 +3,11 @@
   import BarChart3 from '@lucide/svelte/icons/chart-column';
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import Settings from '@lucide/svelte/icons/settings';
+  import { fn } from 'storybook/test';
 
   import AppShell from './app-shell.svelte';
+
+  const actions = { onLogout: fn() };
 
   const manyItems = [
     { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks },
@@ -22,7 +25,7 @@
 </script>
 
 <Story name="Default">
-  <AppShell data={{ user }} state={{ activeKey: 'tasks' }}>
+  <AppShell data={{ user }} state={{ activeKey: 'tasks' }} {actions}>
     <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
 </Story>

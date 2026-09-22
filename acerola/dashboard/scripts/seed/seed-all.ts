@@ -1,5 +1,6 @@
 import { openSeedDatabase, report, resetDatabase } from './seed.util';
 import { seedTasks } from './tasks/seed-tasks';
+import { seedUsers } from './users/seed-users';
 
 /**
  * Todos os seeds, NA ORDEM DE DEPENDÊNCIA.
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
   const { db, close } = await openSeedDatabase();
 
   try {
+    report('usuários', await seedUsers(db));
     report('tarefas', await seedTasks(db));
   } finally {
     await close();
