@@ -24,6 +24,44 @@ describe('SelectField', () => {
     expect(screen.getByRole('combobox', { name: 'Responsável' })).toHaveTextContent('Ana');
   });
 
+  /* O teste acima usa uma opção cujo valor e rótulo são iguais ("Ana"), então ele passaria
+     mesmo se o campo mostrasse o valor cru. Este aqui separa os dois de propósito. */
+  // feliz
+  it('mostra o rótulo, não o valor guardado, antes de a lista ser aberta', () => {
+    render(SelectField, {
+      props: {
+        data: {
+          value: 'network',
+          options: [
+            { value: 'network', label: 'Internet / Rede' },
+            { value: 'printer', label: 'Impressora' },
+          ],
+        },
+        ui: { ariaLabel: 'Tipo de problema' },
+        actions: { onChange: vi.fn() },
+      },
+    });
+
+    const trigger = screen.getByRole('combobox', { name: 'Tipo de problema' });
+    expect(trigger).toHaveTextContent('Internet / Rede');
+    expect(trigger).not.toHaveTextContent('network');
+  });
+
+  // triste
+  it('mostra o placeholder quando nada foi escolhido', () => {
+    render(SelectField, {
+      props: {
+        data: { value: '', options: [{ value: 'network', label: 'Internet / Rede' }] },
+        ui: { ariaLabel: 'Tipo de problema', placeholder: 'Selecione' },
+        actions: { onChange: vi.fn() },
+      },
+    });
+
+    expect(screen.getByRole('combobox', { name: 'Tipo de problema' })).toHaveTextContent(
+      'Selecione',
+    );
+  });
+
   /* `fireEvent`, não `userEvent`, para abrir e escolher: o jsdom não calcula layout de
      verdade, e o `userEvent` do bits-ui Select — que abre num portal, fora da árvore do
      componente — fica preso esperando um estado de "visível" que o jsdom nunca resolve.

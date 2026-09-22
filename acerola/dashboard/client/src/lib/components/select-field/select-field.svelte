@@ -21,18 +21,27 @@
 </script>
 
 <script lang="ts">
-  import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from '$lib/components/ui/select';
+  import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
   import { cn } from '$lib/utils/cn';
 
   let { data, ui, state, actions }: SelectFieldProps = $props();
 
   const selectedValue = $derived(data.value === '' ? EMPTY_VALUE : data.value);
+
+  /**
+   * O RÓTULO DO VALOR ESCOLHIDO, resolvido aqui.
+   *
+   * O `Select.Value` do componente baixado resolve o rótulo a partir das opções que já
+   * foram montadas — e elas só montam quando a lista abre. Antes disso ele mostrava o valor
+   * cru: a tela nascia escrevendo "network" e "medium" no lugar de "Internet / Rede" e
+   * "Média", e o texto só virava português depois que a pessoa abrisse a lista.
+   *
+   * Procurar na própria lista de opções não depende de nada ter sido montado, então o
+   * rótulo certo aparece já na primeira pintura.
+   */
+  const selectedLabel = $derived(
+    data.options.find((option) => (option.value || EMPTY_VALUE) === selectedValue)?.label ?? '',
+  );
 </script>
 
 <Select
@@ -49,7 +58,10 @@
     aria-label={ui?.ariaLabel}
     class={cn('h-auto rounded-sm py-2 text-sm', ui?.className)}
   >
-    <SelectValue placeholder={ui?.placeholder} />
+    <!-- `data-slot="select-value"` mantém o recorte de uma linha que o gatilho aplica ao
+         filho. O tom de "nada escolhido" continua vindo do próprio gatilho, que recebe
+         `data-placeholder` do componente baixado. -->
+    <span data-slot="select-value">{selectedLabel || (ui?.placeholder ?? '')}</span>
   </SelectTrigger>
   <SelectContent>
     {#each data.options as option (option.value || EMPTY_VALUE)}
