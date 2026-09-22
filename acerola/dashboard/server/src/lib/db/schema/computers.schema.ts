@@ -50,8 +50,13 @@ export const computers = pgTable(
     /**
      * O HASH do token, nunca o token. Mesmo princípio de senha: um vazamento do banco não
      * pode entregar a credencial que faz uma máquina falsa se passar por uma de verdade.
+     *
+     * É ÚNICO porque é por ele que o agente se identifica — ele não manda o nome da máquina.
+     * Fosse pelo nome, o hostname real e o nome digitado no cadastro poderiam divergir (alguém
+     * renomeia a máquina no Windows) e a telemetria pararia de achar a ficha. O token não tem
+     * esse problema: ele é a identidade, e o hostname vira apenas mais um dado medido.
      */
-    tokenHash: text('token_hash').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
 
     /* Os fatos de hardware, do último envio. Nulos até a primeira conexão: nulo diz "ainda
        não sei", zero diria "medi e deu zero", que é outra coisa. */

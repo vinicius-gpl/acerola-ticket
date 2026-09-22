@@ -36,6 +36,13 @@
       "when": 1790105673815,
       "tag": "0004_sturdy_skaar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790106553906,
+      "tag": "0005_groovy_rattler",
+      "breakpoints": true
     }
   ]
 }
