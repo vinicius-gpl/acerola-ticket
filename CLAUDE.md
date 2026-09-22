@@ -38,23 +38,18 @@ Siga a skill **`git-fluxo`** sempre, sem exceção e sem a pessoa precisar pedir
 
 ## O QUE O MVP NÃO FAZ — e o que fazer quando pedirem
 
-- **Login, usuários, senhas, sessão, permissões por pessoa, auth-forward:** não se implementa
-  nada disso, nem parcialmente. A identidade vem do **auth-forward**, gerenciado pelo suporte.
-  Responda com gentileza e encaminhe ao suporte → skill **`limites-do-mvp`**.
 - **"Por que meus dados não aparecem no PC de outra pessoa?"** Os dados são **locais**: cada
   computador tem o próprio banco. Explique; se insistir (dados compartilhados, servidor,
   internet), encaminhe ao suporte → skill **`limites-do-mvp`**.
 - **Erro estrutural grande** (não instala, não sobe, banco ou git em estado confuso, erro que
   só some mexendo em regra/configuração/arquivo protegido, mesmo erro depois de duas
-  tentativas): **pare**, guarde o trabalho, gere o relatório e encaminhe ao suporte → skill
-  **`suporte`**.
+  tentativas): **pare**, guarde o trabalho e gere o relatório → skill **`suporte`**.
 
-O contato do suporte está em **`SUPORTE.md`**. Use o que estiver lá; nunca invente.
-
-**Arquivos protegidos** (listas em `acerola/dashboard/scripts/git/protected-*.txt`): identidade/login e
-a base do projeto (regras de lint, tsconfig, hooks, CI, Docker, `CLAUDE.md`, `.claude/`…). Um
-hook do Claude Code bloqueia a edição e o hook do git bloqueia o commit. **Bloqueio não se
-contorna** — nem por `Bash`, nem por outro caminho: ele indica qual skill seguir.
+**Arquivos protegidos** (lista em `acerola/dashboard/scripts/git/protected-structure.txt`): a
+base do projeto (regras de lint, tsconfig, hooks, CI, Docker, `CLAUDE.md`, `.claude/`…). Login e
+autenticação **não** são bloqueados por padrão — ver CONTRIBUTING §17. Um hook do Claude Code
+bloqueia a edição e o hook do git bloqueia o commit. **Bloqueio não se contorna** — nem por
+`Bash`, nem por outro caminho: ele indica qual skill seguir.
 
 ## As regras de código
 
@@ -63,11 +58,13 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 1. **Idioma:** o usuário vê → português. O usuário não vê (código, log, teste, erro interno) →
    inglês. Comentário em português, explicando o **porquê**.
 2. **Early return.** Nunca `if/else` alinhado. Complexidade máxima 10.
-3. **MVVM:** rota só compõe · view-model (`use-*.model.ts`) tem estado e dados, zero JSX ·
-   componente de UI é função pura de props, zero `useQuery`/`useMutation`/`useNavigate`.
+3. **MVVM:** rota (`+page.svelte`) só compõe · hook (`lib/hooks/use-*/use-*.svelte.ts`) tem
+   estado e dados, sem marcação · componente de UI é função pura de props, zero
+   `createQuery`/`createMutation`/navegação direta.
 4. **Props em quatro grupos:** `data`, `ui`, `state`, `actions`.
-5. **`lib/vendor/ui/` não se edita.** Precisa mudar? Envolva num primitivo em `lib/ui/primitives/`.
-6. **Todo primitivo e compositor tem `.stories.tsx`** (default, variantes, estados, caso limite).
+5. **`lib/components/ui/` não se edita.** Precisa mudar? Envolva num componente próprio em
+   `lib/components/<nome>/`.
+6. **Todo componente tem `.stories.svelte`** (default, variantes, estados, caso limite).
 7. **Todo código com lógica tem teste do caminho feliz e do triste** (`// feliz`, `// triste`).
 8. **Backend:** controller → service → repository. Policy no service. Autoria vem da
    identidade, nunca do corpo. Toda consulta passa por `runQuery`/`runMaybe`/`runOne`.
@@ -92,7 +89,7 @@ Antes de começar uma tarefa, veja se há skill para ela em `.claude/skills/` e 
 | "Está pronto?", antes de commit de feature | `verificar` |
 | Tirar a feature de Tarefas | `remover-exemplo` |
 | Erro de ambiente, porta ocupada, instalação | `socorro` |
-| Login, usuários, senha, dados em outro PC, servidor, internet | `limites-do-mvp` |
+| Dados em outro PC, servidor, internet | `limites-do-mvp` |
 | Erro estrutural grande, bloqueio de arquivo de estrutura | `suporte` |
 
 **A feature de Tarefas é o molde.** Quando for criar algo, abra o arquivo equivalente de
@@ -104,13 +101,13 @@ O sistema fica em **`acerola/dashboard/`** (uma pasta abaixo da raiz). Todo coma
 
 ```
 acerola/dashboard/shared/src/{domain,schemas}/        contrato e regra pura
-acerola/dashboard/server/src/lib/db/schema/           tabelas (Drizzle, SQLite)
+acerola/dashboard/server/src/lib/db/schema/           tabelas (Drizzle, Postgres/Neon)
 acerola/dashboard/server/src/modules/<feature>/       API
 acerola/dashboard/server/drizzle/                     migrations (geradas — não edite à mão)
-acerola/dashboard/client/src/routes/                  telas (só composição)
-acerola/dashboard/client/src/lib/view-models/         estado e dados das telas
-acerola/dashboard/client/src/lib/ui/{primitives,composers}/   componentes
-acerola/dashboard/client/src/lib/ui/navigation.ts     menu lateral
+acerola/dashboard/client/src/routes/                  telas (só composição, SvelteKit)
+acerola/dashboard/client/src/lib/hooks/<nome>/        estado e dados das telas
+acerola/dashboard/client/src/lib/components/          componentes
+acerola/dashboard/client/src/lib/navigation/          menu lateral
 acerola/dashboard/scripts/seed/<entidade>/            dados de teste
 ```
 
@@ -118,22 +115,22 @@ acerola/dashboard/scripts/seed/<entidade>/            dados de teste
 
 ```bash
 cd acerola/dashboard
-npm run dev            # API :3333 + tela :5173
+npm run dev            # API :3336 + tela :5176
 npm run seed:all       # dados de teste (idempotente)
 npm run db:generate    # depois de mudar tabela
 npm run lint           # ESLint
 npm run typecheck      # TypeScript
 npm test               # unidade + componente
-npm run test:e2e -w server   # E2E da API (SQLite em memória)
+npm run test:e2e -w server   # E2E da API (banco de teste na Neon, TEST_DATABASE_URL)
 npm run build          # build de produção
 ```
 
 `npm run dev` roda em segundo plano (é um servidor que não termina). Para conferir a tela,
-use o navegador em http://localhost:5173.
+use o navegador em http://localhost:5176.
 
 ## O que SEMPRE pede confirmação antes
 
-- `npm run db:reset` ou apagar `server/data/app.db` — **apaga os dados** da pessoa.
+- `npm run db:reset` — **apaga os dados** da pessoa no banco Postgres (Neon).
 - `git merge --no-ff` na develop — só depois do OK da pessoa de que está funcionando.
 - `git push`, abrir PR, criar repositório, qualquer coisa que saia da máquina.
 - `git reset --hard`, `git checkout -- .`, `git clean`, apagar branch — perde trabalho.
@@ -146,10 +143,7 @@ use o navegador em http://localhost:5173.
 - Commit direto na `develop`, ou merge nela sem o OK da pessoa.
 - `git commit --no-verify` ou qualquer forma de pular os hooks. Se o hook recusar, corrija.
 - `npm install --force` ou `--legacy-peer-deps`.
-- Editar arquivo em `lib/vendor/ui/`, `routeTree.gen.ts` ou `server/drizzle/meta/`.
-- Criar tela de login, cadastro de usuário, senha, sessão, tabela de usuários, ou instalar
-  biblioteca de autenticação. Mexer em `lib/auth`, `user.schema.ts` ou nos cabeçalhos
-  `x-forwarded-user-*`.
+- Editar arquivo em `lib/components/ui/`, `routeTree.gen.ts` ou `server/drizzle/meta/`.
 - Editar arquivo protegido, ou contornar os hooks que o protegem.
 - Remendar erro estrutural (desligar regra, `@ts-ignore`, `eslint-disable`, apagar teste,
   `--force`) em vez de acionar o suporte.
