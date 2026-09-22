@@ -14,7 +14,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 /**
  * Serve o build do client — sem Nginx, sem container à parte. Atrás do Traefik, esta
  * imagem responde `/` (SPA) e `/api` (Nest) sozinha. Em desenvolvimento a pasta não existe
- * (o Vite serve o client em :5173), e o `express.static` por baixo simplesmente devolve 404
+ * (o Vite serve o client em :5176), e o `express.static` por baixo simplesmente devolve 404
  * em silêncio — não derruba o boot.
  */
 const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
