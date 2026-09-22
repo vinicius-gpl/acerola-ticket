@@ -1,6 +1,6 @@
 ---
 name: comecar
-description: Primeiro uso do projeto — confere Node/Git, instala dependências, cria o banco com os dados de teste, sobe o sistema e apresenta a estrutura para quem nunca programou. Use quando a pessoa acabou de clonar, pergunta "como rodo isso?", "por onde começo?" ou o sistema nunca foi instalado nesta máquina.
+description: Primeiro uso do projeto — confere Node/Git, instala dependências, ajuda a configurar as credenciais da Neon (banco) e do Cloudflare R2 (arquivos), cria os dados de teste, sobe o sistema e apresenta a estrutura para quem nunca programou. Use quando a pessoa acabou de clonar, pergunta "como rodo isso?", "por onde começo?" ou o sistema nunca foi instalado nesta máquina.
 ---
 
 # Começar
@@ -30,52 +30,70 @@ cd acerola/dashboard
 npm install
 ```
 
-Demora alguns minutos na primeira vez. Avise antes. Avisos `deprecated` são normais; erro de
-`better-sqlite3` → skill `socorro`.
+Demora alguns minutos na primeira vez. Avise antes. Avisos `deprecated` são normais.
 
 O `npm install` também prepara o git desta máquina: liga as travas de branch e configura o
 Git-Flow do **Tower** (main, develop, `feature/`…). Se o repositório não tem git (`git status`
 falha na raiz — projeto baixado em .zip), avise a pessoa: o fluxo de trabalho depende de clonar
 pelo GitHub ou pelo Tower. Não crie a `main` por conta própria.
 
-## 3. Banco e dados de teste
+## 3. Banco e arquivos (Neon e Cloudflare R2)
+
+O banco é o Postgres da **Neon** e os arquivos vão para o **Cloudflare R2** — os dois exigem
+credencial, e o server recusa subir sem ela.
+
+```bash
+cp server/.env.example server/.env
+```
+
+Ajude a pessoa a preencher, no `server/.env` que acabou de criar:
+- `DATABASE_URL` — no painel da Neon: o projeto → "Connection string" → a de "Pooled connection".
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` — no painel da
+  Cloudflare, seção R2.
+
+Se ela ainda não tem conta na Neon ou na Cloudflare, isso é criar a conta antes de continuar —
+avise que é um passo de infraestrutura, não do Claude.
+
+## 4. Dados de teste
 
 ```bash
 npm run seed:all
 ```
 
-Cria `server/data/app.db`, as tabelas e as tarefas de exemplo.
+Cria as tabelas no banco e grava as tarefas de exemplo.
 
-## 4. Subir
+## 5. Subir
 
 Rode `npm run dev` **em segundo plano** (ele não termina). Espere aparecer
-`API em http://localhost:3333/api` e o Vite em `:5173`.
+`API em http://localhost:3336/api` e o Vite em `:5176`.
 
 Diga à pessoa:
-- **O sistema:** http://localhost:5173
-- **A documentação da API (Swagger):** http://localhost:3333/docs
+- **O sistema:** http://localhost:5176
+- **A documentação da API (Swagger):** http://localhost:3336/docs
 - Para parar: `Ctrl+C` no terminal onde está rodando.
 
 Se puder, abra no navegador e confira que a lista de tarefas aparece.
 
-## 5. Apresentar o projeto (curto)
+## 6. Apresentar o projeto (curto)
 
 Explique em até 10 linhas, em português simples:
 
 - O sistema tem **três partes**: `shared` (as regras e os formatos dos dados, usados pelas
   outras duas), `server` (a API, que guarda no banco) e `client` (as telas).
-- O banco é um **arquivo** (SQLite) em `server/data/app.db`. Não vai para o git; os **dados de
-  teste** vão, em `scripts/seed/`.
+- O banco é o **Postgres da Neon** — remoto, não um arquivo na máquina. As credenciais ficam no
+  `server/.env`, que não vai para o git; os **dados de teste** vão, em `scripts/seed/`.
 - **Tarefas** é um exemplo completo, para servir de molde. Dá para remover depois
   (`remover-exemplo`).
-- Não tem login, e não vai ter aqui: o acesso é feito pelo auth-forward, gerenciado pelo
-  suporte. Todo mundo entra como "Usuário de desenvolvimento".
-- Os dados ficam **só neste computador**.
-- Algo grande deu errado? O contato do suporte está em `SUPORTE.md`.
+- Não tem login por padrão: todo mundo entra como "Usuário de desenvolvimento". Se a ideia
+  precisar de login, é só pedir.
+- Quem usar a mesma `DATABASE_URL` vê os mesmos dados — não é automático que cada máquina
+  tenha os seus.
+- Algo grande der errado (projeto não sobe, banco quebrado), a skill `suporte` entra em ação:
+  ela para, guarda o trabalho e prepara um relatório do problema pra você investigar com calma.
 - Ela pode pedir coisas em linguagem normal. Dê 2 exemplos de pedido, usando a ideia do MVP
   dela se você souber qual é.
 
-## 6. Próximo passo
+## 7. Próximo passo
 
 Sugira, nesta ordem:
 1. `renomear-projeto` — colocar o nome do MVP no título das telas.

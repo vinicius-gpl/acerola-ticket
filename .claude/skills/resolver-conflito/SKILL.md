@@ -53,12 +53,12 @@ Nunca diga o caminho do arquivo para a pessoa. Diga **a tela ou a parte** que el
 
 | Arquivo (em `acerola/dashboard/`) | Como falar |
 |---|---|
-| `client/src/routes/<rota>/...` | "a tela **<título>**" — o título está no `PageHeader` da view que a rota usa |
-| `client/src/lib/ui/composers/<x>-view.component.tsx` | "a tela **<título do PageHeader>**" |
-| `client/src/lib/ui/composers/<x>-form-dialog.component.tsx` | "o formulário de **<x>**" (título do `DialogTitle`) |
-| `client/src/lib/view-models/use-<x>.model.ts` | "o funcionamento da tela **<x>**" (filtros, botões, o que carrega) |
-| `client/src/lib/ui/primitives/<x>.component.tsx` | "o componente **<x>**, usado nas telas A, B…" (descubra com `Grep` quem importa) |
-| `client/src/lib/ui/navigation.ts` | "o **menu lateral**" |
+| `client/src/routes/<rota>/+page.svelte` | "a tela **<título>**" — o título está no `PageHeader` da view que a rota usa |
+| `client/src/lib/components/<x>-view/<x>-view.svelte` | "a tela **<título do PageHeader>**" |
+| `client/src/lib/components/<x>-form-dialog/<x>-form-dialog.svelte` | "o formulário de **<x>**" (título do `DialogTitle`) |
+| `client/src/lib/hooks/use-<x>/use-<x>.svelte.ts` | "o funcionamento da tela **<x>**" (filtros, botões, o que carrega) |
+| `client/src/lib/components/<x>/<x>.svelte` (fora de `components/ui/`) | "o componente **<x>**, usado nas telas A, B…" (descubra com `Grep` quem importa) |
+| `client/src/lib/navigation/navigation.ts` | "o **menu lateral**" |
 | `client/src/lib/theme/tokens.css` | "as **cores** do sistema" |
 | `shared/src/schemas/<x>.schema.ts` | "as **regras do cadastro de <x>**" (campos obrigatórios, limites, mensagens de erro) |
 | `shared/src/domain/<x>.util.ts` | "a **regra de <o que a função calcula>**" |
@@ -67,7 +67,7 @@ Nunca diga o caminho do arquivo para a pessoa. Diga **a tela ou a parte** que el
 | `server/drizzle/**` | "o **histórico de mudanças do banco**" — ver §5 |
 | `scripts/seed/<x>/...` | "os **dados de teste de <x>**" |
 | `package.json`, `package-lock.json` | "a **lista de bibliotecas** do projeto" — ver §5 |
-| `*.test.ts(x)`, `*.stories.tsx` | "os **testes**" / "o **catálogo visual**" da parte correspondente |
+| `*.test.ts`, `*.stories.svelte` | "os **testes**" / "o **catálogo visual**" da parte correspondente |
 | `README.md`, `CONTRIBUTING.md`, `.claude/**` | "a **documentação**" |
 
 ## 4. Explicar e decidir
@@ -120,7 +120,8 @@ mudar uma regra que ela criou), sugira **conversar com ela** antes, e mostre o n
      sua mudança, em cima das da develop.
   5. Avise a pessoa que o banco local dela precisa ser recriado (`db:reset`, **com
      confirmação**) se a migration antiga já tinha sido aplicada.
-- **`routeTree.gen.ts`**: não é versionado; se aparecer, `npm run routes -w client`.
+- **`routeTree.gen.ts`**: não é versionado e é um arquivo morto (sobra de antes da migração
+  para SvelteKit) — se aparecer em conflito, ignore-o; ele não faz mais parte do sistema.
 - **Dados de teste** (`*.data.ts`): some os registros dos dois lados; se dois usarem o mesmo
   `id`, renumere os desta branch para o próximo livre.
 

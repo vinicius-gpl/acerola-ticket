@@ -9,9 +9,11 @@ Leia também `ui-padrao` (visual e texto).
 
 ## 1. Já existe?
 
-Antes de criar, procure em `client/src/lib/ui/primitives/` e `composers/`. Catálogo atual:
+Antes de criar, procure em `client/src/lib/components/`. Cada componente mora na própria pasta
+(`<nome-kebab>/<nome-kebab>.svelte`) — não há mais divisão entre primitivo e compositor, é uma
+pasta achatada só. Catálogo atual:
 
-| Primitivo | Para |
+| Componente | Para |
 |---|---|
 | `ActionButton` | Todo botão de ação (variantes primary/secondary/ghost/danger, ícone, carregando) |
 | `SubmitButton` | O botão que envia formulário |
@@ -23,65 +25,71 @@ Antes de criar, procure em `client/src/lib/ui/primitives/` e `composers/`. Catá
 | `DonutChart` / `ColumnChart` | Gráficos (clique vira filtro) |
 | `PageHeader` | Topo de toda tela |
 | `EmptyState` / `ErrorState` | Vazio e erro |
-
-| Compositor | Para |
-|---|---|
 | `AppShell` | A casca com menu (não mexa sem motivo) |
 | `ConfirmDialog` | Confirmar o que não tem volta |
 | `TaskListView` / `TaskFormDialog` | Moldes de tela de lista e formulário |
 
 Dá para resolver com `ui` ou composição de existentes? Faça isso em vez de criar.
 
-## 2. Primitivo ou compositor?
+## 2. Genérico ou de domínio?
 
-- **Primitivo** (`lib/ui/primitives/`): indivisível, genérico, não conhece entidade do domínio.
-- **Compositor** (`lib/ui/composers/`): junta primitivos; pode conhecer `Task`, `Customer`.
+Não há mais pasta separada — a diferença agora é só de conhecimento, dentro da mesma
+`lib/components/`:
+
+- **Genérico**: indivisível, não conhece entidade do domínio (`ActionButton`, `TextField`).
+- **De domínio**: junta componentes genéricos; pode conhecer `Task`, `Customer`
+  (`TaskListView`, `TaskFormDialog`).
 
 ## 3. Precisa de componente do shadcn?
 
 ```bash
-cd acerola/dashboard/dashboard/client
-npx shadcn@latest add <nome>
+cd acerola/dashboard/client
+npx shadcn-svelte@latest add <nome>
 ```
 
-Vai para `lib/vendor/ui/` — **não edite o que chegou**. Confira que o `cn` foi importado de
-`@/lib/utils/cn.util` (se veio `from "cn"`, está errado: troque). Depois crie o primitivo nosso
-que o envolve, aplicando as variantes com `tv()` (modelo: `action-button.component.tsx`).
-Fora de `lib/ui/`, ninguém importa `vendor`.
+Vai para `lib/components/ui/` (aponta pelo `components.json` da raiz do `client`) — **não edite
+o que chegou**. Confira que o `cn` foi importado de `$lib/utils/cn` (se veio de outro lugar,
+troque). Depois crie o componente nosso que o envolve, aplicando as variantes com `tv()`
+(modelo: `action-button.svelte`). Fora de `lib/ui/`... na prática, fora do próprio
+`lib/components/`, ninguém importa `lib/components/ui/` direto.
 
-## 4. Escrever — `<nome>.component.tsx`
+## 4. Escrever — `<nome-kebab>/<nome-kebab>.svelte`
 
-- Comentário no topo: **o que é e por que é assim** (a decisão, não a descrição do JSX).
-- `export type <Nome>Props = { data; ui?; state?; actions? }` (+ `children` na raiz quando compõe).
-- `export function <Nome>(...)` — export nomeado.
-- **Zero** `useQuery`, `useMutation`, `useNavigate`. Permitido: `useId`, `useRef` de DOM,
-  `useState` puramente visual.
-- Early return para vazio/carregando/erro. Padrões (`??`) em funções `resolve*` se a
-  complexidade passar de 10.
+- Comentário no topo: **o que é e por que é assim** (a decisão, não a descrição do markup).
+- Bloco `<script lang="ts" module>` para o que é estático (variantes com `tv()`, tipo de props);
+  bloco `<script lang="ts">` para a instância, com `let { data, ui, state, actions }: <Nome>Props = $props();`
+  (+ `children` na raiz quando compõe, via `Snippet`).
+- `export type <Nome>Props = { data; ui?; state?; actions? }` no bloco `module`.
+- **Zero** `createQuery`, `createMutation`, navegação imperativa de rota dentro do componente.
+  Permitido: `$state` puramente visual (mostrar/esconder senha), `$derived` para computar a
+  partir das props, `bind:` de DOM.
+- Early return (`{#if}` cedo) para vazio/carregando/erro. Padrões (`??`, `?.`) em funções
+  `resolve*` no bloco `module` se a complexidade passar de 10.
 - Classes com `cn()`; cores por token (`text-ink-700`, `bg-brand-blue-800`, `text-destructive`).
-- Acessibilidade: rótulo ligado ao campo (`htmlFor`/`useId`), `aria-invalid` +
+- Acessibilidade: rótulo ligado ao campo (`for`/`useId` equivalente do Svelte), `aria-invalid` +
   `aria-describedby` no erro, `role="alert"` em falha, `aria-label` em botão só de ícone,
   `aria-hidden` em ícone decorativo, `type="button"` em botão que não envia.
 
-## 5. Story — `<nome>.stories.tsx`
+## 5. Story — `<nome-kebab>.stories.svelte`
 
-`title: 'Primitives/<Nome>'` ou `'Composers/<Nome>'`. No mínimo: `Default`, todas as variantes
-de `ui`, cada estado (carregando, desabilitado, erro, vazio), e um **caso limite** (texto longo
-em coluna estreita, um item só). Callbacks com `fn()` de `storybook/test`. Texto de exemplo
-inventado, em português. Não nomeie story de `Error` (sombra o global) — use `LoadFailed`.
+`title: 'Components/<Nome>'`. No mínimo: `Default`, todas as variantes de `ui`, cada estado
+(carregando, desabilitado, erro, vazio), e um **caso limite** (texto longo em coluna estreita,
+um item só). Callbacks com `fn()` de `storybook/test`. Texto de exemplo inventado, em português.
+Não nomeie story de `Error` (sombra o global) — use `LoadFailed`.
 
-## 6. Teste — `<nome>.test.tsx`
+## 6. Teste — `<nome-kebab>.test.ts`
 
 `describe('<Nome>')` e `it(...)` em inglês; `// feliz` e `// triste`. Consulte por papel e
 rótulo (`getByRole('button', { name: 'Salvar' })`), como a pessoa enxerga. Teste: o que
-aparece, o callback chamado com o valor certo, o estado travado, o erro anunciado.
-Select do Radix: use `fireEvent.click` para abrir e escolher (o `userEvent` trava no jsdom).
+aparece, o callback chamado com o valor certo, o estado travado, o erro anunciado. Quando o
+componente precisa de um contexto Svelte pra montar (provider, slot), use um arquivo auxiliar
+`<nome-kebab>-harness.test.svelte` do lado (veja `app-shell-nav-entry` como modelo).
 
 ## 7. Verificar
 
 ```bash
 cd acerola/dashboard
-npx vitest run --root client src/lib/ui/<pasta>/<nome>
+npx vitest run --root client src/lib/components/<pasta>
 npm run lint -w client
 npm run typecheck -w client
 ```
