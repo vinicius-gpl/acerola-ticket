@@ -33,7 +33,7 @@ Caminhos a partir da raiz do repositório:
 | `README.md` | `# Template de MVP` e o primeiro parágrafo | `# <Nome>` e uma ou duas frases do que o MVP faz, na voz da pessoa |
 | `acerola/dashboard/package.json` | `"description"` | uma frase do MVP |
 
-Não mexa em `CLAUDE.md`, `CONTRIBUTING.md`, `SUPORTE.md`, `.claude/`, `.github/`, hooks nem
+Não mexa em `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/`, `.github/`, hooks nem
 configurações — são protegidos e não carregam o nome do MVP.
 
 ## 4. Verificar e terminar

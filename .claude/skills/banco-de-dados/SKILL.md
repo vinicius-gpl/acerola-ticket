@@ -1,15 +1,16 @@
 ---
 name: banco-de-dados
-description: Cria ou muda tabelas do SQLite com Drizzle — arquivo de schema, registro, geração e revisão da migration, mensagens de erro do banco, recriar o banco e olhar os dados. Use quando a pessoa pede um campo novo, uma tabela nova, relação entre cadastros, "apaga o banco", "zera os dados", "quero ver o que está no banco", ou aparece erro de tabela/coluna inexistente.
+description: Cria ou muda tabelas do Postgres (Neon) com Drizzle — arquivo de schema, registro, geração e revisão da migration, mensagens de erro do banco, recriar o banco e olhar os dados. Use quando a pessoa pede um campo novo, uma tabela nova, relação entre cadastros, "apaga o banco", "zera os dados", "quero ver o que está no banco", ou aparece erro de tabela/coluna inexistente.
 ---
 
-# Banco de dados (SQLite + Drizzle)
+# Banco de dados (Postgres + Drizzle)
 
 Caminhos relativos a `acerola/dashboard/`.
 
 ## Como funciona (explique assim para a pessoa, se ela perguntar)
 
-- O banco é **um arquivo**: `server/data/app.db`. Não vai para o git.
+- O banco é o **Postgres da Neon**. A conexão fica em `DATABASE_URL`, no `server/.env` (nunca
+  vai para o git) — sem ela o server recusa subir e diz qual variável falta.
 - As **tabelas são escritas em TypeScript** (`server/src/lib/db/schema/`).
 - Cada mudança de tabela gera uma **migration** (`server/drizzle/`) — um arquivo SQL que leva o
   banco de uma versão para a próxima. Essa vai para o git, e é aplicada **sozinha** quando o
@@ -23,13 +24,15 @@ Usuários, sessões, contas, senhas, tokens, logins: identidade é do auth-forwa
 ## Criar tabela
 
 1. `server/src/lib/db/schema/<entities>.schema.ts` (modelo: `tasks.schema.ts`):
-   - `sqliteTable('<entities>', {...}, (table) => [índices, checks])`
-   - `id: integer('id').primaryKey({ autoIncrement: true })`
-   - colunas em **snake_case** no banco, camelCase no TS: `createdAt: integer('created_at', ...)`
-   - datas: `integer('x', { mode: 'timestamp_ms' })`; default de agora:
-     ``.default(sql`(cast(unixepoch('subsec') * 1000 as integer))`)``
-   - booleano: `integer('x', { mode: 'boolean' })`
-   - dinheiro: `integer` em **centavos** (nunca `real`)
+   - `pgTable('<entities>', {...}, (table) => [índices, checks])`
+   - `id: serial('id').primaryKey()`
+   - colunas em **snake_case** no banco, camelCase no TS: `createdAt: timestamp('created_at', ...)`
+   - datas: `timestamp('x', { withTimezone: true, mode: 'date' })`; default de agora: `.defaultNow()`
+     — o Postgres guarda o instante em UTC e converte na leitura, então a mesma linha lida de
+     fusos diferentes continua sendo o mesmo momento (o SQLite não tinha isso: lá a data era um
+     inteiro em milissegundos, por falta de tipo)
+   - booleano: `boolean('x')`
+   - dinheiro: `integer` em **centavos** (nunca `real`/`numeric` de ponto flutuante)
    - lista fixa: `text('status', { enum: LISTA })` **+** `check('<tabela>_<coluna>_valid', ...)`
    - não pode repetir: `.unique()` ou `uniqueIndex('<tabela>_<colunas>_unique').on(...)`
    - relação: `integer('customer_id').notNull().references(() => customers.id, { onDelete: 'restrict' })`
@@ -41,7 +44,7 @@ Usuários, sessões, contas, senhas, tokens, logins: identidade é do auth-forwa
 
 ## Mudar tabela
 
-Edite o arquivo de schema e gere a migration. Cuidados que o SQLite impõe:
+Edite o arquivo de schema e gere a migration. Cuidados que o Postgres impõe:
 
 - **Coluna nova `notNull` em tabela com dados** precisa de `.default(...)` — senão a migration
   falha nas máquinas que já têm dados.
@@ -79,13 +82,13 @@ Com teste em `db-error.util.test.ts` se a tradução tiver lógica nova.
 
 - Com o server rodando em modo `dev`, ele reinicia e aplica sozinho.
 - Sem server: `npm run db:migrate`, ou `npm run seed:all` (que também aplica).
-- Olhar os dados: `npm run db:studio` (abre no navegador) ou a extensão SQLite Viewer do VS Code
-  em `server/data/app.db`.
+- Olhar os dados: `npm run db:studio` (abre o Drizzle Studio no navegador) ou o painel da Neon
+  (Tables, no projeto do banco).
 
 ## Banco com erro grave
 
-`database disk image is malformed`, migration commitada que não aplica, histórico de migrations
-em conflito sem saída: **não tente consertar o arquivo do banco** → skill `suporte`.
+Migration commitada que não aplica, histórico de migrations em conflito sem saída, ou o Postgres
+da Neon fora do ar: **não tente consertar direto no painel da Neon** → skill `suporte`.
 
 ## Recriar do zero — PEÇA CONFIRMAÇÃO ANTES
 
@@ -93,8 +96,8 @@ em conflito sem saída: **não tente consertar o arquivo do banco** → skill `s
 npm run db:reset
 ```
 
-**Apaga todos os dados** da máquina e recria com os seeds. Diga isso com essas palavras e só
-rode com um "sim" explícito. Pare o `npm run dev` antes (no Windows, o arquivo aberto não apaga).
+**Apaga todos os dados** do banco (a mesma Neon que todo mundo do projeto usa) e recria com os
+seeds. Diga isso com essas palavras e só rode com um "sim" explícito.
 
 ## Verificar
 
@@ -103,8 +106,9 @@ npm test -w server
 npm run test:e2e -w server
 ```
 
-O `open-database.util.test.ts` aplica todas as migrations num banco em memória — se uma
-migration estiver quebrada, é ele que acusa.
+O `test:e2e -w server` sobe contra o banco de `TEST_DATABASE_URL` (uma branch separada do banco
+na Neon) e aplica todas as migrations nele — se uma migration estiver quebrada, é ele que acusa.
+Sem essa variável no `.env`, os testes E2E são pulados (não falham).
 
 ## Commit
 

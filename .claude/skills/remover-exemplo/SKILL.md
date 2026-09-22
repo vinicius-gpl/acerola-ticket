@@ -23,15 +23,16 @@ server/src/modules/tasks/                       (pasta inteira)
 server/test/tasks.e2e.ts
 scripts/seed/tasks/                             (pasta inteira)
 client/src/lib/api/tasks.api.ts
-client/src/lib/view-models/use-task-list.model.ts (+ .test.tsx)
-client/src/lib/view-models/use-task-form.model.ts (+ .test.tsx)
-client/src/lib/ui/composers/task-list-view.* (component, stories, test)
-client/src/lib/ui/composers/task-form-dialog.* (component, stories, test)
+client/src/lib/hooks/use-task-list/             (pasta inteira: .svelte.ts, .test.ts, harness)
+client/src/lib/hooks/use-task-form/             (pasta inteira: .svelte.ts, .test.ts, harness)
+client/src/lib/components/task-list-view/       (pasta inteira: .svelte, stories, test)
+client/src/lib/components/task-form-dialog/     (pasta inteira: .svelte, stories, test)
 client/src/routes/tasks/                        (pasta inteira)
 client/e2e/tasks.e2e.ts
 ```
 
-**Não apague** os primitivos, `ConfirmDialog`, `AppShell` nem nada de `lib/` genérico.
+**Não apague** os componentes genéricos (`ConfirmDialog`, `AppShell`, `lib/components/ui/`…)
+nem nada de `lib/` que não seja específico de tarefas.
 
 ## 2. Desligar as referências
 
@@ -40,16 +41,15 @@ client/e2e/tasks.e2e.ts
 - `server/src/lib/db/db-error.util.ts` — tirar `tasks_status_valid` de `CHECK_MESSAGES`.
 - `server/src/lib/db/db-error.util.test.ts` — o teste de check usa `tasks_status_valid`: troque
   por um nome genérico e ajuste a expectativa para a mensagem padrão.
-- `server/src/lib/db/open-database.util.test.ts` — os testes inserem em `tasks`. Mantenha o
-  de `foreign_keys` e o de `resolveDatabaseFile`; troque o de migration por um que confira que
-  `openDatabase(':memory:')` abre sem erro (ou use a tabela da feature nova).
+- `server/src/lib/db/open-database.util.test.ts` — não referencia `tasks` (testa só
+  `MIGRATIONS_FOLDER` e `describeDatabaseUrl`, contra Postgres); não precisa mexer.
 - `scripts/seed/seed-all.ts` — tirar `seedTasks` e o `report`.
 - `acerola/dashboard/package.json` — tirar `seed:tasks`.
-- `client/src/lib/ui/navigation.ts` — tirar o item `tasks`.
-- `client/src/routes/index.tsx` — redirecionar para a tela principal nova (ou mostrar um
+- `client/src/lib/navigation/navigation.ts` — tirar o item `tasks`.
+- `client/src/routes/+page.ts` — redirecionar para a tela principal nova (ou mostrar um
   `EmptyState` de boas-vindas se ainda não houver nenhuma).
-- `client/src/lib/utils/chart-slice.util.ts` — `CATEGORY_COLORS` tem os rótulos de tarefa;
-  esvazie ou troque pelos da feature nova (e ajuste o teste).
+- `client/src/lib/utils/chart-slice.ts` — `CATEGORY_COLORS` tem os rótulos de tarefa; esvazie
+  ou troque pelos da feature nova (e ajuste o teste).
 - `server/src/lib/auth` e `lib/policy` não mudam.
 
 ## 3. A tabela no banco
@@ -61,16 +61,18 @@ npm run build -w @template/shared
 npm run db:generate
 ```
 
-Confira que o SQL é um `DROP TABLE \`tasks\``. **Não apague** a migration `0000_*` — ela já
-pode estar aplicada em outras máquinas.
+Confira que o SQL é um `DROP TABLE "tasks"`. **Não apague** a migration `0000_*` — ela já pode
+estar aplicada em outras máquinas.
 
 ## 4. Documentação
 
 - `README.md` — tirar o parágrafo que apresenta Tarefas.
-- `CLAUDE.md` e `.claude/skills/` citam Tarefas como molde, mas são **protegidos**: não edite.
-  Diga à pessoa que as instruções do Claude ainda mencionam o exemplo, e que o suporte ajusta
-  quando for conveniente — nada deixa de funcionar por isso. Enquanto isso, o molde passa a ser
-  a primeira feature real do MVP.
+- `CLAUDE.md` e `.claude/skills/` citam Tarefas como molde, mas são **protegidos**: você
+  (Claude) não edita esses arquivos. Só quem administra o projeto pode, rodando
+  `git config project.admin true` na própria máquina — isso não é algo que você deve rodar ou
+  sugerir como atalho. Diga à pessoa que as instruções do Claude ainda mencionam o exemplo, e
+  que ela mesma pode pedir esse ajuste depois, se quiser — nada deixa de funcionar por isso.
+  Enquanto isso, o molde passa a ser a primeira feature real do MVP.
 
 ## 5. Verificar e commitar
 

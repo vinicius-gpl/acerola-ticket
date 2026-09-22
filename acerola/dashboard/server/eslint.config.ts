@@ -86,7 +86,7 @@ export default tseslint.config(
         {
           paths: [
             {
-              name: 'better-sqlite3',
+              name: 'postgres',
               message: 'A conexão vem do DbModule, injetada pelo token DB.',
             },
           ],

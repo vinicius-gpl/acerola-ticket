@@ -39,14 +39,14 @@ teste. Se o erro não é do código da feature (ou só some mexendo em configura
 
 Revise o `git diff` do trabalho:
 
-- [ ] **Componente novo/alterado em `lib/ui/` tem `.stories.tsx`** com estados e caso limite.
+- [ ] **Componente novo/alterado em `lib/components/` tem `.stories.svelte`** com estados e caso limite.
 - [ ] **Lógica nova tem teste feliz e triste**; escalada de privilégio (viewer escrevendo,
       autoria no corpo) testada quando mexeu em permissão.
 - [ ] **Idioma:** nenhum texto em inglês que aparece na tela (rótulo, botão, erro, mensagem de
       Zod, `aria-label`); nenhum português em log, `throw new Error` interno, `describe`/`it`.
 - [ ] **Endpoint novo** com `@ApiOperation` e tipo de resposta.
 - [ ] **Tabela mudou** → migration gerada e commitada junto; seed atualizado.
-- [ ] **Props** em `data`/`ui`/`state`/`actions`; nada em `lib/vendor/` editado.
+- [ ] **Props** em `data`/`ui`/`state`/`actions`; nada em `lib/components/ui/` editado.
 - [ ] **Nenhum segredo** (`.env`, chave, token) e **nenhum dado real** de pessoa/cliente em
       código, seed, story ou teste.
 - [ ] Variável de ambiente nova → `.env.example` atualizado.
@@ -59,7 +59,7 @@ npm run seed:all
 npm run dev      # em segundo plano
 ```
 
-Abra http://localhost:5173 e faça o fluxo principal da mudança, incluindo **um erro** (campo
+Abra http://localhost:5176 e faça o fluxo principal da mudança, incluindo **um erro** (campo
 vazio, ação sem permissão). Confira o console do navegador sem erro.
 
 ## 4. Relatório
