@@ -1,5 +1,6 @@
 import { neonAuthUsers } from './neon-auth-user.table';
 import { tasks } from './schema/tasks.schema';
+import { tickets } from './schema/tickets.schema';
 
 /**
  * O objeto de schema que o Drizzle exige para as consultas relacionais.
@@ -13,6 +14,7 @@ import { tasks } from './schema/tasks.schema';
  */
 export const drizzleSchema = {
   tasks,
+  tickets,
   /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */
   neonAuthUsers,
 };

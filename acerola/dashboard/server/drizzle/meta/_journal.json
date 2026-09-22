@@ -22,6 +22,13 @@
       "when": 1790079396618,
       "tag": "0002_pretty_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790089113871,
+      "tag": "0003_glossy_spacker_dave",
+      "breakpoints": true
     }
   ]
 }

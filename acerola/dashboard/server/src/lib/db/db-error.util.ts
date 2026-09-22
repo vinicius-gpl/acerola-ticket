@@ -80,6 +80,10 @@ const CONFLICT_MESSAGES: Record<string, string> = {};
 /** Mensagem por `check` do banco, pela mesma chave. */
 const CHECK_MESSAGES: Record<string, string> = {
   tasks_status_valid: 'A situação da tarefa precisa ser uma das opções da lista.',
+  tickets_status_valid: 'A situação do chamado precisa ser uma das opções da lista.',
+  tickets_priority_valid: 'A urgência do chamado precisa ser Baixa, Média ou Alta.',
+  tickets_department_valid: 'O departamento precisa ser um dos da lista.',
+  tickets_problem_type_valid: 'O tipo de problema precisa ser um dos da lista.',
 };
 
 /** Códigos SQLSTATE. A lista do Postgres é estável há décadas; os nomes vão nos comentários. */
