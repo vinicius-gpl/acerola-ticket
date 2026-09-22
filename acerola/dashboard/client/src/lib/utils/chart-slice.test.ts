@@ -5,7 +5,7 @@ import { colorOfSlice, countBy, FALLBACK_COLORS } from './chart-slice';
 describe('colorOfSlice', () => {
   // feliz
   it('uses the fixed color of a known category', () => {
-    expect(colorOfSlice('Concluída', 5)).toBe('#10b981');
+    expect(colorOfSlice('Concluída', 5)).toBe('var(--chart-4)');
   });
 
   it('walks the fallback list in order for unknown categories', () => {
