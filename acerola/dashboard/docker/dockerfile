@@ -9,9 +9,8 @@
 # monorepo, em vez de reinstalar só as dependências de produção do server. Prioridade 0
 # do CONTRIBUTING — funcionar primeiro — vale aqui: enxugar é otimização para depois.
 #
-# `bookworm-slim` e não `alpine`: o `better-sqlite3` traz o binário pronto para glibc. No
-# alpine (musl) ele tentaria compilar, e a imagem precisaria de python, make e g++ só para
-# isso.
+# `bookworm-slim` por simplicidade — nenhuma dependência atual exige compilar nada na
+# imagem, então trocar para `alpine` é uma otimização possível, não uma necessidade.
 
 FROM node:24-bookworm-slim AS deps
 WORKDIR /repo
@@ -20,9 +19,7 @@ COPY shared/package.json shared/package.json
 COPY server/package.json server/package.json
 COPY client/package.json client/package.json
 # `--ignore-scripts`: o `prepare` da raiz configura git e hooks, que não existem (nem fazem
-# sentido) dentro da imagem — e roda antes de os scripts serem copiados. Nenhuma dependência
-# de runtime precisa de script de instalação: o `better-sqlite3` já traz o binário pronto, e
-# um `npm rebuild` aqui o faria tentar COMPILAR, exigindo python e g++ na imagem.
+# sentido) dentro da imagem — e roda antes de os scripts serem copiados.
 RUN npm ci --ignore-scripts
 
 FROM deps AS build
@@ -42,6 +39,5 @@ COPY --from=build /repo/server/dist server/dist
 # As migrations vão junto: o server as aplica sozinho ao subir.
 COPY --from=build /repo/server/drizzle server/drizzle
 COPY --from=build /repo/client/dist client/dist
-RUN mkdir -p server/data
-EXPOSE 3333
+EXPOSE 3336
 CMD ["node", "server/dist/main.js"]
