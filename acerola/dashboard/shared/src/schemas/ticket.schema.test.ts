@@ -73,14 +73,20 @@ describe('createTicketSchema', () => {
     );
   });
 
-  it('refuses a department that is not on the list', () => {
-    expect(createTicketSchema.safeParse({ ...validInput, department: 'MARKETING' }).success).toBe(
-      false,
-    );
+  it('refuses a department that is not on the list, in Portuguese', () => {
+    const result = createTicketSchema.safeParse({ ...validInput, department: 'MARKETING' });
+
+    expect(result.success).toBe(false);
+    /* O texto padrão do Zod é inglês e enumera as chaves internas; ele chegaria ao rodapé
+       do campo, onde a régua do projeto exige português (CONTRIBUTING §1). */
+    expect(result.error?.issues[0]?.message).toBe('Escolha seu departamento');
   });
 
-  it('refuses a problem type that is not on the list', () => {
-    expect(createTicketSchema.safeParse({ ...validInput, problemType: 'ovni' }).success).toBe(false);
+  it('refuses a problem type that is not on the list, in Portuguese', () => {
+    const result = createTicketSchema.safeParse({ ...validInput, problemType: 'ovni' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('Escolha o tipo de problema');
   });
 
   it('refuses a description longer than the limit', () => {
@@ -185,8 +191,11 @@ describe('updateTicketSchema', () => {
   });
 
   // triste
-  it('refuses an unknown status', () => {
-    expect(updateTicketSchema.safeParse({ status: 'arquivado' }).success).toBe(false);
+  it('refuses an unknown status, in Portuguese', () => {
+    const result = updateTicketSchema.safeParse({ status: 'arquivado' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('Escolha uma situação da lista');
   });
 
   it('refuses changing who opened the ticket', () => {

@@ -25,10 +25,23 @@ export const SOLUTION_MAX_LENGTH = 5000;
 /** Menos que isto não é telefone com DDD — é engano de digitação. */
 const MIN_PHONE_DIGITS = 10;
 
-export const ticketStatusSchema = z.enum(TICKET_STATUSES);
-export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
-export const ticketDepartmentSchema = z.enum(TICKET_DEPARTMENTS);
-export const ticketProblemTypeSchema = z.enum(TICKET_PROBLEM_TYPES);
+/**
+ * A mensagem de lista fechada, em português.
+ *
+ * O Zod recusa um valor fora da lista com um texto em inglês que enumera as opções internas
+ * ("Invalid enum value. Expected 'analyze' | ..."). Esse texto chega ao rodapé do campo, e a
+ * régua do projeto é clara: o usuário vê, é português (CONTRIBUTING §1). Aqui ele é trocado
+ * por uma frase que diz o que fazer — as opções a pessoa já está vendo no próprio `select`.
+ */
+const chooseFrom = (what: string) => ({ errorMap: () => ({ message: `Escolha ${what}` }) });
+
+export const ticketStatusSchema = z.enum(TICKET_STATUSES, chooseFrom('uma situação da lista'));
+export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES, chooseFrom('a urgência'));
+export const ticketDepartmentSchema = z.enum(TICKET_DEPARTMENTS, chooseFrom('seu departamento'));
+export const ticketProblemTypeSchema = z.enum(
+  TICKET_PROBLEM_TYPES,
+  chooseFrom('o tipo de problema'),
+);
 
 const requesterNameSchema = z
   .string({ required_error: 'Informe seu nome' })
