@@ -1,7 +1,8 @@
-import { Injectable, UnauthorizedException, type NestMiddleware } from '@nestjs/common';
+import { Injectable, type NestMiddleware } from '@nestjs/common';
 import { type NextFunction, type Request, type Response } from 'express';
 
-import { hasForwardedHeaders, MOCK_IDENTITY, readForwardedIdentity } from './identity.provider';
+import { IdentityProvider } from './identity.provider';
+import { readBearerToken } from './neon-token.util';
 import { type RequestUser } from './request-user.type';
 
 /**
@@ -12,37 +13,25 @@ import { type RequestUser } from './request-user.type';
  * de um guard misturaria as duas perguntas num lugar só: a que vale para o sistema inteiro
  * ("tem alguém aí?") e a que muda por rota ("essa pessoa pode isto?").
  *
- * O middleware NÃO deixa passar sem identidade — nem hoje, com o mock. Uma requisição sem
- * ninguém carimbaria `createdBy` vazio, e a pergunta "quem fez isso?" ficaria sem resposta
- * para sempre. Enquanto não há provedor, a identidade é a pessoa fixa do mock; quando houver,
- * ela vem dos cabeçalhos. Não passar nunca foi opção.
+ * Este middleware NÃO recusa ninguém: ele só carimba na requisição quem conseguiu provar
+ * quem é. Recusar é do `RolesGuard`, que é global e sabe quais rotas são públicas
+ * (`@Public()`). Se a recusa morasse aqui, rota pública nenhuma conseguiria existir.
  */
 @Injectable()
 export class AuthenticationMiddleware implements NestMiddleware {
-  use(request: Request, _response: Response, next: NextFunction): void {
-    const identity = readForwardedIdentity(request.headers);
+  constructor(private readonly identity: IdentityProvider) {}
 
-    if (identity) {
-      attach(request, identity);
+  async use(request: Request, _response: Response, next: NextFunction): Promise<void> {
+    const token = readBearerToken(request.headers.authorization);
+    if (!token) return next();
 
-      return next();
-    }
-
-    /* Cabeçalho veio e não formou identidade válida: o provedor está mal configurado. Cair
-       no mock aqui daria acesso de ADMINISTRADOR a uma requisição que o provedor não soube
-       identificar — o furo mais caro que este arquivo pode ter. */
-    if (hasForwardedHeaders(request.headers)) {
-      throw new UnauthorizedException(
-        'A identidade encaminhada está incompleta ou inválida. Fale com quem administra o acesso.',
-      );
-    }
-
-    attach(request, MOCK_IDENTITY);
+    const user = await this.identity.resolve(token);
+    if (user) attach(request, user);
 
     return next();
   }
 }
 
-function attach(request: Request, identity: RequestUser | Omit<RequestUser, never>): void {
-  (request as Request & { user?: RequestUser }).user = identity;
+function attach(request: Request, user: RequestUser): void {
+  (request as Request & { user?: RequestUser }).user = user;
 }

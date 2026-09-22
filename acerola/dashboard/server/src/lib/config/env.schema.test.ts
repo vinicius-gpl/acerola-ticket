@@ -9,6 +9,7 @@ const secrets = {
   R2_ACCESS_KEY_ID: 'chave-de-exemplo',
   R2_SECRET_ACCESS_KEY: 'segredo-de-exemplo',
   R2_BUCKET: 'arquivos',
+  NEON_AUTH_URL: 'https://ep-exemplo.neonauth.sa-east-1.aws.neon.tech/acerola/auth',
 };
 
 describe('parseEnv', () => {
@@ -22,6 +23,16 @@ describe('parseEnv', () => {
       API_LOG_LEVEL: 'log',
       R2_SIGNED_URL_TTL_SECONDS: 300,
     });
+  });
+
+  /* Endereço errado do Neon Auth não falha na partida: falha no primeiro login, parecendo
+     senha errada. Por isso a recusa é aqui. */
+  it('refuses to start without the Neon Auth address', () => {
+    expect(() => parseEnv({ ...secrets, NEON_AUTH_URL: undefined })).toThrow(/NEON_AUTH_URL/);
+  });
+
+  it('refuses a Neon Auth address that is not a URL', () => {
+    expect(() => parseEnv({ ...secrets, NEON_AUTH_URL: 'nao-e-url' })).toThrow(/NEON_AUTH_URL/);
   });
 
   it('reads the port that arrives as text, which is how the environment delivers it', () => {

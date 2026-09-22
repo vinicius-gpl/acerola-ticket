@@ -1,105 +1,114 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import {
-  FORWARDED_IDENTITY_HEADERS,
-  hasForwardedHeaders,
-  MOCK_IDENTITY,
-  readForwardedIdentity,
-} from './identity.provider';
+import { type Database } from '../db/db.type';
+import { type NeonAuthUserRow } from '../db/schema/neon-auth-user.schema';
+import { IdentityProvider } from './identity.provider';
+import { type NeonTokenClaims, type NeonTokenVerifier } from './neon-token.util';
 
-const complete = {
-  [FORWARDED_IDENTITY_HEADERS.id]: 'auth-forward|42',
-  [FORWARDED_IDENTITY_HEADERS.email]: 'ana@empresa.com.br',
-  [FORWARDED_IDENTITY_HEADERS.name]: 'Ana',
-  [FORWARDED_IDENTITY_HEADERS.role]: 'editor',
+const CLAIMS: NeonTokenClaims = {
+  userId: 'neon-user-1',
+  email: 'ana@empresa.com.br',
+  name: 'Ana do token',
 };
 
-describe('readForwardedIdentity', () => {
+function userRow(overrides: Partial<NeonAuthUserRow> = {}): NeonAuthUserRow {
+  return {
+    id: 'neon-user-1',
+    name: 'Ana',
+    email: 'ana@empresa.com.br',
+    emailVerified: true,
+    image: null,
+    createdAt: new Date('2026-09-01T12:00:00.000Z'),
+    updatedAt: null,
+    role: 'manager',
+    banned: false,
+    banReason: null,
+    banExpires: null,
+    ...overrides,
+  };
+}
+
+/** Finge a consulta do Drizzle: `select().from().where().limit()` devolve as linhas dadas. */
+function fakeDatabase(rows: NeonAuthUserRow[]): Database {
+  const limit = vi.fn().mockResolvedValue(rows);
+  const where = vi.fn(() => ({ limit }));
+  const from = vi.fn(() => ({ where }));
+
+  return { select: vi.fn(() => ({ from })) } as unknown as Database;
+}
+
+function makeProvider(rows: NeonAuthUserRow[], claims: NeonTokenClaims | null = CLAIMS) {
+  const verify: NeonTokenVerifier = vi.fn().mockResolvedValue(claims);
+
+  return { provider: new IdentityProvider(verify, fakeDatabase(rows)), verify };
+}
+
+describe('IdentityProvider.resolve', () => {
   // feliz
-  it('reads the identity forwarded in the headers', () => {
-    expect(readForwardedIdentity(complete)).toEqual({
-      id: 'auth-forward|42',
+  it('builds the identity from the registry, not from the token', async () => {
+    const { provider } = makeProvider([userRow({ name: 'Ana Maria' })]);
+
+    await expect(provider.resolve('token')).resolves.toEqual({
+      id: 'neon-user-1',
       email: 'ana@empresa.com.br',
-      name: 'Ana',
-      role: 'editor',
+      name: 'Ana Maria',
+      role: 'manager',
     });
   });
 
-  it('trims spaces around the value', () => {
-    const padded = { ...complete, [FORWARDED_IDENTITY_HEADERS.name]: '  Ana  ' };
+  /* Conta recém-criada no painel da Neon ainda não tem papel — e precisa entrar como o mais
+     restrito, nunca como administrador. */
+  it('falls back to the most restricted role when there is none', async () => {
+    const { provider } = makeProvider([userRow({ role: null })]);
 
-    expect(readForwardedIdentity(padded)?.name).toBe('Ana');
+    await expect(provider.resolve('token')).resolves.toMatchObject({ role: 'user' });
   });
 
-  it('uses the first value of a repeated header', () => {
-    const repeated = { ...complete, [FORWARDED_IDENTITY_HEADERS.role]: ['editor', 'admin'] };
+  it('ignores a role that does not exist in the system', async () => {
+    const { provider } = makeProvider([userRow({ role: 'superuser' })]);
 
-    expect(readForwardedIdentity(repeated)?.role).toBe('editor');
+    await expect(provider.resolve('token')).resolves.toMatchObject({ role: 'user' });
   });
 
-  /* Sem nenhum cabeçalho é o caso NORMAL no MVP: não há auth-forward ainda, e quem chama cai
-     no mock. Isso é diferente de cabeçalho quebrado. */
-  it('returns null when nothing was forwarded', () => {
-    expect(readForwardedIdentity({})).toBeNull();
-    expect(readForwardedIdentity({ 'content-type': 'application/json' })).toBeNull();
-  });
+  it('lets a ban that already expired through', async () => {
+    const expired = new Date(Date.now() - 60_000);
+    const { provider } = makeProvider([userRow({ banned: true, banExpires: expired })]);
 
-  // triste
-  /* A trava mais cara deste arquivo: completar o que falta com o mock daria acesso de
-     ADMINISTRADOR a uma requisição que o provedor não soube identificar. */
-  it('returns null when the identity arrives half-filled', () => {
-    const noEmail = { ...complete, [FORWARDED_IDENTITY_HEADERS.email]: undefined };
-    const noRole = { ...complete, [FORWARDED_IDENTITY_HEADERS.role]: undefined };
-
-    expect(readForwardedIdentity(noEmail)).toBeNull();
-    expect(readForwardedIdentity(noRole)).toBeNull();
-  });
-
-  it('returns null when the role does not exist in the system', () => {
-    expect(
-      readForwardedIdentity({ ...complete, [FORWARDED_IDENTITY_HEADERS.role]: 'manager' }),
-    ).toBeNull();
-  });
-
-  it('returns null when the e-mail is not an e-mail', () => {
-    expect(
-      readForwardedIdentity({ ...complete, [FORWARDED_IDENTITY_HEADERS.email]: 'ana' }),
-    ).toBeNull();
-  });
-
-  it('counts a blank value as absent, not as identity', () => {
-    expect(
-      readForwardedIdentity({ ...complete, [FORWARDED_IDENTITY_HEADERS.id]: '   ' }),
-    ).toBeNull();
-  });
-});
-
-describe('hasForwardedHeaders', () => {
-  /* É o que separa "ainda não há auth-forward" de "o auth-forward mandou algo quebrado" — e
-     só o segundo é um erro a mostrar. */
-  it('recognizes that the provider tried to identify someone', () => {
-    expect(hasForwardedHeaders(complete)).toBe(true);
-    expect(hasForwardedHeaders({ [FORWARDED_IDENTITY_HEADERS.email]: 'x@y.com' })).toBe(true);
+    await expect(provider.resolve('token')).resolves.toMatchObject({ id: 'neon-user-1' });
   });
 
   // triste
-  it('does not confuse a request without provider with a broken provider', () => {
-    expect(hasForwardedHeaders({})).toBe(false);
-    expect(hasForwardedHeaders({ authorization: 'Bearer something' })).toBe(false);
+  it('refuses when the token does not check out, without touching the database', async () => {
+    const { provider, verify } = makeProvider([userRow()], null);
+
+    await expect(provider.resolve('token-falso')).resolves.toBeNull();
+    expect(verify).toHaveBeenCalledWith('token-falso');
   });
-});
 
-describe('MOCK_IDENTITY', () => {
-  /* O mock não é um desvio do caminho: ele tem a mesma forma de uma identidade encaminhada,
-     e passa pela mesma validação. O dia do auth-forward muda a origem, não o contrato. */
-  it('has the same shape as a forwarded identity', () => {
-    const asHeaders = {
-      [FORWARDED_IDENTITY_HEADERS.id]: MOCK_IDENTITY.id,
-      [FORWARDED_IDENTITY_HEADERS.email]: MOCK_IDENTITY.email,
-      [FORWARDED_IDENTITY_HEADERS.name]: MOCK_IDENTITY.name,
-      [FORWARDED_IDENTITY_HEADERS.role]: MOCK_IDENTITY.role,
-    };
+  /* Conta apagada no painel: o token continua válido por até 15 minutos, e é a leitura do
+     cadastro que fecha a porta na mesma hora. */
+  it('refuses when the person is no longer in the registry', async () => {
+    const { provider } = makeProvider([]);
 
-    expect(readForwardedIdentity(asHeaders)).toEqual(MOCK_IDENTITY);
+    await expect(provider.resolve('token')).resolves.toBeNull();
+  });
+
+  it('refuses someone banned with no end date', async () => {
+    const { provider } = makeProvider([userRow({ banned: true, banExpires: null })]);
+
+    await expect(provider.resolve('token')).resolves.toBeNull();
+  });
+
+  it('refuses someone whose ban has not expired yet', async () => {
+    const future = new Date(Date.now() + 60_000);
+    const { provider } = makeProvider([userRow({ banned: true, banExpires: future })]);
+
+    await expect(provider.resolve('token')).resolves.toBeNull();
+  });
+
+  it('refuses a registry row without a usable e-mail', async () => {
+    const { provider } = makeProvider([userRow({ email: '' })], { ...CLAIMS, email: null });
+
+    await expect(provider.resolve('token')).resolves.toBeNull();
   });
 });

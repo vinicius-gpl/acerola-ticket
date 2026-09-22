@@ -24,7 +24,6 @@ import {
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { Roles } from '../../../lib/auth/roles.decorator';
 import {
   CreateTaskDto,
   TaskDto,
@@ -70,7 +69,6 @@ export class TasksController {
   }
 
   @Post()
-  @Roles('admin', 'editor')
   @ApiOperation({
     summary: 'Cadastra uma tarefa',
     description:
@@ -78,13 +76,11 @@ export class TasksController {
   })
   @ApiCreatedResponse({ type: TaskDto })
   @ApiUnprocessableEntityResponse({ description: 'Algum campo está fora do contrato.' })
-  @ApiForbiddenResponse({ description: 'Perfil sem permissão de edição.' })
   async create(@CurrentUser() user: RequestUser, @Body() body: CreateTaskDto): Promise<TaskDto> {
     return this.service.create(user, body);
   }
 
   @Patch(':id')
-  @Roles('admin', 'editor')
   @ApiOperation({
     summary: 'Altera uma tarefa',
     description:
@@ -92,7 +88,9 @@ export class TasksController {
   })
   @ApiOkResponse({ type: TaskDto })
   @ApiNotFoundResponse({ description: 'Tarefa não encontrada.' })
-  @ApiForbiddenResponse({ description: 'Perfil sem permissão de edição.' })
+  @ApiForbiddenResponse({
+    description: 'A tarefa é de outra pessoa e quem pediu não é gerente nem administrador.',
+  })
   async update(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
@@ -102,15 +100,17 @@ export class TasksController {
   }
 
   @Delete(':id')
-  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Exclui uma tarefa',
-    description: 'Não tem volta: restrito a administrador.',
+    description:
+      'Não tem volta. Cada pessoa exclui o que criou; gerente e administrador excluem qualquer uma.',
   })
   @ApiNoContentResponse({ description: 'Tarefa excluída.' })
   @ApiNotFoundResponse({ description: 'Tarefa não encontrada.' })
-  @ApiForbiddenResponse({ description: 'Ação restrita a administrador.' })
+  @ApiForbiddenResponse({
+    description: 'A tarefa é de outra pessoa e quem pediu não é gerente nem administrador.',
+  })
   async remove(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,

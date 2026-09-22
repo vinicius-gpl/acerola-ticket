@@ -7,14 +7,19 @@ import { type TaskRow } from '../../../lib/db/schema/tasks.schema';
 import { type TasksRepository } from '../repository/tasks.repository';
 import { TasksService } from './tasks.service';
 
-const editor: RequestUser = {
+/** Ana é quem cria as tarefas nestes testes — dona do registro em `taskRow()`. */
+const owner: RequestUser = {
   id: '1',
   email: 'ana@empresa.com.br',
   name: 'Ana',
-  role: 'editor',
+  role: 'user',
 };
 
-const viewer: RequestUser = { ...editor, id: '2', email: 'bia@empresa.com.br', role: 'viewer' };
+/** Bia tem o mesmo papel de Ana, mas não criou nada: é o caso que separa "meu" de "dos outros". */
+const otherUser: RequestUser = { ...owner, id: '2', email: 'bia@empresa.com.br', name: 'Bia' };
+
+const manager: RequestUser = { ...otherUser, id: '3', name: 'Caio', role: 'manager' };
+const admin: RequestUser = { ...otherUser, id: '4', name: 'Dani', role: 'admin' };
 
 function taskRow(overrides: Partial<TaskRow> = {}): TaskRow {
   return {
@@ -43,7 +48,7 @@ describe('TasksService.list', () => {
       list: vi.fn().mockResolvedValue({ rows: [taskRow(), taskRow({ id: 2 })], total: 12 }),
     });
 
-    const page = await service.list(viewer, query({ page: '2', pageSize: '2' }));
+    const page = await service.list(owner, query({ page: '2', pageSize: '2' }));
 
     expect(page).toMatchObject({ total: 12, page: 2, pageSize: 2 });
     expect(page.items[0]?.createdAt).toBe('2026-09-14T12:00:00.000Z');
@@ -52,7 +57,7 @@ describe('TasksService.list', () => {
   it('returns an empty page, not an error, when there is nothing', async () => {
     const service = makeService({ list: vi.fn().mockResolvedValue({ rows: [], total: 0 }) });
 
-    await expect(service.list(viewer, query())).resolves.toMatchObject({ items: [], total: 0 });
+    await expect(service.list(owner, query())).resolves.toMatchObject({ items: [], total: 0 });
   });
 });
 
@@ -62,7 +67,7 @@ describe('TasksService.create', () => {
     const insert = vi.fn().mockResolvedValue(taskRow());
     const service = makeService({ insert });
 
-    await service.create(editor, { title: 'Nova' });
+    await service.create(owner, { title: 'Nova' });
 
     expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({ createdBy: 'ana@empresa.com.br' }),
@@ -70,13 +75,16 @@ describe('TasksService.create', () => {
   });
 
   // triste
-  /* Escalada de privilégio: somente leitura não escreve, e o repository nem é chamado. */
-  it('refuses a viewer with 403 before touching the database', async () => {
-    const insert = vi.fn();
+  /* Autoria vem da identidade, nunca do corpo — mandar `createdBy` não muda quem assina. */
+  it('ignores an author sent in the body', async () => {
+    const insert = vi.fn().mockResolvedValue(taskRow());
     const service = makeService({ insert });
 
-    await expect(service.create(viewer, { title: 'Nova' })).rejects.toThrow(ForbiddenException);
-    expect(insert).not.toHaveBeenCalled();
+    await service.create(owner, { title: 'Nova', createdBy: 'chefe@empresa.com.br' } as never);
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: 'ana@empresa.com.br' }),
+    );
   });
 });
 
@@ -86,7 +94,7 @@ describe('TasksService.update', () => {
     const update = vi.fn().mockResolvedValue(taskRow({ status: 'done' }));
     const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow()), update });
 
-    const task = await service.update(editor, 1, { status: 'done' });
+    const task = await service.update(owner, 1, { status: 'done' });
 
     expect(task.status).toBe('done');
     expect(update).toHaveBeenCalledWith(
@@ -95,52 +103,69 @@ describe('TasksService.update', () => {
     );
   });
 
-  // triste
-  it('refuses with 404 when the task does not exist, without writing', async () => {
-    const update = vi.fn();
-    const service = makeService({ findById: vi.fn().mockResolvedValue(null), update });
+  it('lets a manager change what someone else created', async () => {
+    const update = vi.fn().mockResolvedValue(taskRow({ status: 'done' }));
+    const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow()), update });
 
-    await expect(service.update(editor, 999, { status: 'done' })).rejects.toThrow(
-      NotFoundException,
+    await service.update(manager, 1, { status: 'done' });
+
+    expect(update).toHaveBeenCalledWith(1, expect.objectContaining({ status: 'done' }));
+  });
+
+  // triste
+  /* A regra que separa os papéis: tarefa de outra pessoa é intocável para quem é `user`. */
+  it('refuses a plain user on a task created by someone else', async () => {
+    const update = vi.fn();
+    const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow()), update });
+
+    await expect(service.update(otherUser, 1, { status: 'done' })).rejects.toThrow(
+      ForbiddenException,
     );
     expect(update).not.toHaveBeenCalled();
   });
 
-  it('refuses a viewer before even looking for the task', async () => {
-    const findById = vi.fn();
-    const service = makeService({ findById });
+  it('refuses with 404 when the task does not exist, without writing', async () => {
+    const update = vi.fn();
+    const service = makeService({ findById: vi.fn().mockResolvedValue(null), update });
 
-    await expect(service.update(viewer, 1, { status: 'done' })).rejects.toThrow(ForbiddenException);
-    expect(findById).not.toHaveBeenCalled();
+    await expect(service.update(owner, 999, { status: 'done' })).rejects.toThrow(NotFoundException);
+    expect(update).not.toHaveBeenCalled();
   });
 });
 
 describe('TasksService.remove', () => {
   // feliz
-  it('lets an admin delete', async () => {
+  it('lets the author delete their own task', async () => {
     const remove = vi.fn().mockResolvedValue(undefined);
     const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow()), delete: remove });
 
-    await service.remove({ ...editor, role: 'admin' }, 1);
+    await service.remove(owner, 1);
+
+    expect(remove).toHaveBeenCalledWith(1);
+  });
+
+  it('lets an admin delete a task from someone else', async () => {
+    const remove = vi.fn().mockResolvedValue(undefined);
+    const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow()), delete: remove });
+
+    await service.remove(admin, 1);
 
     expect(remove).toHaveBeenCalledWith(1);
   });
 
   // triste
-  it('keeps deleting as an admin decision, even for an editor', async () => {
+  it('refuses a plain user on a task from someone else, without deleting', async () => {
     const remove = vi.fn();
     const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow()), delete: remove });
 
-    await expect(service.remove(editor, 1)).rejects.toThrow(ForbiddenException);
+    await expect(service.remove(otherUser, 1)).rejects.toThrow(ForbiddenException);
     expect(remove).not.toHaveBeenCalled();
   });
 
   it('refuses with 404 when the task does not exist', async () => {
     const service = makeService({ findById: vi.fn().mockResolvedValue(null), delete: vi.fn() });
 
-    await expect(service.remove({ ...editor, role: 'admin' }, 999)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.remove(admin, 999)).rejects.toThrow(NotFoundException);
   });
 });
 
@@ -148,13 +173,13 @@ describe('TasksService.findById', () => {
   it('returns the task', async () => {
     const service = makeService({ findById: vi.fn().mockResolvedValue(taskRow({ id: 5 })) });
 
-    await expect(service.findById(viewer, 5)).resolves.toMatchObject({ id: 5 });
+    await expect(service.findById(otherUser, 5)).resolves.toMatchObject({ id: 5 });
   });
 
   // triste
   it('refuses with 404 when it does not exist', async () => {
     const service = makeService({ findById: vi.fn().mockResolvedValue(null) });
 
-    await expect(service.findById(viewer, 999)).rejects.toThrow(NotFoundException);
+    await expect(service.findById(otherUser, 999)).rejects.toThrow(NotFoundException);
   });
 });

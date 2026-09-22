@@ -1,80 +1,89 @@
-import { sessionUserSchema, type SessionUser } from '@template/shared/schemas/user.schema';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  DEFAULT_USER_ROLE,
+  sessionUserSchema,
+  userRoleSchema,
+  type SessionUser,
+} from '@template/shared/schemas/user.schema';
+import { eq } from 'drizzle-orm';
+
+import { runMaybe } from '../db/db-error.util';
+import { DB } from '../db/db.token';
+import { type Database } from '../db/db.type';
+import { neonAuthUsers, type NeonAuthUserRow } from '../db/schema/neon-auth-user.schema';
+import { NEON_TOKEN_VERIFIER } from './neon-token.token';
+import { type NeonTokenVerifier } from './neon-token.util';
 
 /**
- * De onde a identidade vem — e só daqui.
+ * DE ONDE A IDENTIDADE VEM — e só daqui.
  *
- * O template não tem login: num MVP, tela de login é trabalho que não valida ideia nenhuma.
- * Quando o sistema for para o ar, quem fica na frente da aplicação (um proxy com
- * auth-forward) autentica a pessoa e injeta quem ela é nos cabeçalhos abaixo. Enquanto isso
- * não existe, a identidade é a pessoa fixa `MOCK_IDENTITY`.
+ * Duas etapas, nesta ordem, e nenhuma delas é dispensável:
  *
- * O MOCK NÃO É UM DESVIO DO CAMINHO. Ele é uma origem de identidade como outra qualquer: a
- * requisição continua passando pelo middleware, continua sendo recusada quando não há
- * identidade, e a autoria continua saindo daqui para `createdBy` e `updatedBy`. O dia em que
- * o auth-forward entrar, muda só este arquivo — nenhum controller, service ou policy.
+ *  1. **O token prova quem é.** Assinado pela Neon, conferido contra a chave pública dela.
+ *  2. **O banco diz o que a pessoa é hoje.** Nome, e-mail, papel e banimento saem de
+ *     `neon_auth.user`, nunca do token.
  *
- * ⚠ ANTES DE PUBLICAR: o mock dá papel `admin` a quem não mandar cabeçalho nenhum. Com o
- * sistema acessível pela internet sem um proxy na frente, isso é a porta aberta. Ver
- * README, seção "Como a identidade funciona".
+ * A ordem existe por causa do prazo: o token vale 15 minutos. Tirar o papel dele faria uma
+ * pessoa rebaixada continuar administradora até o token vencer — e, pior, faria alguém
+ * banido continuar entrando. Lendo do banco, a troca no painel da Neon vale na requisição
+ * seguinte.
  */
-export const FORWARDED_IDENTITY_HEADERS = {
-  id: 'x-forwarded-user-id',
-  email: 'x-forwarded-user-email',
-  name: 'x-forwarded-user-name',
-  role: 'x-forwarded-user-role',
-} as const;
+@Injectable()
+export class IdentityProvider {
+  constructor(
+    @Inject(NEON_TOKEN_VERIFIER) private readonly verifyToken: NeonTokenVerifier,
+    @Inject(DB) private readonly db: Database,
+  ) {}
 
-/** A pessoa fixa, enquanto não há provedor. Mesma forma de uma identidade encaminhada. */
-export const MOCK_IDENTITY: SessionUser = {
-  id: 'mock-open-login',
-  email: 'dev@template.local',
-  name: 'Usuário de desenvolvimento',
-  role: 'admin',
-};
+  /**
+   * Resolve quem está na requisição. `null` significa "não sei quem é você" — e quem chamou
+   * transforma isso em 401.
+   *
+   * Todos os motivos de recusa devolvem o mesmo `null` de propósito: token inválido, conta
+   * apagada e conta banida são indistinguíveis para quem está do outro lado.
+   */
+  async resolve(token: string): Promise<SessionUser | null> {
+    const claims = await this.verifyToken(token);
+    if (!claims) return null;
 
-export type HeaderBag = Record<string, unknown>;
+    const row = await runMaybe(
+      this.db.select().from(neonAuthUsers).where(eq(neonAuthUsers.id, claims.userId)).limit(1),
+      'ler a pessoa no cadastro do Neon Auth',
+    );
+    if (!row) return null;
+    if (isBanned(row)) return null;
+
+    return toSessionUser(row, claims.email);
+  }
+}
 
 /**
- * Lê a identidade dos cabeçalhos encaminhados.
- *
- * Devolve `null` quando NÃO HÁ nada encaminhado — é o caso normal no MVP, e quem chama cai no
- * mock. Mas devolve `null` também quando os cabeçalhos vieram e não formam uma identidade
- * válida, e essa diferença é deliberada: cabeçalho pela metade significa provedor mal
- * configurado, e completar o que falta com o mock daria acesso de administrador a uma
- * requisição que o provedor não soube identificar.
+ * Banimento com prazo continua sendo banimento até a data passar. Sem a comparação de data,
+ * "banido por 7 dias" viraria "banido para sempre".
  */
-export function readForwardedIdentity(headers: HeaderBag): SessionUser | null {
-  const raw = {
-    id: readHeader(headers, FORWARDED_IDENTITY_HEADERS.id),
-    email: readHeader(headers, FORWARDED_IDENTITY_HEADERS.email),
-    name: readHeader(headers, FORWARDED_IDENTITY_HEADERS.name),
-    role: readHeader(headers, FORWARDED_IDENTITY_HEADERS.role),
-  };
+function isBanned(row: NeonAuthUserRow): boolean {
+  if (!row.banned) return false;
+  if (!row.banExpires) return true;
 
-  const isEmpty = Object.values(raw).every((value) => value === null);
-  if (isEmpty) return null;
+  return row.banExpires.getTime() > Date.now();
+}
 
-  const parsed = sessionUserSchema.safeParse(raw);
+/**
+ * A linha do cadastro vira identidade.
+ *
+ * O papel passa pelo schema: valor que não é um dos três do sistema (vazio numa conta nova,
+ * ou um papel escrito à mão no painel) vira `user`, o mais restrito. Adivinhar para cima
+ * seria dar acesso que ninguém concedeu.
+ */
+function toSessionUser(row: NeonAuthUserRow, emailFromToken: string | null): SessionUser | null {
+  const role = userRoleSchema.safeParse(row.role);
+
+  const parsed = sessionUserSchema.safeParse({
+    id: row.id,
+    email: row.email || emailFromToken,
+    name: row.name,
+    role: role.success ? role.data : DEFAULT_USER_ROLE,
+  });
 
   return parsed.success ? parsed.data : null;
-}
-
-/**
- * Diz se o provedor TENTOU identificar alguém. É o que separa "ainda não há auth-forward"
- * de "o auth-forward mandou algo quebrado" — e só o segundo é um erro a mostrar.
- */
-export function hasForwardedHeaders(headers: HeaderBag): boolean {
-  return Object.values(FORWARDED_IDENTITY_HEADERS).some(
-    (header) => readHeader(headers, header) !== null,
-  );
-}
-
-function readHeader(headers: HeaderBag, name: string): string | null {
-  const value = headers[name] ?? headers[name.toLowerCase()];
-  // Cabeçalho repetido chega como lista; o primeiro é o que o provedor mandou primeiro.
-  const single = Array.isArray(value) ? value[0] : value;
-  if (typeof single !== 'string') return null;
-  const trimmed = single.trim();
-
-  return trimmed === '' ? null : trimmed;
 }
