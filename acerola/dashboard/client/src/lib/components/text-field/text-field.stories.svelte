@@ -55,6 +55,15 @@
   }}
 />
 
+<!-- Data: o mesmo campo, só com o seletor do navegador. -->
+<Story
+  name="Date"
+  args={{
+    data: { label: 'Data do serviço', name: 'performedAt', value: '2026-09-20' },
+    ui: { type: 'date' },
+  }}
+/>
+
 <!-- Caso limite: mensagem de erro que quebra em duas linhas dentro de uma coluna estreita. -->
 <Story
   name="LongErrorInNarrowColumn"

@@ -111,6 +111,7 @@ const samples: ComputerSample[] = [
 
 const actions = {
   onEdit: vi.fn(),
+  onRegisterMaintenance: vi.fn(),
   onArchivedChange: vi.fn(),
   onBlockedChange: vi.fn(),
   onRegenerateToken: vi.fn(),
@@ -120,7 +121,7 @@ const actions = {
 function renderDetail(over: Partial<Computer> = {}) {
   return render(ComputerDetailView, {
     props: {
-      data: { computer: computer(over), samples, alerts: [alert()] },
+      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [] },
       actions,
     },
   });
@@ -197,7 +198,10 @@ describe('ComputerDetailView', () => {
   /* Máquina sem medida nenhuma não pode mostrar "0%" como se estivesse parada. */
   it('shows a dash for the current usage of a machine that never reported', () => {
     render(ComputerDetailView, {
-      props: { data: { computer: neverSeen(), samples: [], alerts: [] }, actions },
+      props: {
+        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [] },
+        actions,
+      },
     });
 
     expect(screen.getByText('Esta máquina ainda não enviou nenhuma leitura.')).toBeInTheDocument();
@@ -208,7 +212,7 @@ describe('ComputerDetailView', () => {
   it('keeps the failure of an action on screen, with the reason', () => {
     render(ComputerDetailView, {
       props: {
-        data: { computer: computer(), samples, alerts: [] },
+        data: { computer: computer(), samples, alerts: [], maintenances: [] },
         state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
         actions,
       },

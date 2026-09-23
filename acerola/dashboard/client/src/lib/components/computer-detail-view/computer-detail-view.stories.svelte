@@ -6,6 +6,8 @@
     type ComputerSample,
   } from '@template/shared/schemas/computer.schema';
 
+  import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
+
   import ComputerDetailView from './computer-detail-view.svelte';
 
   const GB = 1024 ** 3;
@@ -130,8 +132,28 @@
     },
   ];
 
+  const maintenances: Maintenance[] = [
+    {
+      id: 1,
+      computerId: 3,
+      computerName: 'CONTABIL-03',
+      computerDisplayName: 'Contábil — mesa do fechamento',
+      computerDepartment: 'contabil',
+      otherMachine: null,
+      type: 'corrective',
+      description: 'Máquina desligando sozinha: cooler do processador substituído.',
+      performedBy: 'Carlos (assistência externa)',
+      performedAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+      createdBy: 'suporte@azuos.local',
+      updatedAt: null,
+      updatedBy: null,
+    },
+  ];
+
   const actions = {
     onEdit: () => {},
+    onRegisterMaintenance: () => {},
     onArchivedChange: () => {},
     onBlockedChange: () => {},
     onRegenerateToken: () => {},
@@ -145,7 +167,7 @@
 </script>
 
 <!-- A máquina com problema: é para ela que esta tela existe. -->
-<Story name="Default" args={{ data: { computer: computer(), samples, alerts }, actions }} />
+<Story name="Default" args={{ data: { computer: computer(), samples, alerts, maintenances }, actions }} />
 
 <!-- Máquina saudável: nada apontado, e o texto diz isso em vez de ficar em branco. -->
 <Story
@@ -164,6 +186,7 @@
       }),
       samples,
       alerts: [],
+      maintenances: [],
     },
     actions,
   }}
@@ -172,7 +195,7 @@
 <Story
   name="Loading"
   args={{
-    data: { computer: computer(), samples: [], alerts: [] },
+    data: { computer: computer(), samples: [], alerts: [], maintenances: [] },
     state: { isSamplesLoading: true, isAlertsLoading: true },
     actions,
   }}
@@ -181,7 +204,7 @@
 <!-- CASO LIMITE: cadastrada e nunca vista. A ficha diz "ainda não sei", e não zeros. -->
 <Story
   name="Agent never connected"
-  args={{ data: { computer: pendingAgent, samples: [], alerts: [] }, actions }}
+  args={{ data: { computer: pendingAgent, samples: [], alerts: [], maintenances: [] }, actions }}
 />
 
 <Story
@@ -195,6 +218,7 @@
       }),
       samples,
       alerts,
+      maintenances,
     },
     actions,
   }}
@@ -203,7 +227,7 @@
 <Story
   name="Archived"
   args={{
-    data: { computer: computer({ isArchived: true, isOnline: false }), samples, alerts },
+    data: { computer: computer({ isArchived: true, isOnline: false }), samples, alerts, maintenances },
     actions,
   }}
 />
@@ -212,7 +236,7 @@
 <Story
   name="Action error"
   args={{
-    data: { computer: computer(), samples, alerts },
+    data: { computer: computer(), samples, alerts, maintenances },
     state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
     actions,
   }}

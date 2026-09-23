@@ -9,6 +9,7 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import { useComputerDetailModel } from '$lib/hooks/use-computer-detail/use-computer-detail.svelte';
+  import MaintenanceFormSlot from '../../maintenance/maintenance-form-slot.svelte';
   import ComputerFormSlot from '../computer-form-slot.svelte';
 
   /**
@@ -24,6 +25,7 @@
 
   /* Qual peça está na frente — não é dado. */
   let isEditing = $state(false);
+  let isRegisteringMaintenance = $state(false);
 </script>
 
 <svelte:head>
@@ -61,11 +63,13 @@
       computer: detail.data.computer,
       samples: detail.data.samples,
       alerts: detail.data.alerts,
+      maintenances: detail.data.maintenances,
     }}
     state={detail.state}
     actions={{
       ...detail.actions,
       onEdit: () => (isEditing = true),
+      onRegisterMaintenance: () => (isRegisteringMaintenance = true),
       onBack: () => void goto('/computers'),
     }}
   />
@@ -80,6 +84,16 @@
       onClose={() => (isEditing = false)}
     />
   {/key}
+{/if}
+
+<!-- O formulário de manutenção é o MESMO da tela de Manutenção, só que já com esta máquina
+     escolhida: dois formulários para o mesmo registro divergiriam no primeiro campo novo. -->
+{#if isRegisteringMaintenance && detail.data.computer}
+  <MaintenanceFormSlot
+    maintenance={null}
+    computerId={detail.data.computer.id}
+    onClose={() => (isRegisteringMaintenance = false)}
+  />
 {/if}
 
 <!-- Token gerado de novo: aparece uma vez, e some quando a pessoa diz que guardou. -->
