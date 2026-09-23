@@ -19,6 +19,11 @@
     maintenanceTypeTone,
   } from '@template/shared/domain/maintenance.util';
   import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
+  import {
+    movementTypeLabel,
+    movementTypeTone,
+  } from '@template/shared/domain/part-catalog.util';
+  import { type PartMovement } from '@template/shared/schemas/part.schema';
 
   import { formatBytes, formatDuration } from '$lib/utils/format-machine';
 
@@ -39,11 +44,14 @@
       alerts: ComputerAlert[];
       /** O que já foi feito nesta máquina. Vem da feature de Manutenção; a ficha só lê. */
       maintenances: Maintenance[];
+      /** As peças que saíram do depósito para esta máquina. A ficha também só lê. */
+      partMovements: PartMovement[];
     };
     state?: {
       isSamplesLoading?: boolean;
       isAlertsLoading?: boolean;
       isMaintenancesLoading?: boolean;
+      isPartsLoading?: boolean;
       isSaving?: boolean;
       actionError?: string | null;
     };
@@ -403,6 +411,42 @@
             <StatusBadge
               data={{ label: maintenanceTypeLabel(maintenance.type) }}
               ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+            />
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </section>
+
+  <section class="bg-card rounded-xl border p-4">
+    <h2 class="text-ink-900 mb-3 text-sm font-semibold">Peças que esta máquina recebeu</h2>
+
+    {#if viewState?.isPartsLoading}
+      <p class="text-ink-500 py-6 text-center text-sm">Carregando as peças…</p>
+    {:else if data.partMovements.length === 0}
+      <p class="text-ink-500 text-sm">
+        Nenhuma peça do depósito foi ligada a esta máquina. Ao dar baixa numa peça, escolha a
+        máquina e ela aparece aqui.
+      </p>
+    {:else}
+      <ul class="flex flex-col divide-y">
+        {#each data.partMovements as movement (movement.id)}
+          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
+            <div class="min-w-0">
+              <p class="text-ink-900 text-sm break-words">{movement.partName}</p>
+              <p class="text-ink-500 text-xs">
+                {formatDateTime(movement.createdAt)}
+                {#if movement.handledBy}
+                  · {movement.handledBy}
+                {/if}
+                {#if movement.note}
+                  · {movement.note}
+                {/if}
+              </p>
+            </div>
+            <StatusBadge
+              data={{ label: `${movementTypeLabel(movement.type)} · ${movement.quantity}` }}
+              ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
             />
           </li>
         {/each}
