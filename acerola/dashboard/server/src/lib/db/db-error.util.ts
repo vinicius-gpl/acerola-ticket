@@ -94,6 +94,9 @@ const CHECK_MESSAGES: Record<string, string> = {
   computers_health_score_range: 'A nota de saúde precisa ficar entre 0 e 100.',
   computer_alerts_metric_valid: 'A medida do alerta precisa ser processador, memória ou disco.',
   computer_alerts_status_valid: 'A situação do alerta precisa ser ativa ou recuperada.',
+  maintenances_type_valid: 'O tipo da manutenção precisa ser um dos da lista.',
+  maintenances_machine_required:
+    'A manutenção precisa dizer em qual equipamento foi feita: escolha uma máquina do inventário ou escreva o nome do equipamento.',
 };
 
 /** Códigos SQLSTATE. A lista do Postgres é estável há décadas; os nomes vão nos comentários. */
