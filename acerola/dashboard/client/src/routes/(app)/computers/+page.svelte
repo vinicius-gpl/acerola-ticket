@@ -1,34 +1,48 @@
 <script lang="ts">
-  import HardDrive from '@lucide/svelte/icons/hard-drive';
-
-  import PendingArea from '$lib/components/pending-area/pending-area.svelte';
+  import ComputerListView from '$lib/components/computer-list-view/computer-list-view.svelte';
+  import ComputerTokenDialog from '$lib/components/computer-token-dialog/computer-token-dialog.svelte';
+  import { type CreatedAgentToken } from '$lib/hooks/use-computer-form/use-computer-form.svelte';
+  import { useComputerListModel } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
+  import ComputerFormSlot from './computer-form-slot.svelte';
 
   /**
-   * A rota só compõe (CONTRIBUTING §3).
+   * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
-   * Esta área ainda não foi construída: a tela diz o que vai viver aqui, lido dos requisitos
-   * do sistema antigo. Quando ela for feita, este arquivo passa a compor o view-model e a
-   * view de verdade, e o `PendingArea` sai.
+   * O que mora aqui não é dado, é QUAL PEÇA DA TELA ESTÁ NA FRENTE: o formulário de cadastro
+   * e, logo depois dele, o token recém-gerado — que precisa sobreviver ao fechamento do
+   * formulário, porque é a única vez que ele existe legível.
    */
-  const AREA = {
-    title: 'Inventário',
-    summary: 'Os computadores da empresa, com o que cada um tem dentro.',
-    features: [
-      'Cada máquina se cadastra sozinha quando o agente é instalado nela.',
-      'Ficha completa: processador, memória e pentes, discos, placa de vídeo, bateria, sistema e número de série.',
-      'Nota de saúde de 0 a 100, com os avisos que a baixaram — pouca memória, disco cheio, SSD gasto, disco com falha.',
-      'Online ou offline agora, e quando a máquina foi vista pela última vez.',
-      'Uso de processador, memória e disco ao vivo, com histórico e os programas que mais consomem.',
-      'Alerta automático quando passa do limite, com a causa provável e quando normalizou.',
-      'Renomear a máquina, definir o responsável e o departamento dela.',
-      'Bloquear uma máquina não autorizada; arquivar uma que saiu de uso, sem apagar os dados.',
-    ],
-    dependsOn: null,
-  };
+  const list = useComputerListModel();
+
+  let isRegistering = $state(false);
+  let created = $state<CreatedAgentToken | null>(null);
 </script>
 
 <svelte:head>
   <title>Inventário</title>
 </svelte:head>
 
-<PendingArea data={AREA} ui={{ icon: HardDrive }} />
+<ComputerListView
+  data={list.data}
+  state={list.state}
+  actions={{ ...list.actions, onRegister: () => (isRegistering = true) }}
+/>
+
+{#if isRegistering}
+  <ComputerFormSlot
+    computer={null}
+    onSaved={(saved) => {
+      created = saved;
+      isRegistering = false;
+    }}
+    onClose={() => (isRegistering = false)}
+  />
+{/if}
+
+<!-- O token aparece depois que o formulário some, e só até a pessoa dizer que guardou. -->
+{#if created}
+  <ComputerTokenDialog
+    data={{ computerName: created.computerName, token: created.token }}
+    actions={{ onClose: () => (created = null) }}
+  />
+{/if}
