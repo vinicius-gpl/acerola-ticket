@@ -8,6 +8,7 @@ import {
 import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.schema';
 import {
   type Computer,
+  type ComputerAlert,
   type ComputerListQuery,
   type ComputerSample,
   type CreateComputerInput,
@@ -21,6 +22,7 @@ import { assertCanCreate, assertCanRead } from '../../../lib/policy/policy-asser
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import {
   toComputer,
+  toComputerAlert,
   toComputerInsert,
   toComputerSample,
   toComputerUpdate,
@@ -148,12 +150,12 @@ export class ComputersService {
     return (await this.repository.listSamplesSince(id, since)).map(toComputerSample);
   }
 
-  async alerts(user: RequestUser, id: number) {
+  async alerts(user: RequestUser, id: number): Promise<ComputerAlert[]> {
     assertCanRead(user.role, 'os computadores');
 
     await this.requireComputer(id);
 
-    return this.repository.listAlerts(id, ALERT_PAGE_SIZE);
+    return (await this.repository.listAlerts(id, ALERT_PAGE_SIZE)).map(toComputerAlert);
   }
 
   /**

@@ -12,6 +12,7 @@ import {
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
+  ComputerAlertDto,
   ComputerDto,
   ComputerListQueryDto,
   ComputerListResponseDto,
@@ -83,9 +84,15 @@ export class ComputersController {
     description:
       'Cada alerta é um período: abre quando a medida passa do limite e fecha quando ela volta. Alerta sem data de recuperação é um problema acontecendo agora.',
   })
-  @ApiOkResponse({ description: 'Os episódios de alerta, do mais recente para o mais antigo.' })
+  @ApiOkResponse({
+    type: [ComputerAlertDto],
+    description: 'Os episódios de alerta, do mais recente para o mais antigo.',
+  })
   @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
-  async alerts(@CurrentUser() user: RequestUser, @Param('id', ParseIntPipe) id: number) {
+  async alerts(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ComputerAlertDto[]> {
     return this.service.alerts(user, id);
   }
 

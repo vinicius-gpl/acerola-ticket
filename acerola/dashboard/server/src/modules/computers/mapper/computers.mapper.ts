@@ -5,12 +5,14 @@ import {
 } from '@template/shared/schemas/agent-snapshot.schema';
 import {
   type Computer,
+  type ComputerAlert,
   type CreateComputerInput,
   type ComputerSample,
   type UpdateComputerInput,
 } from '@template/shared/schemas/computer.schema';
 
 import { mapDefined, setIfDefined } from '../../../lib/db/partial-update.util';
+import { type ComputerAlertRow } from '../../../lib/db/schema/computer-alerts.schema';
 import {
   type ComputerSampleInsert,
 } from '../../../lib/db/schema/computer-samples.schema';
@@ -208,4 +210,24 @@ export function toComputerSample(row: {
 
 function normalizeOptional(value: string | null | undefined): string | null | undefined {
   return mapDefined(value, (text) => text.trim() || null);
+}
+
+/**
+ * O episódio de alerta como a tela o recebe.
+ *
+ * As datas viram texto ISO aqui, e não na tela: `Date` do banco chega ao navegador como
+ * string de qualquer jeito — o contrato só deixa de mentir se a conversão for explícita.
+ */
+export function toComputerAlert(row: ComputerAlertRow): ComputerAlert {
+  return {
+    id: row.id,
+    computerId: row.computerId,
+    metric: row.metric,
+    peakValue: row.peakValue,
+    threshold: row.threshold,
+    status: row.status,
+    startedAt: row.startedAt.toISOString(),
+    recoveredAt: row.recoveredAt?.toISOString() ?? null,
+    causeProcess: row.causeProcess,
+  };
 }

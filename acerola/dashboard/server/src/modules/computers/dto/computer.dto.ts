@@ -1,4 +1,5 @@
 import {
+  computerAlertSchema,
   computerListQuerySchema,
   computerSampleSchema,
   computerSchema,
@@ -22,6 +23,8 @@ export class ComputerDto extends createZodDto(computerSchema) {}
 export class CreatedComputerDto extends createZodDto(createdComputerSchema) {}
 
 export class ComputerSampleDto extends createZodDto(computerSampleSchema) {}
+
+export class ComputerAlertDto extends createZodDto(computerAlertSchema) {}
 
 export class ComputerListResponseDto extends createZodDto(
   z.object({

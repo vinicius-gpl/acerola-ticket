@@ -2,8 +2,10 @@ import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.sche
 import { describe, expect, it } from 'vitest';
 
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
+import { type ComputerAlertRow } from '../../../lib/db/schema/computer-alerts.schema';
 import {
   toComputer,
+  toComputerAlert,
   toComputerInsert,
   toComputerUpdate,
   toSample,
@@ -259,5 +261,41 @@ describe('toSample', () => {
     const quiet = { ...snapshot(), network: [] };
 
     expect(toSample(7, quiet).networkBytesPerSec).toBe(0);
+  });
+});
+
+describe('toComputerAlert', () => {
+  function alertRow(over: Partial<ComputerAlertRow> = {}): ComputerAlertRow {
+    return {
+      id: 3,
+      computerId: 7,
+      metric: 'disk',
+      peakValue: 97.4,
+      threshold: 90,
+      status: 'recovered',
+      startedAt: new Date('2026-09-22T11:00:00.000Z'),
+      recoveredAt: new Date('2026-09-22T11:35:00.000Z'),
+      causeProcess: 'OneDrive.exe',
+      createdAt: NOW,
+      ...over,
+    };
+  }
+
+  // feliz
+  it('hands the screen dates it can read', () => {
+    const alert = toComputerAlert(alertRow());
+
+    expect(alert.startedAt).toBe('2026-09-22T11:00:00.000Z');
+    expect(alert.recoveredAt).toBe('2026-09-22T11:35:00.000Z');
+  });
+
+  // triste
+  /* Sem data de recuperação o episódio está ACONTECENDO. Virar string vazia ou a data de
+     hoje faria a ficha anunciar um problema resolvido que ninguém resolveu. */
+  it('keeps an unfinished episode without a recovery time', () => {
+    const alert = toComputerAlert(alertRow({ status: 'active', recoveredAt: null }));
+
+    expect(alert.recoveredAt).toBeNull();
+    expect(alert.status).toBe('active');
   });
 });
