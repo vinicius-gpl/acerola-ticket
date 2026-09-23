@@ -31,6 +31,7 @@
     "seed:all": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts",
     "seed:tasks": "npm run build -w @template/shared && tsx scripts/seed/tasks/seed-tasks.ts",
     "seed:tickets": "npm run build -w @template/shared && tsx scripts/seed/tickets/seed-tickets.ts",
+    "seed:computers": "npm run build -w @template/shared && tsx scripts/seed/computers/seed-computers.ts",
     "seed:users": "npm run build -w @template/shared && tsx scripts/seed/users/seed-users.ts",
     "prepare": "cd ../.. && husky acerola/dashboard/.husky && node acerola/dashboard/scripts/git/setup-git.mjs"
   },

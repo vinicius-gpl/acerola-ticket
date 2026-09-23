@@ -1,3 +1,4 @@
+import { seedComputers } from './computers/seed-computers';
 import { openSeedDatabase, report, resetDatabase } from './seed.util';
 import { seedTasks } from './tasks/seed-tasks';
 import { seedTickets } from './tickets/seed-tickets';
@@ -23,6 +24,7 @@ async function main(): Promise<void> {
   try {
     report('tarefas', await seedTasks(db));
     report('chamados', await seedTickets(db));
+    report('computadores', await seedComputers(db));
   } finally {
     await close();
   }
