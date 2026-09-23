@@ -9,7 +9,9 @@
    * procurar qual dos campos ele descreve, e num formulário de quatro campos ela erra a
    * procura — corrige o que estava certo e reenvia o mesmo erro.
    */
-  export type TextFieldType = 'text' | 'email' | 'password';
+  /* `date` entra aqui, e não num componente separado, porque só o `type` do `input` muda —
+     rótulo, erro e acessibilidade são exatamente os mesmos. */
+  export type TextFieldType = 'text' | 'email' | 'password' | 'date';
 
   export type TextFieldProps = {
     data: {

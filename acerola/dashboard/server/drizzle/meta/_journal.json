@@ -43,6 +43,13 @@
       "when": 1790106553906,
       "tag": "0005_groovy_rattler",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790165502409,
+      "tag": "0006_demonic_black_bolt",
+      "breakpoints": true
     }
   ]
 }

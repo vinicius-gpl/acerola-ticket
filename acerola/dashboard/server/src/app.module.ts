@@ -11,6 +11,7 @@ import { DbModule } from './lib/db/db.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
 import { ComputersModule } from './modules/computers/computers.module';
+import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 
@@ -46,6 +47,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     TasksModule,
     TicketsModule,
     ComputersModule,
+    MaintenancesModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })

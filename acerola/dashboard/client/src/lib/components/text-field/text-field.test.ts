@@ -69,3 +69,24 @@ describe('TextField', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
+
+describe('TextField as a date', () => {
+  // feliz
+  /* Data é o mesmo campo com outro `type`: o navegador é quem desenha o seletor, e o
+     rótulo, o erro e o `aria-invalid` continuam vindo daqui. */
+  it('hands the browser a date input, keeping label and error', () => {
+    render(TextField, {
+      props: {
+        data: { label: 'Data do serviço', name: 'performedAt', value: '2026-09-20' },
+        ui: { type: 'date' },
+        state: { error: 'Informe a data' },
+      },
+    });
+
+    const field = screen.getByLabelText('Data do serviço');
+
+    expect(field).toHaveAttribute('type', 'date');
+    expect(field).toHaveValue('2026-09-20');
+    expect(screen.getByText('Informe a data')).toBeInTheDocument();
+  });
+});

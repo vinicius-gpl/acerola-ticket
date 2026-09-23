@@ -5,18 +5,23 @@ import {
   type ComputerSample,
   type UpdateComputerInput,
 } from '@template/shared/schemas/computer.schema';
+import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
 import { writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
+import { maintenancesApi } from '$lib/api/maintenances.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
+import { MAINTENANCES_QUERY_KEY } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';
 
 export type ComputerDetailModel = {
   data: {
     computer: Computer | null;
     samples: ComputerSample[];
     alerts: ComputerAlert[];
+    /** O que já foi feito NESTA máquina — o histórico que sustenta trocar em vez de remendar. */
+    maintenances: Maintenance[];
     /**
      * O token recém-gerado, em texto puro. Existe só enquanto a tela estiver aberta: ele não
      * pode ser pedido de novo, e guardá-lo em algum lugar seria guardar uma credencial.
@@ -27,6 +32,7 @@ export type ComputerDetailModel = {
     isLoading: boolean;
     isSamplesLoading: boolean;
     isAlertsLoading: boolean;
+    isMaintenancesLoading: boolean;
     /** A máquina não existe (ou foi apagada por fora): a tela diz isso, não fica em branco. */
     isMissing: boolean;
     isSaving: boolean;
@@ -83,6 +89,17 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
     ),
   );
 
+  /* O histórico de manutenção mora na feature de Manutenção, e a ficha só o LÊ: a chave da
+     consulta é a de lá, então registrar um serviço por aqui atualiza as duas telas. */
+  const maintenances = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...MAINTENANCES_QUERY_KEY, 'list', { computerId: id }],
+        queryFn: () => maintenancesApi.list({ computerId: id, page: 1, pageSize: 50 }),
+      }),
+    ),
+  );
+
   const save = mirrorStore(
     createMutation({
       mutationFn: (body: UpdateComputerInput) => computersApi.update(id, body),
@@ -112,6 +129,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         computer: computer.current.data ?? null,
         samples: samples.current.data ?? [],
         alerts: alerts.current.data ?? [],
+        maintenances: maintenances.current.data?.items ?? [],
         newToken: token.current,
       };
     },
@@ -120,6 +138,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         computer: computer.current,
         isSamplesLoading: samples.current.isPending,
         isAlertsLoading: alerts.current.isPending,
+        isMaintenancesLoading: maintenances.current.isPending,
         isSaving: save.current.isPending || regenerate.current.isPending,
         actionError: readError(save.current.error) ?? readError(regenerate.current.error),
       });
@@ -136,6 +155,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         void computer.current.refetch();
         void samples.current.refetch();
         void alerts.current.refetch();
+        void maintenances.current.refetch();
       },
     },
   };
@@ -159,6 +179,7 @@ function buildDetailState(input: {
   computer: DetailQueryLike;
   isSamplesLoading: boolean;
   isAlertsLoading: boolean;
+  isMaintenancesLoading: boolean;
   isSaving: boolean;
   actionError: string | null;
 }): ComputerDetailModel['state'] {
@@ -168,6 +189,7 @@ function buildDetailState(input: {
     isLoading: input.computer.isPending,
     isSamplesLoading: input.isSamplesLoading,
     isAlertsLoading: input.isAlertsLoading,
+    isMaintenancesLoading: input.isMaintenancesLoading,
     /* 404 não é falha de sistema: é uma máquina que não existe mais. A tela diz isso com
        texto próprio, em vez de oferecer "tentar de novo" para algo que nunca vai dar certo. */
     isMissing: status === 404,

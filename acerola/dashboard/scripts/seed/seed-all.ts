@@ -1,4 +1,5 @@
 import { seedComputers } from './computers/seed-computers';
+import { seedMaintenances } from './maintenances/seed-maintenances';
 import { openSeedDatabase, report, resetDatabase } from './seed.util';
 import { seedTasks } from './tasks/seed-tasks';
 import { seedTickets } from './tickets/seed-tickets';
@@ -25,6 +26,8 @@ async function main(): Promise<void> {
     report('tarefas', await seedTasks(db));
     report('chamados', await seedTickets(db));
     report('computadores', await seedComputers(db));
+    /* Depois dos computadores: a manutenção aponta para a máquina. */
+    report('manutenções', await seedMaintenances(db));
   } finally {
     await close();
   }

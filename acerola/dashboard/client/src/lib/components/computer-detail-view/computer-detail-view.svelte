@@ -14,6 +14,11 @@
     type ComputerAlert,
     type ComputerSample,
   } from '@template/shared/schemas/computer.schema';
+  import {
+    maintenanceTypeLabel,
+    maintenanceTypeTone,
+  } from '@template/shared/domain/maintenance.util';
+  import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
 
   import { formatBytes, formatDuration } from '$lib/utils/format-machine';
 
@@ -32,15 +37,20 @@
       computer: Computer;
       samples: ComputerSample[];
       alerts: ComputerAlert[];
+      /** O que já foi feito nesta máquina. Vem da feature de Manutenção; a ficha só lê. */
+      maintenances: Maintenance[];
     };
     state?: {
       isSamplesLoading?: boolean;
       isAlertsLoading?: boolean;
+      isMaintenancesLoading?: boolean;
       isSaving?: boolean;
       actionError?: string | null;
     };
     actions: {
       onEdit: () => void;
+      /** Abre o formulário de manutenção já com esta máquina escolhida. */
+      onRegisterMaintenance: () => void;
       onArchivedChange: (isArchived: boolean) => void;
       onBlockedChange: (isBlocked: boolean, reason?: string) => void;
       onRegenerateToken: () => void;
@@ -106,6 +116,7 @@
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import KeyRound from '@lucide/svelte/icons/key-round';
   import Pencil from '@lucide/svelte/icons/pencil';
+  import Wrench from '@lucide/svelte/icons/wrench';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
@@ -356,6 +367,46 @@
           </tbody>
         </table>
       </div>
+    {/if}
+  </section>
+
+  <section class="bg-card rounded-xl border p-4">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-ink-900 text-sm font-semibold">Manutenções desta máquina</h2>
+      <ActionButton
+        data={{ label: 'Registrar manutenção' }}
+        ui={{ variant: 'secondary', size: 'sm', icon: Wrench }}
+        actions={{ onClick: actions.onRegisterMaintenance }}
+      />
+    </div>
+
+    {#if viewState?.isMaintenancesLoading}
+      <p class="text-ink-500 py-6 text-center text-sm">Carregando o histórico…</p>
+    {:else if data.maintenances.length === 0}
+      <p class="text-ink-500 text-sm">
+        Nada registrado ainda. É por este histórico que se enxerga quando vale trocar a máquina
+        em vez de remendar.
+      </p>
+    {:else}
+      <ul class="flex flex-col divide-y">
+        {#each data.maintenances as maintenance (maintenance.id)}
+          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
+            <div class="min-w-0">
+              <p class="text-ink-900 text-sm break-words">{maintenance.description ?? '—'}</p>
+              <p class="text-ink-500 text-xs">
+                {formatDateTime(maintenance.performedAt)}
+                {#if maintenance.performedBy}
+                  · {maintenance.performedBy}
+                {/if}
+              </p>
+            </div>
+            <StatusBadge
+              data={{ label: maintenanceTypeLabel(maintenance.type) }}
+              ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+            />
+          </li>
+        {/each}
+      </ul>
     {/if}
   </section>
 </div>

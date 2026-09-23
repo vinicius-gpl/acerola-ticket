@@ -2,6 +2,7 @@ import { neonAuthUsers } from './neon-auth-user.table';
 import { computerAlerts } from './schema/computer-alerts.schema';
 import { computerSamples } from './schema/computer-samples.schema';
 import { computers } from './schema/computers.schema';
+import { maintenances } from './schema/maintenances.schema';
 import { tasks } from './schema/tasks.schema';
 import { tickets } from './schema/tickets.schema';
 
@@ -21,6 +22,7 @@ export const drizzleSchema = {
   computers,
   computerSamples,
   computerAlerts,
+  maintenances,
   /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */
   neonAuthUsers,
 };
