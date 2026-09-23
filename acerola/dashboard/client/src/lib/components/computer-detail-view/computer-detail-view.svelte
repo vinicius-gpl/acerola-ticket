@@ -92,6 +92,14 @@
   export function metricLabel(metric: AlertMetric): string {
     return alertMetricLabel(metric);
   }
+
+  /**
+   * O tom do cartão da nota, a partir da situação de saúde.
+   *
+   * O tom do selo e o do cartão saem da MESMA fonte: com dois mapas, a mesma máquina
+   * apareceria vermelha no selo e amarela no cartão, e ninguém saberia qual acreditar.
+   */
+  const CARD_TONES = { good: 'success', attention: 'warning', critical: 'danger' } as const;
 </script>
 
 <script lang="ts">
@@ -239,7 +247,7 @@
   <StatCardGrid>
     <StatCard
       data={{ label: 'Nota de saúde', value: `${computer.healthScore}/100` }}
-      ui={{ tone: computer.healthStatus === 'good' ? 'success' : 'warning' }}
+      ui={{ tone: CARD_TONES[computer.healthStatus] }}
     />
     <StatCard
       data={{ label: 'Processador agora', value: formatPercent(lastSample?.cpuPercent ?? null) }}
