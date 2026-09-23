@@ -1,30 +1,58 @@
 <script lang="ts">
-  import Package from '@lucide/svelte/icons/package';
+  import { type MovementType } from '@template/shared/domain/part-catalog.util';
+  import { type Part } from '@template/shared/schemas/part.schema';
 
-  import PendingArea from '$lib/components/pending-area/pending-area.svelte';
+  import PartListView from '$lib/components/part-list-view/part-list-view.svelte';
+  import { usePartListModel } from '$lib/hooks/use-part-list/use-part-list.svelte';
+  import MovementFormSlot from './movement-form-slot.svelte';
+  import PartFormSlot from './part-form-slot.svelte';
+  import PartLedgerSlot from './part-ledger-slot.svelte';
 
   /**
-   * A rota só compõe (CONTRIBUTING §3).
+   * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
-   * Esta área ainda não foi construída: a tela diz o que vai viver aqui, lido dos requisitos
-   * do sistema antigo. Quando ela for feita, este arquivo passa a compor o view-model e a
-   * view de verdade, e o `PendingArea` sai.
+   * O que mora aqui não é dado, é QUAL PEÇA DA TELA ESTÁ NA FRENTE: o cadastro, a
+   * movimentação (com o tipo que o botão escolheu) ou o extrato.
    */
-  const AREA = {
-    title: 'Depósito',
-    summary: 'As peças de reposição que a TI tem em mãos.',
-    features: [
-      'Cadastro de peças por categoria, com a quantidade atual.',
-      'Entrada e saída com responsável e observação — o saldo se ajusta sozinho a cada movimentação.',
-      'Diferenciar peça nova de peça usada.',
-      'Ligar a movimentação à máquina que recebeu a peça, para a ficha dela mostrar o que foi trocado.',
-    ],
-    dependsOn: null,
-  };
+  const list = usePartListModel();
+
+  /* Uma peça de cada vez na frente da tela: os três diálogos são exclusivos. */
+  let editing = $state<{ part: Part | null } | null>(null);
+  let moving = $state<{ part: Part; type: MovementType } | null>(null);
+  let ledgerOf = $state<Part | null>(null);
 </script>
 
 <svelte:head>
   <title>Depósito</title>
 </svelte:head>
 
-<PendingArea data={AREA} ui={{ icon: Package }} />
+<PartListView
+  data={list.data}
+  state={list.state}
+  actions={{
+    ...list.actions,
+    onRegister: () => (editing = { part: null }),
+    onEdit: (part: Part) => (editing = { part }),
+    onMove: (part: Part, type: MovementType) => (moving = { part, type }),
+    onOpenLedger: (part: Part) => (ledgerOf = part),
+  }}
+/>
+
+<!-- `{#key}` pela peça: trocar de peça monta um formulário NOVO, com os valores dela. -->
+{#if editing}
+  {#key editing.part?.id ?? 'new'}
+    <PartFormSlot part={editing.part} onClose={() => (editing = null)} />
+  {/key}
+{/if}
+
+{#if moving}
+  {#key `${moving.part.id}-${moving.type}`}
+    <MovementFormSlot part={moving.part} type={moving.type} onClose={() => (moving = null)} />
+  {/key}
+{/if}
+
+{#if ledgerOf}
+  {#key ledgerOf.id}
+    <PartLedgerSlot part={ledgerOf} onClose={() => (ledgerOf = null)} />
+  {/key}
+{/if}

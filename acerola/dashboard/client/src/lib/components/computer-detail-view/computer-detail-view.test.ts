@@ -121,7 +121,7 @@ const actions = {
 function renderDetail(over: Partial<Computer> = {}) {
   return render(ComputerDetailView, {
     props: {
-      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [] },
+      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [], partMovements: [] },
       actions,
     },
   });
@@ -199,7 +199,7 @@ describe('ComputerDetailView', () => {
   it('shows a dash for the current usage of a machine that never reported', () => {
     render(ComputerDetailView, {
       props: {
-        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [] },
+        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [], partMovements: [] },
         actions,
       },
     });
@@ -212,7 +212,13 @@ describe('ComputerDetailView', () => {
   it('keeps the failure of an action on screen, with the reason', () => {
     render(ComputerDetailView, {
       props: {
-        data: { computer: computer(), samples, alerts: [], maintenances: [] },
+        data: {
+          computer: computer(),
+          samples,
+          alerts: [],
+          maintenances: [],
+          partMovements: [],
+        },
         state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
         actions,
       },

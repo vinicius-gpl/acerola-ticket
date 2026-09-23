@@ -80,6 +80,10 @@ const CONFLICT_MESSAGES: Record<string, string> = {
      o mesmo nome fariam a telemetria de uma cair na ficha da outra. */
   'computers.name':
     'Já existe um computador com esse nome. Abra o cadastro existente em vez de criar outro.',
+  /* Peça nova e peça usada são linhas diferentes de propósito; duas linhas IGUAIS fariam o
+     estoque da mesma peça aparecer dividido em dois lugares. */
+  parts_name_condition_unique:
+    'Já existe uma peça com essa descrição e essa condição. Registre uma entrada nela em vez de cadastrar outra.',
 };
 
 /** Mensagem por `check` do banco, pela mesma chave. */
@@ -95,6 +99,12 @@ const CHECK_MESSAGES: Record<string, string> = {
   computer_alerts_metric_valid: 'A medida do alerta precisa ser processador, memória ou disco.',
   computer_alerts_status_valid: 'A situação do alerta precisa ser ativa ou recuperada.',
   maintenances_type_valid: 'O tipo da manutenção precisa ser um dos da lista.',
+  parts_category_valid: 'A categoria da peça precisa ser uma das da lista.',
+  parts_condition_valid: 'A peça precisa ser nova ou usada.',
+  parts_balance_not_negative:
+    'Isso deixaria o estoque negativo. Confira quantas peças existem na prateleira antes de registrar a saída.',
+  part_movements_type_valid: 'A movimentação precisa ser entrada ou saída.',
+  part_movements_quantity_positive: 'A quantidade da movimentação precisa ser pelo menos 1.',
   maintenances_machine_required:
     'A manutenção precisa dizer em qual equipamento foi feita: escolha uma máquina do inventário ou escreva o nome do equipamento.',
 };

@@ -21,7 +21,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
-    "api:client": "openapi-typescript http://localhost:3333/docs-json -o src/lib/api/generated/schema.ts"
+    "api:client": "openapi-typescript http://localhost:3005/docs-json -o src/lib/api/generated/schema.ts"
   },
   "dependencies": {
     "@internationalized/date": "^3.12.4",

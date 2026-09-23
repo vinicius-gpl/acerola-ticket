@@ -6,14 +6,17 @@ import {
   type UpdateComputerInput,
 } from '@template/shared/schemas/computer.schema';
 import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
+import { type PartMovement } from '@template/shared/schemas/part.schema';
 import { writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { maintenancesApi } from '$lib/api/maintenances.api';
+import { partsApi } from '$lib/api/parts.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { MAINTENANCES_QUERY_KEY } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';
+import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';
 
 export type ComputerDetailModel = {
   data: {
@@ -22,6 +25,8 @@ export type ComputerDetailModel = {
     alerts: ComputerAlert[];
     /** O que já foi feito NESTA máquina — o histórico que sustenta trocar em vez de remendar. */
     maintenances: Maintenance[];
+    /** As peças que saíram do depósito para esta máquina. */
+    partMovements: PartMovement[];
     /**
      * O token recém-gerado, em texto puro. Existe só enquanto a tela estiver aberta: ele não
      * pode ser pedido de novo, e guardá-lo em algum lugar seria guardar uma credencial.
@@ -33,6 +38,7 @@ export type ComputerDetailModel = {
     isSamplesLoading: boolean;
     isAlertsLoading: boolean;
     isMaintenancesLoading: boolean;
+    isPartsLoading: boolean;
     /** A máquina não existe (ou foi apagada por fora): a tela diz isso, não fica em branco. */
     isMissing: boolean;
     isSaving: boolean;
@@ -100,6 +106,17 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
     ),
   );
 
+  /* As peças também moram em outra feature (o Depósito), e a ficha só LÊ: a chave da
+     consulta é a de lá, então dar baixa numa peça por aqui atualizaria as duas telas. */
+  const partMovements = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...PARTS_QUERY_KEY, 'movements', { computerId: id }],
+        queryFn: () => partsApi.movements({ computerId: id, page: 1, pageSize: 50 }),
+      }),
+    ),
+  );
+
   const save = mirrorStore(
     createMutation({
       mutationFn: (body: UpdateComputerInput) => computersApi.update(id, body),
@@ -130,6 +147,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         samples: samples.current.data ?? [],
         alerts: alerts.current.data ?? [],
         maintenances: maintenances.current.data?.items ?? [],
+        partMovements: partMovements.current.data?.items ?? [],
         newToken: token.current,
       };
     },
@@ -139,6 +157,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         isSamplesLoading: samples.current.isPending,
         isAlertsLoading: alerts.current.isPending,
         isMaintenancesLoading: maintenances.current.isPending,
+        isPartsLoading: partMovements.current.isPending,
         isSaving: save.current.isPending || regenerate.current.isPending,
         actionError: readError(save.current.error) ?? readError(regenerate.current.error),
       });
@@ -156,6 +175,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         void samples.current.refetch();
         void alerts.current.refetch();
         void maintenances.current.refetch();
+        void partMovements.current.refetch();
       },
     },
   };
@@ -180,6 +200,7 @@ function buildDetailState(input: {
   isSamplesLoading: boolean;
   isAlertsLoading: boolean;
   isMaintenancesLoading: boolean;
+  isPartsLoading: boolean;
   isSaving: boolean;
   actionError: string | null;
 }): ComputerDetailModel['state'] {
@@ -190,6 +211,7 @@ function buildDetailState(input: {
     isSamplesLoading: input.isSamplesLoading,
     isAlertsLoading: input.isAlertsLoading,
     isMaintenancesLoading: input.isMaintenancesLoading,
+    isPartsLoading: input.isPartsLoading,
     /* 404 não é falha de sistema: é uma máquina que não existe mais. A tela diz isso com
        texto próprio, em vez de oferecer "tentar de novo" para algo que nunca vai dar certo. */
     isMissing: status === 404,

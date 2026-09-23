@@ -64,6 +64,7 @@
       samples: detail.data.samples,
       alerts: detail.data.alerts,
       maintenances: detail.data.maintenances,
+      partMovements: detail.data.partMovements,
     }}
     state={detail.state}
     actions={{

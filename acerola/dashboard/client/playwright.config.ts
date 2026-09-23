@@ -46,7 +46,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:5176',
+    baseURL: 'http://localhost:5005',
     locale: 'pt-BR',
     trace: 'retain-on-failure',
   },
@@ -54,7 +54,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     cwd: '..',
-    url: 'http://localhost:5176',
+    url: 'http://localhost:5005',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: testDatabaseUrl ? { DATABASE_URL: testDatabaseUrl } : {},
