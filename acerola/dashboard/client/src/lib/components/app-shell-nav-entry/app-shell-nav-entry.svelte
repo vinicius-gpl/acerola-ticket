@@ -34,11 +34,15 @@
   <!-- Recolhida, o botão vira um quadrado de 32px e o ícone tem 20: com o padding de 8 que
        vem do componente, ele não cabe e é cortado, parecendo empurrado para a esquerda.
        `p-0` devolve o espaço e `justify-center` o põe no meio do quadrado. -->
+  <!-- O tamanho da fonte vai como `text-[1rem]`, e NÃO como `text-base`: a paleta declara um
+       token de cor chamado `base` (`--color-base` em `tokens.css`), então o Tailwind lê
+       `text-base` como COR, não como tamanho. O resultado era o menu inteiro pintado de
+       #eff1f5 — quase branco sobre a barra clara, ou seja, invisível. -->
   <SidebarMenuButton
     {isActive}
     tooltip={item.label}
     size="lg"
-    class="text-base [&_svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
+    class="text-[1rem] [&_svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
   >
     {#snippet child({ props })}
       <a bind:this={linkEl} href={item.to} {...props}>

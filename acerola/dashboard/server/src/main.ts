@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 
@@ -18,6 +19,12 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   setupApp(app, env);
+
+  /* O ADAPTADOR DE WEBSOCKET, para os agentes conectarem em `/agent`.
+     É `ws` puro, não Socket.IO: o protocolo é bem mais simples de falar a partir de um cliente
+     em Go, que é o que o agente é. Fica aqui, e não em `app.setup.ts`, porque aquele arquivo é
+     estrutura protegida do projeto — e porque os testes E2E de HTTP não precisam do adaptador. */
+  app.useWebSocketAdapter(new WsAdapter(app));
 
   /* `cleanupOpenApiDoc` limpa o ruído interno dos schemas Zod do documento gerado. Sem isto
      o contrato publicado sai ilegível — e endpoint sem contrato legível reprova o CI. */

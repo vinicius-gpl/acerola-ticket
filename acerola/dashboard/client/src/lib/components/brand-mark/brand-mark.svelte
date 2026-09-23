@@ -8,7 +8,9 @@
     };
   };
 
-  const TEXT_SIZES = { sm: 'text-sm', md: 'text-base', lg: 'text-xl' } as const;
+  /* `text-[1rem]` e não `text-base`: a paleta tem um token de cor chamado `base`, então
+     `text-base` vira COR (quase branca) em vez de tamanho — ver `app-shell-nav-entry`. */
+  const TEXT_SIZES = { sm: 'text-sm', md: 'text-[1rem]', lg: 'text-xl' } as const;
 
   let { ui }: BrandMarkProps = $props();
 </script>

@@ -10,7 +10,9 @@ import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
+import { ComputersModule } from './modules/computers/computers.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 
 /**
  * Serve o build do client — sem Nginx, sem container à parte. Atrás do Traefik, esta
@@ -42,6 +44,8 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     AuthModule,
     AuthApiModule,
     TasksModule,
+    TicketsModule,
+    ComputersModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })

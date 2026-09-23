@@ -53,7 +53,10 @@ export async function resetDatabase(): Promise<void> {
     /* Só as tabelas DESTE sistema. O cadastro de pessoas é do Neon Auth, mora no schema
        `neon_auth` e não se apaga por aqui: quem entra e quem sai é decidido no painel da
        Neon, e um seed que limpasse aquilo derrubaria o acesso de todo mundo. */
-    await opened.db.execute(sql`truncate table tasks restart identity cascade`);
+    /* `cascade` leva junto as amostras e os alertas, que só existem presos a um computador. */
+    await opened.db.execute(
+      sql`truncate table tasks, tickets, computers restart identity cascade`,
+    );
   } finally {
     await opened.close();
   }
