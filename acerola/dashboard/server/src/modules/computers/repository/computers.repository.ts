@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type ComputerListQuery } from '@template/shared/schemas/computer.schema';
-import { and, count, desc, eq, gte, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, ilike, or, sql, type SQL } from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
@@ -51,8 +51,10 @@ export class ComputersRepository {
           .from(computers)
           .where(where)
           /* Pior saúde primeiro: a lista serve para achar o que precisa de atenção, e quem
-             abre o inventário está procurando problema, não ordem alfabética. */
-          .orderBy(desc(computers.healthScore), computers.name)
+             abre o inventário está procurando problema, não ordem alfabética. Por isso a nota
+             sobe (`asc`): 63 antes de 100. Em ordem decrescente a tela mostraria as máquinas
+             saudáveis no topo e esconderia a crítica no fim da rolagem. */
+          .orderBy(asc(computers.healthScore), computers.name)
           .limit(query.pageSize)
           .offset(offset),
         'listar computadores',
