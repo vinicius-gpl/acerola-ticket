@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { ALERT_METRICS } from '../domain/computer-alert.util';
 import { DEPARTMENTS } from '../domain/department.util';
 import { HEALTH_STATUSES } from '../domain/computer-health.util';
 import { paginationQuerySchema } from './pagination.schema';
@@ -175,6 +176,19 @@ export const computerFormSchema = z.object({
 
 export type ComputerFormValues = z.input<typeof computerFormSchema>;
 
+/**
+ * A forma do formulário de CADASTRO.
+ *
+ * É o de identificação mais o nome da máquina, que só existe aqui: depois de cadastrada, o
+ * nome é o que o agente informa, e digitá-lo à mão faria a ficha discordar da máquina de
+ * verdade na primeira conexão.
+ */
+export const computerCreateFormSchema = computerFormSchema.extend({
+  name: computerNameSchema,
+});
+
+export type ComputerCreateFormValues = z.input<typeof computerCreateFormSchema>;
+
 export const computerListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
   department: departmentSchema.optional(),
@@ -195,3 +209,26 @@ export const computerSampleSchema = z.object({
 });
 
 export type ComputerSample = z.infer<typeof computerSampleSchema>;
+
+/**
+ * Um EPISÓDIO de alerta, como a tela o recebe.
+ *
+ * É um período, não um instante: abre quando a medida passa do limite e fecha quando ela
+ * volta (ver `computer-alert.util`). `recoveredAt` nulo é problema acontecendo agora — é essa
+ * diferença que a ficha da máquina mostra em vermelho.
+ */
+export const computerAlertSchema = z.object({
+  id: z.number().int(),
+  computerId: z.number().int(),
+  metric: z.enum(ALERT_METRICS),
+  /** O pior valor visto no episódio, não o que o disparou: é ele que diz o tamanho. */
+  peakValue: z.number(),
+  threshold: z.number(),
+  status: z.enum(['active', 'recovered']),
+  startedAt: z.string().datetime(),
+  recoveredAt: z.string().datetime().nullable(),
+  /** O programa que mais consumia a medida no estouro. Palpite honesto, não acusação. */
+  causeProcess: z.string().nullable(),
+});
+
+export type ComputerAlert = z.infer<typeof computerAlertSchema>;

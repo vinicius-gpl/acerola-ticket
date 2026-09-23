@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  computerAlertSchema,
   computerListQuerySchema,
   createComputerSchema,
   updateComputerSchema,
@@ -129,5 +130,48 @@ describe('computerListQuerySchema', () => {
 
   it('refuses a page size above the ceiling', () => {
     expect(computerListQuerySchema.safeParse({ pageSize: 5000 }).success).toBe(false);
+  });
+});
+
+describe('computerAlertSchema', () => {
+  const RECOVERED = {
+    id: 1,
+    computerId: 7,
+    metric: 'disk',
+    peakValue: 97.4,
+    threshold: 90,
+    status: 'recovered',
+    startedAt: '2026-09-20T12:00:00.000Z',
+    recoveredAt: '2026-09-20T12:35:00.000Z',
+    causeProcess: 'OneDrive.exe',
+  };
+
+  // feliz
+  it('accepts an episode that already ended', () => {
+    const parsed = computerAlertSchema.parse(RECOVERED);
+
+    expect(parsed.recoveredAt).not.toBeNull();
+  });
+
+  /* Episódio em aberto é o que a ficha mostra em vermelho: sem data de recuperação. */
+  it('accepts an episode still happening, with no recovery time', () => {
+    const parsed = computerAlertSchema.parse({
+      ...RECOVERED,
+      status: 'active',
+      recoveredAt: null,
+      causeProcess: null,
+    });
+
+    expect(parsed.recoveredAt).toBeNull();
+    expect(parsed.causeProcess).toBeNull();
+  });
+
+  // triste
+  it('refuses a measure that is not one of the three watched', () => {
+    expect(computerAlertSchema.safeParse({ ...RECOVERED, metric: 'gpu' }).success).toBe(false);
+  });
+
+  it('refuses a start time that is not a date', () => {
+    expect(computerAlertSchema.safeParse({ ...RECOVERED, startedAt: 'ontem' }).success).toBe(false);
   });
 });
