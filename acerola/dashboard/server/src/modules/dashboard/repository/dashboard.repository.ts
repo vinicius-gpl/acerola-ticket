@@ -4,6 +4,7 @@ import { and, count, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { qualified } from '../../../lib/db/sql-column.util';
 import { computerAlerts } from '../../../lib/db/schema/computer-alerts.schema';
 import { computers } from '../../../lib/db/schema/computers.schema';
 import { maintenances } from '../../../lib/db/schema/maintenances.schema';
@@ -212,12 +213,12 @@ export class DashboardRepository {
           healthStatus: computers.healthStatus,
           activeAlerts: sql<number>`(
             select count(*)::int from ${computerAlerts}
-            where ${computerAlerts.computerId} = ${computers.id}
-              and ${computerAlerts.status} = 'active'
+            where ${qualified(computerAlerts.computerId)} = ${qualified(computers.id)}
+              and ${qualified(computerAlerts.status)} = 'active'
           )`,
           maintenanceCount: sql<number>`(
             select count(*)::int from ${maintenances}
-            where ${maintenances.computerId} = ${computers.id}
+            where ${qualified(maintenances.computerId)} = ${qualified(computers.id)}
           )`,
         })
         .from(computers)

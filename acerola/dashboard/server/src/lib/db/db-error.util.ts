@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  Logger,
   type HttpException,
   InternalServerErrorException,
   NotFoundException,
@@ -130,9 +131,37 @@ const REFUSED_VALUE_CODES = new Set(['23502', '22P02', '22001', '22003']);
  */
 const BUSY_CODES = new Set(['40001', '40P01', '55P03', '57014', '08000', '08003', '08006']);
 
+/**
+ * Falhas de CONEXÃO do driver, que não têm código do Postgres porque não chegaram nele.
+ *
+ * A Neon suspende o banco depois de alguns minutos parada, e a primeira consulta depois disso
+ * pode esbarrar numa conexão que morreu. Isso não é defeito de quem clicou nem defeito
+ * permanente: é 503, e "tente de novo" resolve de verdade.
+ */
+const CONNECTION_CODES = new Set([
+  'CONNECTION_CLOSED',
+  'CONNECTION_ENDED',
+  'CONNECTION_DESTROYED',
+  'CONNECT_TIMEOUT',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+]);
+
+/** A falha de conexão, quando for esse o caso — senão, nada. */
+function connectionFailure(error: unknown): HttpException | null {
+  const driverCode = driverCodeOf(error);
+  if (!driverCode || !CONNECTION_CODES.has(driverCode)) return null;
+
+  return new ServiceUnavailableException(
+    'Não consegui falar com o banco de dados agora. Tente de novo em instantes.',
+  );
+}
+
 export function toHttpException(error: unknown, context: string): HttpException {
   const postgresError = findPostgresError(error);
-  if (!postgresError) return unknownFailure(error, context);
+  if (!postgresError) return connectionFailure(error) ?? unknownFailure(error, context);
 
   const key = constraintNameOf(postgresError);
 
@@ -170,11 +199,52 @@ export function toHttpException(error: unknown, context: string): HttpException 
 /**
  * Sem tradução conhecida é 500 de propósito: chamar de 4xx faria a tela culpar quem digitou
  * por um defeito nosso, e o problema nunca chegaria até nós.
+ *
+ * A mensagem é a do BANCO, não a do Drizzle. O Drizzle embrulha a falha num erro cujo texto é
+ * a consulta inteira ("Failed query: select ..."), e o motivo de verdade fica no `cause`.
+ * Mostrar o embrulho enche a tela de SQL e esconde a única frase que resolve o problema —
+ * "column reference id is ambiguous" é o que faz alguém consertar; duzentos caracteres de
+ * `select` não são.
  */
 function unknownFailure(error: unknown, context: string): HttpException {
-  const message = error instanceof Error ? error.message : String(error);
+  const reason = reasonOf(error);
 
-  return new InternalServerErrorException(`Falha ao ${context}: ${message}`);
+  /* No LOG vai o erro inteiro, com a consulta: quem está com o terminal aberto precisa da
+     consulta para achar o defeito, e quem está na tela não precisa dela para nada. */
+  new Logger('Database').error(`Falha ao ${context}: ${reason}`, errorStackOf(error));
+
+  return new InternalServerErrorException(`Falha ao ${context}: ${reason}`);
+}
+
+function errorStackOf(error: unknown): string | undefined {
+  return error instanceof Error ? (error.stack ?? error.message) : undefined;
+}
+
+/**
+ * O motivo, em uma frase, cavando até o fundo do erro.
+ *
+ * Erro do Postgres entrega a própria mensagem e o código (o código é o que se pesquisa).
+ * Falha de conexão não tem código do Postgres, mas tem o do driver — e é o que diferencia
+ * "o banco recusou" de "não cheguei no banco".
+ */
+function reasonOf(error: unknown): string {
+  const postgresError = findPostgresError(error);
+  if (postgresError?.message) return `${postgresError.message} (${postgresError.code})`;
+
+  const driverCode = driverCodeOf(error);
+  if (driverCode) return `não consegui falar com o banco (${driverCode})`;
+
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** O código do driver, quando a falha foi de conexão e não do Postgres. */
+function driverCodeOf(error: unknown, depth = 0): string | null {
+  if (depth > 5 || typeof error !== 'object' || error === null) return null;
+
+  const candidate = error as { code?: unknown; cause?: unknown };
+  if (typeof candidate.code === 'string' && !SQLSTATE.test(candidate.code)) return candidate.code;
+
+  return driverCodeOf(candidate.cause, depth + 1);
 }
 
 /**
