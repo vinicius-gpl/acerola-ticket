@@ -1,6 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type ComputerListQuery } from '@template/shared/schemas/computer.schema';
-import { and, asc, count, desc, eq, gte, ilike, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
@@ -203,6 +216,12 @@ function buildWhere(query: ComputerListQuery): SQL | undefined {
   const filters: (SQL | undefined)[] = [];
 
   if (!query.includeArchived) filters.push(eq(computers.isArchived, false));
+
+  /* A tela de Descarte pede SÓ as descartadas; todas as outras listas as escondem. Sem este
+     par, a máquina que saiu de uso continuaria contando no parque e nos números do painel. */
+  if (query.onlyDisposed) filters.push(isNotNull(computers.disposedAt));
+  if (!query.onlyDisposed) filters.push(isNull(computers.disposedAt));
+  if (query.disposalType) filters.push(eq(computers.disposalType, query.disposalType));
   if (query.department) filters.push(eq(computers.department, query.department));
   if (query.healthStatus) filters.push(eq(computers.healthStatus, query.healthStatus));
 

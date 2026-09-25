@@ -2,6 +2,7 @@ import {
   type Computer,
   type ComputerAlert,
   type ComputerListQuery,
+  type DisposeComputerInput,
   type ComputerSample,
   type CreateComputerInput,
   type CreatedComputer,
@@ -28,6 +29,8 @@ export const computersApi = {
         department: query.department,
         healthStatus: query.healthStatus,
         includeArchived: query.includeArchived,
+        onlyDisposed: query.onlyDisposed,
+        disposalType: query.disposalType,
       },
     }),
 
@@ -50,6 +53,14 @@ export const computersApi = {
 
   update: (id: number, body: UpdateComputerInput) =>
     apiRequest<Computer>(`/computers/${id}`, { method: 'PATCH', body }),
+
+  /** Descarta a máquina: ela sai das listas, com tipo, motivo e a data de hoje. */
+  dispose: (id: number, body: DisposeComputerInput) =>
+    apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'POST', body }),
+
+  /** Devolve a máquina descartada ao inventário, limpando o descarte inteiro. */
+  restore: (id: number) =>
+    apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'DELETE' }),
 
   /** Gera um token novo e invalida o anterior — token perdido ou token vazado. */
   regenerateToken: (id: number) =>

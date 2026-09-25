@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -19,6 +29,7 @@ import {
   ComputerSampleDto,
   CreateComputerDto,
   CreatedComputerDto,
+  DisposeComputerDto,
   UpdateComputerDto,
 } from '../dto/computer.dto';
 import { ComputersService } from '../service/computers.service';
@@ -126,6 +137,37 @@ export class ComputersController {
     @Body() body: UpdateComputerDto,
   ): Promise<ComputerDto> {
     return this.service.update(user, id, body);
+  }
+
+  @Post(':id/disposal')
+  @ApiOperation({
+    summary: 'Descarta um computador',
+    description:
+      'A máquina sai das listas do dia a dia, com tipo (defeito ou lixo), motivo e a data de hoje. Nada é apagado: manutenções, alertas e peças continuam ligados a ela. Descartar de novo troca o tipo e preserva a data original.',
+  })
+  @ApiCreatedResponse({ type: ComputerDto })
+  @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
+  @ApiUnprocessableEntityResponse({ description: 'Falta o tipo ou o motivo do descarte.' })
+  async dispose(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: DisposeComputerDto,
+  ): Promise<ComputerDto> {
+    return this.service.dispose(user, id, body);
+  }
+
+  @Delete(':id/disposal')
+  @ApiOperation({
+    summary: 'Devolve um computador descartado ao inventário',
+    description: 'Limpa o descarte inteiro — tipo, motivo e data — e a máquina volta às listas.',
+  })
+  @ApiOkResponse({ type: ComputerDto })
+  @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
+  async restore(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ComputerDto> {
+    return this.service.restore(user, id);
   }
 
   @Post(':id/token')

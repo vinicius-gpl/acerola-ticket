@@ -99,6 +99,9 @@ const CHECK_MESSAGES: Record<string, string> = {
   computer_alerts_metric_valid: 'A medida do alerta precisa ser processador, memória ou disco.',
   computer_alerts_status_valid: 'A situação do alerta precisa ser ativa ou recuperada.',
   maintenances_type_valid: 'O tipo da manutenção precisa ser um dos da lista.',
+  computers_disposal_complete:
+    'Um descarte precisa dizer o tipo e o motivo. Recarregue a tela e tente de novo.',
+  computers_disposal_type_valid: 'O tipo do descarte precisa ser defeito ou lixo.',
   parts_category_valid: 'A categoria da peça precisa ser uma das da lista.',
   parts_condition_valid: 'A peça precisa ser nova ou usada.',
   parts_balance_not_negative:

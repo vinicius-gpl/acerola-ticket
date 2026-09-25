@@ -49,6 +49,9 @@ function computerRow(over: Partial<ComputerRow> = {}): ComputerRow {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: new Date('2026-09-20T10:00:00.000Z'),
     createdBy: ana.email,
     updatedAt: null,
@@ -378,5 +381,85 @@ describe('ComputersService.samples', () => {
     const { service } = makeService({ findById: vi.fn() });
 
     await expect(service.samples(noRole, 7)).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('ComputersService.dispose', () => {
+  // feliz
+  it('stamps the day the machine left, with the type and the reason', async () => {
+    const update = vi.fn().mockResolvedValue(computerRow({ disposedAt: new Date() }));
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(computerRow()), update });
+
+    await service.dispose(ana, 7, { type: 'defect', reason: '  Placa-mãe queimada  ' });
+
+    expect(update).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ disposalType: 'defect', disposalReason: 'Placa-mãe queimada' }),
+    );
+    expect(vi.mocked(update).mock.calls[0]?.[1].disposedAt).toBeInstanceOf(Date);
+  });
+
+  /* Mudar de "defeito" para "lixo" não é uma saída nova: a máquina saiu quando saiu. */
+  it('keeps the original date when the type changes later', async () => {
+    const left = new Date('2026-06-01T12:00:00.000Z');
+    const update = vi.fn().mockResolvedValue(computerRow({ disposedAt: left }));
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(computerRow({ disposedAt: left, disposalType: 'defect', disposalReason: 'x' })),
+      update,
+    });
+
+    await service.dispose(ana, 7, { type: 'scrap', reason: 'Não liga mais' });
+
+    expect(vi.mocked(update).mock.calls[0]?.[1].disposedAt).toBe(left);
+  });
+
+  // triste
+  it('refuses an unidentified request without writing', async () => {
+    const update = vi.fn();
+    const { service } = makeService({ update });
+
+    await expect(
+      service.dispose(noRole, 7, { type: 'scrap', reason: 'x' }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('answers not found, without writing, when the machine is gone', async () => {
+    const update = vi.fn();
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(null), update });
+
+    await expect(
+      service.dispose(ana, 99, { type: 'scrap', reason: 'x' }),
+    ).rejects.toThrow(NotFoundException);
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ComputersService.restore', () => {
+  // feliz
+  /* Voltar ao inventário limpa o descarte INTEIRO: um motivo pendurado numa máquina em uso
+     faria a ficha contar uma história que já não é verdade. */
+  it('clears the whole disposal when the machine comes back', async () => {
+    const update = vi.fn().mockResolvedValue(computerRow());
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(computerRow({ disposedAt: new Date(), disposalType: 'defect', disposalReason: 'x' })),
+      update,
+    });
+
+    await service.restore(ana, 7);
+
+    expect(update).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ disposedAt: null, disposalType: null, disposalReason: null }),
+    );
+  });
+
+  // triste
+  it('refuses an unidentified request without writing', async () => {
+    const update = vi.fn();
+    const { service } = makeService({ update });
+
+    await expect(service.restore(noRole, 7)).rejects.toThrow(ForbiddenException);
+    expect(update).not.toHaveBeenCalled();
   });
 });

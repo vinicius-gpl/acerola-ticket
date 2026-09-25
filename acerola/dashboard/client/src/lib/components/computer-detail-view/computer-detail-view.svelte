@@ -10,6 +10,11 @@
   } from '@template/shared/domain/computer-health.util';
   import { departmentLabel } from '@template/shared/domain/department.util';
   import {
+    disposalTypeLabel,
+    disposalTypeTone,
+    isDisposed,
+  } from '@template/shared/domain/disposal.util';
+  import {
     type Computer,
     type ComputerAlert,
     type ComputerSample,
@@ -62,6 +67,8 @@
       onArchivedChange: (isArchived: boolean) => void;
       onBlockedChange: (isBlocked: boolean, reason?: string) => void;
       onRegenerateToken: () => void;
+      onDispose: (input: { type: 'defect' | 'scrap'; reason: string }) => void;
+      onRestore: () => void;
       onBack: () => void;
     };
   };
@@ -124,6 +131,8 @@
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import KeyRound from '@lucide/svelte/icons/key-round';
   import Pencil from '@lucide/svelte/icons/pencil';
+  import Trash2 from '@lucide/svelte/icons/trash-2';
+  import Undo2 from '@lucide/svelte/icons/undo-2';
   import Wrench from '@lucide/svelte/icons/wrench';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
@@ -135,6 +144,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import UsageChart from '$lib/components/usage-chart/usage-chart.svelte';
   import ComputerBlockDialog from '$lib/components/computer-block-dialog/computer-block-dialog.svelte';
+  import ComputerDisposalDialog from '$lib/components/computer-disposal-dialog/computer-disposal-dialog.svelte';
   import { formatDateTime } from '$lib/utils/format-date';
   import { formatPercent, formatTimeAgo } from '$lib/utils/format-machine';
 
@@ -157,13 +167,20 @@
 
   /* Qual pergunta está na frente da tela. É estado VISUAL: não é dado, é qual peça está
      aberta — por isso pode morar aqui (CONTRIBUTING §3). */
-  let pending = $state<'archive' | 'unarchive' | 'unblock' | 'token' | 'block' | null>(null);
+  let pending = $state<
+    'archive' | 'unarchive' | 'unblock' | 'token' | 'block' | 'dispose' | 'restore' | null
+  >(null);
+
+  /* Máquina descartada é SÓ LEITURA: editar, bloquear ou gerar token nela seria mexer no
+     passado — o cadastro precisa continuar contando o que ela era quando saiu. */
+  const disposed = $derived(isDisposed(computer));
 
   function confirmPending(): void {
     if (pending === 'archive') actions.onArchivedChange(true);
     if (pending === 'unarchive') actions.onArchivedChange(false);
     if (pending === 'unblock') actions.onBlockedChange(false);
     if (pending === 'token') actions.onRegenerateToken();
+    if (pending === 'restore') actions.onRestore();
 
     pending = null;
   }
@@ -182,19 +199,30 @@
       description: `${computer.name} · ${computer.department ? departmentLabel(computer.department) : 'Sem departamento'} · ${computer.responsibleName ?? 'Sem responsável'}`,
     }}
   >
-    <ActionButton
-      data={{ label: 'Editar identificação' }}
-      ui={{ variant: 'secondary', icon: Pencil }}
-      state={{ isDisabled: viewState?.isSaving }}
-      actions={{ onClick: actions.onEdit }}
-    />
-    <ActionButton
-      data={{ label: 'Gerar token novo' }}
-      ui={{ variant: 'secondary', icon: KeyRound }}
-      state={{ isDisabled: viewState?.isSaving }}
-      actions={{ onClick: () => (pending = 'token') }}
-    />
-    {#if computer.isBlocked}
+    {#if disposed}
+      <ActionButton
+        data={{ label: 'Voltar ao inventário' }}
+        ui={{ variant: 'secondary', icon: Undo2 }}
+        state={{ isDisabled: viewState?.isSaving }}
+        actions={{ onClick: () => (pending = 'restore') }}
+      />
+    {:else}
+      <ActionButton
+        data={{ label: 'Editar identificação' }}
+        ui={{ variant: 'secondary', icon: Pencil }}
+        state={{ isDisabled: viewState?.isSaving }}
+        actions={{ onClick: actions.onEdit }}
+      />
+      <ActionButton
+        data={{ label: 'Gerar token novo' }}
+        ui={{ variant: 'secondary', icon: KeyRound }}
+        state={{ isDisabled: viewState?.isSaving }}
+        actions={{ onClick: () => (pending = 'token') }}
+      />
+    {/if}
+    {#if disposed}
+      <!-- Descartada: nada de bloquear nem arquivar. A única ação é desfazer. -->
+    {:else if computer.isBlocked}
       <ActionButton
         data={{ label: 'Desbloquear' }}
         ui={{ variant: 'secondary' }}
@@ -209,7 +237,9 @@
         actions={{ onClick: () => (pending = 'block') }}
       />
     {/if}
-    {#if computer.isArchived}
+    {#if disposed}
+      <!-- Já saiu de uso: arquivar não teria o que fazer. -->
+    {:else if computer.isArchived}
       <ActionButton
         data={{ label: 'Tirar do arquivo' }}
         ui={{ variant: 'secondary' }}
@@ -219,9 +249,16 @@
     {:else}
       <ActionButton
         data={{ label: 'Arquivar' }}
-        ui={{ variant: 'danger' }}
+        ui={{ variant: 'secondary' }}
         state={{ isDisabled: viewState?.isSaving }}
         actions={{ onClick: () => (pending = 'archive') }}
+      />
+      <!-- Descartar é a decisão pesada: sai de uso de vez, com motivo. Arquivar é a leve. -->
+      <ActionButton
+        data={{ label: 'Descartar' }}
+        ui={{ variant: 'danger', icon: Trash2 }}
+        state={{ isDisabled: viewState?.isSaving }}
+        actions={{ onClick: () => (pending = 'dispose') }}
       />
     {/if}
   </PageHeader>
@@ -237,6 +274,12 @@
       data={{ label: healthStatusLabel(computer.healthStatus) }}
       ui={{ tone: healthStatusTone(computer.healthStatus) }}
     />
+    {#if disposed && computer.disposalType}
+      <StatusBadge
+        data={{ label: `Descartada · ${disposalTypeLabel(computer.disposalType)}` }}
+        ui={{ tone: disposalTypeTone(computer.disposalType) }}
+      />
+    {/if}
     {#if computer.isArchived}
       <StatusBadge data={{ label: 'Arquivada' }} ui={{ tone: 'neutral' }} />
     {/if}
@@ -255,6 +298,16 @@
       {/if}
     </span>
   </div>
+
+  {#if disposed && computer.disposalType}
+    <p class="text-ink-700 bg-muted rounded-lg border px-3 py-2 text-sm">
+      <span class="font-semibold">
+        Fora de uso ({disposalTypeLabel(computer.disposalType)}) desde
+        {formatDateTime(computer.disposedAt)}:
+      </span>
+      {computer.disposalReason}
+    </p>
+  {/if}
 
   {#if computer.isBlocked && computer.blockReason}
     <p class="text-ink-700 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm">
@@ -381,11 +434,13 @@
   <section class="bg-card rounded-xl border p-4">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-ink-900 text-sm font-semibold">Manutenções desta máquina</h2>
-      <ActionButton
-        data={{ label: 'Registrar manutenção' }}
-        ui={{ variant: 'secondary', size: 'sm', icon: Wrench }}
-        actions={{ onClick: actions.onRegisterMaintenance }}
-      />
+      {#if !disposed}
+        <ActionButton
+          data={{ label: 'Registrar manutenção' }}
+          ui={{ variant: 'secondary', size: 'sm', icon: Wrench }}
+          actions={{ onClick: actions.onRegisterMaintenance }}
+        />
+      {/if}
     </div>
 
     {#if viewState?.isMaintenancesLoading}
@@ -499,6 +554,29 @@
   ui={{ tone: 'danger' }}
   state={{ isOpen: pending === 'token', isConfirming: viewState?.isSaving }}
   actions={{ onConfirm: confirmPending, onCancel: () => (pending = null) }}
+/>
+
+<ConfirmDialog
+  data={{
+    title: 'Devolver esta máquina ao inventário?',
+    description: `${computer.name} volta para as listas do dia a dia, e o motivo do descarte é apagado. O histórico dela continua inteiro.`,
+    confirmLabel: 'Voltar ao inventário',
+    confirmingLabel: 'Devolvendo…',
+  }}
+  state={{ isOpen: pending === 'restore', isConfirming: viewState?.isSaving }}
+  actions={{ onConfirm: confirmPending, onCancel: () => (pending = null) }}
+/>
+
+<ComputerDisposalDialog
+  data={{ computerName: computer.name }}
+  state={{ isOpen: pending === 'dispose', isConfirming: viewState?.isSaving }}
+  actions={{
+    onConfirm: (input) => {
+      actions.onDispose(input);
+      pending = null;
+    },
+    onCancel: () => (pending = null),
+  }}
 />
 
 <ComputerBlockDialog
