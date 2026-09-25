@@ -5,6 +5,7 @@ import {
   BUDGET_NEED_CATEGORY,
   budgetNeedHint,
   budgetNeedLabel,
+  budgetNeedValueText,
   needsPurchase,
   toBuyOf,
 } from './budget-need.util';
@@ -36,6 +37,17 @@ describe('needsPurchase', () => {
   /* Necessidade coberta continua na tela, zerada: é a boa notícia da lista. */
   it('says there is nothing to buy when the shelf covers it', () => {
     expect(needsPurchase(3, 3)).toBe(false);
+  });
+});
+
+describe('budgetNeedValueText', () => {
+  // feliz
+  /* Cada necessidade mede uma coisa diferente: um "7" solto seria lido como sete de alguma
+     coisa nas duas listas. */
+  it('keeps the unit next to the number', () => {
+    expect(budgetNeedValueText('memory', 4)).toBe('4 GB de memória');
+    expect(budgetNeedValueText('disk', 7)).toBe('7% livre no disco');
+    expect(budgetNeedValueText('computer', 3)).toBe('3 manutenções');
   });
 });
 

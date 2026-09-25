@@ -39,13 +39,6 @@ export const BUDGET_NEED_HINTS: Record<BudgetNeedKey, string> = {
   computer: 'Máquinas com 3 manutenções ou mais — remendar sai mais caro do que trocar.',
 };
 
-/** A unidade do número que colocou cada máquina na lista. */
-export const BUDGET_NEED_UNITS: Record<BudgetNeedKey, string> = {
-  memory: 'GB de memória',
-  disk: '% livre',
-  computer: 'manutenções',
-};
-
 export function budgetNeedLabel(key: BudgetNeedKey): string {
   return BUDGET_NEED_LABELS[key];
 }
@@ -54,8 +47,17 @@ export function budgetNeedHint(key: BudgetNeedKey): string {
   return BUDGET_NEED_HINTS[key];
 }
 
-export function budgetNeedUnit(key: BudgetNeedKey): string {
-  return BUDGET_NEED_UNITS[key];
+/**
+ * O número que colocou a máquina na lista, com a unidade: "4 GB de memória".
+ *
+ * A unidade anda junto do número porque cada necessidade mede uma coisa diferente — um "7"
+ * solto ao lado de duas máquinas seria lido como sete de alguma coisa em ambas.
+ */
+export function budgetNeedValueText(key: BudgetNeedKey, value: number): string {
+  if (key === 'memory') return `${value} GB de memória`;
+  if (key === 'disk') return `${value}% livre no disco`;
+
+  return `${value} manutenções`;
 }
 
 /**
