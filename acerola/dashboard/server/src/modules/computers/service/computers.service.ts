@@ -10,6 +10,7 @@ import {
   type Computer,
   type ComputerAlert,
   type ComputerListQuery,
+  type DisposeComputerInput,
   type ComputerSample,
   type CreateComputerInput,
   type CreatedComputer,
@@ -138,6 +139,51 @@ export class ComputersService {
     });
 
     return { computer: toComputer(row, this.presence.isOnline(row.id)), token };
+  }
+
+  /**
+   * Descarta a máquina: ela sai das listas do dia a dia, com tipo e motivo.
+   *
+   * NADA é apagado — manutenções, alertas e peças continuam ligados a ela. É esse histórico
+   * que sustenta "trocar saiu mais barato do que consertar" na conversa do ano que vem.
+   *
+   * A data é carimbada AQUI, e não vem do corpo: uma saída lançada "de ontem" seria um jeito
+   * silencioso de ajustar o passado.
+   *
+   * Descartar de novo uma máquina já descartada é como se muda o tipo (de defeito para lixo),
+   * e por isso não é recusado: a data original é preservada, porque foi quando ela saiu.
+   */
+  async dispose(user: RequestUser, id: number, input: DisposeComputerInput): Promise<Computer> {
+    assertCanCreate(user.role, 'computadores');
+
+    const current = await this.requireComputer(id);
+
+    const row = await this.repository.update(id, {
+      disposedAt: current.disposedAt ?? new Date(),
+      disposalType: input.type,
+      disposalReason: input.reason.trim(),
+      updatedAt: new Date(),
+      updatedBy: user.email,
+    });
+
+    return toComputer(row, false);
+  }
+
+  /** Devolve a máquina ao inventário, limpando o descarte inteiro. */
+  async restore(user: RequestUser, id: number): Promise<Computer> {
+    assertCanCreate(user.role, 'computadores');
+
+    await this.requireComputer(id);
+
+    const row = await this.repository.update(id, {
+      disposedAt: null,
+      disposalType: null,
+      disposalReason: null,
+      updatedAt: new Date(),
+      updatedBy: user.email,
+    });
+
+    return toComputer(row, this.presence.isOnline(row.id));
   }
 
   /** As amostras de uso das últimas horas, para o gráfico da tela de detalhe. */

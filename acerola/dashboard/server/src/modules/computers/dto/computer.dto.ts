@@ -5,6 +5,7 @@ import {
   computerSchema,
   createComputerSchema,
   createdComputerSchema,
+  disposeComputerSchema,
   updateComputerSchema,
 } from '@template/shared/schemas/computer.schema';
 import { createZodDto } from 'nestjs-zod';
@@ -25,6 +26,9 @@ export class CreatedComputerDto extends createZodDto(createdComputerSchema) {}
 export class ComputerSampleDto extends createZodDto(computerSampleSchema) {}
 
 export class ComputerAlertDto extends createZodDto(computerAlertSchema) {}
+
+/** O descarte: tipo e motivo. A data é do servidor, e por isso não entra no corpo. */
+export class DisposeComputerDto extends createZodDto(disposeComputerSchema) {}
 
 export class ComputerListResponseDto extends createZodDto(
   z.object({

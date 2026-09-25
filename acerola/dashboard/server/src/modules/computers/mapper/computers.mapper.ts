@@ -62,6 +62,10 @@ export function toComputer(row: ComputerRow, isOnline: boolean): Computer {
     isBlocked: row.isBlocked,
     blockReason: row.blockReason,
 
+    disposedAt: row.disposedAt?.toISOString() ?? null,
+    disposalType: row.disposalType,
+    disposalReason: row.disposalReason,
+
     createdAt: row.createdAt.toISOString(),
     createdBy: row.createdBy,
     updatedAt: row.updatedAt?.toISOString() ?? null,
