@@ -10,6 +10,7 @@ import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
+import { BudgetModule } from './modules/budget/budget.module';
 import { ComputersModule } from './modules/computers/computers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
@@ -56,6 +57,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     DashboardModule,
     NetworkModule,
     InsightsModule,
+    BudgetModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })
