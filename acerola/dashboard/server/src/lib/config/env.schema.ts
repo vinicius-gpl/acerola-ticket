@@ -68,6 +68,18 @@ export const envSchema = z.object({
    * Sem padrão de propósito: cada projeto da Neon tem o seu, e um endereço errado aqui não
    * falharia na partida — falharia no primeiro login, parecendo senha errada.
    */
+  /**
+   * O segredo do webhook do UniFi.
+   *
+   * O controlador da rede não tem login: ele prova quem é apresentando este valor na URL do
+   * webhook. Sem a variável, a rota do webhook RECUSA tudo — é melhor a integração ficar
+   * fora do ar do que aberta para qualquer um gravar evento de rede.
+   *
+   * Opcional porque o resto do sistema sobe sem ela: quem não usa UniFi registra as quedas
+   * à mão, pela própria tela.
+   */
+  UNIFI_WEBHOOK_TOKEN: z.string().trim().min(16, 'O segredo do webhook precisa ser longo').optional(),
+
   NEON_AUTH_URL: z
     .string()
     .trim()

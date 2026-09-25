@@ -1,5 +1,6 @@
 import { seedComputers } from './computers/seed-computers';
 import { seedMaintenances } from './maintenances/seed-maintenances';
+import { seedNetwork } from './network/seed-network';
 import { seedParts } from './parts/seed-parts';
 import { openSeedDatabase, report, resetDatabase } from './seed.util';
 import { seedTasks } from './tasks/seed-tasks';
@@ -31,6 +32,8 @@ async function main(): Promise<void> {
     report('manutenções', await seedMaintenances(db));
     /* Depois dos computadores também: a movimentação aponta para a máquina que recebeu. */
     report('peças do depósito', await seedParts(db));
+    /* A rede não depende de ninguém: é o link de internet, não uma máquina. */
+    report('eventos de rede', await seedNetwork(db));
   } finally {
     await close();
   }
