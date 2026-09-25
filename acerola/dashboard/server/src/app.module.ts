@@ -19,6 +19,7 @@ import { NetworkModule } from './modules/network/network.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { TransfersModule } from './modules/transfers/transfers.module';
 
 /**
  * Serve o build do client — sem Nginx, sem container à parte. Atrás do Traefik, esta
@@ -58,6 +59,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     NetworkModule,
     InsightsModule,
     BudgetModule,
+    TransfersModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })

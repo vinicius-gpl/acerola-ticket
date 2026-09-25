@@ -71,6 +71,13 @@
       "when": 1790352232232,
       "tag": "0009_soft_penance",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790358359548,
+      "tag": "0010_supreme_scrambler",
+      "breakpoints": true
     }
   ]
 }
