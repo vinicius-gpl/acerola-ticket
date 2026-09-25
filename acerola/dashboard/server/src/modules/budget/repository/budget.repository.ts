@@ -4,6 +4,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import { runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { qualified } from '../../../lib/db/sql-column.util';
 import { computers } from '../../../lib/db/schema/computers.schema';
 import { maintenances } from '../../../lib/db/schema/maintenances.schema';
 import { parts } from '../../../lib/db/schema/parts.schema';
@@ -54,7 +55,7 @@ export class BudgetRepository {
              máquina, e a mesma máquina seria contada várias vezes na necessidade. */
           maintenanceCount: sql<number>`(
             select count(*)::int from ${maintenances}
-            where ${maintenances.computerId} = ${computers.id}
+            where ${qualified(maintenances.computerId)} = ${qualified(computers.id)}
           )`,
         })
         .from(computers)

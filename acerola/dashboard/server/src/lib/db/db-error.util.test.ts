@@ -28,6 +28,19 @@ function wrapped(code: string, constraintName?: string): Error {
   return Object.assign(new Error('Failed query: insert into "tasks" ...'), { cause });
 }
 
+/** O caso que derrubou três telas: coluna sem a tabela na frente, num `join`. */
+function ambiguous(): Error {
+  const cause = Object.assign(new Error('column reference "id" is ambiguous'), {
+    name: 'PostgresError',
+    severity: 'ERROR',
+    code: '42702',
+  });
+
+  return Object.assign(new Error('Failed query: select count("id") from "computers" ...'), {
+    cause,
+  });
+}
+
 describe('findPostgresError', () => {
   // feliz
   it('finds the Postgres error inside the Drizzle wrapper', () => {
@@ -137,6 +150,31 @@ describe('toHttpException', () => {
     expect(toHttpException(wrapped('42P01'), 'listar tarefas')).toBeInstanceOf(
       InternalServerErrorException,
     );
+  });
+
+  /* O texto do Drizzle é a consulta inteira, e o motivo fica escondido no `cause`. Mostrar o
+     embrulho enche a tela de SQL e esconde a única frase que resolve o problema. */
+  it('shows the reason the database gave, and not the query', () => {
+    const error = ambiguous();
+
+    const message = toHttpException(error, 'cruzar os dados').message;
+
+    expect(message).toContain('column reference "id" is ambiguous');
+    expect(message).toContain('42702');
+    expect(message).not.toContain('select');
+  });
+
+  /* Conexão caída não é defeito de quem clicou nem defeito permanente: a Neon suspende o
+     banco parado, e "tente de novo" resolve de verdade. */
+  it('treats a dead connection as busy, not as a bug of whoever clicked', () => {
+    const dead = Object.assign(new Error('Failed query: select 1'), {
+      cause: Object.assign(new Error('write CONNECTION_CLOSED'), { code: 'CONNECTION_CLOSED' }),
+    });
+
+    const exception = toHttpException(dead, 'contar os chamados');
+
+    expect(exception).toBeInstanceOf(ServiceUnavailableException);
+    expect(exception.message).toContain('Tente de novo');
   });
 });
 

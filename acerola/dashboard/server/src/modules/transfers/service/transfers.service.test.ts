@@ -69,8 +69,10 @@ function makeService(over: Overrides = {}) {
 
   const parts = {
     findByIdForUpdate: vi.fn(async () => (over.part === undefined ? part() : over.part)),
-    insertMovement: vi.fn(async () => 1),
-    update: vi.fn(async () => part()),
+    insertMovement: vi.fn(async (_values: Record<string, unknown>) => 1),
+    update: vi.fn(async (_id: number, _values: Record<string, unknown>, _executor: unknown) =>
+      part(),
+    ),
   };
 
   return {

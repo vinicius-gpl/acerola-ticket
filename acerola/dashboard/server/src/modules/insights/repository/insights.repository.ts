@@ -4,6 +4,7 @@ import { and, eq, gte, isNull, sql } from 'drizzle-orm';
 import { runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { qualified } from '../../../lib/db/sql-column.util';
 import { computerAlerts } from '../../../lib/db/schema/computer-alerts.schema';
 import { computerSamples } from '../../../lib/db/schema/computer-samples.schema';
 import { computers } from '../../../lib/db/schema/computers.schema';
@@ -72,13 +73,15 @@ export class InsightsRepository {
       this.db
         .select({
           ...machineColumns,
-          averageCpuPercent: sql<number | null>`avg(${computerSamples.cpuPercent})`,
-          averageMemoryPercent: sql<number | null>`avg(${computerSamples.memoryPercent})`,
-          sampleCount: sql<number>`count(${computerSamples.id})::int`,
+          averageCpuPercent: sql<number | null>`avg(${qualified(computerSamples.cpuPercent)})`,
+          averageMemoryPercent: sql<number | null>`avg(${qualified(computerSamples.memoryPercent)})`,
+          /* `count("id")` sem a tabela é AMBÍGUO aqui: computador e leitura têm as duas uma
+             coluna `id`, e o banco recusa a consulta inteira. */
+          sampleCount: sql<number>`count(${qualified(computerSamples.id)})::int`,
           activeAlerts: sql<number>`(
             select count(*)::int from ${computerAlerts}
-            where ${computerAlerts.computerId} = ${computers.id}
-              and ${computerAlerts.status} = 'active'
+            where ${qualified(computerAlerts.computerId)} = ${qualified(computers.id)}
+              and ${qualified(computerAlerts.status)} = 'active'
           )`,
         })
         .from(computers)
@@ -128,16 +131,16 @@ export class InsightsRepository {
           ...machineColumns,
           maintenanceCount: sql<number>`(
             select count(*)::int from ${maintenances}
-            where ${maintenances.computerId} = ${computers.id}
+            where ${qualified(maintenances.computerId)} = ${qualified(computers.id)}
           )`,
           alertCount: sql<number>`(
             select count(*)::int from ${computerAlerts}
-            where ${computerAlerts.computerId} = ${computers.id}
-              and ${computerAlerts.startedAt} >= ${since}
+            where ${qualified(computerAlerts.computerId)} = ${qualified(computers.id)}
+              and ${qualified(computerAlerts.startedAt)} >= ${since}
           )`,
           lastMaintenanceAt: sql<Date | null>`(
-            select max(${maintenances.performedAt}) from ${maintenances}
-            where ${maintenances.computerId} = ${computers.id}
+            select max(${qualified(maintenances.performedAt)}) from ${maintenances}
+            where ${qualified(maintenances.computerId)} = ${qualified(computers.id)}
           )`,
         })
         .from(computers)
