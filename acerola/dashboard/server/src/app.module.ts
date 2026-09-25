@@ -13,6 +13,7 @@ import { AuthApiModule } from './modules/auth/auth.module';
 import { ComputersModule } from './modules/computers/computers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
+import { InsightsModule } from './modules/insights/insights.module';
 import { NetworkModule } from './modules/network/network.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -54,6 +55,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     PartsModule,
     DashboardModule,
     NetworkModule,
+    InsightsModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })
