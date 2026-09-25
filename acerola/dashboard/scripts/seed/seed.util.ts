@@ -55,7 +55,7 @@ export async function resetDatabase(): Promise<void> {
        Neon, e um seed que limpasse aquilo derrubaria o acesso de todo mundo. */
     /* `cascade` leva junto as amostras e os alertas, que só existem presos a um computador. */
     await opened.db.execute(
-      sql`truncate table tasks, tickets, computers, maintenances, parts, part_movements restart identity cascade`,
+      sql`truncate table tasks, tickets, computers, maintenances, parts, part_movements, network_events restart identity cascade`,
     );
   } finally {
     await opened.close();
