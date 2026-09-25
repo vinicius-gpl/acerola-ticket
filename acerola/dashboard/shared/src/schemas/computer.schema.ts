@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ALERT_METRICS } from '../domain/computer-alert.util';
+import { DISPOSAL_TYPES } from '../domain/disposal.util';
 import { DEPARTMENTS } from '../domain/department.util';
 import { HEALTH_STATUSES } from '../domain/computer-health.util';
 import { paginationQuerySchema } from './pagination.schema';
@@ -15,6 +16,11 @@ export const COMPUTER_NAME_MAX_LENGTH = 120;
 export const DISPLAY_NAME_MAX_LENGTH = 120;
 export const RESPONSIBLE_NAME_MAX_LENGTH = 200;
 export const BLOCK_REASON_MAX_LENGTH = 300;
+export const DISPOSAL_REASON_MAX_LENGTH = 300;
+
+export const disposalTypeSchema = z.enum(DISPOSAL_TYPES, {
+  errorMap: () => ({ message: 'Diga se a máquina tem defeito ou virou lixo' }),
+});
 
 export const healthStatusSchema = z.enum(HEALTH_STATUSES, {
   errorMap: () => ({ message: 'Escolha uma situação de saúde da lista' }),
@@ -109,6 +115,17 @@ export const computerSchema = z.object({
 
   /** Arquivada sai das listas, mas não do banco — nada do histórico é destruído. */
   isArchived: z.boolean(),
+
+  /**
+   * DESCARTADA: saiu de uso de vez, com motivo e data. Também não some do banco.
+   *
+   * `disposedAt` nulo é o que diz que a máquina está em uso — não existe um booleano à parte
+   * para isso, porque dois campos dizendo a mesma coisa acabam discordando.
+   */
+  disposedAt: z.string().datetime().nullable(),
+  disposalType: disposalTypeSchema.nullable(),
+  disposalReason: z.string().nullable(),
+
   /** Bloqueada tem a conexão recusada, mesmo com token válido. */
   isBlocked: z.boolean(),
   blockReason: z.string().nullable(),
@@ -195,7 +212,43 @@ export const computerListQuerySchema = paginationQuerySchema.extend({
   healthStatus: healthStatusSchema.optional(),
   /** Por padrão as arquivadas NÃO vêm: elas saíram de uso e só atrapalhariam a lista. */
   includeArchived: z.coerce.boolean().optional(),
+  /**
+   * As DESCARTADAS também ficam de fora por padrão, e esta chave as traz SOZINHAS: é a
+   * consulta da tela de Descarte, que é uma lista de quem saiu, não do parque.
+   */
+  onlyDisposed: z.coerce.boolean().optional(),
+  disposalType: disposalTypeSchema.optional(),
 });
+
+/**
+ * Descartar uma máquina: dizer o tipo e o porquê.
+ *
+ * A data não entra no corpo — ela é o instante em que a decisão foi registrada, carimbado
+ * pelo servidor. Deixar digitar faria o histórico aceitar uma saída "de ontem" lançada por
+ * quem quisesse ajustar o passado.
+ */
+export const disposeComputerSchema = z.object({
+  type: disposalTypeSchema,
+  reason: z
+    .string({ required_error: 'Diga por que a máquina saiu de uso' })
+    .trim()
+    .min(1, 'Diga por que a máquina saiu de uso')
+    .max(DISPOSAL_REASON_MAX_LENGTH, `O motivo pode ter até ${DISPOSAL_REASON_MAX_LENGTH} caracteres`),
+});
+
+export type DisposeComputerInput = z.input<typeof disposeComputerSchema>;
+
+/** A forma do formulário de descarte. */
+export const disposalFormSchema = z.object({
+  type: disposalTypeSchema,
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'Diga por que a máquina saiu de uso')
+    .max(DISPOSAL_REASON_MAX_LENGTH, `Até ${DISPOSAL_REASON_MAX_LENGTH} caracteres`),
+});
+
+export type DisposalFormValues = z.input<typeof disposalFormSchema>;
 
 export type ComputerListQuery = z.infer<typeof computerListQuerySchema>;
 
