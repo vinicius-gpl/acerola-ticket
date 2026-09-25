@@ -5,7 +5,7 @@
 # sem elas, o server recusa iniciar.
 #
 # Em produção fica atrás de um Traefik (ex.: Coolify), que resolve domínio e TLS;
-# localmente é só `-p 3336:3336`.
+# localmente é só `-p 3005:3005`.
 services:
   app:
     build:
@@ -15,4 +15,4 @@ services:
       - path: ../server/.env
         required: false
     ports:
-      - '3336:3336'
+      - '3005:3005'
