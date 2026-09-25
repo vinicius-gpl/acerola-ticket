@@ -12,6 +12,7 @@ import { PartsService } from './service/parts.service';
 @Module({
   controllers: [PartsController],
   providers: [PartsService, PartsRepository],
-  exports: [PartsService],
+  /* O repository sai para o módulo de transferências: ver o comentário lá. */
+  exports: [PartsService, PartsRepository],
 })
 export class PartsModule {}

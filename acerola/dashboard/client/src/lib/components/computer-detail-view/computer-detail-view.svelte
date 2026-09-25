@@ -29,6 +29,7 @@
     movementTypeTone,
   } from '@template/shared/domain/part-catalog.util';
   import { type PartMovement } from '@template/shared/schemas/part.schema';
+  import { type Transfer } from '@template/shared/schemas/transfer.schema';
 
   import { formatBytes, formatDuration } from '$lib/utils/format-machine';
 
@@ -51,12 +52,15 @@
       maintenances: Maintenance[];
       /** As peças que saíram do depósito para esta máquina. A ficha também só lê. */
       partMovements: PartMovement[];
+      /** Por onde a máquina já andou. A transferência é escrita pelo diálogo, não por aqui. */
+      transfers: Transfer[];
     };
     state?: {
       isSamplesLoading?: boolean;
       isAlertsLoading?: boolean;
       isMaintenancesLoading?: boolean;
       isPartsLoading?: boolean;
+      isTransfersLoading?: boolean;
       isSaving?: boolean;
       actionError?: string | null;
     };
@@ -64,6 +68,8 @@
       onEdit: () => void;
       /** Abre o formulário de manutenção já com esta máquina escolhida. */
       onRegisterMaintenance: () => void;
+      /** Abre o diálogo de mudar a máquina de departamento. */
+      onTransfer: () => void;
       onArchivedChange: (isArchived: boolean) => void;
       onBlockedChange: (isBlocked: boolean, reason?: string) => void;
       onRegenerateToken: () => void;
@@ -74,6 +80,20 @@
   };
 
   export type HardwareFact = { label: string; value: string };
+
+  /**
+   * Uma mudança de departamento em uma linha: "Recepção → Contábil".
+   *
+   * Os dois lados aparecem sempre, inclusive a prateleira: "saiu do nada para o fiscal" não
+   * é uma frase que alguém entenda, e "Sem departamento → Fiscal" é.
+   */
+  export function transferRouteOf(transfer: Transfer): string {
+    return `${placeLabelOf(transfer.fromDepartment)} → ${placeLabelOf(transfer.toDepartment)}`;
+  }
+
+  function placeLabelOf(department: string | null): string {
+    return department ? departmentLabel(department as never) : 'Sem departamento';
+  }
 
   /**
    * Os fatos de hardware, já em palavras.
@@ -129,6 +149,7 @@
 
 <script lang="ts">
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+  import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
   import KeyRound from '@lucide/svelte/icons/key-round';
   import Pencil from '@lucide/svelte/icons/pencil';
   import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -219,6 +240,16 @@
         state={{ isDisabled: viewState?.isSaving }}
         actions={{ onClick: () => (pending = 'token') }}
       />
+      <!-- Transferir só faz sentido para máquina em uso: arquivada e descartada não estão na
+           mesa de ninguém para mudar de sala. -->
+      {#if !computer.isArchived}
+        <ActionButton
+          data={{ label: 'Transferir' }}
+          ui={{ variant: 'secondary', icon: ArrowLeftRight }}
+          state={{ isDisabled: viewState?.isSaving }}
+          actions={{ onClick: actions.onTransfer }}
+        />
+      {/if}
     {/if}
     {#if disposed}
       <!-- Descartada: nada de bloquear nem arquivar. A única ação é desfazer. -->
@@ -467,6 +498,44 @@
               data={{ label: maintenanceTypeLabel(maintenance.type) }}
               ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
             />
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </section>
+
+  <section class="bg-card rounded-xl border p-4">
+    <h2 class="text-ink-900 mb-3 text-sm font-semibold">Por onde esta máquina andou</h2>
+
+    {#if viewState?.isTransfersLoading}
+      <p class="text-ink-500 py-6 text-center text-sm">Carregando o histórico…</p>
+    {:else if data.transfers.length === 0}
+      <p class="text-ink-500 text-sm">
+        Nenhuma transferência registrada. Ao mudar a máquina de departamento pelo botão
+        "Transferir", a mudança fica guardada aqui.
+      </p>
+    {:else}
+      <ul class="flex flex-col divide-y">
+        {#each data.transfers as transfer (transfer.id)}
+          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
+            <div class="min-w-0">
+              <p class="text-ink-900 text-sm break-words">{transferRouteOf(transfer)}</p>
+              <p class="text-ink-500 text-xs break-words">
+                {formatDateTime(transfer.createdAt)}
+                {#if transfer.responsible}
+                  · {transfer.responsible}
+                {/if}
+                {#if transfer.note}
+                  · {transfer.note}
+                {/if}
+              </p>
+            </div>
+            {#if transfer.peripheralsLeftBehind > 0}
+              <StatusBadge
+                data={{ label: `${transfer.peripheralsLeftBehind} peça(s) ficaram` }}
+                ui={{ tone: 'neutral', size: 'sm' }}
+              />
+            {/if}
           </li>
         {/each}
       </ul>

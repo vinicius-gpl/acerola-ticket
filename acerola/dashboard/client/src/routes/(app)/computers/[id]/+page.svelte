@@ -11,6 +11,7 @@
   import { useComputerDetailModel } from '$lib/hooks/use-computer-detail/use-computer-detail.svelte';
   import MaintenanceFormSlot from '../../maintenance/maintenance-form-slot.svelte';
   import ComputerFormSlot from '../computer-form-slot.svelte';
+  import TransferFormSlot from './transfer-form-slot.svelte';
 
   /**
    * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
@@ -26,6 +27,7 @@
   /* Qual peça está na frente — não é dado. */
   let isEditing = $state(false);
   let isRegisteringMaintenance = $state(false);
+  let isTransferring = $state(false);
 </script>
 
 <svelte:head>
@@ -65,12 +67,14 @@
       alerts: detail.data.alerts,
       maintenances: detail.data.maintenances,
       partMovements: detail.data.partMovements,
+      transfers: detail.data.transfers,
     }}
     state={detail.state}
     actions={{
       ...detail.actions,
       onEdit: () => (isEditing = true),
       onRegisterMaintenance: () => (isRegisteringMaintenance = true),
+      onTransfer: () => (isTransferring = true),
       onBack: () => void goto('/computers'),
     }}
   />
@@ -95,6 +99,16 @@
     computerId={detail.data.computer.id}
     onClose={() => (isRegisteringMaintenance = false)}
   />
+{/if}
+
+<!-- `{#key}` pelo id: a transferência de outra máquina abre com as escolhas dela, zeradas. -->
+{#if isTransferring && detail.data.computer}
+  {#key detail.data.computer.id}
+    <TransferFormSlot
+      computer={detail.data.computer}
+      onClose={() => (isTransferring = false)}
+    />
+  {/key}
 {/if}
 
 <!-- Token gerado de novo: aparece uma vez, e some quando a pessoa diz que guardou. -->

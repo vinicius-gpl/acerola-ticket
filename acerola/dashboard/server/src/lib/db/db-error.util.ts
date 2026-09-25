@@ -110,6 +110,10 @@ const CHECK_MESSAGES: Record<string, string> = {
   part_movements_quantity_positive: 'A quantidade da movimentação precisa ser pelo menos 1.',
   maintenances_machine_required:
     'A manutenção precisa dizer em qual equipamento foi feita: escolha uma máquina do inventário ou escreva o nome do equipamento.',
+  computer_transfers_real_move:
+    'A máquina já está nesse departamento. Escolha um departamento diferente do atual.',
+  computer_transfers_from_valid: 'O departamento de origem precisa ser um dos da lista.',
+  computer_transfers_to_valid: 'O departamento de destino precisa ser um dos da lista.',
 };
 
 /** Códigos SQLSTATE. A lista do Postgres é estável há décadas; os nomes vão nos comentários. */

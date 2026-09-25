@@ -8,16 +8,19 @@ import {
 } from '@template/shared/schemas/computer.schema';
 import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
 import { type PartMovement } from '@template/shared/schemas/part.schema';
+import { type Transfer } from '@template/shared/schemas/transfer.schema';
 import { writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { maintenancesApi } from '$lib/api/maintenances.api';
 import { partsApi } from '$lib/api/parts.api';
+import { transfersApi } from '$lib/api/transfers.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { MAINTENANCES_QUERY_KEY } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';
 import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';
+import { TRANSFERS_QUERY_KEY } from '$lib/hooks/use-transfer-form/use-transfer-form.svelte';
 
 export type ComputerDetailModel = {
   data: {
@@ -28,6 +31,8 @@ export type ComputerDetailModel = {
     maintenances: Maintenance[];
     /** As peças que saíram do depósito para esta máquina. */
     partMovements: PartMovement[];
+    /** Por onde esta máquina já andou — a mudança de departamento é um evento, não um campo. */
+    transfers: Transfer[];
     /**
      * O token recém-gerado, em texto puro. Existe só enquanto a tela estiver aberta: ele não
      * pode ser pedido de novo, e guardá-lo em algum lugar seria guardar uma credencial.
@@ -40,6 +45,7 @@ export type ComputerDetailModel = {
     isAlertsLoading: boolean;
     isMaintenancesLoading: boolean;
     isPartsLoading: boolean;
+    isTransfersLoading: boolean;
     /** A máquina não existe (ou foi apagada por fora): a tela diz isso, não fica em branco. */
     isMissing: boolean;
     isSaving: boolean;
@@ -120,6 +126,17 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
     ),
   );
 
+  /* O histórico de transferências é da própria máquina, e só de leitura aqui: quem escreve
+     nele é o diálogo de transferir, que tem view-model próprio. */
+  const transfers = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...TRANSFERS_QUERY_KEY, id, 'list'],
+        queryFn: () => transfersApi.list(id),
+      }),
+    ),
+  );
+
   const save = mirrorStore(
     createMutation({
       mutationFn: (body: UpdateComputerInput) => computersApi.update(id, body),
@@ -167,6 +184,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         alerts: alerts.current.data ?? [],
         maintenances: maintenances.current.data?.items ?? [],
         partMovements: partMovements.current.data?.items ?? [],
+        transfers: transfers.current.data ?? [],
         newToken: token.current,
       };
     },
@@ -177,6 +195,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         isAlertsLoading: alerts.current.isPending,
         isMaintenancesLoading: maintenances.current.isPending,
         isPartsLoading: partMovements.current.isPending,
+        isTransfersLoading: transfers.current.isPending,
         isSaving:
           save.current.isPending ||
           regenerate.current.isPending ||
@@ -206,6 +225,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         void alerts.current.refetch();
         void maintenances.current.refetch();
         void partMovements.current.refetch();
+        void transfers.current.refetch();
       },
     },
   };
@@ -246,6 +266,7 @@ function buildDetailState(input: {
   isAlertsLoading: boolean;
   isMaintenancesLoading: boolean;
   isPartsLoading: boolean;
+  isTransfersLoading: boolean;
   isSaving: boolean;
   actionError: string | null;
 }): ComputerDetailModel['state'] {
@@ -257,6 +278,7 @@ function buildDetailState(input: {
     isAlertsLoading: input.isAlertsLoading,
     isMaintenancesLoading: input.isMaintenancesLoading,
     isPartsLoading: input.isPartsLoading,
+    isTransfersLoading: input.isTransfersLoading,
     /* 404 não é falha de sistema: é uma máquina que não existe mais. A tela diz isso com
        texto próprio, em vez de oferecer "tentar de novo" para algo que nunca vai dar certo. */
     isMissing: status === 404,

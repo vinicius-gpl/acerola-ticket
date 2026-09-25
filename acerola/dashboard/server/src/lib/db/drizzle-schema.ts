@@ -1,6 +1,7 @@
 import { neonAuthUsers } from './neon-auth-user.table';
 import { computerAlerts } from './schema/computer-alerts.schema';
 import { computerSamples } from './schema/computer-samples.schema';
+import { computerTransfers } from './schema/computer-transfers.schema';
 import { computers } from './schema/computers.schema';
 import { maintenances } from './schema/maintenances.schema';
 import { networkEvents } from './schema/network-events.schema';
@@ -25,6 +26,7 @@ export const drizzleSchema = {
   computers,
   computerSamples,
   computerAlerts,
+  computerTransfers,
   maintenances,
   parts,
   partMovements,
