@@ -44,6 +44,9 @@ function computer(over: Partial<Computer> = {}): Computer {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: '2026-05-01T12:00:00.000Z',
     createdBy: 'suporte@azuos.local',
     updatedAt: null,
@@ -115,6 +118,8 @@ const actions = {
   onArchivedChange: vi.fn(),
   onBlockedChange: vi.fn(),
   onRegenerateToken: vi.fn(),
+  onDispose: vi.fn(),
+  onRestore: vi.fn(),
   onBack: vi.fn(),
 };
 

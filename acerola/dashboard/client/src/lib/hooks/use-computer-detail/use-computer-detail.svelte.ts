@@ -3,6 +3,7 @@ import {
   type Computer,
   type ComputerAlert,
   type ComputerSample,
+  type DisposeComputerInput,
   type UpdateComputerInput,
 } from '@template/shared/schemas/computer.schema';
 import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
@@ -50,6 +51,8 @@ export type ComputerDetailModel = {
     onArchivedChange: (isArchived: boolean) => void;
     onBlockedChange: (isBlocked: boolean, reason?: string) => void;
     onRegenerateToken: () => void;
+    onDispose: (input: DisposeComputerInput) => void;
+    onRestore: () => void;
     onDismissToken: () => void;
     onRetry: () => void;
   };
@@ -129,6 +132,22 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
   const newToken = writable<string | null>(null);
   const token = mirrorStore(newToken);
 
+  /* Descartar e devolver ao inventário. Mesma mutação de escrita do resto da ficha: a falha
+     chega pelo mesmo `actionError`, e a tela não precisa saber qual botão falhou. */
+  const dispose = mirrorStore(
+    createMutation({
+      mutationFn: (input: DisposeComputerInput) => computersApi.dispose(id, input),
+      onSuccess: () => invalidate(queryClient),
+    }),
+  );
+
+  const restore = mirrorStore(
+    createMutation({
+      mutationFn: () => computersApi.restore(id),
+      onSuccess: () => invalidate(queryClient),
+    }),
+  );
+
   const regenerate = mirrorStore(
     createMutation({
       mutationFn: () => computersApi.regenerateToken(id),
@@ -158,8 +177,17 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         isAlertsLoading: alerts.current.isPending,
         isMaintenancesLoading: maintenances.current.isPending,
         isPartsLoading: partMovements.current.isPending,
-        isSaving: save.current.isPending || regenerate.current.isPending,
-        actionError: readError(save.current.error) ?? readError(regenerate.current.error),
+        isSaving:
+          save.current.isPending ||
+          regenerate.current.isPending ||
+          dispose.current.isPending ||
+          restore.current.isPending,
+        actionError: firstError([
+          save.current.error,
+          regenerate.current.error,
+          dispose.current.error,
+          restore.current.error,
+        ]),
       });
     },
     actions: {
@@ -169,6 +197,8 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
       onBlockedChange: (isBlocked, reason) =>
         save.current.mutate({ isBlocked, blockReason: isBlocked ? (reason ?? '') : '' }),
       onRegenerateToken: () => regenerate.current.mutate(),
+      onDispose: (input) => dispose.current.mutate(input),
+      onRestore: () => restore.current.mutate(),
       onDismissToken: () => newToken.set(null),
       onRetry: () => {
         void computer.current.refetch();
@@ -179,6 +209,21 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
       },
     },
   };
+}
+
+/**
+ * A primeira falha que existir, entre as ações de escrita da ficha.
+ *
+ * Uma só mensagem na tela: a pessoa clicou em UM botão, e ver duas recusas empilhadas de
+ * ações diferentes só a faria procurar um problema que não existe.
+ */
+function firstError(errors: readonly unknown[]): string | null {
+  for (const error of errors) {
+    const message = readError(error);
+    if (message) return message;
+  }
+
+  return null;
 }
 
 async function invalidate(queryClient: ReturnType<typeof useQueryClient>): Promise<void> {

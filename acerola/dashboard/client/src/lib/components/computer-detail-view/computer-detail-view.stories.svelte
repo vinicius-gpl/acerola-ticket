@@ -51,6 +51,9 @@
       isArchived: false,
       isBlocked: false,
       blockReason: null,
+      disposedAt: null,
+      disposalType: null,
+      disposalReason: null,
       createdAt: '2026-05-01T12:00:00.000Z',
       createdBy: 'suporte@azuos.local',
       updatedAt: null,
@@ -157,6 +160,8 @@
     onArchivedChange: () => {},
     onBlockedChange: () => {},
     onRegenerateToken: () => {},
+    onDispose: () => {},
+    onRestore: () => {},
     onBack: () => {},
   };
 
