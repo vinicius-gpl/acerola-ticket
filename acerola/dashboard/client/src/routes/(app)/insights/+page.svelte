@@ -1,30 +1,18 @@
 <script lang="ts">
-  import Lightbulb from '@lucide/svelte/icons/lightbulb';
-
-  import PendingArea from '$lib/components/pending-area/pending-area.svelte';
+  import InsightsView from '$lib/components/insights-view/insights-view.svelte';
+  import { useInsightsModel } from '$lib/hooks/use-insights/use-insights.svelte';
 
   /**
-   * A rota só compõe (CONTRIBUTING §3).
+   * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
-   * Esta área ainda não foi construída: a tela diz o que vai viver aqui, lido dos requisitos
-   * do sistema antigo. Quando ela for feita, este arquivo passa a compor o view-model e a
-   * view de verdade, e o `PendingArea` sai.
+   * Não há estado de tela aqui — o período mora no view-model, junto da consulta que ele
+   * refaz.
    */
-  const AREA = {
-    title: 'Inteligência',
-    summary: 'O que os dados juntos dizem, e que nenhuma tela sozinha mostra.',
-    features: [
-      'Máquinas sobrecarregadas: quem está no limite e há quanto tempo.',
-      'Quem precisa de upgrade — troca de disco por SSD, mais memória.',
-      'Máquinas que mais geram chamado, para decidir trocar em vez de remendar.',
-      'Máquinas de reserva disponíveis e onde elas estão.',
-    ],
-    dependsOn: 'o Inventário e os Chamados',
-  };
+  const insights = useInsightsModel();
 </script>
 
 <svelte:head>
   <title>Inteligência</title>
 </svelte:head>
 
-<PendingArea data={AREA} ui={{ icon: Lightbulb }} />
+<InsightsView data={insights.data} state={insights.state} actions={insights.actions} />
