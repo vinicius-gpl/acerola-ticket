@@ -7,7 +7,23 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import ComputerDetailView, { alertDurationLabel, hardwareFacts } from './computer-detail-view.svelte';
+import ComputerDetailView, {
+  alertDurationLabel,
+  hardwareFacts,
+  transferRouteOf,
+} from './computer-detail-view.svelte';
+
+const transfer = {
+  id: 1,
+  computerId: 3,
+  fromDepartment: 'recepcao' as const,
+  toDepartment: 'contabil' as const,
+  responsible: 'Coordenação contábil',
+  note: 'A recepção recebeu a máquina nova.',
+  peripheralsLeftBehind: 2,
+  createdAt: '2026-06-01T12:00:00.000Z',
+  createdBy: 'suporte@azuos.local',
+};
 
 const GB = 1024 ** 3;
 
@@ -121,16 +137,65 @@ const actions = {
   onDispose: vi.fn(),
   onRestore: vi.fn(),
   onBack: vi.fn(),
+  onTransfer: vi.fn(),
 };
 
 function renderDetail(over: Partial<Computer> = {}) {
   return render(ComputerDetailView, {
     props: {
-      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [], partMovements: [] },
+      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [], partMovements: [], transfers: [] },
       actions,
     },
   });
 }
+
+describe('transferRouteOf', () => {
+  // feliz
+  it('reads the move in one line', () => {
+    expect(transferRouteOf(transfer)).toBe('RECEPÇÃO → CONTÁBIL');
+  });
+
+  // triste
+  /* "Saiu do nada para o fiscal" não é frase que alguém entenda: a prateleira tem nome. */
+  it('gives the shelf a name on both sides', () => {
+    expect(transferRouteOf({ ...transfer, fromDepartment: null })).toBe(
+      'Sem departamento → CONTÁBIL',
+    );
+    expect(transferRouteOf({ ...transfer, toDepartment: null })).toBe(
+      'RECEPÇÃO → Sem departamento',
+    );
+  });
+});
+
+describe('o histórico de transferências', () => {
+  // feliz
+  it('shows where the machine came from and what stayed behind', () => {
+    render(ComputerDetailView, {
+      props: {
+        data: {
+          computer: computer(),
+          samples: [],
+          alerts: [],
+          maintenances: [],
+          partMovements: [],
+          transfers: [transfer],
+        },
+        actions,
+      },
+    });
+
+    expect(screen.getByText('RECEPÇÃO → CONTÁBIL')).toBeInTheDocument();
+    expect(screen.getByText('2 peça(s) ficaram')).toBeInTheDocument();
+  });
+
+  // triste
+  /* Sem histórico a tela diz por onde começar, em vez de ficar em branco. */
+  it('tells where the history comes from when there is none', () => {
+    renderDetail();
+
+    expect(screen.getByText(/Nenhuma transferência registrada/)).toBeInTheDocument();
+  });
+});
 
 describe('hardwareFacts', () => {
   // feliz
@@ -204,7 +269,7 @@ describe('ComputerDetailView', () => {
   it('shows a dash for the current usage of a machine that never reported', () => {
     render(ComputerDetailView, {
       props: {
-        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [], partMovements: [] },
+        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [], partMovements: [], transfers: [] },
         actions,
       },
     });
@@ -223,6 +288,7 @@ describe('ComputerDetailView', () => {
           alerts: [],
           maintenances: [],
           partMovements: [],
+          transfers: [],
         },
         state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
         actions,
