@@ -16,6 +16,12 @@ export const REPORT_PALETTE = {
   border: 'ACB0BE',
   surfaceAlt: 'E6E9EF',
   background: 'FFFFFF',
+  /**
+   * O cinza-chumbo dos relatórios de escritório — usado só no Word. A cor da marca (roxa)
+   * funciona bem como destaque numa tela ou num PDF colorido; num documento de texto ela lê
+   * como informal. Um cabeçalho escuro neutro é o que os modelos corporativos usam.
+   */
+  docHeading: '1F2937',
 } as const;
 
 /**

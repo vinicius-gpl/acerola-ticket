@@ -74,17 +74,29 @@ function writeTitle(doc: PdfDoc, title: string, subtitle: string | undefined): v
   doc.fillColor(pdfColor(REPORT_PALETTE.foreground));
 }
 
+/**
+ * O cabeçalho, do tamanho que o texto pedir.
+ *
+ * Título de coluna comprido ("Nome técnico") quebra em duas linhas dentro de uma coluna
+ * estreita — e uma altura fixa cortava a segunda linha para fora da faixa escura, como se o
+ * texto tivesse vazado. Aqui a faixa cresce até caber a coluna mais alta.
+ */
 function drawHeaderRow(doc: PdfDoc, headers: string[], columnWidth: number): void {
   const left = doc.page.margins.left;
   const top = doc.y;
-  const height = HEADER_FONT_SIZE + CELL_PADDING * 2;
+  const cellWidth = columnWidth - CELL_PADDING * 2;
+
+  doc.font('Helvetica-Bold').fontSize(HEADER_FONT_SIZE);
+  const height =
+    Math.max(...headers.map((header) => doc.heightOfString(header, { width: cellWidth }))) +
+    CELL_PADDING * 2;
 
   doc.rect(left, top, usableWidth(doc), height).fill(pdfColor(REPORT_PALETTE.foreground));
 
-  doc.font('Helvetica-Bold').fontSize(HEADER_FONT_SIZE).fillColor(pdfColor(REPORT_PALETTE.primaryForeground));
+  doc.fillColor(pdfColor(REPORT_PALETTE.primaryForeground));
   headers.forEach((header, index) => {
     doc.text(header, left + index * columnWidth + CELL_PADDING, top + CELL_PADDING, {
-      width: columnWidth - CELL_PADDING * 2,
+      width: cellWidth,
     });
   });
 

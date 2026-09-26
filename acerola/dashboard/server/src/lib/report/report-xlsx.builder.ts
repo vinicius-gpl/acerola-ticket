@@ -6,6 +6,9 @@ import { type ReportRequest } from './report.types';
 /** O nome da planilha aceita no máximo 31 caracteres — regra do próprio Excel. */
 const SHEET_NAME_MAX_LENGTH = 31;
 
+/** Arial em vez da Calibri padrão do Excel — mais parecida com a fonte do sistema. */
+const FONT_NAME = 'Arial';
+
 const MIN_COLUMN_WIDTH = 14;
 const MAX_COLUMN_WIDTH = 46;
 const COLUMN_WIDTH_PADDING = 3;
@@ -45,6 +48,7 @@ export async function buildXlsxReport<TRow>(request: ReportRequest<TRow>): Promi
     size: 16,
     color: REPORT_PALETTE.primaryForeground,
     fill: REPORT_PALETTE.primary,
+    horizontal: 'center',
   });
   sheet.getRow(TITLE_ROW).height = 30;
 
@@ -53,6 +57,7 @@ export async function buildXlsxReport<TRow>(request: ReportRequest<TRow>): Promi
       italic: true,
       size: 10,
       color: REPORT_PALETTE.subtext,
+      horizontal: 'center',
     });
   }
 
@@ -98,18 +103,26 @@ function writeMergedRow(
   rowIndex: number,
   columnCount: number,
   text: string,
-  style: { bold?: boolean; italic?: boolean; size: number; color: string; fill?: string },
+  style: {
+    bold?: boolean;
+    italic?: boolean;
+    size: number;
+    color: string;
+    fill?: string;
+    horizontal?: 'left' | 'center';
+  },
 ): void {
   sheet.mergeCells(rowIndex, 1, rowIndex, columnCount);
   const cell = sheet.getCell(rowIndex, 1);
   cell.value = text;
   cell.font = {
+    name: FONT_NAME,
     bold: style.bold,
     italic: style.italic,
     size: style.size,
     color: { argb: excelColor(style.color) },
   };
-  cell.alignment = { vertical: 'middle', indent: 1 };
+  cell.alignment = { vertical: 'middle', horizontal: style.horizontal ?? 'left', indent: style.horizontal ? 0 : 1 };
   if (style.fill) {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: excelColor(style.fill) } };
   }
@@ -121,7 +134,12 @@ function writeHeaderRow(sheet: ExcelJS.Worksheet, headers: string[]): void {
   row.height = 22;
 
   row.eachCell((cell) => {
-    cell.font = { bold: true, size: 11, color: { argb: excelColor(REPORT_PALETTE.primaryForeground) } };
+    cell.font = {
+      name: FONT_NAME,
+      bold: true,
+      size: 11,
+      color: { argb: excelColor(REPORT_PALETTE.primaryForeground) },
+    };
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -135,7 +153,11 @@ function writeHeaderRow(sheet: ExcelJS.Worksheet, headers: string[]): void {
 
 function styleDataCell(cell: Cell, tone: { fill: string; text: string } | null, zebraFill: string): void {
   cell.alignment = { vertical: 'middle', horizontal: tone ? 'center' : 'left', indent: tone ? 0 : 1 };
-  cell.font = { color: { argb: excelColor(tone?.text ?? REPORT_PALETTE.foreground) }, bold: Boolean(tone) };
+  cell.font = {
+    name: FONT_NAME,
+    color: { argb: excelColor(tone?.text ?? REPORT_PALETTE.foreground) },
+    bold: Boolean(tone),
+  };
   cell.fill = {
     type: 'pattern',
     pattern: 'solid',

@@ -11,7 +11,7 @@ import {
   WidthType,
 } from 'docx';
 
-import { REPORT_PALETTE, REPORT_TONE_SOFT_COLORS } from './report-palette.util';
+import { REPORT_PALETTE, REPORT_TONE_COLORS } from './report-palette.util';
 import { type ReportColumn, type ReportRequest } from './report.types';
 
 const FULL_WIDTH_PERCENT = 100;
@@ -55,7 +55,7 @@ export async function buildDocxReport<TRow>(request: ReportRequest<TRow>): Promi
 function writeTitle(title: string, subtitle: string | undefined): Paragraph[] {
   const paragraphs = [
     new Paragraph({
-      children: [new TextRun({ text: title, bold: true, size: 40, color: REPORT_PALETTE.primary })],
+      children: [new TextRun({ text: title, bold: true, size: 40, color: REPORT_PALETTE.docHeading })],
       spacing: { after: subtitle ? 60 : 240 },
     }),
   ];
@@ -92,7 +92,7 @@ function writeRecord<TRow>(
 
   return [
     new Paragraph({
-      shading: { type: ShadingType.CLEAR, fill: REPORT_PALETTE.primary },
+      shading: { type: ShadingType.CLEAR, fill: REPORT_PALETTE.docHeading },
       spacing: { before: index === 0 ? 0 : 320, after: 120 },
       children: [
         new TextRun({ text: heading, bold: true, size: 26, color: REPORT_PALETTE.primaryForeground }),
@@ -106,10 +106,15 @@ function writeRecord<TRow>(
   ];
 }
 
+/**
+ * O campo colorido é texto em negrito, sem sombreamento de célula — um documento de texto
+ * pintado de amarelo/vermelho lê como marca-texto de rascunho, não como relatório oficial. A
+ * cor sozinha já chama a atenção sem parecer um destaque de caneta.
+ */
 function writeFieldRow<TRow>(column: ReportColumn<TRow>, row: TRow): TableRow {
   const value = column.value(row);
   const tone = column.tone?.(row);
-  const toneColors = tone ? REPORT_TONE_SOFT_COLORS[tone] : null;
+  const toneColor = tone ? REPORT_TONE_COLORS[tone].fill : null;
 
   return new TableRow({
     children: [
@@ -127,16 +132,13 @@ function writeFieldRow<TRow>(column: ReportColumn<TRow>, row: TRow): TableRow {
       new TableCell({
         width: { size: VALUE_WIDTH_PERCENT, type: WidthType.PERCENTAGE },
         borders: NO_BORDERS,
-        shading: toneColors
-          ? { type: ShadingType.CLEAR, fill: toneColors.fill }
-          : undefined,
         children: [
           new Paragraph({
             children: [
               new TextRun({
                 text: value,
-                bold: Boolean(toneColors),
-                color: toneColors ? toneColors.text : REPORT_PALETTE.foreground,
+                bold: Boolean(toneColor),
+                color: toneColor ?? REPORT_PALETTE.foreground,
               }),
             ],
           }),

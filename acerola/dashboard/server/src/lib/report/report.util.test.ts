@@ -78,12 +78,23 @@ describe('buildReport — xlsx', () => {
     expect(goodFill.fgColor?.argb).toBe(excelColor(REPORT_TONE_SOFT_COLORS.success.fill));
   });
 
-  it('usa a cor da marca no título', async () => {
+  it('usa a cor da marca no título, centralizado', async () => {
+    const report = await buildReport(request());
+    const sheet = (await loadWorkbook(report)).worksheets[0];
+    const titleCell = sheet?.getRow(TITLE_ROW).getCell(1);
+
+    const titleFill = titleCell?.fill as ExcelJS.FillPattern;
+    expect(titleFill.fgColor?.argb).toBe(excelColor(REPORT_PALETTE.primary));
+    expect(titleCell?.alignment?.horizontal).toBe('center');
+  });
+
+  it('usa Arial no título, no cabeçalho e nos dados', async () => {
     const report = await buildReport(request());
     const sheet = (await loadWorkbook(report)).worksheets[0];
 
-    const titleFill = sheet?.getRow(TITLE_ROW).getCell(1).fill as ExcelJS.FillPattern;
-    expect(titleFill.fgColor?.argb).toBe(excelColor(REPORT_PALETTE.primary));
+    expect(sheet?.getRow(TITLE_ROW).getCell(1).font?.name).toBe('Arial');
+    expect(sheet?.getRow(HEADER_ROW).getCell(1).font?.name).toBe('Arial');
+    expect(sheet?.getRow(FIRST_DATA_ROW).getCell(1).font?.name).toBe('Arial');
   });
 
   // triste
@@ -141,6 +152,21 @@ describe('buildReport — pdf', () => {
   it('não abre uma página extra em branco só para caber o rodapé', async () => {
     const report = await buildReport(request({ format: 'pdf' }));
 
+    expect(pdfPageCount(report.buffer)).toBe(1);
+  });
+
+  /* Bug real: com colunas estreitas, um título de coluna comprido ("Nome técnico") quebra em
+     duas linhas — e a faixa escura do cabeçalho tinha altura fixa de uma linha só, então a
+     segunda linha vazava para fora dela, por cima da primeira linha de dados. */
+  it('cresce a faixa do cabeçalho para caber um título de coluna que quebra em duas linhas', async () => {
+    const manyColumns: ReportRequest<Row>['columns'] = Array.from({ length: 10 }, (_, index) => ({
+      header: index === 3 ? 'Um título de coluna bem comprido' : `Coluna ${index}`,
+      value: () => 'x',
+    }));
+
+    const report = await buildReport(request({ format: 'pdf', columns: manyColumns }));
+
+    expect(report.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     expect(pdfPageCount(report.buffer)).toBe(1);
   });
 
