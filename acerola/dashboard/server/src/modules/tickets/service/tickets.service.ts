@@ -6,7 +6,12 @@ import {
   summarizeTickets,
   type TicketSummary,
 } from '@template/shared/domain/ticket-metrics.util';
-import { ticketPriorityLabel, ticketStatusLabel } from '@template/shared/domain/ticket-status.util';
+import {
+  ticketPriorityLabel,
+  ticketPriorityTone,
+  ticketStatusLabel,
+  ticketStatusTone,
+} from '@template/shared/domain/ticket-status.util';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import {
   type CreateTicketInput,
@@ -21,7 +26,7 @@ import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
-import { buildReport, formatReportDate } from '../../../lib/report/report.util';
+import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
 import { TicketsRepository } from '../repository/tickets.repository';
@@ -31,12 +36,20 @@ import { TicketsRepository } from '../repository/tickets.repository';
  * quem baixa o arquivo está levando a MESMA lista, não uma versão nova para decorar.
  */
 const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
-  { header: 'Protocolo', value: (row) => formatTicketProtocol(row.id) },
+  { header: 'Protocolo', value: (row) => formatTicketProtocol(row.id), isTitle: true },
   { header: 'Quem abriu', value: (row) => row.requesterName },
   { header: 'Departamento', value: (row) => ticketDepartmentLabel(row.department) },
   { header: 'Tipo de problema', value: (row) => ticketProblemTypeLabel(row.problemType) },
-  { header: 'Urgência', value: (row) => ticketPriorityLabel(row.priority) },
-  { header: 'Situação', value: (row) => ticketStatusLabel(row.status) },
+  {
+    header: 'Urgência',
+    value: (row) => ticketPriorityLabel(row.priority),
+    tone: (row) => ticketPriorityTone(row.priority),
+  },
+  {
+    header: 'Situação',
+    value: (row) => ticketStatusLabel(row.status),
+    tone: (row) => ticketStatusTone(row.status),
+  },
   { header: 'Responsável', value: (row) => row.assignee ?? '—' },
   { header: 'O que foi feito', value: (row) => row.solution ?? '—' },
   { header: 'Aberto em', value: (row) => formatReportDate(row.createdAt) },
@@ -129,6 +142,7 @@ export class TicketsService {
     return buildReport({
       format: query.format,
       title: 'Chamados',
+      subtitle: reportSubtitle(rows.length, 'chamado', 'chamados'),
       fileName: 'chamados',
       columns: TICKET_REPORT_COLUMNS,
       rows,

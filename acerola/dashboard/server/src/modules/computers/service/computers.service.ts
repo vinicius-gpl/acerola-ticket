@@ -5,7 +5,7 @@ import {
   decideAlerts,
   describeAlert,
 } from '@template/shared/domain/computer-alert.util';
-import { healthStatusLabel } from '@template/shared/domain/computer-health.util';
+import { healthStatusLabel, healthStatusTone } from '@template/shared/domain/computer-health.util';
 import { departmentLabel } from '@template/shared/domain/department.util';
 import { disposalTypeLabel } from '@template/shared/domain/disposal.util';
 import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.schema';
@@ -25,8 +25,8 @@ import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanCreate, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
-import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
-import { buildReport, formatReportDate } from '../../../lib/report/report.util';
+import { type BuiltReport, type ReportColumn, type ReportTone } from '../../../lib/report/report.types';
+import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import {
   toComputer,
   toComputerAlert,
@@ -53,21 +53,33 @@ function formatMemoryReport(bytes: number | null): string {
  * As colunas do relatório do inventário, na mesma ordem em que a lista do painel as mostra —
  * quem baixa o arquivo está levando o MESMO parque, não uma versão nova para decorar.
  */
+/** A mesma leitura que a lista faz na tela para escolher o selo de "Arquivada/Bloqueada/Em uso". */
+function situationOf(row: ComputerRow): string {
+  if (row.isArchived) return 'Arquivada';
+  if (row.isBlocked) return 'Bloqueada';
+
+  return 'Em uso';
+}
+
+function situationTone(row: ComputerRow): ReportTone {
+  if (row.isArchived) return 'neutral';
+  if (row.isBlocked) return 'danger';
+
+  return 'success';
+}
+
 const COMPUTER_REPORT_COLUMNS: ReportColumn<ComputerRow>[] = [
-  { header: 'Máquina', value: (row) => row.displayName?.trim() || row.name },
+  { header: 'Máquina', value: (row) => row.displayName?.trim() || row.name, isTitle: true },
   { header: 'Nome técnico', value: (row) => row.name },
   { header: 'Departamento', value: (row) => (row.department ? departmentLabel(row.department) : 'Sem departamento') },
   { header: 'Responsável', value: (row) => row.responsibleName ?? '—' },
-  { header: 'Saúde', value: (row) => `${healthStatusLabel(row.healthStatus)} (${row.healthScore}/100)` },
   {
-    header: 'Situação',
-    value: (row) => {
-      if (row.isArchived) return 'Arquivada';
-      if (row.isBlocked) return 'Bloqueada';
-
-      return 'Em uso';
-    },
+    header: 'Saúde',
+    value: (row) => healthStatusLabel(row.healthStatus),
+    tone: (row) => healthStatusTone(row.healthStatus),
   },
+  { header: 'Nota de saúde', value: (row) => `${row.healthScore}/100` },
+  { header: 'Situação', value: situationOf, tone: situationTone },
   { header: 'Sistema operacional', value: (row) => row.os ?? 'Não informado' },
   { header: 'Memória', value: (row) => formatMemoryReport(row.totalMemoryBytes) },
   { header: 'Visto pela última vez', value: (row) => formatReportDate(row.lastSeenAt) },
@@ -143,6 +155,7 @@ export class ComputersService {
     return buildReport({
       format: query.format,
       title: 'Inventário',
+      subtitle: reportSubtitle(rows.length, 'computador', 'computadores'),
       fileName: 'inventario',
       columns: COMPUTER_REPORT_COLUMNS,
       rows,

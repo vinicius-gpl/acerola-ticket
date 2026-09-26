@@ -39,3 +39,11 @@ export function formatReportDate(value: Date | null): string {
 
   return value.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
+
+/** A linha padrão embaixo do título: quantos vieram, e quando o arquivo foi gerado. */
+export function reportSubtitle(count: number, singular: string, plural: string): string {
+  const noun = count === 1 ? singular : plural;
+  const generatedAt = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+  return `${count} ${noun} · gerado em ${generatedAt}`;
+}
