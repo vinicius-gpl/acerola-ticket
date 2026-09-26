@@ -5,6 +5,7 @@ import {
   publicTicketSchema,
   ticketFormSchema,
   ticketListQuerySchema,
+  ticketReportQuerySchema,
   updateTicketSchema,
 } from './ticket.schema';
 
@@ -230,5 +231,20 @@ describe('ticketListQuerySchema', () => {
   // triste
   it('refuses a page size above the ceiling, which would hang the screen and the database', () => {
     expect(ticketListQuerySchema.safeParse({ pageSize: 5000 }).success).toBe(false);
+  });
+});
+
+describe('ticketReportQuerySchema', () => {
+  // feliz
+  it('accepts the same filters as the list, plus the file format', () => {
+    const parsed = ticketReportQuerySchema.parse({ status: 'open', format: 'xlsx' });
+
+    expect(parsed.status).toBe('open');
+    expect(parsed.format).toBe('xlsx');
+  });
+
+  // triste
+  it('refuses a report with no format chosen', () => {
+    expect(ticketReportQuerySchema.safeParse({ status: 'open' }).success).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { DISPOSAL_TYPES } from '../domain/disposal.util';
 import { DEPARTMENTS } from '../domain/department.util';
 import { HEALTH_STATUSES } from '../domain/computer-health.util';
 import { paginationQuerySchema } from './pagination.schema';
+import { reportFormatSchema } from './report.schema';
 
 /**
  * O CONTRATO do computador. Um schema, duas pontas: a API o usa como DTO e Swagger e a web o
@@ -251,6 +252,16 @@ export const disposalFormSchema = z.object({
 export type DisposalFormValues = z.input<typeof disposalFormSchema>;
 
 export type ComputerListQuery = z.infer<typeof computerListQuerySchema>;
+
+/**
+ * Baixar o relatório do inventário: os MESMOS filtros da lista, sem página — o arquivo sai
+ * com todo o parque que casou com o filtro, não só a página aberta na tela.
+ */
+export const computerReportQuerySchema = computerListQuerySchema
+  .omit({ page: true, pageSize: true })
+  .extend({ format: reportFormatSchema });
+
+export type ComputerReportQuery = z.infer<typeof computerReportQuerySchema>;
 
 /** Uma amostra da série temporal de uso, para o gráfico das últimas horas. */
 export const computerSampleSchema = z.object({

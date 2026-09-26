@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computerAlertSchema,
   computerListQuerySchema,
+  computerReportQuerySchema,
   createComputerSchema,
   updateComputerSchema,
 } from './computer.schema';
@@ -130,6 +131,21 @@ describe('computerListQuerySchema', () => {
 
   it('refuses a page size above the ceiling', () => {
     expect(computerListQuerySchema.safeParse({ pageSize: 5000 }).success).toBe(false);
+  });
+});
+
+describe('computerReportQuerySchema', () => {
+  // feliz
+  it('accepts the same filters as the list, plus the file format', () => {
+    const parsed = computerReportQuerySchema.parse({ department: 'rh', format: 'pdf' });
+
+    expect(parsed.department).toBe('rh');
+    expect(parsed.format).toBe('pdf');
+  });
+
+  // triste
+  it('refuses a report with no format chosen', () => {
+    expect(computerReportQuerySchema.safeParse({ department: 'rh' }).success).toBe(false);
   });
 });
 

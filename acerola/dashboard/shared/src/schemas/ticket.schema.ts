@@ -7,6 +7,7 @@ import {
   TICKET_STATUSES,
 } from '../domain/ticket-status.util';
 import { paginationQuerySchema } from './pagination.schema';
+import { reportFormatSchema } from './report.schema';
 
 /**
  * O CONTRATO do chamado. Um schema, duas pontas: a API o usa como DTO e Swagger (via
@@ -245,3 +246,13 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
 });
 
 export type TicketListQuery = z.infer<typeof ticketListQuerySchema>;
+
+/**
+ * Baixar o relatório: os MESMOS filtros da lista, sem página — o arquivo sai com tudo que
+ * casou, não só a página aberta na tela.
+ */
+export const ticketReportQuerySchema = ticketListQuerySchema
+  .omit({ page: true, pageSize: true })
+  .extend({ format: reportFormatSchema });
+
+export type TicketReportQuery = z.infer<typeof ticketReportQuerySchema>;
