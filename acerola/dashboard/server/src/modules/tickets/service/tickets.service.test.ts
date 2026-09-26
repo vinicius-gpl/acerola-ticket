@@ -279,6 +279,29 @@ describe('TicketsService.update', () => {
   });
 });
 
+describe('TicketsService.exportList', () => {
+  // feliz
+  it('builds the file from every ticket that matched, not only a page', async () => {
+    const listAll = vi.fn().mockResolvedValue([ticketRow(), ticketRow({ id: 8 })]);
+    const service = makeService({ listAll });
+
+    const report = await service.exportList(ana, { format: 'xlsx', status: 'open' });
+
+    expect(listAll).toHaveBeenCalledWith({ format: 'xlsx', status: 'open' });
+    expect(report.fileName).toBe('chamados.xlsx');
+    expect(report.buffer.length).toBeGreaterThan(0);
+  });
+
+  // triste
+  it('refuses an unidentified request without touching the repository', async () => {
+    const listAll = vi.fn();
+    const service = makeService({ listAll });
+
+    await expect(service.exportList(noRole, { format: 'xlsx' })).rejects.toThrow(ForbiddenException);
+    expect(listAll).not.toHaveBeenCalled();
+  });
+});
+
 describe('TicketsService.dashboard', () => {
   // feliz
   it('measures over every ticket, not only the page on screen', async () => {

@@ -148,6 +148,29 @@ describe('ComputersService.list', () => {
   });
 });
 
+describe('ComputersService.exportList', () => {
+  // feliz
+  it('builds the file from every machine that matched, not only a page', async () => {
+    const listAll = vi.fn().mockResolvedValue([computerRow(), computerRow({ id: 8 })]);
+    const { service } = makeService({ listAll });
+
+    const report = await service.exportList(ana, { format: 'pdf', department: 'rh' });
+
+    expect(listAll).toHaveBeenCalledWith({ format: 'pdf', department: 'rh' });
+    expect(report.fileName).toBe('inventario.pdf');
+    expect(report.buffer.length).toBeGreaterThan(0);
+  });
+
+  // triste
+  it('refuses an unidentified request without touching the repository', async () => {
+    const listAll = vi.fn();
+    const { service } = makeService({ listAll });
+
+    await expect(service.exportList(noRole, { format: 'pdf' })).rejects.toThrow(ForbiddenException);
+    expect(listAll).not.toHaveBeenCalled();
+  });
+});
+
 describe('ComputersService.create', () => {
   // feliz
   it('returns the token once, and stores only its hash', async () => {

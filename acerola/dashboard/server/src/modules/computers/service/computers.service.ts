@@ -5,11 +5,15 @@ import {
   decideAlerts,
   describeAlert,
 } from '@template/shared/domain/computer-alert.util';
+import { healthStatusLabel } from '@template/shared/domain/computer-health.util';
+import { departmentLabel } from '@template/shared/domain/department.util';
+import { disposalTypeLabel } from '@template/shared/domain/disposal.util';
 import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.schema';
 import {
   type Computer,
   type ComputerAlert,
   type ComputerListQuery,
+  type ComputerReportQuery,
   type DisposeComputerInput,
   type ComputerSample,
   type CreateComputerInput,
@@ -21,6 +25,8 @@ import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanCreate, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
+import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
+import { buildReport, formatReportDate } from '../../../lib/report/report.util';
 import {
   toComputer,
   toComputerAlert,
@@ -33,6 +39,44 @@ import {
 import { AgentPresenceService } from '../presence/agent-presence.service';
 import { ComputersRepository } from '../repository/computers.repository';
 import { createComputerToken, hashComputerToken } from '../token/computer-token.util';
+
+const BYTES_PER_GB = 1024 ** 3;
+
+/** A memória em GB, como texto de relatório — "Não informado" em vez de um traço solto. */
+function formatMemoryReport(bytes: number | null): string {
+  if (bytes === null) return 'Não informado';
+
+  return `${(bytes / BYTES_PER_GB).toFixed(1).replace('.', ',')} GB`;
+}
+
+/**
+ * As colunas do relatório do inventário, na mesma ordem em que a lista do painel as mostra —
+ * quem baixa o arquivo está levando o MESMO parque, não uma versão nova para decorar.
+ */
+const COMPUTER_REPORT_COLUMNS: ReportColumn<ComputerRow>[] = [
+  { header: 'Máquina', value: (row) => row.displayName?.trim() || row.name },
+  { header: 'Nome técnico', value: (row) => row.name },
+  { header: 'Departamento', value: (row) => (row.department ? departmentLabel(row.department) : 'Sem departamento') },
+  { header: 'Responsável', value: (row) => row.responsibleName ?? '—' },
+  { header: 'Saúde', value: (row) => `${healthStatusLabel(row.healthStatus)} (${row.healthScore}/100)` },
+  {
+    header: 'Situação',
+    value: (row) => {
+      if (row.isArchived) return 'Arquivada';
+      if (row.isBlocked) return 'Bloqueada';
+
+      return 'Em uso';
+    },
+  },
+  { header: 'Sistema operacional', value: (row) => row.os ?? 'Não informado' },
+  { header: 'Memória', value: (row) => formatMemoryReport(row.totalMemoryBytes) },
+  { header: 'Visto pela última vez', value: (row) => formatReportDate(row.lastSeenAt) },
+  {
+    header: 'Descarte',
+    value: (row) => (row.disposalType ? disposalTypeLabel(row.disposalType) : '—'),
+  },
+  { header: 'Cadastrado em', value: (row) => formatReportDate(row.createdAt) },
+];
 
 const NOT_FOUND = 'Computador não encontrado. Ele pode ter sido arquivado — recarregue a lista.';
 
@@ -85,6 +129,24 @@ export class ComputersService {
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  /**
+   * Baixar o relatório: os MESMOS filtros da lista, mas sem página — o arquivo leva todo o
+   * parque que casou, no formato escolhido.
+   */
+  async exportList(user: RequestUser, query: ComputerReportQuery): Promise<BuiltReport> {
+    assertCanRead(user.role, 'os computadores');
+
+    const rows = await this.repository.listAll(query);
+
+    return buildReport({
+      format: query.format,
+      title: 'Inventário',
+      fileName: 'inventario',
+      columns: COMPUTER_REPORT_COLUMNS,
+      rows,
+    });
   }
 
   async findById(user: RequestUser, id: number): Promise<Computer> {
