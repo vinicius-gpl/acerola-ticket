@@ -13,6 +13,7 @@
     type Department,
   } from '@template/shared/domain/department.util';
   import { type Computer } from '@template/shared/schemas/computer.schema';
+  import { type ReportFormat } from '@template/shared/schemas/report.schema';
 
   export type ComputerListFilter = {
     search: string;
@@ -55,6 +56,8 @@
       isTruncated: boolean;
       isSummaryLoading?: boolean;
       error: string | null;
+      exportingFormat?: ReportFormat | null;
+      exportError?: string | null;
     };
     actions: {
       onSearchChange: (search: string) => void;
@@ -65,6 +68,7 @@
       onRetry: () => void;
       onOpen: (computer: Computer) => void;
       onRegister: () => void;
+      onExportReport: (format: ReportFormat) => void;
     };
   };
 
@@ -102,6 +106,7 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
@@ -121,12 +126,20 @@
       description: 'Os computadores da empresa, e como cada um está passando.',
     }}
   >
+    <ReportExportActions
+      state={{ exportingFormat: state.exportingFormat ?? null }}
+      actions={{ onExport: actions.onExportReport }}
+    />
     <ActionButton
       data={{ label: 'Cadastrar computador' }}
       ui={{ icon: Plus }}
       actions={{ onClick: actions.onRegister }}
     />
   </PageHeader>
+
+  {#if state.exportError}
+    <ErrorState data={{ message: state.exportError }} ui={{ variant: 'inline' }} />
+  {/if}
 
   <StatCardGrid>
     <StatCard

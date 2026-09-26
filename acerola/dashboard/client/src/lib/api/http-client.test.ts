@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiError, apiRequest, readError } from './http-client';
+import { apiDownload, ApiError, apiRequest, readError } from './http-client';
 
 /* O token é assunto do Neon Auth, e buscá-lo de verdade faria cada teste daqui sair para a
    internet — e contar uma chamada de `fetch` que não é a que está sendo medida. */
@@ -95,6 +95,49 @@ describe('apiRequest', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>', { status: 502 })));
 
     await expect(apiRequest('/tasks')).rejects.toThrow(/502/);
+  });
+});
+
+describe('apiDownload', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // feliz
+  it('reads the file and the name the server chose', async () => {
+    const blob = new Blob(['conteúdo'], { type: 'application/pdf' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(blob, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'attachment; filename="chamados.pdf"',
+          },
+        }),
+      ),
+    );
+
+    const downloaded = await apiDownload('/tickets/export', { query: { format: 'pdf' } });
+
+    expect(downloaded.fileName).toBe('chamados.pdf');
+    expect(downloaded.blob.size).toBeGreaterThan(0);
+  });
+
+  // triste
+  it('throws the server message instead of a broken file when the export fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ statusCode: 403, message: 'Seu perfil é somente leitura.' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    await expect(apiDownload('/tickets/export')).rejects.toThrow('Seu perfil é somente leitura.');
   });
 });
 

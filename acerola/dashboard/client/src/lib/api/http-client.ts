@@ -57,6 +57,35 @@ export async function apiRequest<TResponse>(
   throw await toApiError(response);
 }
 
+export type Downloaded = { blob: Blob; fileName: string };
+
+/**
+ * Baixa um relatório. Existe separado de `apiRequest` porque a resposta é o ARQUIVO, não
+ * JSON — chamar `.json()` nela quebraria antes mesmo de a pessoa ver o motivo.
+ */
+export async function apiDownload(
+  path: string,
+  options: RequestOptions = {},
+): Promise<Downloaded> {
+  const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
+    method: options.method ?? 'GET',
+    signal: options.signal,
+    headers: await buildHeaders(options),
+  });
+
+  if (!response.ok) throw await toApiError(response);
+
+  return { blob: await response.blob(), fileName: fileNameOf(response) };
+}
+
+/** O nome vem do `Content-Disposition` que o servidor escolheu — a tela não inventa outro. */
+function fileNameOf(response: Response): string {
+  const disposition = response.headers.get('Content-Disposition');
+  const match = disposition ? /filename="([^"]+)"/.exec(disposition) : null;
+
+  return match?.[1] ?? 'relatorio';
+}
+
 /**
  * A falha precisa chegar à tela COM O MOTIVO. Recusa do servidor engolida vira chamado de
  * "não está salvando", sem nada para investigar.

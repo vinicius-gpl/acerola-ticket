@@ -77,6 +77,7 @@ const actions = {
   onRetry: vi.fn(),
   onOpen: vi.fn(),
   onRegister: vi.fn(),
+  onExportReport: vi.fn(),
 };
 
 const settled = {

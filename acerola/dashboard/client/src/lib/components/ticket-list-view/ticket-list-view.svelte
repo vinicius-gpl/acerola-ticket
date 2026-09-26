@@ -21,6 +21,7 @@
     type TicketPriority,
     type TicketStatus,
   } from '@template/shared/domain/ticket-status.util';
+  import { type ReportFormat } from '@template/shared/schemas/report.schema';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
   import { type TicketDashboard } from '$lib/api/tickets.api';
@@ -58,6 +59,8 @@
       isTruncated: boolean;
       isDashboardLoading?: boolean;
       error: string | null;
+      exportingFormat?: ReportFormat | null;
+      exportError?: string | null;
     };
     actions: {
       onSearchChange: (search: string) => void;
@@ -68,6 +71,7 @@
       onClearFilters: () => void;
       onRetry: () => void;
       onAnswer: (ticket: Ticket) => void;
+      onExportReport: (format: ReportFormat) => void;
     };
   };
 
@@ -123,6 +127,7 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
@@ -155,7 +160,16 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
   <PageHeader
     data={{ title: 'Chamados', description: 'O que o pessoal pediu, e em que pé está.' }}
-  />
+  >
+    <ReportExportActions
+      state={{ exportingFormat: state.exportingFormat ?? null }}
+      actions={{ onExport: actions.onExportReport }}
+    />
+  </PageHeader>
+
+  {#if state.exportError}
+    <ErrorState data={{ message: state.exportError }} ui={{ variant: 'inline' }} />
+  {/if}
 
   <StatCardGrid>
     <StatCard
