@@ -50,6 +50,7 @@ import { BrandMark } from '$lib/components/brand-mark/brand-mark';
   import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/app-shell-nav-entry/app-shell-nav-entry.svelte';
+  import ThemeToggle from '$lib/components/theme-toggle/theme-toggle.svelte';
 
   let { children, data, ui, state, actions }: AppShellProps = $props();
 
@@ -84,6 +85,15 @@ import { BrandMark } from '$lib/components/brand-mark/brand-mark';
     </SidebarContent>
 
     <SidebarFooter>
+      <!-- Acima do perfil, de propósito: é a última coisa que a pessoa mexe antes de sair,
+           não uma ação do dia a dia — não compete por atenção com o menu de navegação. -->
+      <div
+        class="text-sidebar-foreground/70 flex items-center justify-between px-2 py-1 group-data-[collapsible=icon]:justify-center"
+      >
+        <span class="text-xs font-medium group-data-[collapsible=icon]:hidden">Tema</span>
+        <ThemeToggle />
+      </div>
+
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" tooltip={userName}>
