@@ -7,6 +7,8 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -19,9 +21,11 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
+import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { Public } from '../../../lib/auth/public.decorator';
@@ -32,6 +36,7 @@ import {
   TicketDto,
   TicketListQueryDto,
   TicketListResponseDto,
+  TicketReportQueryDto,
   UpdateTicketDto,
 } from '../dto/ticket.dto';
 import { type TicketDashboard, TicketsService, type UploadedScreenshot } from '../service/tickets.service';
@@ -98,6 +103,34 @@ export class TicketsController {
   @ApiOkResponse({ description: 'Contagens e o tempo médio de resolução em horas.' })
   async dashboard(@CurrentUser() user: RequestUser): Promise<TicketDashboard> {
     return this.service.dashboard(user);
+  }
+
+  /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard`. */
+  @Get('export')
+  @ApiOperation({
+    summary: 'Baixa o relatório dos chamados',
+    description:
+      'Os MESMOS filtros da fila, sem página — o arquivo leva tudo que casou, no formato escolhido (Excel, Word ou PDF).',
+  })
+  @ApiProduces(
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/pdf',
+  )
+  @ApiOkResponse({ description: 'O arquivo do relatório, pronto para baixar.' })
+  async exportReport(
+    @CurrentUser() user: RequestUser,
+    @Query() query: TicketReportQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const report = await this.service.exportList(user, query);
+
+    res.set({
+      'Content-Type': report.contentType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+    });
+
+    return new StreamableFile(report.buffer);
   }
 
   @Get()

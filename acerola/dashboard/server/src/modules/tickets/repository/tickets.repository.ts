@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type TicketListQuery } from '@template/shared/schemas/ticket.schema';
+import { type TicketListQuery, type TicketReportQuery } from '@template/shared/schemas/ticket.schema';
 import { and, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
@@ -56,6 +56,22 @@ export class TicketsRepository {
     return { rows, total: counted?.total ?? rows.length };
   }
 
+  /**
+   * TODOS os chamados que casam com o filtro, sem página — é o que o relatório baixa. Os
+   * MESMOS filtros da tela, e por isso reaproveita `buildWhere`; sem paginação de propósito,
+   * porque o relatório existe justamente para levar o que a tela não mostra de uma vez.
+   */
+  async listAll(query: TicketReportQuery): Promise<TicketRow[]> {
+    return runQuery(
+      this.db
+        .select()
+        .from(tickets)
+        .where(buildWhere(query))
+        .orderBy(desc(tickets.createdAt), desc(tickets.id)),
+      'listar chamados para o relatório',
+    );
+  }
+
   async findById(id: number): Promise<TicketRow | null> {
     return runMaybe(
       this.db.select().from(tickets).where(eq(tickets.id, id)).limit(1),
@@ -105,12 +121,18 @@ export class TicketsRepository {
   }
 }
 
+/** Os filtros que a lista E o relatório têm em comum — nenhum dos dois usa página aqui. */
+type TicketFilter = Pick<
+  TicketListQuery,
+  'search' | 'status' | 'priority' | 'department' | 'problemType'
+>;
+
 /**
  * `ilike` é o `like` que ignora maiúscula e minúscula no Postgres. Acento continua contando:
  * "impressora" e "impressôra" são diferentes — busca sem acento é trabalho para quando
  * alguém pedir.
  */
-function buildWhere(query: TicketListQuery): SQL | undefined {
+function buildWhere(query: TicketFilter): SQL | undefined {
   const filters: (SQL | undefined)[] = [];
 
   if (query.status) filters.push(eq(tickets.status, query.status));

@@ -9,8 +9,9 @@ import {
   type UpdateComputerInput,
 } from '@template/shared/schemas/computer.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type ReportFormat } from '@template/shared/schemas/report.schema';
 
-import { apiRequest } from './http-client';
+import { apiDownload, apiRequest, type Downloaded } from './http-client';
 
 /**
  * Chamadas da API de computadores. Nada aqui decide nada — é a tradução de uma intenção em
@@ -25,6 +26,20 @@ export const computersApi = {
       query: {
         page: query.page,
         pageSize: query.pageSize,
+        search: query.search,
+        department: query.department,
+        healthStatus: query.healthStatus,
+        includeArchived: query.includeArchived,
+        onlyDisposed: query.onlyDisposed,
+        disposalType: query.disposalType,
+      },
+    }),
+
+  /** Baixa o relatório com os MESMOS filtros da lista — sem página, é o parque inteiro. */
+  exportReport: (query: Partial<ComputerListQuery>, format: ReportFormat): Promise<Downloaded> =>
+    apiDownload('/computers/export', {
+      query: {
+        format,
         search: query.search,
         department: query.department,
         healthStatus: query.healthStatus,

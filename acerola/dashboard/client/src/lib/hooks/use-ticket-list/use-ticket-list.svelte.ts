@@ -8,12 +8,14 @@ import {
   type TicketStatus,
 } from '@template/shared/domain/ticket-status.util';
 import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
+import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
 import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
 export type TicketListFilter = {
   search: string;
@@ -42,6 +44,9 @@ export type TicketListModel = {
     isTruncated: boolean;
     isDashboardLoading: boolean;
     error: string | null;
+    /** Qual formato está sendo baixado agora — nulo quando nenhum. */
+    exportingFormat: ReportFormat | null;
+    exportError: string | null;
   };
   actions: {
     onSearchChange: (search: string) => void;
@@ -51,6 +56,7 @@ export type TicketListModel = {
     onProblemTypeChange: (problemType: TicketProblemType | '') => void;
     onClearFilters: () => void;
     onRetry: () => void;
+    onExportReport: (format: ReportFormat) => void;
   };
 };
 
@@ -89,6 +95,9 @@ export function useTicketListModel(): TicketListModel {
   const filterStore = writable<TicketListFilter>({ ...EMPTY_FILTER });
   const filter = mirrorStore(filterStore);
 
+  let exportingFormat = $state<ReportFormat | null>(null);
+  let exportError = $state<string | null>(null);
+
   const list = mirrorStore(
     createQuery(
       derived(filterStore, (current) => ({
@@ -124,6 +133,8 @@ export function useTicketListModel(): TicketListModel {
       return {
         ...buildListState(list.current, filter.current),
         isDashboardLoading: dashboard.current.isPending,
+        exportingFormat,
+        exportError,
       };
     },
     actions: {
@@ -134,6 +145,20 @@ export function useTicketListModel(): TicketListModel {
         filterStore.update((current) => ({ ...current, department })),
       onProblemTypeChange: (problemType) =>
         filterStore.update((current) => ({ ...current, problemType })),
+      onExportReport: (format) => {
+        exportError = null;
+        exportingFormat = format;
+
+        ticketsApi
+          .exportReport(scopeOf(filter.current), format)
+          .then(({ blob, fileName }) => triggerBrowserDownload(blob, fileName))
+          .catch((error: unknown) => {
+            exportError = readError(error) ?? 'Não consegui gerar o relatório.';
+          })
+          .finally(() => {
+            exportingFormat = null;
+          });
+      },
       onClearFilters: () => filterStore.set({ ...EMPTY_FILTER }),
       onRetry: () => {
         void list.current.refetch();
@@ -184,7 +209,7 @@ function hasAnyFilter(filter: TicketListFilter): boolean {
 function buildListState(
   list: ListQueryLike,
   filter: TicketListFilter,
-): Omit<TicketListModel['state'], 'isDashboardLoading'> {
+): Omit<TicketListModel['state'], 'isDashboardLoading' | 'exportingFormat' | 'exportError'> {
   const count = list.data?.items.length ?? 0;
   /* Vazio só é vazio DEPOIS que a consulta terminou. Mostrar "nenhum chamado" durante o
      carregamento faz a pessoa achar que os dados sumiram — e recarregar. */

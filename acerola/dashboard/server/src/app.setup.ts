@@ -15,6 +15,9 @@ export function setupApp(app: INestApplication, env: Env): void {
   app.enableCors({
     origin: env.API_CORS_ORIGIN.split(',').map((origin) => origin.trim()),
     credentials: true,
+    /* Sem isto, o navegador lê o arquivo do relatório mas esconde o nome dele do
+       JavaScript da tela sempre que a API estiver noutro domínio da web. */
+    exposedHeaders: ['Content-Disposition'],
   });
   /* A validação é o `ZodValidationPipe`, registrado como pipe global no AppModule. O
      `ValidationPipe` do Nest não entra aqui: ele exige `class-validator`, e ter dois

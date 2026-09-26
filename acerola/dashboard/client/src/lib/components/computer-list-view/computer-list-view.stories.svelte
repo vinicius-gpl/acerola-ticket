@@ -131,6 +131,7 @@
     onRetry: () => {},
     onOpen: () => {},
     onRegister: () => {},
+    onExportReport: () => {},
   };
 
   const settled = {
@@ -210,6 +211,26 @@
   args={{
     data: { computers, total: 240, summary, filter: emptyFilter },
     state: { ...settled, isTruncated: true },
+    actions,
+  }}
+/>
+
+<!-- O PDF está sendo gerado: só o botão dele gira, os outros ficam desabilitados. -->
+<Story
+  name="ExportingReport"
+  args={{
+    data: { computers, total: computers.length, summary, filter: emptyFilter },
+    state: { ...settled, exportingFormat: 'pdf' },
+    actions,
+  }}
+/>
+
+<!-- O relatório falhou: o inventário continua normal, só o aviso aparece acima dele. -->
+<Story
+  name="ExportError"
+  args={{
+    data: { computers, total: computers.length, summary, filter: emptyFilter },
+    state: { ...settled, exportError: 'Não consegui gerar o relatório.' },
     actions,
   }}
 />

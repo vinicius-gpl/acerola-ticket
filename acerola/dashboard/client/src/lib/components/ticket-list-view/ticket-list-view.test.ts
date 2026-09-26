@@ -59,6 +59,7 @@ const actions = {
   onClearFilters: vi.fn(),
   onRetry: vi.fn(),
   onAnswer: vi.fn(),
+  onExportReport: vi.fn(),
 };
 
 const settled = {

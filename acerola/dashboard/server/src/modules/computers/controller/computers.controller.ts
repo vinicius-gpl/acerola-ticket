@@ -8,6 +8,8 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -15,9 +17,11 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
+import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
@@ -26,6 +30,7 @@ import {
   ComputerDto,
   ComputerListQueryDto,
   ComputerListResponseDto,
+  ComputerReportQueryDto,
   ComputerSampleDto,
   CreateComputerDto,
   CreatedComputerDto,
@@ -61,6 +66,34 @@ export class ComputersController {
     @Query() query: ComputerListQueryDto,
   ): Promise<ComputerListResponseDto> {
     return this.service.list(user, query);
+  }
+
+  /* Vem ANTES de `:id`: declarada depois, o Nest leria "export" como se fosse um número. */
+  @Get('export')
+  @ApiOperation({
+    summary: 'Baixa o relatório do inventário',
+    description:
+      'Os MESMOS filtros da lista, sem página — o arquivo leva todo o parque que casou, no formato escolhido (Excel, Word ou PDF).',
+  })
+  @ApiProduces(
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/pdf',
+  )
+  @ApiOkResponse({ description: 'O arquivo do relatório, pronto para baixar.' })
+  async exportReport(
+    @CurrentUser() user: RequestUser,
+    @Query() query: ComputerReportQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const report = await this.service.exportList(user, query);
+
+    res.set({
+      'Content-Type': report.contentType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+    });
+
+    return new StreamableFile(report.buffer);
   }
 
   @Get(':id')

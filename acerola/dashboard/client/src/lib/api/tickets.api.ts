@@ -1,4 +1,5 @@
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import {
   type PublicTicket,
   type Ticket,
@@ -7,7 +8,7 @@ import {
   type UpdateTicketInput,
 } from '@template/shared/schemas/ticket.schema';
 
-import { apiRequest } from './http-client';
+import { apiDownload, apiRequest, type Downloaded } from './http-client';
 
 /** Os indicadores do painel, como a API os devolve. */
 export type TicketDashboard = {
@@ -40,6 +41,19 @@ export const ticketsApi = {
     }),
 
   dashboard: () => apiRequest<TicketDashboard>('/tickets/dashboard'),
+
+  /** Baixa o relatório com os MESMOS filtros da fila — sem página, é a lista inteira. */
+  exportReport: (query: Partial<TicketListQuery>, format: ReportFormat): Promise<Downloaded> =>
+    apiDownload('/tickets/export', {
+      query: {
+        format,
+        search: query.search,
+        status: query.status,
+        priority: query.priority,
+        department: query.department,
+        problemType: query.problemType,
+      },
+    }),
 
   findById: (id: number) => apiRequest<Ticket>(`/tickets/${id}`),
 

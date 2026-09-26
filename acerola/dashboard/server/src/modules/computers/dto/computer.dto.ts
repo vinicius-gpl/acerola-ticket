@@ -1,6 +1,7 @@
 import {
   computerAlertSchema,
   computerListQuerySchema,
+  computerReportQuerySchema,
   computerSampleSchema,
   computerSchema,
   createComputerSchema,
@@ -16,6 +17,7 @@ import { z } from 'zod';
  * em runtime e o contrato publicado no Swagger não possam divergir.
  */
 export class ComputerListQueryDto extends createZodDto(computerListQuerySchema) {}
+export class ComputerReportQueryDto extends createZodDto(computerReportQuerySchema) {}
 export class CreateComputerDto extends createZodDto(createComputerSchema) {}
 export class UpdateComputerDto extends createZodDto(updateComputerSchema) {}
 export class ComputerDto extends createZodDto(computerSchema) {}

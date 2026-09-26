@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type ComputerListQuery } from '@template/shared/schemas/computer.schema';
+import {
+  type ComputerListQuery,
+  type ComputerReportQuery,
+} from '@template/shared/schemas/computer.schema';
 import {
   and,
   asc,
@@ -79,6 +82,21 @@ export class ComputersRepository {
     ]);
 
     return { rows, total: counted?.total ?? rows.length };
+  }
+
+  /**
+   * TODO o parque que casa com o filtro, sem página — é o que o relatório baixa. Os MESMOS
+   * filtros da tela, por isso reaproveita `buildWhere`.
+   */
+  async listAll(query: ComputerReportQuery): Promise<ComputerRow[]> {
+    return runQuery(
+      this.db
+        .select()
+        .from(computers)
+        .where(buildWhere(query))
+        .orderBy(asc(computers.healthScore), computers.name),
+      'listar computadores para o relatório',
+    );
   }
 
   async findById(id: number): Promise<ComputerRow | null> {
@@ -206,13 +224,19 @@ export class ComputersRepository {
   }
 }
 
+/** Os filtros que a lista E o relatório têm em comum — nenhum dos dois usa página aqui. */
+type ComputerFilter = Pick<
+  ComputerListQuery,
+  'search' | 'department' | 'healthStatus' | 'includeArchived' | 'onlyDisposed' | 'disposalType'
+>;
+
 /**
  * `ilike` é o `like` que ignora maiúscula e minúscula no Postgres.
  *
  * A máquina arquivada fica de FORA por padrão: ela saiu de uso, e quem abre o inventário está
  * trabalhando com o que está em uso hoje.
  */
-function buildWhere(query: ComputerListQuery): SQL | undefined {
+function buildWhere(query: ComputerFilter): SQL | undefined {
   const filters: (SQL | undefined)[] = [];
 
   if (!query.includeArchived) filters.push(eq(computers.isArchived, false));

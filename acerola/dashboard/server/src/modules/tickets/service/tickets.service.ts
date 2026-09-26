@@ -1,25 +1,60 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { parseTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
+import { ticketDepartmentLabel, ticketProblemTypeLabel } from '@template/shared/domain/ticket-catalog.util';
+import { parseTicketProtocol, formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import {
   countByField,
   summarizeTickets,
   type TicketSummary,
 } from '@template/shared/domain/ticket-metrics.util';
+import {
+  ticketPriorityLabel,
+  ticketPriorityTone,
+  ticketStatusLabel,
+  ticketStatusTone,
+} from '@template/shared/domain/ticket-status.util';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import {
   type CreateTicketInput,
   type PublicTicket,
   type Ticket,
   type TicketListQuery,
+  type TicketReportQuery,
   type UpdateTicketInput,
 } from '@template/shared/schemas/ticket.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
+import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
+import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
 import { TicketsRepository } from '../repository/tickets.repository';
+
+/**
+ * As colunas do relatório de chamados, na mesma ordem em que a fila do painel as mostra —
+ * quem baixa o arquivo está levando a MESMA lista, não uma versão nova para decorar.
+ */
+const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
+  { header: 'Protocolo', value: (row) => formatTicketProtocol(row.id), isTitle: true },
+  { header: 'Quem abriu', value: (row) => row.requesterName },
+  { header: 'Departamento', value: (row) => ticketDepartmentLabel(row.department) },
+  { header: 'Tipo de problema', value: (row) => ticketProblemTypeLabel(row.problemType) },
+  {
+    header: 'Urgência',
+    value: (row) => ticketPriorityLabel(row.priority),
+    tone: (row) => ticketPriorityTone(row.priority),
+  },
+  {
+    header: 'Situação',
+    value: (row) => ticketStatusLabel(row.status),
+    tone: (row) => ticketStatusTone(row.status),
+  },
+  { header: 'Responsável', value: (row) => row.assignee ?? '—' },
+  { header: 'O que foi feito', value: (row) => row.solution ?? '—' },
+  { header: 'Aberto em', value: (row) => formatReportDate(row.createdAt) },
+  { header: 'Resolvido em', value: (row) => formatReportDate(row.resolvedAt) },
+];
 
 const NOT_FOUND = 'Chamado não encontrado. Confira o número do protocolo.';
 
@@ -93,6 +128,25 @@ export class TicketsService {
     if (!row) throw new NotFoundException(NOT_FOUND);
 
     return this.withScreenshot(row);
+  }
+
+  /**
+   * Baixar o relatório: os MESMOS filtros da fila, mas sem página — o arquivo leva tudo que
+   * casou, no formato escolhido.
+   */
+  async exportList(user: RequestUser, query: TicketReportQuery): Promise<BuiltReport> {
+    assertCanRead(user.role, 'os chamados');
+
+    const rows = await this.repository.listAll(query);
+
+    return buildReport({
+      format: query.format,
+      title: 'Chamados',
+      subtitle: reportSubtitle(rows.length, 'chamado', 'chamados'),
+      fileName: 'chamados',
+      columns: TICKET_REPORT_COLUMNS,
+      rows,
+    });
   }
 
   /** Os indicadores do painel, sobre TODOS os chamados — não só sobre a página aberta. */
