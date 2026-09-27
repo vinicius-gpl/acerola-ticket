@@ -1,11 +1,9 @@
 <script lang="ts">
   import {
-    CalendarDate,
     DateFormatter,
     type DateValue,
     getLocalTimeZone,
     parseDate,
-    today,
   } from "@internationalized/date";
   import { Calendar as CalendarIcon } from "lucide-svelte";
   import { cn } from "$lib/utils/cn";
@@ -44,7 +42,7 @@
     }
     if (typeof value === "string") {
       try {
-        const clean = value.split("T")[0];
+        const clean = value.split("T")[0] ?? "";
         if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
           internalDate = parseDate(clean);
         }
@@ -108,6 +106,7 @@
     </Popover.Trigger>
     <Popover.Content class="w-auto p-0 rounded-2xl border-border bg-card shadow-xl" align="start">
       <Calendar
+        type="single"
         value={internalDate}
         onValueChange={handleSelect}
         locale="pt-BR"

@@ -1,14 +1,7 @@
 <script lang="ts">
-  import { Tooltip as TooltipPrimitive } from 'bits-ui';
-  import type { Snippet } from 'svelte';
+	import { Tooltip as TooltipPrimitive } from "bits-ui";
 
-  let {
-    delayDuration = 0,
-    children,
-    ...restProps
-  }: TooltipPrimitive.ProviderProps & { children?: Snippet } = $props();
+	let { delayDuration = 0, ...restProps }: TooltipPrimitive.ProviderProps = $props();
 </script>
 
-<TooltipPrimitive.Provider {delayDuration} {...restProps}>
-  {@render children?.()}
-</TooltipPrimitive.Provider>
+<TooltipPrimitive.Provider {delayDuration} {...restProps} />

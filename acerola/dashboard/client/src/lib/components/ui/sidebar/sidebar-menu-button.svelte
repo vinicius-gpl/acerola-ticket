@@ -1,103 +1,100 @@
 <script lang="ts" module>
-  import { cva, type VariantProps } from 'class-variance-authority';
+	import { tv, type VariantProps } from "tailwind-variants";
 
-  export const sidebarMenuButtonVariants = cva(
-    'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
-    {
-      variants: {
-        variant: {
-          default: 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-          outline:
-            'bg-background shadow-[0_0_0_1px_var(--sidebar-border)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_var(--sidebar-accent)]',
-        },
-        size: {
-          default: 'h-8 text-sm',
-          sm: 'h-7 text-xs',
-          lg: 'h-12 text-sm group-data-[collapsible=icon]:p-0!',
-        },
-      },
-      defaultVariants: {
-        variant: 'default',
-        size: 'default',
-      },
-    }
-  );
+	export const sidebarMenuButtonVariants = tv({
+		base: "ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-left text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium peer/menu-button group/menu-button flex w-full items-center overflow-hidden outline-hidden disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+		variants: {
+			variant: {
+				default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+				outline: "bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-accent)]",
+			},
+			size: {
+				default: "h-8 text-sm",
+				sm: "h-7 text-xs",
+				lg: "h-12 text-sm group-data-[collapsible=icon]:p-0!",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+			size: "default",
+		},
+	});
 
-  export type SidebarMenuButtonVariant = VariantProps<typeof sidebarMenuButtonVariants>['variant'];
-  export type SidebarMenuButtonSize = VariantProps<typeof sidebarMenuButtonVariants>['size'];
+	export type SidebarMenuButtonVariant = VariantProps<typeof sidebarMenuButtonVariants>["variant"];
+	export type SidebarMenuButtonSize = VariantProps<typeof sidebarMenuButtonVariants>["size"];
 </script>
 
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import type { HTMLButtonAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn';
-  import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
-  import { useSidebar } from './context.svelte.ts';
+	import { mergeProps } from "bits-ui";
+	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+	import { cn, type WithElementRef, type WithoutChildrenOrChild } from "$lib/utils/cn.js";
+	import { useSidebar } from "./context.svelte.js";
+	import type { ComponentProps, Snippet } from "svelte";
+	import type { HTMLAttributes } from "svelte/elements";
 
-  type Props = HTMLButtonAttributes & {
-    isActive?: boolean;
-    variant?: SidebarMenuButtonVariant;
-    size?: SidebarMenuButtonSize;
-    tooltip?: string;
-    children?: Snippet;
-    /** Troca o `<button>` pelo elemento que a marcação passar — usado pro item de menu virar link. */
-    child?: Snippet<[{ props: Record<string, unknown> }]>;
-  };
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		child,
+		variant = "default",
+		size = "default",
+		isActive = false,
+		tooltipContent,
+		tooltipContentProps,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLButtonElement>, HTMLButtonElement> & {
+		isActive?: boolean;
+		variant?: SidebarMenuButtonVariant;
+		size?: SidebarMenuButtonSize;
+		tooltipContent?: Snippet | string;
+		tooltipContentProps?: WithoutChildrenOrChild<ComponentProps<typeof Tooltip.Content>>;
+		child?: Snippet<[{ props: Record<string, unknown> }]>;
+	} = $props();
 
-  let {
-    isActive = false,
-    variant = 'default',
-    size = 'default',
-    tooltip,
-    class: className,
-    children,
-    child: renderChild,
-    ...restProps
-  }: Props = $props();
+	const sidebar = useSidebar();
 
-  const sidebar = useSidebar();
-
-  const buttonProps = $derived({
-    'data-slot': 'sidebar-menu-button',
-    'data-sidebar': 'menu-button',
-    'data-size': size,
-    'data-active': isActive,
-    class: cn(sidebarMenuButtonVariants({ variant, size }), className),
-    ...restProps,
-  });
+	const buttonProps = $derived({
+		class: cn(sidebarMenuButtonVariants({ variant, size }), className),
+		"data-slot": "sidebar-menu-button",
+		"data-sidebar": "menu-button",
+		"data-size": size,
+		"data-active": isActive,
+		...restProps,
+	});
 </script>
 
-{#snippet buttonEl()}
-  {#if renderChild}
-    {@render renderChild({ props: buttonProps })}
-  {:else}
-    <button {...buttonProps}>
-      {@render children?.()}
-    </button>
-  {/if}
+{#snippet Button({ props }: { props?: Record<string, unknown> })}
+	{@const mergedProps = mergeProps(buttonProps, props)}
+	{#if child}
+		{@render child({ props: mergedProps })}
+	{:else}
+		<button bind:this={ref} {...mergedProps}>
+			{@render children?.()}
+		</button>
+	{/if}
 {/snippet}
 
-{#if tooltip}
-  <Tooltip>
-    <TooltipTrigger>
-      {#snippet child({ props })}
-        {#if renderChild}
-          {@render renderChild({ props: { ...buttonProps, ...props } })}
-        {:else}
-          <button {...buttonProps} {...props}>
-            {@render children?.()}
-          </button>
-        {/if}
-      {/snippet}
-    </TooltipTrigger>
-    <TooltipContent
-      side="right"
-      align="center"
-      hidden={sidebar.state !== 'collapsed' || sidebar.isMobile}
-    >
-      {tooltip}
-    </TooltipContent>
-  </Tooltip>
+{#if !tooltipContent}
+	{@render Button({})}
 {:else}
-  {@render buttonEl()}
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				{@render Button({ props })}
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content
+			side="right"
+			align="center"
+			hidden={sidebar.state !== "collapsed" || sidebar.isMobile}
+			{...tooltipContentProps}
+		>
+			{#if typeof tooltipContent === "string"}
+				{tooltipContent}
+			{:else if tooltipContent}
+				{@render tooltipContent()}
+			{/if}
+		</Tooltip.Content>
+	</Tooltip.Root>
 {/if}

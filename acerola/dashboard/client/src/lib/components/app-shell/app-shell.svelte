@@ -78,7 +78,7 @@
   });
 </script>
 
-<SidebarProvider defaultOpen={!shellState?.isCollapsed}>
+<SidebarProvider open={!shellState?.isCollapsed}>
   <!-- `collapsible="icon"` e não `offcanvas`: recolhida, a barra vira uma faixa de ícones.
        Sumir por inteiro tiraria da tela a única pista de onde estão as outras telas. -->
   <Sidebar collapsible="icon" variant="inset">
@@ -116,7 +116,7 @@
 
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" tooltip={userName}>
+          <SidebarMenuButton size="lg" tooltipContent={userName}>
             <PersonAvatar name={userName} ui={{ size: 'md' }} />
             <span class="grid flex-1 text-left leading-tight">
               <span class="truncate text-sm font-semibold">{userName}</span>

@@ -1,23 +1,24 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import type { HTMLAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn';
+	import { cn, type WithElementRef } from "$lib/utils/cn.js";
+	import type { HTMLAttributes } from "svelte/elements";
 
-  type Props = HTMLAttributes<HTMLDivElement> & {
-    children?: Snippet;
-  };
-
-  let { class: className, children, ...restProps }: Props = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLElement>> = $props();
 </script>
 
 <div
-  data-slot="sidebar-content"
-  data-sidebar="content"
-  class={cn(
-    'flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
-    className
-  )}
-  {...restProps}
+	bind:this={ref}
+	data-slot="sidebar-content"
+	data-sidebar="content"
+	class={cn(
+		"no-scrollbar gap-0 flex min-h-0 flex-1 flex-col overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+		className
+	)}
+	{...restProps}
 >
-  {@render children?.()}
+	{@render children?.()}
 </div>

@@ -1,20 +1,21 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import type { HTMLAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn';
+	import { cn, type WithElementRef } from "$lib/utils/cn.js";
+	import type { HTMLAttributes } from "svelte/elements";
 
-  type Props = HTMLAttributes<HTMLDivElement> & {
-    children?: Snippet;
-  };
-
-  let { class: className, children, ...restProps }: Props = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
 <div
-  data-slot="sidebar-group-content"
-  data-sidebar="group-content"
-  class={cn('w-full text-sm', className)}
-  {...restProps}
+	bind:this={ref}
+	data-slot="sidebar-group-content"
+	data-sidebar="group-content"
+	class={cn("text-sm w-full", className)}
+	{...restProps}
 >
-  {@render children?.()}
+	{@render children?.()}
 </div>
