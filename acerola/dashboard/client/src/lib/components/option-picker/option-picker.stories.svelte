@@ -74,3 +74,10 @@
   }}
   template={inBox}
 />
+
+<!-- A pastilha também veste `h-10` num formulário, pra bater com o campo de texto ao lado. -->
+<Story
+  name="FullWidthPillsInForm"
+  args={{ ...baseArgs, ui: { ariaLabel: 'Urgência', fullWidth: true } }}
+  template={inBox}
+/>

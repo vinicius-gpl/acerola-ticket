@@ -172,7 +172,7 @@
                 <span class="text-ink-700 text-sm font-medium">Departamento</span>
                 <OptionPicker
                   data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
-                  ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento' }}
+                  ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('department', value) }}
                 />
@@ -182,7 +182,7 @@
                 <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
                 <OptionPicker
                   data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
-                  ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo' }}
+                  ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
                 />
@@ -193,7 +193,7 @@
               <span class="text-ink-700 text-sm font-medium">Urgência</span>
               <OptionPicker
                 data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
-                ui={{ ariaLabel: 'Urgência' }}
+                ui={{ ariaLabel: 'Urgência', fullWidth: true }}
                 state={{ isDisabled: state.isSubmitting }}
                 actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
               />

@@ -147,7 +147,7 @@
         <span class="text-ink-700 text-sm font-medium">Tipo</span>
         <OptionPicker
           data={{ value: fields.type.value, options: TYPE_OPTIONS }}
-          ui={{ ariaLabel: 'Tipo de manutenção' }}
+          ui={{ ariaLabel: 'Tipo de manutenção', fullWidth: true }}
           state={{ isDisabled: dialogState.isSubmitting }}
           actions={{ onChange: (value: string) => actions.onChange('type', value) }}
         />

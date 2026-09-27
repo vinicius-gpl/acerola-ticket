@@ -225,7 +225,7 @@
                 <span class="text-xs font-medium text-muted-foreground">Situação</span>
                 <OptionPicker
                   data={{ value: fields.status.value, options: STATUS_OPTIONS }}
-                  ui={{ ariaLabel: 'Situação' }}
+                  ui={{ ariaLabel: 'Situação', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('status', value) }}
                 />
@@ -235,7 +235,7 @@
                 <span class="text-xs font-medium text-muted-foreground">Urgência</span>
                 <OptionPicker
                   data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
-                  ui={{ ariaLabel: 'Urgência' }}
+                  ui={{ ariaLabel: 'Urgência', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
                 />

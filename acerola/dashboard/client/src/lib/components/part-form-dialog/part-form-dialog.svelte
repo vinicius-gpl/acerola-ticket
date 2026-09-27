@@ -128,7 +128,7 @@
           <span class="text-ink-700 text-sm font-medium">Condição</span>
           <OptionPicker
             data={{ value: fields.condition.value, options: CONDITION_OPTIONS }}
-            ui={{ ariaLabel: 'Condição' }}
+            ui={{ ariaLabel: 'Condição', fullWidth: true }}
             state={{ isDisabled: dialogState.isSubmitting }}
             actions={{ onChange: (value: string) => actions.onChange('condition', value) }}
           />

@@ -98,7 +98,7 @@
       <span class="text-ink-700 text-sm font-medium">Tipo de descarte</span>
       <OptionPicker
         data={{ value: type, options: TYPE_OPTIONS }}
-        ui={{ ariaLabel: 'Tipo de descarte' }}
+        ui={{ ariaLabel: 'Tipo de descarte', fullWidth: true }}
         state={{ isDisabled: dialogState?.isConfirming }}
         actions={{ onChange: (value: string) => (type = value as DisposalType) }}
       />

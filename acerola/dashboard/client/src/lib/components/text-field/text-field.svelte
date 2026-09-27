@@ -60,9 +60,15 @@
    */
   const inputType = $derived(isPassword && !isRevealed ? 'password' : isPassword ? 'text' : type);
 
+  /**
+   * `h-10`, fixo — o mesmo número usado no `DatePicker` e no `OptionPicker` de formulário.
+   * Antes a altura vinha só do padding (`py-2.5`) e cada componente calculava um valor
+   * levemente diferente, então campo de texto, seletor e data nunca alinhavam na mesma
+   * fileira.
+   */
   const inputClass = $derived(
     cn(
-      'bg-card text-foreground w-full rounded-lg border px-3 py-2.5 text-sm transition-colors',
+      'bg-card text-foreground h-10 w-full rounded-lg border px-3 py-2 text-sm transition-colors',
       'placeholder:text-ink-500 disabled:cursor-not-allowed disabled:opacity-60',
       isPassword && 'pr-11',
       hasError ? 'border-destructive' : 'border-input',
@@ -76,6 +82,9 @@
   </label>
 
   <div class="relative">
+    <!-- O foco automático sozinho deixa o cursor no fim do texto: um valor mais comprido que
+         a caixa nasce rolado, escondendo a primeira letra. Selecionar tudo (`onfocus`) mostra
+         o valor inteiro e já deixa pronto para a pessoa digitar por cima. -->
     <input
       id={inputId}
       name={data.name}
@@ -89,6 +98,7 @@
       aria-describedby={hasError ? errorId : undefined}
       oninput={(event) => actions?.onChange?.((event.target as HTMLInputElement).value)}
       onblur={() => actions?.onBlur?.()}
+      onfocus={(event) => fieldState?.isAutoFocused && event.currentTarget.select()}
       class={inputClass}
     />
 

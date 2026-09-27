@@ -22,9 +22,10 @@
       /** Prefixa uma opção "Todos os X", representando o valor ''. Só faz sentido em filtro. */
       allLabel?: string;
       placeholder?: string;
-      /** Ocupa a largura do campo ao lado, como num formulário. Numa barra de filtro, o
-       * botão de busca deve ficar do tamanho do texto, não esticar — por isso o padrão é
-       * `false`. */
+      /** Veste o campo de formulário: `h-10` (a mesma altura do `TextField` e do
+       * `DatePicker`) e o combo esticando até a largura do campo ao lado. Numa barra de
+       * filtro isso não vale — lá o botão fica do tamanho do texto, e pastilha e busca não
+       * precisam bater altura com nada — por isso o padrão é `false`. */
       fullWidth?: boolean;
     };
     state?: { isDisabled?: boolean };
@@ -96,6 +97,7 @@
         onclick={() => select(option.value)}
         class={cn(
           'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
+          ui?.fullWidth && 'h-10 px-3',
           isSelected
             ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
             : 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
@@ -115,7 +117,7 @@
       aria-label={ui?.ariaLabel}
       class={cn(
         'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
-        ui?.fullWidth ? 'sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
+        ui?.fullWidth ? 'h-10 sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}
     >
