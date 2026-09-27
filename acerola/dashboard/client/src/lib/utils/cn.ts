@@ -11,3 +11,14 @@ import { twMerge } from 'tailwind-merge';
 export function cn(...values: ClassValue[]): string {
   return twMerge(clsx(values));
 }
+
+/**
+ * Tipos auxiliares do shadcn-svelte — todo componente vendorizado em `components/ui/` os
+ * importa deste mesmo arquivo (é o alias `utils` do `components.json`). Sem eles aqui, o
+ * `svelte-check` recusa TODOS esses componentes de uma vez.
+ */
+export type WithElementRef<T, E extends HTMLElement = HTMLElement> = T & { ref?: E | null };
+
+export type WithoutChild<T> = T extends { child?: unknown } ? Omit<T, 'child'> : T;
+export type WithoutChildren<T> = T extends { children?: unknown } ? Omit<T, 'children'> : T;
+export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
