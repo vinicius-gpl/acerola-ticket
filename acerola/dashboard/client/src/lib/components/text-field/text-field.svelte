@@ -91,11 +91,18 @@
     <!-- O foco automático sozinho deixa o cursor no fim do texto: um valor mais comprido que
          a caixa nasce rolado, escondendo a primeira letra. Selecionar tudo (`onfocus`) mostra
          o valor inteiro e já deixa pronto para a pessoa digitar por cima. -->
+    <!-- `bind:value` com getter/setter, e não `value={...}` + `oninput`: quando uma tecla
+         rejeitada (o telefone barrando letra, por exemplo) resulta no MESMO valor de antes, a
+         prop não muda — e um `value={data.value}` só reflete a prop de volta no elemento
+         quando ELA muda. O `<input>` já tinha aceitado a letra por conta própria antes do
+         evento chegar aqui, e sem nada de novo pra propagar, ela ficava visível no campo
+         mesmo com o estado da aplicação correto por baixo. `bind:value` compara contra o
+         valor VIVO do elemento a cada ciclo, então corrige mesmo nesse empate. -->
     <input
       id={inputId}
       name={data.name}
       type={inputType}
-      value={data.value}
+      bind:value={() => data.value, (value) => actions?.onChange?.(value)}
       placeholder={data.placeholder}
       autocomplete={data.autoComplete}
       autofocus={fieldState?.isAutoFocused}
@@ -103,7 +110,6 @@
       required={data.isRequired}
       aria-invalid={hasError}
       aria-describedby={hasError ? errorId : undefined}
-      oninput={(event) => actions?.onChange?.((event.target as HTMLInputElement).value)}
       onblur={() => actions?.onBlur?.()}
       onfocus={(event) => fieldState?.isAutoFocused && event.currentTarget.select()}
       class={inputClass}

@@ -43,17 +43,20 @@
     {/if}
   </label>
 
+  <!-- `bind:value` com getter/setter, e não `value={...}` + `oninput` — mesmo motivo do
+       `TextField`: se algum dia um `onChange` aqui rejeitar ou transformar o texto e o
+       resultado empatar com o valor anterior, só a comparação contra o valor VIVO do
+       elemento (o que `bind:value` faz) corrige o que o navegador já inseriu sozinho. -->
   <textarea
     id={inputId}
     name={data.name}
-    value={data.value}
+    bind:value={() => data.value, (value) => actions?.onChange?.(value)}
     rows={ui?.rows ?? 4}
     placeholder={data.placeholder}
     disabled={state?.isDisabled}
     required={data.isRequired}
     aria-invalid={Boolean(error)}
     aria-describedby={error ? errorId : undefined}
-    oninput={(event) => actions?.onChange?.((event.target as HTMLTextAreaElement).value)}
     onblur={() => actions?.onBlur?.()}
     class={cn(
       /* `rounded-xl`, igual ao `TextField`, ao `DatePicker` e ao `ActionButton` — o raio
