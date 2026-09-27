@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { anydeskFormSchema, anydeskSchema } from '../domain/anydesk.util';
 import { contactPhoneSchema } from '../domain/phone.util';
 import { TICKET_DEPARTMENTS, TICKET_PROBLEM_TYPES } from '../domain/ticket-catalog.util';
 import {
@@ -19,11 +20,11 @@ import { reportFormatSchema } from './report.schema';
  */
 export const REQUESTER_NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 5000;
-export const ANYDESK_MAX_LENGTH = 60;
 export const ASSIGNEE_MAX_LENGTH = 200;
 export const SOLUTION_MAX_LENGTH = 5000;
 
 export { CONTACT_PHONE_MAX_LENGTH } from '../domain/phone.util';
+export { ANYDESK_MIN_DIGITS, ANYDESK_MAX_DIGITS } from '../domain/anydesk.util';
 
 /**
  * A mensagem de lista fechada, em português.
@@ -63,11 +64,6 @@ const optionalText = (max: number, tooLong: string) =>
     .max(max, tooLong)
     .transform((value) => (value === '' ? null : value))
     .nullable();
-
-const anydeskSchema = optionalText(
-  ANYDESK_MAX_LENGTH,
-  `O número do AnyDesk pode ter até ${ANYDESK_MAX_LENGTH} caracteres`,
-);
 
 const assigneeSchema = optionalText(
   ASSIGNEE_MAX_LENGTH,
@@ -175,9 +171,7 @@ export const ticketFormSchema = z.object({
   requesterName: requesterNameSchema,
   department: ticketDepartmentSchema,
   problemType: ticketProblemTypeSchema,
-  anydeskId: z
-    .string()
-    .max(ANYDESK_MAX_LENGTH, `O número do AnyDesk pode ter até ${ANYDESK_MAX_LENGTH} caracteres`),
+  anydeskId: anydeskFormSchema,
   priority: ticketPrioritySchema,
   contactPhone: contactPhoneSchema,
   notifyWhatsapp: z.boolean(),

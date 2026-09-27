@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { formatAnydeskInput } from '@template/shared/domain/anydesk.util';
   import { formatPhoneInput } from '@template/shared/domain/phone.util';
   import {
     TICKET_DEPARTMENTS,
@@ -362,7 +363,7 @@
                 }}
                 state={{ error: fields.anydeskId.error, isDisabled: formState.isSubmitting }}
                 actions={{
-                  onChange: (value: string) => actions.onChange('anydeskId', value),
+                  onChange: (value: string) => actions.onChange('anydeskId', formatAnydeskInput(value)),
                   onBlur: () => actions.onBlur('anydeskId'),
                 }}
               />
