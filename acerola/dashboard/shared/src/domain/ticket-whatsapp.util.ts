@@ -1,3 +1,5 @@
+import { MIN_PHONE_DIGITS } from './phone.util';
+
 /**
  * O link de WhatsApp que o painel usa para avisar quem abriu o chamado.
  *
@@ -14,9 +16,6 @@ const BRAZIL_COUNTRY_CODE = '55';
 
 /** Com DDD são 10 (fixo) ou 11 (celular) dígitos; acima disso o DDI já veio digitado. */
 const MAX_DIGITS_WITHOUT_COUNTRY_CODE = 11;
-
-/** Menos que isto não é telefone — é engano de digitação. */
-const MIN_PHONE_DIGITS = 10;
 
 /**
  * Normaliza o telefone para o formato que o `wa.me` espera: só dígitos, com DDI.

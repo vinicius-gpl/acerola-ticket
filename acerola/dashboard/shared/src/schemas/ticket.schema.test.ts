@@ -74,6 +74,17 @@ describe('createTicketSchema', () => {
     );
   });
 
+  /* Contar dígitos com `\D` some com letra no meio: "62abc9999999" tinha dígitos de sobra e
+     passava, mesmo não sendo um telefone de verdade. */
+  it('refuses a phone with a letter in it, even with enough digits', () => {
+    const result = createTicketSchema.safeParse({ ...validInput, contactPhone: '62abc9999999' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(
+      'O WhatsApp só pode ter números, espaço, parênteses e traço',
+    );
+  });
+
   it('refuses a department that is not on the list, in Portuguese', () => {
     const result = createTicketSchema.safeParse({ ...validInput, department: 'MARKETING' });
 
