@@ -68,6 +68,24 @@ describe('TextField', () => {
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  /* O `*` é decoração de CSS (`aria-hidden`): quem ouve a tela precisa do `required` de
+     verdade no campo, não de um caractere solto no meio do rótulo. */
+  it('marks the field as required, for assistive technology and for CSS', () => {
+    render(TextField, {
+      props: { data: { label: 'Seu nome', name: 'name', value: '', isRequired: true } },
+    });
+
+    expect(screen.getByLabelText(/seu nome/i)).toBeRequired();
+  });
+
+  it('does not mark a field as required unless asked', () => {
+    render(TextField, {
+      props: { data: { label: 'E-mail', name: 'email', value: '' } },
+    });
+
+    expect(screen.getByLabelText('E-mail')).not.toBeRequired();
+  });
 });
 
 describe('TextField as a date', () => {

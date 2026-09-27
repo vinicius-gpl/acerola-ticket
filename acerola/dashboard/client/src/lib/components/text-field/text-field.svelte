@@ -11,7 +11,7 @@
    */
   /* `date` entra aqui, e não num componente separado, porque só o `type` do `input` muda —
      rótulo, erro e acessibilidade são exatamente os mesmos. */
-  export type TextFieldType = 'text' | 'email' | 'password' | 'date';
+  export type TextFieldType = 'text' | 'email' | 'password' | 'date' | 'tel';
 
   export type TextFieldProps = {
     data: {
@@ -20,6 +20,9 @@
       value: string;
       placeholder?: string;
       autoComplete?: HTMLInputAttributes['autocomplete'];
+      /** Pinta um `*` vermelho depois do rótulo. O texto do rótulo continua limpo, sem
+       * caractere solto — só CSS, não string. */
+      isRequired?: boolean;
     };
     ui?: {
       type?: TextFieldType;
@@ -79,6 +82,9 @@
 <div class={cn('flex flex-col gap-1.5', ui?.className)}>
   <label for={inputId} class="text-ink-700 text-sm font-medium">
     {data.label}
+    {#if data.isRequired}
+      <span class="text-destructive" aria-hidden="true">*</span>
+    {/if}
   </label>
 
   <div class="relative">
@@ -94,6 +100,7 @@
       autocomplete={data.autoComplete}
       autofocus={fieldState?.isAutoFocused}
       disabled={fieldState?.isDisabled}
+      required={data.isRequired}
       aria-invalid={hasError}
       aria-describedby={hasError ? errorId : undefined}
       oninput={(event) => actions?.onChange?.((event.target as HTMLInputElement).value)}

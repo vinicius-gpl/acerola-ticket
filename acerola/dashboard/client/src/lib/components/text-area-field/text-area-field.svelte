@@ -17,6 +17,9 @@
       value: string;
       placeholder?: string;
       maxLength?: number;
+      /** Pinta um `*` vermelho depois do rótulo. O texto do rótulo continua limpo, sem
+       * caractere solto — só CSS, não string. */
+      isRequired?: boolean;
     };
     ui?: { rows?: number; className?: string };
     state?: { error?: string | null; isDisabled?: boolean };
@@ -35,6 +38,9 @@
 <div class={cn('flex flex-col gap-1.5', ui?.className)}>
   <label for={inputId} class="text-ink-700 text-sm font-medium">
     {data.label}
+    {#if data.isRequired}
+      <span class="text-destructive" aria-hidden="true">*</span>
+    {/if}
   </label>
 
   <textarea
@@ -44,6 +50,7 @@
     rows={ui?.rows ?? 4}
     placeholder={data.placeholder}
     disabled={state?.isDisabled}
+    required={data.isRequired}
     aria-invalid={Boolean(error)}
     aria-describedby={error ? errorId : undefined}
     oninput={(event) => actions?.onChange?.((event.target as HTMLTextAreaElement).value)}
