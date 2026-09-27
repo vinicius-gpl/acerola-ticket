@@ -75,34 +75,27 @@
     };
   };
 
-  const STATUS_FILTER_OPTIONS = [
-    { value: '', label: 'Todas as situações' },
-    ...TICKET_STATUSES.map((status) => ({ value: status, label: TICKET_STATUS_LABELS[status] })),
-  ];
+  const STATUS_FILTER_OPTIONS = TICKET_STATUSES.map((status) => ({
+    value: status,
+    label: TICKET_STATUS_LABELS[status],
+    tone: ticketStatusTone(status),
+  }));
 
-  const PRIORITY_FILTER_OPTIONS = [
-    { value: '', label: 'Todas as urgências' },
-    ...TICKET_PRIORITIES.map((priority) => ({
-      value: priority,
-      label: TICKET_PRIORITY_LABELS[priority],
-    })),
-  ];
+  const PRIORITY_FILTER_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
+    value: priority,
+    label: TICKET_PRIORITY_LABELS[priority],
+    tone: ticketPriorityTone(priority),
+  }));
 
-  const DEPARTMENT_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os departamentos' },
-    ...TICKET_DEPARTMENTS.map((department) => ({
-      value: department,
-      label: TICKET_DEPARTMENT_LABELS[department],
-    })),
-  ];
+  const DEPARTMENT_FILTER_OPTIONS = TICKET_DEPARTMENTS.map((department) => ({
+    value: department,
+    label: TICKET_DEPARTMENT_LABELS[department],
+  }));
 
-  const PROBLEM_TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os tipos' },
-    ...TICKET_PROBLEM_TYPES.map((type) => ({
-      value: type,
-      label: TICKET_PROBLEM_TYPE_LABELS[type],
-    })),
-  ];
+  const PROBLEM_TYPE_FILTER_OPTIONS = TICKET_PROBLEM_TYPES.map((type) => ({
+    value: type,
+    label: TICKET_PROBLEM_TYPE_LABELS[type],
+  }));
 
   /**
    * O tempo médio em palavras.
@@ -126,9 +119,9 @@
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -251,29 +244,29 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      <SelectField
+    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+      <OptionPicker
         data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por situação' }}
+        ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
         actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
       />
-      <SelectField
+      <OptionPicker
         data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por urgência' }}
+        ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
         actions={{
           onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
         }}
       />
-      <SelectField
+      <OptionPicker
         data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por departamento' }}
+        ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
         actions={{
           onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
         }}
       />
-      <SelectField
+      <OptionPicker
         data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo de problema' }}
+        ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
         actions={{
           onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
         }}

@@ -8,6 +8,7 @@
     TICKET_PRIORITY_LABELS,
     TICKET_STATUS_LABELS,
     TICKET_STATUSES,
+    ticketPriorityTone,
     ticketStatusTone,
   } from '@template/shared/domain/ticket-status.util';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
@@ -47,11 +48,13 @@
   const STATUS_OPTIONS = TICKET_STATUSES.map((status) => ({
     value: status,
     label: TICKET_STATUS_LABELS[status],
+    tone: ticketStatusTone(status),
   }));
 
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
     label: TICKET_PRIORITY_LABELS[priority],
+    tone: ticketPriorityTone(priority),
   }));
 </script>
 
@@ -59,10 +62,13 @@
   import { SOLUTION_MAX_LENGTH } from '@template/shared/schemas/ticket.schema';
 
   import Building2 from '@lucide/svelte/icons/building-2';
+  import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
   import ImageIcon from '@lucide/svelte/icons/image';
+  import ListChecks from '@lucide/svelte/icons/list-checks';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
   import MonitorSmartphone from '@lucide/svelte/icons/monitor-smartphone';
   import Phone from '@lucide/svelte/icons/phone';
+  import UserCog from '@lucide/svelte/icons/user-cog';
   import Wrench from '@lucide/svelte/icons/wrench';
 
   import {
@@ -75,11 +81,13 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import Timeline from '$lib/components/timeline/timeline.svelte';
+  import TimelineStep from '$lib/components/timeline-step/timeline-step.svelte';
 
   let { data, state, actions }: TicketAnswerDialogProps = $props();
 
@@ -183,73 +191,90 @@
         {/if}
       </section>
 
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
         <div class="border-b border-border/80 pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Atualização do Atendimento</h3>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-muted-foreground">Situação</span>
-            <SelectField
-              data={{ value: fields.status.value, options: STATUS_OPTIONS }}
-              ui={{ ariaLabel: 'Situação' }}
-              state={{ isDisabled: state.isSubmitting }}
-              actions={{ onChange: (value: string) => actions.onChange('status', value) }}
+        <Timeline ui={{ className: 'pt-4' }}>
+          <TimelineStep data={{ title: 'Quem assume o chamado', icon: UserCog }} ui={{ tone: 'brand' }}>
+            <TextField
+              data={{
+                label: 'Quem está atendendo',
+                name: 'assignee',
+                value: fields.assignee.value,
+                placeholder: 'Ex: Suporte TI',
+              }}
+              state={{ error: fields.assignee.error, isDisabled: state.isSubmitting }}
+              actions={{
+                onChange: (value: string) => actions.onChange('assignee', value),
+                onBlur: () => actions.onBlur('assignee'),
+              }}
             />
-          </div>
+          </TimelineStep>
 
-          <div class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-muted-foreground">Urgência</span>
-            <SelectField
-              data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
-              ui={{ ariaLabel: 'Urgência' }}
-              state={{ isDisabled: state.isSubmitting }}
-              actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
-            />
-          </div>
-        </div>
-
-        <TextField
-          data={{
-            label: 'Quem está atendendo',
-            name: 'assignee',
-            value: fields.assignee.value,
-            placeholder: 'Nome de quem assumiu',
-          }}
-          state={{ error: fields.assignee.error, isDisabled: state.isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('assignee', value),
-            onBlur: () => actions.onBlur('assignee'),
-          }}
-        />
-
-        <TextAreaField
-          data={{
-            label: 'O que foi feito',
-            name: 'solution',
-            value: fields.solution.value,
-            placeholder: 'Descreva a solução, para o próximo atendimento aproveitar',
-            maxLength: SOLUTION_MAX_LENGTH,
-          }}
-          state={{ error: fields.solution.error, isDisabled: state.isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('solution', value),
-            onBlur: () => actions.onBlur('solution'),
-          }}
-        />
-
-        {#if data.whatsAppLink}
-          <a
-            class="inline-flex w-fit items-center gap-2 rounded-xl bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-xs"
-            href={data.whatsAppLink}
-            target="_blank"
-            rel="noopener"
+          <TimelineStep
+            data={{
+              title: 'Situação e urgência',
+              description: 'Isso aparece pra quem abriu o chamado.',
+              icon: ListChecks,
+            }}
           >
-            <MessageCircle class="size-4" aria-hidden="true" />
-            Avisar no WhatsApp
-          </a>
-        {/if}
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Situação</span>
+                <OptionPicker
+                  data={{ value: fields.status.value, options: STATUS_OPTIONS }}
+                  ui={{ ariaLabel: 'Situação' }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('status', value) }}
+                />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Urgência</span>
+                <OptionPicker
+                  data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
+                  ui={{ ariaLabel: 'Urgência' }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
+                />
+              </div>
+            </div>
+          </TimelineStep>
+
+          <TimelineStep
+            data={{ title: 'Diagnóstico e solução', icon: ClipboardCheck }}
+            ui={{ isLast: true, tone: 'success' }}
+          >
+            <TextAreaField
+              data={{
+                label: 'O que foi feito',
+                name: 'solution',
+                value: fields.solution.value,
+                placeholder: 'Descreva a solução, para o próximo atendimento aproveitar',
+                maxLength: SOLUTION_MAX_LENGTH,
+              }}
+              state={{ error: fields.solution.error, isDisabled: state.isSubmitting }}
+              actions={{
+                onChange: (value: string) => actions.onChange('solution', value),
+                onBlur: () => actions.onBlur('solution'),
+              }}
+            />
+
+            {#if data.whatsAppLink}
+              <a
+                class="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-600 transition-all hover:bg-emerald-500/20 dark:text-emerald-400"
+                href={data.whatsAppLink}
+                target="_blank"
+                rel="noopener"
+              >
+                <MessageCircle class="size-4" aria-hidden="true" />
+                Avisar no WhatsApp
+              </a>
+            {/if}
+          </TimelineStep>
+        </Timeline>
       </div>
 
       {#if state.error}

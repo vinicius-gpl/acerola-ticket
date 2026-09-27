@@ -8,6 +8,7 @@
   import {
     TICKET_PRIORITIES,
     TICKET_PRIORITY_LABELS,
+    ticketPriorityTone,
   } from '@template/shared/domain/ticket-status.util';
   import { type FormFieldState } from '$lib/types/form-field.type';
 
@@ -62,18 +63,26 @@
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
     label: TICKET_PRIORITY_LABELS[priority],
+    tone: ticketPriorityTone(priority),
   }));
 </script>
 
 <script lang="ts">
   import { DESCRIPTION_MAX_LENGTH } from '@template/shared/schemas/ticket.schema';
 
+  import MessageCircle from '@lucide/svelte/icons/message-circle';
+  import PaperclipIcon from '@lucide/svelte/icons/paperclip';
+  import UserIcon from '@lucide/svelte/icons/user';
+  import WrenchIcon from '@lucide/svelte/icons/wrench';
+
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import Timeline from '$lib/components/timeline/timeline.svelte';
+  import TimelineStep from '$lib/components/timeline-step/timeline-step.svelte';
 
   let { data, state, actions }: OpenTicketFormProps = $props();
 
@@ -120,134 +129,156 @@
   {:else}
     <h2 class="text-ink-900 mb-4 text-lg font-bold">Abrir chamado</h2>
 
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <TextField
-          data={{
-            label: 'Seu nome',
-            name: 'requesterName',
-            value: fields.requesterName.value,
-            placeholder: 'Digite seu nome',
-          }}
-          state={{ error: fields.requesterName.error, isDisabled: state.isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('requesterName', value),
-            onBlur: () => actions.onBlur('requesterName'),
-          }}
-        />
+    <form novalidate class="flex flex-col gap-1" onsubmit={handleSubmit}>
+      <Timeline>
+        <TimelineStep data={{ title: 'Quem é você', icon: UserIcon }} ui={{ tone: 'brand' }}>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <TextField
+              data={{
+                label: 'Seu nome',
+                name: 'requesterName',
+                value: fields.requesterName.value,
+                placeholder: 'Digite seu nome',
+              }}
+              state={{ error: fields.requesterName.error, isDisabled: state.isSubmitting }}
+              actions={{
+                onChange: (value: string) => actions.onChange('requesterName', value),
+                onBlur: () => actions.onBlur('requesterName'),
+              }}
+            />
 
-        <TextField
-          data={{
-            label: 'Seu WhatsApp (com DDD)',
-            name: 'contactPhone',
-            value: fields.contactPhone.value,
-            placeholder: 'Ex: 62 99999-9999',
-          }}
-          state={{ error: fields.contactPhone.error, isDisabled: state.isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('contactPhone', value),
-            onBlur: () => actions.onBlur('contactPhone'),
-          }}
-        />
+            <TextField
+              data={{
+                label: 'Seu WhatsApp (com DDD)',
+                name: 'contactPhone',
+                value: fields.contactPhone.value,
+                placeholder: 'Ex: 62 99999-9999',
+              }}
+              state={{ error: fields.contactPhone.error, isDisabled: state.isSubmitting }}
+              actions={{
+                onChange: (value: string) => actions.onChange('contactPhone', value),
+                onBlur: () => actions.onBlur('contactPhone'),
+              }}
+            />
+          </div>
+        </TimelineStep>
 
-        <div class="flex flex-col gap-1.5">
-          <span class="text-ink-700 text-sm font-medium">Departamento</span>
-          <SelectField
-            data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
-            ui={{ ariaLabel: 'Departamento' }}
-            state={{ isDisabled: state.isSubmitting }}
-            actions={{ onChange: (value: string) => actions.onChange('department', value) }}
+        <TimelineStep
+          data={{ title: 'Sobre o problema', description: 'Ajuda a mandar pro time certo.', icon: WrenchIcon }}
+        >
+          <div class="flex flex-col gap-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Departamento</span>
+                <OptionPicker
+                  data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
+                  ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento' }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('department', value) }}
+                />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
+                <OptionPicker
+                  data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
+                  ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo' }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <span class="text-ink-700 text-sm font-medium">Urgência</span>
+              <OptionPicker
+                data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
+                ui={{ ariaLabel: 'Urgência' }}
+                state={{ isDisabled: state.isSubmitting }}
+                actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
+              />
+            </div>
+
+            <TextField
+              data={{
+                label: 'Número do AnyDesk (opcional)',
+                name: 'anydeskId',
+                value: fields.anydeskId.value,
+                placeholder: 'Ex: 123 456 789',
+              }}
+              state={{ error: fields.anydeskId.error, isDisabled: state.isSubmitting }}
+              actions={{
+                onChange: (value: string) => actions.onChange('anydeskId', value),
+                onBlur: () => actions.onBlur('anydeskId'),
+              }}
+            />
+          </div>
+        </TimelineStep>
+
+        <TimelineStep data={{ title: 'O que aconteceu', icon: PaperclipIcon }}>
+          <TextAreaField
+            data={{
+              label: 'Descrição do problema',
+              name: 'description',
+              value: fields.description.value,
+              placeholder: 'Descreva o problema com o máximo de detalhes possível',
+              maxLength: DESCRIPTION_MAX_LENGTH,
+            }}
+            ui={{ rows: 5 }}
+            state={{ error: fields.description.error, isDisabled: state.isSubmitting }}
+            actions={{
+              onChange: (value: string) => actions.onChange('description', value),
+              onBlur: () => actions.onBlur('description'),
+            }}
           />
-        </div>
 
-        <div class="flex flex-col gap-1.5">
-          <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
-          <SelectField
-            data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
-            ui={{ ariaLabel: 'Tipo de problema' }}
-            state={{ isDisabled: state.isSubmitting }}
-            actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
+          <div class="flex flex-col gap-1.5">
+            <label class="text-ink-700 text-sm font-medium" for="screenshot">
+              Print do erro (opcional)
+            </label>
+            <label
+              for="screenshot"
+              class="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border/80 bg-muted/20 px-3.5 py-3 text-xs text-muted-foreground transition-colors hover:bg-muted/40"
+            >
+              <PaperclipIcon class="size-3.5 shrink-0" aria-hidden="true" />
+              {data.screenshotName ?? 'Escolher um arquivo de imagem'}
+            </label>
+            <input
+              id="screenshot"
+              name="screenshot"
+              type="file"
+              accept="image/*"
+              disabled={state.isSubmitting}
+              onchange={handleFile}
+              class="sr-only"
+            />
+          </div>
+        </TimelineStep>
+
+        <TimelineStep data={{ title: 'Como te avisamos', icon: MessageCircle }} ui={{ isLast: true, tone: 'success' }}>
+          <label
+            class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/80 bg-muted/20 px-3.5 py-3 text-sm text-ink-700 transition-colors hover:bg-muted/40"
+          >
+            <input
+              type="checkbox"
+              class="mt-0.5"
+              checked={data.notifyWhatsapp}
+              disabled={state.isSubmitting}
+              onchange={(event) => actions.onNotifyChange(event.currentTarget.checked)}
+            />
+            Quero receber o protocolo e avisos deste chamado no WhatsApp
+          </label>
+
+          {#if state.error}
+            <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
+          {/if}
+
+          <SubmitButton
+            data={{ label: 'Abrir chamado', loadingLabel: 'Abrindo…' }}
+            state={{ isLoading: state.isSubmitting }}
           />
-        </div>
-
-        <TextField
-          data={{
-            label: 'Número do AnyDesk (opcional)',
-            name: 'anydeskId',
-            value: fields.anydeskId.value,
-            placeholder: 'Ex: 123 456 789',
-          }}
-          state={{ error: fields.anydeskId.error, isDisabled: state.isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('anydeskId', value),
-            onBlur: () => actions.onBlur('anydeskId'),
-          }}
-        />
-
-        <div class="flex flex-col gap-1.5">
-          <span class="text-ink-700 text-sm font-medium">Urgência</span>
-          <SelectField
-            data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
-            ui={{ ariaLabel: 'Urgência' }}
-            state={{ isDisabled: state.isSubmitting }}
-            actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
-          />
-        </div>
-      </div>
-
-      <TextAreaField
-        data={{
-          label: 'Descrição do problema',
-          name: 'description',
-          value: fields.description.value,
-          placeholder: 'Descreva o problema com o máximo de detalhes possível',
-          maxLength: DESCRIPTION_MAX_LENGTH,
-        }}
-        ui={{ rows: 5 }}
-        state={{ error: fields.description.error, isDisabled: state.isSubmitting }}
-        actions={{
-          onChange: (value: string) => actions.onChange('description', value),
-          onBlur: () => actions.onBlur('description'),
-        }}
-      />
-
-      <div class="flex flex-col gap-1.5">
-        <label class="text-ink-700 text-sm font-medium" for="screenshot">
-          Print do erro (opcional)
-        </label>
-        <input
-          id="screenshot"
-          name="screenshot"
-          type="file"
-          accept="image/*"
-          disabled={state.isSubmitting}
-          onchange={handleFile}
-          class="border-input bg-card text-ink-700 file:text-primary rounded-md border px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-transparent file:font-semibold"
-        />
-        {#if data.screenshotName}
-          <span class="text-ink-500 text-xs">Selecionado: {data.screenshotName}</span>
-        {/if}
-      </div>
-
-      <label class="text-ink-700 flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          class="mt-0.5"
-          checked={data.notifyWhatsapp}
-          disabled={state.isSubmitting}
-          onchange={(event) => actions.onNotifyChange(event.currentTarget.checked)}
-        />
-        Quero receber o protocolo e avisos deste chamado no WhatsApp
-      </label>
-
-      {#if state.error}
-        <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
-      {/if}
-
-      <SubmitButton
-        data={{ label: 'Abrir chamado', loadingLabel: 'Abrindo…' }}
-        state={{ isLoading: state.isSubmitting }}
-      />
+        </TimelineStep>
+      </Timeline>
     </form>
   {/if}
 </section>
