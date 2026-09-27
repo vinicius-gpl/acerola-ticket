@@ -1,11 +1,11 @@
 <script lang="ts" module>
+  import { formatPhoneInput } from '@template/shared/domain/phone.util';
   import {
     TICKET_DEPARTMENTS,
     TICKET_DEPARTMENT_LABELS,
     TICKET_PROBLEM_TYPE_LABELS,
     TICKET_PROBLEM_TYPES,
   } from '@template/shared/domain/ticket-catalog.util';
-  import { sanitizePhoneInput } from '@template/shared/domain/phone.util';
   import {
     TICKET_PRIORITIES,
     TICKET_PRIORITY_LABELS,
@@ -309,7 +309,7 @@
                 ui={{ type: 'tel' }}
                 state={{ error: fields.contactPhone.error, isDisabled: formState.isSubmitting }}
                 actions={{
-                  onChange: (value: string) => actions.onChange('contactPhone', sanitizePhoneInput(value)),
+                  onChange: (value: string) => actions.onChange('contactPhone', formatPhoneInput(value)),
                   onBlur: () => actions.onBlur('contactPhone'),
                 }}
               />

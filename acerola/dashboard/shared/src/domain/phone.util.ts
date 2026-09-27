@@ -2,13 +2,13 @@ import { z } from 'zod';
 
 /**
  * O FORMATO de um WhatsApp brasileiro, num arquivo só: o schema que valida (API e formulário)
- * e o filtro que barra letra ENQUANTO a pessoa digita.
+ * e a máscara que formata ENQUANTO a pessoa digita.
  *
  * Antes cada ponta tinha a própria ideia do que é "dígitos suficientes": o schema de chamados
- * guardava um `MIN_PHONE_DIGITS`, o link de WhatsApp guardava outro igual e solto, e o filtro
- * de digitação vivia dentro do componente do formulário. Mudar um dos três não avisava os
- * outros dois — foi assim que a validação de formato virou só contagem de dígitos e passou a
- * aceitar letra no meio, contanto que tivesse dígito suficiente.
+ * guardava um `MIN_PHONE_DIGITS`, o link de WhatsApp guardava outro igual e solto, e não havia
+ * máscara nenhuma — só um filtro que barrava letra sem organizar o número. Mudar um dos três
+ * não avisava os outros dois, e a validação de formato virou só contagem de dígitos: um
+ * telefone com letra no meio passava, contanto que tivesse dígito suficiente.
  */
 
 export const CONTACT_PHONE_MAX_LENGTH = 40;
@@ -38,14 +38,31 @@ export const contactPhoneSchema = z
     'Informe o WhatsApp com DDD',
   );
 
+/** Só o celular (DDD + 9 dígitos) separa em 5-4; o fixo (DDD + 8) separa em 4-4. */
+const MOBILE_DIGIT_COUNT = 11;
+const FIRST_GROUP_MOBILE = 5;
+const FIRST_GROUP_LANDLINE = 4;
+
 /**
- * Bloqueia letra e símbolo estranho ENQUANTO a pessoa digita.
+ * Formata ENQUANTO a pessoa digita: `DD 90000-0000` (celular) ou `DD 3000-0000` (fixo).
  *
- * O `contactPhoneSchema` já recusa no envio — mas esperar até lá deixaria "62abc999999"
- * parado no campo até a pessoa tentar avançar, quando dava pra nunca ter deixado a letra
- * entrar. Mesmo caractere permitido do schema acima, pro filtro nunca bloquear o que a
- * validação aceitaria.
+ * Reconstrói o número a partir só dos DÍGITOS digitados — o que já resolve duas coisas de
+ * uma vez: letra e símbolo nunca aparecem (não sobrevive nada que não seja `\d`), e colar um
+ * número já formatado de outro lugar não vira parênteses duplicado ou traço no lugar errado.
+ *
+ * O `contactPhoneSchema` ainda recusa no envio — isto aqui é o que evita a pessoa ver
+ * "62abc999999" no campo até chegar lá.
  */
-export function sanitizePhoneInput(value: string): string {
-  return value.replace(/[^\d\s()+-]/g, '');
+export function formatPhoneInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, MOBILE_DIGIT_COUNT);
+
+  if (digits.length <= 2) return digits;
+
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  const firstGroupLength = digits.length >= MOBILE_DIGIT_COUNT ? FIRST_GROUP_MOBILE : FIRST_GROUP_LANDLINE;
+  const firstGroup = rest.slice(0, firstGroupLength);
+  const secondGroup = rest.slice(firstGroupLength);
+
+  return secondGroup ? `${ddd} ${firstGroup}-${secondGroup}` : `${ddd} ${firstGroup}`;
 }

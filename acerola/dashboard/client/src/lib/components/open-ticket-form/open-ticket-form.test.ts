@@ -1,3 +1,4 @@
+import { formatPhoneInput } from '@template/shared/domain/phone.util';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -65,6 +66,37 @@ describe('OpenTicketForm', () => {
     await user.click(screen.getByRole('button', { name: /voltar/i }));
     expect(screen.getByText(/sobre o problema/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/descrição do problema/i)).not.toBeInTheDocument();
+  });
+
+  /* Reproduz o hook de verdade (`useOpenTicketModel`): cada `onChange` recalcula o campo e
+     renderiza de novo, como o TanStack Form faz a cada tecla. É o que garante que o telefone
+     acaba mascarado NA TELA, e não só no dado interno. */
+  it('masks the WhatsApp number as the person types digits, and drops any letter', async () => {
+    const user = userEvent.setup();
+    let currentFields = { ...fields, contactPhone: field('') };
+
+    function handleChange(name: OpenTicketField, value: string) {
+      const nextValue = name === 'contactPhone' ? formatPhoneInput(value) : value;
+      currentFields = { ...currentFields, [name]: field(nextValue) };
+      rendered.rerender({
+        data: { fields: currentFields, notifyWhatsapp: false, screenshotName: null, opened: null },
+        state: {},
+        actions: { ...actions, onChange: handleChange },
+      });
+    }
+
+    const rendered = render(OpenTicketForm, {
+      props: {
+        data: { fields: currentFields, notifyWhatsapp: false, screenshotName: null, opened: null },
+        state: {},
+        actions: { ...actions, onChange: handleChange },
+      },
+    });
+
+    const phoneInput = screen.getByLabelText(/seu whatsapp/i);
+    await user.type(phoneInput, 'abc62999999999xyz');
+
+    expect(phoneInput).toHaveValue('62 99999-9999');
   });
 
   it('reports the chosen screenshot on its own step, so the person can check what will be attached', async () => {
