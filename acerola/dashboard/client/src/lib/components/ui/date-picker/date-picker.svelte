@@ -89,14 +89,17 @@
   <Popover.Root>
     <Popover.Trigger>
       {#snippet child({ props })}
+        <!-- `props` (do Bits UI) vem PRIMEIRO, não por último: ele carrega o próprio `class`
+             do trigger, e espalhado depois do nosso apagava a altura e o resto do estilo aqui
+             embaixo sem erro nenhum no console — o botão só voltava ao tamanho padrão. -->
         <Button
+          {...props}
           variant="outline"
           class={cn(
             "w-full justify-start text-left font-normal h-10 px-3.5 rounded-xl border-border bg-card hover:bg-accent/40 shadow-xs transition-colors",
             !internalDate && "text-muted-foreground"
           )}
           {disabled}
-          {...props}
         >
           <CalendarIcon class="mr-2.5 size-4 text-muted-foreground" />
           <span class="truncate">{displayLabel}</span>
