@@ -140,6 +140,6 @@ function buildNotice(ticket: Ticket): string | null {
 
   return buildWhatsAppLink(
     ticket.contactPhone,
-    `Protocolo do meu chamado no Grupo Azuos: ${ticket.protocol}. Guarde este número para acompanhar.`,
+    `Protocolo do meu chamado: ${ticket.protocol}. Guarde este número para acompanhar.`,
   );
 }

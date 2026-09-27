@@ -119,7 +119,7 @@ function buildNotice(ticket: Ticket, status: string): string | null {
 
   return buildWhatsAppLink(
     ticket.contactPhone,
-    `Olá! Seu chamado ${ticket.protocol} no Grupo Azuos está: ${label}.`,
+    `Olá! Seu chamado ${ticket.protocol} está: ${label}.`,
   );
 }
 
