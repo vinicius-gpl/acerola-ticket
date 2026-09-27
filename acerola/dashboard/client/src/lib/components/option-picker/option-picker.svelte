@@ -22,6 +22,10 @@
       /** Prefixa uma opção "Todos os X", representando o valor ''. Só faz sentido em filtro. */
       allLabel?: string;
       placeholder?: string;
+      /** Ocupa a largura do campo ao lado, como num formulário. Numa barra de filtro, o
+       * botão de busca deve ficar do tamanho do texto, não esticar — por isso o padrão é
+       * `false`. */
+      fullWidth?: boolean;
     };
     state?: { isDisabled?: boolean };
     actions: { onChange: (value: string) => void };
@@ -110,7 +114,8 @@
       disabled={fieldState?.isDisabled}
       aria-label={ui?.ariaLabel}
       class={cn(
-        'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[180px]',
+        'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+        ui?.fullWidth ? 'sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}
     >

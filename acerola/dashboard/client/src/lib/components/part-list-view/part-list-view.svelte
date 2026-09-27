@@ -150,21 +150,23 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-      <OptionPicker
-        data={{ value: data.filter.category, options: CATEGORY_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por categoria', allLabel: 'Todas as categorias' }}
-        actions={{
-          onChange: (value: string) => actions.onCategoryChange(value as PartCategory | ''),
-        }}
-      />
-      <OptionPicker
-        data={{ value: data.filter.condition, options: CONDITION_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por condição', allLabel: 'Novas e usadas' }}
-        actions={{
-          onChange: (value: string) => actions.onConditionChange(value as PartCondition | ''),
-        }}
-      />
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <OptionPicker
+          data={{ value: data.filter.category, options: CATEGORY_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por categoria', allLabel: 'Todas as categorias' }}
+          actions={{
+            onChange: (value: string) => actions.onCategoryChange(value as PartCategory | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.condition, options: CONDITION_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por condição', allLabel: 'Novas e usadas' }}
+          actions={{
+            onChange: (value: string) => actions.onConditionChange(value as PartCondition | ''),
+          }}
+        />
+      </div>
       <label class="text-ink-700 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -229,7 +231,11 @@
       <TableBody>
         {#each data.parts as part (part.id)}
           <TableRow class="align-top">
-            <TableCell class="max-w-[280px]">
+            <!-- `style` (não classe) força a quebra de linha: o componente baixado do
+                 `ui/table` deixa toda célula com botão dentro em `white-space: nowrap`, e um
+                 nome comprido de peça atropelava a coluna de categoria (CONTRIBUTING §5: não
+                 se edita o componente baixado). Estilo inline vence a classe sem tocar nele. -->
+            <TableCell class="max-w-[280px]" style="white-space: normal;">
               <button
                 type="button"
                 class="font-medium text-neutral-900 dark:text-neutral-100 text-left break-words hover:underline"

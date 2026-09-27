@@ -118,7 +118,7 @@
           <span class="text-ink-700 text-sm font-medium">Categoria</span>
           <OptionPicker
             data={{ value: fields.category.value, options: CATEGORY_OPTIONS }}
-            ui={{ ariaLabel: 'Categoria' }}
+            ui={{ ariaLabel: 'Categoria', fullWidth: true }}
             state={{ isDisabled: dialogState.isSubmitting }}
             actions={{ onChange: (value: string) => actions.onChange('category', value) }}
           />

@@ -63,3 +63,14 @@
 />
 
 <Story name="Disabled" args={{ ...baseArgs, state: { isDisabled: true } }} template={inBox} />
+
+<!-- Num formulário, o combo estica igual ao campo ao lado — nunca fica mais estreito. -->
+<Story
+  name="FullWidthInForm"
+  args={{
+    data: { value: 'rh', options: departments },
+    ui: { ariaLabel: 'Departamento', fullWidth: true },
+    actions: { onChange: fn() },
+  }}
+  template={inBox}
+/>

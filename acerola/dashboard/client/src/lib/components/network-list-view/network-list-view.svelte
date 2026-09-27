@@ -177,19 +177,21 @@
     <ErrorState data={{ title: 'Não consegui salvar', message: viewState.actionError }} />
   {/if}
 
-  <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-    <OptionPicker
-      data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-      ui={{ ariaLabel: 'Filtrar por tipo de aviso', allLabel: 'Todos os avisos' }}
-      actions={{ onChange: (value: string) => actions.onTypeChange(value as NetworkEventType | '') }}
-    />
-    <OptionPicker
-      data={{ value: data.filter.severity, options: SEVERITY_FILTER_OPTIONS }}
-      ui={{ ariaLabel: 'Filtrar por gravidade', allLabel: 'Qualquer gravidade' }}
-      actions={{
-        onChange: (value: string) => actions.onSeverityChange(value as NetworkSeverity | ''),
-      }}
-    />
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <OptionPicker
+        data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
+        ui={{ ariaLabel: 'Filtrar por tipo de aviso', allLabel: 'Todos os avisos' }}
+        actions={{ onChange: (value: string) => actions.onTypeChange(value as NetworkEventType | '') }}
+      />
+      <OptionPicker
+        data={{ value: data.filter.severity, options: SEVERITY_FILTER_OPTIONS }}
+        ui={{ ariaLabel: 'Filtrar por gravidade', allLabel: 'Qualquer gravidade' }}
+        actions={{
+          onChange: (value: string) => actions.onSeverityChange(value as NetworkSeverity | ''),
+        }}
+      />
+    </div>
     <label class="text-ink-700 flex items-center gap-2 text-sm">
       <input
         type="checkbox"

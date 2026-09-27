@@ -130,7 +130,7 @@
           </span>
           <OptionPicker
             data={{ value: fields.computerId.value, options: machineOptions }}
-            ui={{ ariaLabel: isOut ? 'Para qual máquina' : 'De qual máquina' }}
+            ui={{ ariaLabel: isOut ? 'Para qual máquina' : 'De qual máquina', fullWidth: true }}
             state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}
             actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
           />

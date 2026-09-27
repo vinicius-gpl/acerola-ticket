@@ -117,7 +117,7 @@
         <span class="text-ink-700 text-sm font-medium">Equipamento</span>
         <OptionPicker
           data={{ value: fields.computerId.value, options: machineOptions }}
-          ui={{ ariaLabel: 'Equipamento' }}
+          ui={{ ariaLabel: 'Equipamento', fullWidth: true }}
           state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}
           actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
         />

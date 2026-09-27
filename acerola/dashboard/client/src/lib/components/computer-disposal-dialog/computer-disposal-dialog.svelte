@@ -26,9 +26,14 @@
     };
   };
 
+  /**
+   * A pastilha mostra só o nome — a explicação do que ele significa vai numa legenda
+   * embaixo. O nome mais o motivo juntos ("Com defeito — ainda rende peça...") era comprido
+   * demais para caber numa pastilha, o formato pensado pra uma palavra ou duas.
+   */
   const TYPE_OPTIONS = DISPOSAL_TYPES.map((type) => ({
     value: type,
-    label: `${DISPOSAL_TYPE_LABELS[type]} — ${disposalTypeHint(type)}`,
+    label: DISPOSAL_TYPE_LABELS[type],
     tone: disposalTypeTone(type),
   }));
 </script>
@@ -97,6 +102,7 @@
         state={{ isDisabled: dialogState?.isConfirming }}
         actions={{ onChange: (value: string) => (type = value as DisposalType) }}
       />
+      <span class="text-muted-foreground text-xs">{disposalTypeHint(type)}</span>
     </div>
 
     <TextAreaField

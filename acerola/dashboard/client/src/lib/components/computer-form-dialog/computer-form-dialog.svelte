@@ -155,7 +155,7 @@
           <span class="text-ink-700 text-sm font-medium">Departamento</span>
           <OptionPicker
             data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
-            ui={{ ariaLabel: 'Departamento' }}
+            ui={{ ariaLabel: 'Departamento', fullWidth: true }}
             state={{ isDisabled: state.isSubmitting }}
             actions={{ onChange: (value: string) => actions.onChange('department', value) }}
           />

@@ -127,7 +127,7 @@
           <span class="text-ink-700 text-sm font-medium">Para onde vai</span>
           <OptionPicker
             data={{ value: data.toDepartment, options: data.departments }}
-            ui={{ ariaLabel: 'Para onde vai' }}
+            ui={{ ariaLabel: 'Para onde vai', fullWidth: true }}
             state={{ isDisabled: dialogState.isSubmitting }}
             actions={{ onChange: actions.onDepartmentChange }}
           />
@@ -197,7 +197,7 @@
                     value: peripheral.destinationComputerId,
                     options: [{ value: '', label: '— máquina que assume —' }, ...data.machines],
                   }}
-                  ui={{ ariaLabel: `Máquina que assume ${peripheral.label}` }}
+                  ui={{ ariaLabel: `Máquina que assume ${peripheral.label}`, fullWidth: true }}
                   state={{ isDisabled: dialogState.isSubmitting }}
                   actions={{
                     onChange: (value: string) =>

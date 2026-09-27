@@ -188,21 +188,23 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-      <OptionPicker
-        data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
-        actions={{
-          onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
-        }}
-      />
-      <OptionPicker
-        data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por saúde', allLabel: 'Toda a saúde' }}
-        actions={{
-          onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
-        }}
-      />
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <OptionPicker
+          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+          actions={{
+            onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por saúde', allLabel: 'Toda a saúde' }}
+          actions={{
+            onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
+          }}
+        />
+      </div>
       <label class="text-ink-700 flex items-center gap-2 text-sm">
         <input
           type="checkbox"

@@ -244,33 +244,41 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-      <OptionPicker
-        data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
-        actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
-      />
-      <OptionPicker
-        data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
-        actions={{
-          onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
-        }}
-      />
-      <OptionPicker
-        data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
-        actions={{
-          onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
-        }}
-      />
-      <OptionPicker
-        data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
-        actions={{
-          onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
-        }}
-      />
+    <!-- Duas fileiras fixas, e não uma só que quebra sozinha: situação/urgência (poucas
+         opções, pastilha) numa linha, departamento/tipo (muitas opções, busca em balão) na
+         de baixo — uma fileira só virava uma bagunça de tamanhos diferentes se reordenando
+         a cada largura de tela. -->
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <OptionPicker
+          data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
+          actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
+          actions={{
+            onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
+          }}
+        />
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <OptionPicker
+          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+          actions={{
+            onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
+          actions={{
+            onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
+          }}
+        />
+      </div>
     </div>
   </div>
 
