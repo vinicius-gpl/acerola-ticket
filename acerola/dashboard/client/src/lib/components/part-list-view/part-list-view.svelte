@@ -61,21 +61,16 @@
     };
   };
 
-  const CATEGORY_FILTER_OPTIONS = [
-    { value: '', label: 'Todas as categorias' },
-    ...PART_CATEGORIES.map((category) => ({
-      value: category,
-      label: PART_CATEGORY_LABELS[category],
-    })),
-  ];
+  const CATEGORY_FILTER_OPTIONS = PART_CATEGORIES.map((category) => ({
+    value: category,
+    label: PART_CATEGORY_LABELS[category],
+  }));
 
-  const CONDITION_FILTER_OPTIONS = [
-    { value: '', label: 'Novas e usadas' },
-    ...PART_CONDITIONS.map((condition) => ({
-      value: condition,
-      label: PART_CONDITION_LABELS[condition],
-    })),
-  ];
+  const CONDITION_FILTER_OPTIONS = PART_CONDITIONS.map((condition) => ({
+    value: condition,
+    label: PART_CONDITION_LABELS[condition],
+    tone: partConditionTone(condition),
+  }));
 </script>
 
 <script lang="ts">
@@ -86,8 +81,8 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -155,17 +150,17 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      <SelectField
+    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+      <OptionPicker
         data={{ value: data.filter.category, options: CATEGORY_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por categoria' }}
+        ui={{ ariaLabel: 'Filtrar por categoria', allLabel: 'Todas as categorias' }}
         actions={{
           onChange: (value: string) => actions.onCategoryChange(value as PartCategory | ''),
         }}
       />
-      <SelectField
+      <OptionPicker
         data={{ value: data.filter.condition, options: CONDITION_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por condição' }}
+        ui={{ ariaLabel: 'Filtrar por condição', allLabel: 'Novas e usadas' }}
         actions={{
           onChange: (value: string) => actions.onConditionChange(value as PartCondition | ''),
         }}

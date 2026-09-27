@@ -3,6 +3,7 @@
     DISPOSAL_TYPES,
     DISPOSAL_TYPE_LABELS,
     disposalTypeHint,
+    disposalTypeTone,
     type DisposalType,
   } from '@template/shared/domain/disposal.util';
   import { DISPOSAL_REASON_MAX_LENGTH } from '@template/shared/schemas/computer.schema';
@@ -28,6 +29,7 @@
   const TYPE_OPTIONS = DISPOSAL_TYPES.map((type) => ({
     value: type,
     label: `${DISPOSAL_TYPE_LABELS[type]} — ${disposalTypeHint(type)}`,
+    tone: disposalTypeTone(type),
   }));
 </script>
 
@@ -42,7 +44,7 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
 
   import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -89,7 +91,7 @@
 
     <div class="flex flex-col gap-1.5">
       <span class="text-ink-700 text-sm font-medium">Tipo de descarte</span>
-      <SelectField
+      <OptionPicker
         data={{ value: type, options: TYPE_OPTIONS }}
         ui={{ ariaLabel: 'Tipo de descarte' }}
         state={{ isDisabled: dialogState?.isConfirming }}

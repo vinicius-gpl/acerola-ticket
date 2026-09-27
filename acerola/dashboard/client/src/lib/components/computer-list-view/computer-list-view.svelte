@@ -72,18 +72,16 @@
     };
   };
 
-  const DEPARTMENT_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os departamentos' },
-    ...DEPARTMENTS.map((department) => ({
-      value: department,
-      label: DEPARTMENT_LABELS[department],
-    })),
-  ];
+  const DEPARTMENT_FILTER_OPTIONS = DEPARTMENTS.map((department) => ({
+    value: department,
+    label: DEPARTMENT_LABELS[department],
+  }));
 
-  const HEALTH_FILTER_OPTIONS = [
-    { value: '', label: 'Toda a saúde' },
-    ...HEALTH_STATUSES.map((status) => ({ value: status, label: HEALTH_STATUS_LABELS[status] })),
-  ];
+  const HEALTH_FILTER_OPTIONS = HEALTH_STATUSES.map((status) => ({
+    value: status,
+    label: HEALTH_STATUS_LABELS[status],
+    tone: healthStatusTone(status),
+  }));
 
   /**
    * O nome que a pessoa reconhece.
@@ -105,9 +103,9 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -190,17 +188,17 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      <SelectField
+    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+      <OptionPicker
         data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por departamento' }}
+        ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
         actions={{
           onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
         }}
       />
-      <SelectField
+      <OptionPicker
         data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por saúde' }}
+        ui={{ ariaLabel: 'Filtrar por saúde', allLabel: 'Toda a saúde' }}
         actions={{
           onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
         }}

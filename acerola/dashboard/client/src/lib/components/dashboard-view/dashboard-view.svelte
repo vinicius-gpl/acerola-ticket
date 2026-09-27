@@ -104,8 +104,8 @@
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -136,7 +136,7 @@
   <PageHeader
     data={{ title: 'Painel', description: 'A saúde do parque num lugar só.' }}
   >
-    <SelectField
+    <OptionPicker
       data={{ value: String(data.days), options: PERIOD_SELECT_OPTIONS }}
       ui={{ ariaLabel: 'Período do painel' }}
       actions={{ onChange: (value: string) => actions.onPeriodChange(Number(value)) }}

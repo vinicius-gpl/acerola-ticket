@@ -58,7 +58,7 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
@@ -128,7 +128,7 @@
           <span class="text-ink-700 text-sm font-medium">
             {isOut ? 'Para qual máquina' : 'De qual máquina'}
           </span>
-          <SelectField
+          <OptionPicker
             data={{ value: fields.computerId.value, options: machineOptions }}
             ui={{ ariaLabel: isOut ? 'Para qual máquina' : 'De qual máquina' }}
             state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}

@@ -64,21 +64,16 @@
     };
   };
 
-  const TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os avisos' },
-    ...NETWORK_EVENT_TYPES.map((type) => ({
-      value: type,
-      label: NETWORK_EVENT_TYPE_LABELS[type],
-    })),
-  ];
+  const TYPE_FILTER_OPTIONS = NETWORK_EVENT_TYPES.map((type) => ({
+    value: type,
+    label: NETWORK_EVENT_TYPE_LABELS[type],
+  }));
 
-  const SEVERITY_FILTER_OPTIONS = [
-    { value: '', label: 'Qualquer gravidade' },
-    ...NETWORK_SEVERITIES.map((severity) => ({
-      value: severity,
-      label: NETWORK_SEVERITY_LABELS[severity],
-    })),
-  ];
+  const SEVERITY_FILTER_OPTIONS = NETWORK_SEVERITIES.map((severity) => ({
+    value: severity,
+    label: NETWORK_SEVERITY_LABELS[severity],
+    tone: networkSeverityTone(severity),
+  }));
 
   const PERIOD_OPTIONS = [7, 30, 90].map((days) => ({
     value: String(days),
@@ -112,8 +107,8 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -137,7 +132,7 @@
   <PageHeader
     data={{ title: 'Rede', description: 'Quedas e instabilidade do link de internet.' }}
   >
-    <SelectField
+    <OptionPicker
       data={{ value: String(data.filter.days), options: PERIOD_OPTIONS }}
       ui={{ ariaLabel: 'Período' }}
       actions={{ onChange: (value: string) => actions.onPeriodChange(Number(value)) }}
@@ -182,15 +177,15 @@
     <ErrorState data={{ title: 'Não consegui salvar', message: viewState.actionError }} />
   {/if}
 
-  <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-    <SelectField
+  <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+    <OptionPicker
       data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-      ui={{ ariaLabel: 'Filtrar por tipo de aviso' }}
+      ui={{ ariaLabel: 'Filtrar por tipo de aviso', allLabel: 'Todos os avisos' }}
       actions={{ onChange: (value: string) => actions.onTypeChange(value as NetworkEventType | '') }}
     />
-    <SelectField
+    <OptionPicker
       data={{ value: data.filter.severity, options: SEVERITY_FILTER_OPTIONS }}
-      ui={{ ariaLabel: 'Filtrar por gravidade' }}
+      ui={{ ariaLabel: 'Filtrar por gravidade', allLabel: 'Qualquer gravidade' }}
       actions={{
         onChange: (value: string) => actions.onSeverityChange(value as NetworkSeverity | ''),
       }}

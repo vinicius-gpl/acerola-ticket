@@ -2,6 +2,7 @@
   import {
     MAINTENANCE_TYPES,
     MAINTENANCE_TYPE_LABELS,
+    maintenanceTypeTone,
   } from '@template/shared/domain/maintenance.util';
   import { DESCRIPTION_MAX_LENGTH } from '@template/shared/schemas/maintenance.schema';
 
@@ -50,6 +51,7 @@
   const TYPE_OPTIONS = MAINTENANCE_TYPES.map((type) => ({
     value: type,
     label: MAINTENANCE_TYPE_LABELS[type],
+    tone: maintenanceTypeTone(type),
   }));
 
   /** A opção que libera o campo de texto: equipamento que não está no inventário. */
@@ -71,7 +73,7 @@
   import { DatePicker } from '$lib/components/ui/date-picker';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
@@ -113,7 +115,7 @@
 
       <div class="flex flex-col gap-1.5">
         <span class="text-ink-700 text-sm font-medium">Equipamento</span>
-        <SelectField
+        <OptionPicker
           data={{ value: fields.computerId.value, options: machineOptions }}
           ui={{ ariaLabel: 'Equipamento' }}
           state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}
@@ -143,7 +145,7 @@
 
       <div class="flex flex-col gap-1.5">
         <span class="text-ink-700 text-sm font-medium">Tipo</span>
-        <SelectField
+        <OptionPicker
           data={{ value: fields.type.value, options: TYPE_OPTIONS }}
           ui={{ ariaLabel: 'Tipo de manutenção' }}
           state={{ isDisabled: dialogState.isSubmitting }}

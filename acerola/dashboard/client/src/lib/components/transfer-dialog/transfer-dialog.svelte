@@ -79,7 +79,7 @@
 <script lang="ts">
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
@@ -125,7 +125,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div class="flex flex-col gap-1.5">
           <span class="text-ink-700 text-sm font-medium">Para onde vai</span>
-          <SelectField
+          <OptionPicker
             data={{ value: data.toDepartment, options: data.departments }}
             ui={{ ariaLabel: 'Para onde vai' }}
             state={{ isDisabled: dialogState.isSubmitting }}
@@ -192,7 +192,7 @@
               </div>
 
               {#if peripheral.destiny === 'station'}
-                <SelectField
+                <OptionPicker
                   data={{
                     value: peripheral.destinationComputerId,
                     options: [{ value: '', label: '— máquina que assume —' }, ...data.machines],

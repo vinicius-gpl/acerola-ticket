@@ -51,10 +51,11 @@
     };
   };
 
-  const TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Com defeito e lixo' },
-    ...DISPOSAL_TYPES.map((type) => ({ value: type, label: DISPOSAL_TYPE_LABELS[type] })),
-  ];
+  const TYPE_FILTER_OPTIONS = DISPOSAL_TYPES.map((type) => ({
+    value: type,
+    label: DISPOSAL_TYPE_LABELS[type],
+    tone: disposalTypeTone(type),
+  }));
 
   /** O nome que a pessoa reconhece: o apelido ganha do nome técnico da máquina. */
   export function machineLabelOf(computer: Computer): string {
@@ -70,8 +71,8 @@
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -135,10 +136,10 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2">
-      <SelectField
+    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+      <OptionPicker
         data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo de descarte' }}
+        ui={{ ariaLabel: 'Filtrar por tipo de descarte', allLabel: 'Com defeito e lixo' }}
         actions={{ onChange: (value: string) => actions.onTypeChange(value as DisposalType | '') }}
       />
     </div>

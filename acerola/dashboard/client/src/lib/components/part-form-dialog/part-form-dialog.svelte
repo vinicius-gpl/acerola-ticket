@@ -4,6 +4,7 @@
     PART_CATEGORY_LABELS,
     PART_CONDITIONS,
     PART_CONDITION_LABELS,
+    partConditionTone,
   } from '@template/shared/domain/part-catalog.util';
 
   import { type FormFieldState } from '$lib/types/form-field.type';
@@ -43,6 +44,7 @@
   const CONDITION_OPTIONS = PART_CONDITIONS.map((condition) => ({
     value: condition,
     label: PART_CONDITION_LABELS[condition],
+    tone: partConditionTone(condition),
   }));
 </script>
 
@@ -57,7 +59,7 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import Package from '@lucide/svelte/icons/package';
@@ -114,7 +116,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div class="flex flex-col gap-1.5">
           <span class="text-ink-700 text-sm font-medium">Categoria</span>
-          <SelectField
+          <OptionPicker
             data={{ value: fields.category.value, options: CATEGORY_OPTIONS }}
             ui={{ ariaLabel: 'Categoria' }}
             state={{ isDisabled: dialogState.isSubmitting }}
@@ -124,7 +126,7 @@
 
         <div class="flex flex-col gap-1.5">
           <span class="text-ink-700 text-sm font-medium">Condição</span>
-          <SelectField
+          <OptionPicker
             data={{ value: fields.condition.value, options: CONDITION_OPTIONS }}
             ui={{ ariaLabel: 'Condição' }}
             state={{ isDisabled: dialogState.isSubmitting }}

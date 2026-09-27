@@ -61,10 +61,11 @@
     };
   };
 
-  const TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os tipos' },
-    ...MAINTENANCE_TYPES.map((type) => ({ value: type, label: MAINTENANCE_TYPE_LABELS[type] })),
-  ];
+  const TYPE_FILTER_OPTIONS = MAINTENANCE_TYPES.map((type) => ({
+    value: type,
+    label: MAINTENANCE_TYPE_LABELS[type],
+    tone: maintenanceTypeTone(type),
+  }));
 
   /**
    * De quem é este serviço, em uma linha.
@@ -92,9 +93,9 @@
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import PreventiveBoard from '$lib/components/preventive-board/preventive-board.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
@@ -147,10 +148,10 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2">
-      <SelectField
+    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+      <OptionPicker
         data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo' }}
+        ui={{ ariaLabel: 'Filtrar por tipo', allLabel: 'Todos os tipos' }}
         actions={{ onChange: (value: string) => actions.onTypeChange(value as MaintenanceType | '') }}
       />
     </div>
