@@ -49,7 +49,9 @@
     oninput={(event) => actions?.onChange?.((event.target as HTMLTextAreaElement).value)}
     onblur={() => actions?.onBlur?.()}
     class={cn(
-      'bg-card text-foreground w-full resize-y rounded-lg border px-3 py-2.5 text-sm transition-colors',
+      /* `rounded-xl`, igual ao `TextField`, ao `DatePicker` e ao `ActionButton` — o raio
+         padrão de todo campo e botão da tela. */
+      'bg-card text-foreground w-full resize-y rounded-xl border px-3 py-2.5 text-sm transition-colors',
       'placeholder:text-ink-500 disabled:cursor-not-allowed disabled:opacity-60',
       error ? 'border-destructive' : 'border-input',
     )}

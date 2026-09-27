@@ -96,7 +96,9 @@
         disabled={fieldState?.isDisabled}
         onclick={() => select(option.value)}
         class={cn(
-          'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
+          /* `rounded-xl`: o mesmo raio do `TextField`, do `DatePicker` e do `ActionButton` —
+             pastilha, campo e botão precisam parecer a mesma família de controle. */
+          'inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
           ui?.fullWidth && 'h-10 px-3',
           isSelected
             ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
@@ -116,7 +118,7 @@
       disabled={fieldState?.isDisabled}
       aria-label={ui?.ariaLabel}
       class={cn(
-        'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border/70 bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
         ui?.fullWidth ? 'h-10 sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}
