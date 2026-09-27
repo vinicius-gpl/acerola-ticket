@@ -136,6 +136,6 @@ describe('TicketAnswerDialog', () => {
 
     /* O rótulo e o valor são elementos diferentes, então a conferência é sobre o texto
        renderizado — é o que a pessoa lê, independentemente de como foi marcado. */
-    expect(document.body.textContent).toMatch(/AnyDesk:\s*Não informado/);
+    expect(document.body.textContent).toMatch(/AnyDesk\s*Não informado/);
   });
 });

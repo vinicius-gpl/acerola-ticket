@@ -285,17 +285,23 @@
     <div class="grid gap-4 lg:grid-cols-2">
       <section class="bg-card rounded-xl border p-4">
         <h2 class="text-ink-900 mb-2 text-sm font-semibold">Problemas por tipo</h2>
-        <ColumnChart
-          data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
-          ui={{ emptyLabel: 'Nenhum chamado no período.' }}
-        />
+        <!-- Altura fixa: o gráfico preenche o espaço que recebe, e sem uma caixa de altura de
+             verdade ele nasce com altura zero e os rótulos vazam por cima do que vem depois. -->
+        <div class="h-64">
+          <ColumnChart
+            data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
+            ui={{ emptyLabel: 'Nenhum chamado no período.' }}
+          />
+        </div>
       </section>
       <section class="bg-card rounded-xl border p-4">
         <h2 class="text-ink-900 mb-2 text-sm font-semibold">Quem mais pediu socorro</h2>
-        <ColumnChart
-          data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
-          ui={{ emptyLabel: 'Nenhum chamado no período.' }}
-        />
+        <div class="h-64">
+          <ColumnChart
+            data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
+            ui={{ emptyLabel: 'Nenhum chamado no período.' }}
+          />
+        </div>
       </section>
     </div>
   {/if}

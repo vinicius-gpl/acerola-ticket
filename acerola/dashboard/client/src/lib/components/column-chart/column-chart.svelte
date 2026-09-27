@@ -89,7 +89,10 @@
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}
   </p>
 {:else}
-  <div class="relative h-full w-full">
+  <!-- `overflow-hidden`: se quem usa esquecer de dar uma altura de verdade ao redor (como o
+       SVG por baixo precisa), o rótulo virado embaixo de cada coluna fica contido no cartão
+       em vez de vazar por cima do que vem depois na tela. -->
+  <div class="relative h-full w-full overflow-hidden">
     <svg
       bind:clientWidth={svgWidth}
       bind:clientHeight={svgHeight}
