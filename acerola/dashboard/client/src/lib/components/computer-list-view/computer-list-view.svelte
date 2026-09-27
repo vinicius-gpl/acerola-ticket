@@ -114,6 +114,7 @@
   import TextField from '$lib/components/text-field/text-field.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -306,12 +307,14 @@
             <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
               {formatTimeAgo(computer.lastSeenAt)}
             </TableCell>
-            <TableCell class="text-right">
-              <ActionButton
-                data={{ label: 'Ver ficha' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onOpen(computer) }}
-              />
+            <TableCell class="text-right whitespace-nowrap">
+              <TableActions>
+                <ActionButton
+                  data={{ label: 'Ver ficha' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onOpen(computer) }}
+                />
+              </TableActions>
             </TableCell>
           </TableRow>
         {/each}

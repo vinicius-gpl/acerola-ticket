@@ -111,6 +111,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -297,12 +298,14 @@
                     ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
                   />
                 </TableCell>
-                <TableCell class="text-right">
-                  <ActionButton
-                    data={{ label: 'Abrir ficha' }}
-                    ui={{ variant: 'secondary', size: 'sm' }}
-                    actions={{ onClick: () => actions.onOpenMachine(machine) }}
-                  />
+                <TableCell class="text-right whitespace-nowrap">
+                  <TableActions>
+                    <ActionButton
+                      data={{ label: 'Abrir ficha' }}
+                      ui={{ variant: 'secondary', size: 'sm' }}
+                      actions={{ onClick: () => actions.onOpenMachine(machine) }}
+                    />
+                  </TableActions>
                 </TableCell>
               </TableRow>
             {/each}

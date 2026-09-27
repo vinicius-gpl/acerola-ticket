@@ -85,6 +85,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -162,11 +163,19 @@
                 {movement.balanceAfter}
               </TableCell>
               <TableCell class="text-right whitespace-nowrap">
-                <ActionButton
-                  data={{ label: 'Excluir movimentação' }}
-                  ui={{ variant: 'ghost', size: 'sm', icon: Trash2, isIconOnly: true }}
-                  actions={{ onClick: () => actions.onAskRemove(movement) }}
-                />
+                <TableActions>
+                  <ActionButton
+                    data={{ label: 'Excluir movimentação' }}
+                    ui={{
+                      variant: 'ghost',
+                      size: 'sm',
+                      icon: Trash2,
+                      isIconOnly: true,
+                      className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                    }}
+                    actions={{ onClick: () => actions.onAskRemove(movement) }}
+                  />
+                </TableActions>
               </TableCell>
             </TableRow>
           {/each}

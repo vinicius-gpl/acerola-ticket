@@ -93,6 +93,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -259,22 +260,24 @@
               {part.balance}
             </TableCell>
             <TableCell class="text-right whitespace-nowrap">
-              <ActionButton
-                data={{ label: 'Entrada' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onMove(part, 'in') }}
-              />
-              <ActionButton
-                data={{ label: 'Saída' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                state={{ isDisabled: part.balance === 0 }}
-                actions={{ onClick: () => actions.onMove(part, 'out') }}
-              />
-              <ActionButton
-                data={{ label: 'Corrigir' }}
-                ui={{ variant: 'ghost', size: 'sm' }}
-                actions={{ onClick: () => actions.onEdit(part) }}
-              />
+              <TableActions>
+                <ActionButton
+                  data={{ label: 'Entrada' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onMove(part, 'in') }}
+                />
+                <ActionButton
+                  data={{ label: 'Saída' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  state={{ isDisabled: part.balance === 0 }}
+                  actions={{ onClick: () => actions.onMove(part, 'out') }}
+                />
+                <ActionButton
+                  data={{ label: 'Corrigir' }}
+                  ui={{ variant: 'ghost', size: 'sm' }}
+                  actions={{ onClick: () => actions.onEdit(part) }}
+                />
+              </TableActions>
             </TableCell>
           </TableRow>
         {/each}

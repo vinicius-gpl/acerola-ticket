@@ -134,6 +134,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -350,12 +351,14 @@
             <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
               {formatDate(ticket.createdAt)}
             </TableCell>
-            <TableCell class="text-right">
-              <ActionButton
-                data={{ label: 'Atender' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onAnswer(ticket) }}
-              />
+            <TableCell class="text-right whitespace-nowrap">
+              <TableActions>
+                <ActionButton
+                  data={{ label: 'Atender' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onAnswer(ticket) }}
+                />
+              </TableActions>
             </TableCell>
           </TableRow>
         {/each}

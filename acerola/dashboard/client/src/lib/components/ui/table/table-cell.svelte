@@ -16,6 +16,7 @@
   data-slot="table-cell"
   class={cn(
     "px-6 py-3.5 align-middle text-sm [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+    "[&:has(button)]:whitespace-nowrap [&_button]:align-middle",
     className
   )}
   {...restProps}

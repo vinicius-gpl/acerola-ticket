@@ -77,6 +77,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -216,16 +217,18 @@
               {formatDate(computer.disposedAt)}
             </TableCell>
             <TableCell class="text-right whitespace-nowrap">
-              <ActionButton
-                data={{ label: 'Ver ficha' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onOpenMachine(computer) }}
-              />
-              <ActionButton
-                data={{ label: 'Voltar ao inventário' }}
-                ui={{ variant: 'ghost', size: 'sm' }}
-                actions={{ onClick: () => actions.onAskRestore(computer) }}
-              />
+              <TableActions>
+                <ActionButton
+                  data={{ label: 'Ver ficha' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onOpenMachine(computer) }}
+                />
+                <ActionButton
+                  data={{ label: 'Voltar ao inventário' }}
+                  ui={{ variant: 'ghost', size: 'sm' }}
+                  actions={{ onClick: () => actions.onAskRestore(computer) }}
+                />
+              </TableActions>
             </TableCell>
           </TableRow>
         {/each}

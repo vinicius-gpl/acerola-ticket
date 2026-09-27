@@ -98,6 +98,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -202,7 +203,7 @@
           <TableHead class="min-w-[120px]">Tipo</TableHead>
           <TableHead class="min-w-[260px]">O que foi feito</TableHead>
           <TableHead class="min-w-[130px]">Quem fez</TableHead>
-          <TableHead class="min-w-[110px] text-right"><span class="sr-only">Ações</span></TableHead>
+          <TableHead class="min-w-[130px] text-right"><span class="sr-only">Ações</span></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -237,16 +238,24 @@
             </TableCell>
             <TableCell class="text-neutral-500 max-w-[140px] break-words whitespace-normal text-xs">{maintenance.performedBy ?? '—'}</TableCell>
             <TableCell class="text-right whitespace-nowrap">
-              <ActionButton
-                data={{ label: 'Corrigir' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onEdit(maintenance) }}
-              />
-              <ActionButton
-                data={{ label: 'Excluir' }}
-                ui={{ variant: 'ghost', size: 'sm', icon: Trash2, isIconOnly: true }}
-                actions={{ onClick: () => actions.onAskRemove(maintenance) }}
-              />
+              <TableActions>
+                <ActionButton
+                  data={{ label: 'Corrigir' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onEdit(maintenance) }}
+                />
+                <ActionButton
+                  data={{ label: 'Excluir' }}
+                  ui={{
+                    variant: 'ghost',
+                    size: 'sm',
+                    icon: Trash2,
+                    isIconOnly: true,
+                    className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                  }}
+                  actions={{ onClick: () => actions.onAskRemove(maintenance) }}
+                />
+              </TableActions>
             </TableCell>
           </TableRow>
         {/each}

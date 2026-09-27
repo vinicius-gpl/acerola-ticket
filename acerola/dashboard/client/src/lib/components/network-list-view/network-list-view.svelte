@@ -119,6 +119,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
     Table,
+    TableActions,
     TableBody,
     TableCell,
     TableHead,
@@ -281,21 +282,23 @@
               {/if}
             </TableCell>
             <TableCell class="text-right whitespace-nowrap">
-              {#if event.resolvedAt}
-                <ActionButton
-                  data={{ label: 'Reabrir' }}
-                  ui={{ variant: 'ghost', size: 'sm' }}
-                  state={{ isDisabled: viewState.isSaving }}
-                  actions={{ onClick: () => actions.onResolveChange(event, false) }}
-                />
-              {:else}
-                <ActionButton
-                  data={{ label: 'Marcar como resolvido' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  state={{ isDisabled: viewState.isSaving }}
-                  actions={{ onClick: () => actions.onResolveChange(event, true) }}
-                />
-              {/if}
+              <TableActions>
+                {#if event.resolvedAt}
+                  <ActionButton
+                    data={{ label: 'Reabrir' }}
+                    ui={{ variant: 'ghost', size: 'sm' }}
+                    state={{ isDisabled: viewState.isSaving }}
+                    actions={{ onClick: () => actions.onResolveChange(event, false) }}
+                  />
+                {:else}
+                  <ActionButton
+                    data={{ label: 'Marcar como resolvido' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    state={{ isDisabled: viewState.isSaving }}
+                    actions={{ onClick: () => actions.onResolveChange(event, true) }}
+                  />
+                {/if}
+              </TableActions>
             </TableCell>
           </TableRow>
         {/each}
