@@ -5,13 +5,10 @@
 		data: {
 			label: string;
 			value: string;
+			subtitle?: string;
 			trend?: Trend;
 			trendFormat?: (delta: number) => string;
 			sparkline?: { timestamps: number[]; series: number[][] };
-			// Medidor de capacidade (memória, disco): mostra o percentual atual em
-			// vez de uma série no tempo — ver AcerolaSegmentedBar. Se os dois vierem
-			// preenchidos, a barra tem prioridade (é a métrica mais "estável", uma
-			// linha quase reta não ajuda tanto quanto o medidor de capacidade).
 			bar?: { percent: number };
 		};
 		ui?: {
@@ -33,35 +30,41 @@
 	let { data, ui }: AcerolaMetricTileProps = $props();
 </script>
 
-<AcerolaCard ui={{ size: ui?.size, class: cn('h-full', ui?.class) }}>
-	<div class="flex h-full flex-col">
-		<div class="flex items-start justify-between gap-2">
-			<div>
-				<p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+<AcerolaCard ui={{ size: ui?.size, class: cn('h-full p-4 sm:p-5', ui?.class) }}>
+	<div class="flex h-full flex-col justify-between">
+		<div>
+			<div class="flex items-center justify-between gap-2">
+				<p class="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase">
 					{data.label}
 				</p>
-				<p class="text-xl font-semibold tabular-nums">{data.value}</p>
+				{#if data.trend && data.trendFormat}
+					<AcerolaTrendBadge data={{ trend: data.trend, format: data.trendFormat }} />
+				{/if}
 			</div>
-			{#if data.trend && data.trendFormat}
-				<AcerolaTrendBadge data={{ trend: data.trend, format: data.trendFormat }} />
+
+			<div class="mt-2 flex items-baseline gap-2">
+				<p class="text-foreground text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+					{data.value}
+				</p>
+			</div>
+
+			{#if data.subtitle}
+				<p class="text-muted-foreground mt-1 text-xs">{data.subtitle}</p>
 			{/if}
 		</div>
-		<!-- flex-1 + items-center: a barra e a sparkline não têm a mesma altura
-		     "natural" (a barra é um traço fino, a sparkline precisa de espaço pra
-		     desenhar a onda) — centralizando na sobra, os quatro cartões do grupo
-		     ficam com a mesma altura mesmo com conteúdos de tamanho diferente. -->
+
 		{#if data.bar}
-			<div class="mt-2.5 flex flex-1 items-center">
+			<div class="mt-3 flex flex-col justify-end">
 				<AcerolaSegmentedBar
 					data={{ percent: data.bar.percent }}
-					ui={{ colorVar: ui?.colorVars?.[0] ?? '--chart-4' }}
+					ui={{ colorVar: ui?.colorVars?.[0] ?? '--chart-4', height: 12 }}
 				/>
 			</div>
 		{:else if data.sparkline}
-			<div class="mt-2 flex-1">
+			<div class="mt-2.5 min-h-[44px] flex-1">
 				<AcerolaSparkline
 					data={data.sparkline}
-					ui={{ colorVars: ui?.colorVars ?? ['--chart-5'], fixedMax: ui?.fixedMax, height: 40 }}
+					ui={{ colorVars: ui?.colorVars ?? ['--chart-5'], fixedMax: ui?.fixedMax, height: 44 }}
 				/>
 			</div>
 		{/if}

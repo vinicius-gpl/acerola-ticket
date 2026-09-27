@@ -142,23 +142,31 @@
 </script>
 
 <div
-	class="border-border bg-background flex h-full w-full flex-col overflow-hidden rounded-lg border shadow-2xl"
+	class="border-border/80 bg-background text-foreground flex h-full w-full flex-col overflow-hidden rounded-2xl border shadow-2xl"
 >
 	<header
 		data-drag-region
-		class="border-border flex shrink-0 items-center justify-between border-b px-3 py-2 select-none"
+		class="border-border/70 bg-card flex shrink-0 items-center justify-between border-b px-3.5 py-2.5 select-none"
 	>
 		<div class="flex items-center gap-2">
 			<img src="/favicon.svg" alt="" class="pointer-events-none h-6 w-6" />
-			<span class="pointer-events-none text-sm font-semibold">Acerola Agent</span>
+			<span class="text-foreground pointer-events-none text-sm font-semibold tracking-tight"
+				>Acerola Agent</span
+			>
 		</div>
-		<div class="flex items-center gap-1">
+		<div class="flex items-center gap-1.5">
 			<AcerolaTooltip data={{ text: metrics.latest ? 'Conectado · Ao vivo' : 'Conectando...' }}>
-				<AcerolaBadge
-					ui={{ tone: metrics.latest ? 'online' : 'default', class: 'text-[10px] px-1.5 py-0 h-5' }}
+				<span
+					class="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
 				>
+					<span class="relative flex h-1.5 w-1.5">
+						<span
+							class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+						></span>
+						<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+					</span>
 					{metrics.latest ? 'ao vivo' : 'conectando'}
-				</AcerolaBadge>
+				</span>
 			</AcerolaTooltip>
 			<AcerolaThemeToggle />
 			<AcerolaTooltip data={{ text: 'Fechar (Esc)' }}>
@@ -172,10 +180,10 @@
 		</div>
 	</header>
 
-	<main class="min-h-0 flex-1 overflow-y-auto p-3">
+	<main class="min-h-0 flex-1 overflow-y-auto p-3.5">
 		{#if metrics.latest}
 			{@const snap = metrics.latest}
-			<div class="flex flex-col gap-2">
+			<div class="flex flex-col gap-2.5">
 				<AcerolaMetricTile
 					data={{
 						label: 'CPU',
@@ -184,18 +192,19 @@
 						trendFormat: (delta) => `${delta.toFixed(0)}pp`,
 						sparkline: { timestamps, series: [cpuValues] }
 					}}
-					ui={{ colorVars: ['--chart-5'], fixedMax: 100 }}
+					ui={{ colorVars: ['--chart-5'], fixedMax: 100, class: 'p-3.5' }}
 				/>
 
 				<AcerolaMetricTile
 					data={{
 						label: 'Memória',
-						value: `${percent(snap.memory.usedPercent)} (${bytes(snap.memory.usedBytes)} / ${bytes(snap.memory.totalBytes)})`,
+						value: percent(snap.memory.usedPercent),
+						subtitle: `${bytes(snap.memory.usedBytes)} / ${bytes(snap.memory.totalBytes)}`,
 						trend: trend(snap.memory.usedPercent, last(memValues)),
 						trendFormat: (delta) => `${delta.toFixed(0)}pp`,
-						sparkline: { timestamps, series: [memValues] }
+						bar: { percent: snap.memory.usedPercent }
 					}}
-					ui={{ colorVars: ['--chart-4'], fixedMax: 100 }}
+					ui={{ colorVars: ['--chart-4'], fixedMax: 100, class: 'p-3.5' }}
 				/>
 
 				<AcerolaMetricTile
@@ -204,7 +213,7 @@
 						value: `↓ ${bytesPerSec(netTotals.recv)} · ↑ ${bytesPerSec(netTotals.sent)}`,
 						sparkline: { timestamps, series: [netRecvValues, netSentValues] }
 					}}
-					ui={{ colorVars: ['--chart-5', '--chart-2'] }}
+					ui={{ colorVars: ['--chart-5', '--chart-2'], class: 'p-3.5' }}
 				/>
 
 				<AcerolaMetricTile
@@ -213,21 +222,33 @@
 						value: `R: ${bytesPerSec(diskTotals.read)} · W: ${bytesPerSec(diskTotals.write)}`,
 						sparkline: { timestamps, series: [diskReadValues, diskWriteValues] }
 					}}
-					ui={{ colorVars: ['--chart-3', '--chart-1'] }}
+					ui={{ colorVars: ['--chart-3', '--chart-1'], class: 'p-3.5' }}
 				/>
 
 				{#if snap.processes && snap.processes.length > 0}
-					<AcerolaCard data={{ title: 'Top Processos' }} ui={{ size: 'sm' }}>
-						<div class="flex flex-col gap-1 text-xs tabular-nums">
-							{#each snap.processes.slice(0, 3) as proc (proc.name)}
+					<AcerolaCard data={{ title: 'Top Processos Ativos' }} ui={{ size: 'sm', class: 'p-3.5' }}>
+						<div class="flex flex-col gap-1.5 text-xs tabular-nums">
+							{#each snap.processes.slice(0, 4) as proc (proc.name)}
 								<div
-									class="hover:bg-muted/40 flex items-center justify-between gap-2 rounded px-1 py-0.5 transition-colors"
+									class="hover:bg-muted/40 hover:border-border/50 flex items-center justify-between gap-2.5 rounded-xl border border-transparent p-1.5 transition-colors"
 								>
-									<span class="min-w-0 flex-1 truncate font-medium" title={proc.name}>
-										{proc.name}
-									</span>
-									<div class="text-muted-foreground flex shrink-0 items-center gap-2.5 text-[11px]">
-										<span class="text-foreground font-medium">{proc.cpuPercent.toFixed(1)}%</span>
+									<div class="flex min-w-0 items-center gap-2">
+										<span
+											class="bg-muted text-foreground border-border/50 grid h-6 w-6 shrink-0 place-items-center rounded-lg border font-mono text-[10px] font-semibold"
+										>
+											{proc.name
+												.replace(/\.exe$/i, '')
+												.slice(0, 2)
+												.toUpperCase()}
+										</span>
+										<span class="text-foreground min-w-0 truncate font-semibold" title={proc.name}>
+											{proc.name}
+										</span>
+									</div>
+									<div
+										class="text-muted-foreground flex shrink-0 items-center gap-2 font-mono text-[11px]"
+									>
+										<span class="text-primary font-semibold">{proc.cpuPercent.toFixed(1)}%</span>
 										<span>{bytes(proc.memBytes)}</span>
 									</div>
 								</div>
@@ -236,46 +257,55 @@
 					</AcerolaCard>
 				{/if}
 
-				<AcerolaCard data={{ title: 'Máquina' }} ui={{ size: 'sm' }}>
+				<AcerolaCard data={{ title: 'Identidade da Estação' }} ui={{ size: 'sm', class: 'p-3.5' }}>
 					<div class="flex flex-col gap-2.5">
 						<!-- Hostname e Sistema Operacional -->
 						<div class="flex items-center justify-between gap-2">
 							<div class="flex min-w-0 items-center gap-1.5">
 								<MonitorIcon size={14} class="text-muted-foreground shrink-0" />
-								<span class="truncate text-xs font-semibold" title={snap.host.hostname}>
+								<span
+									class="text-foreground truncate text-xs font-semibold"
+									title={snap.host.hostname}
+								>
 									{snap.host.hostname}
 								</span>
 							</div>
-							<AcerolaBadge ui={{ tone: 'default', class: 'text-[10px] px-1.5 py-0 h-4 shrink-0' }}>
+							<span
+								class="bg-muted border-border/60 text-foreground shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium"
+							>
 								{snap.host.platform || snap.host.os}
-							</AcerolaBadge>
+							</span>
 						</div>
 
 						<!-- Grid de Informações: IP Local e Uptime -->
 						<div class="grid grid-cols-2 gap-2 text-xs">
-							<div class="bg-muted/40 flex flex-col gap-0.5 rounded-md p-1.5">
-								<span class="text-muted-foreground text-[10px] font-medium uppercase">IP Local</span
-								>
-								<span class="truncate font-mono text-xs font-medium"
-									>{snap.host.localIp || '—'}</span
-								>
-							</div>
-							<div class="bg-muted/40 flex flex-col gap-0.5 rounded-md p-1.5">
+							<div class="bg-muted/40 border-border/50 flex flex-col gap-0.5 rounded-xl border p-2">
 								<span
-									class="text-muted-foreground flex items-center gap-1 text-[10px] font-medium uppercase"
+									class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase"
+									>IP Local</span
+								>
+								<span class="text-foreground truncate font-mono text-xs font-medium">
+									{snap.host.localIp || '—'}
+								</span>
+							</div>
+							<div class="bg-muted/40 border-border/50 flex flex-col gap-0.5 rounded-xl border p-2">
+								<span
+									class="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold tracking-wider uppercase"
 								>
 									<ClockIcon size={10} />
 									Ligado há
 								</span>
-								<span class="truncate text-xs font-medium">{uptime(snap.host.uptimeSeconds)}</span>
+								<span class="text-foreground truncate text-xs font-medium"
+									>{uptime(snap.host.uptimeSeconds)}</span
+								>
 							</div>
 						</div>
 
 						<!-- Armazenamento / Partições -->
 						{#if snap.disks && snap.disks.length > 0}
-							<div class="flex flex-col gap-1.5">
+							<div class="flex flex-col gap-2">
 								{#each snap.disks as disk (disk.mountpoint)}
-									<div class="flex flex-col gap-0.5">
+									<div class="flex flex-col gap-1">
 										<div class="flex items-center justify-between text-xs">
 											<span
 												class="text-muted-foreground flex max-w-[140px] items-center gap-1 truncate text-[11px] font-medium"
@@ -283,7 +313,7 @@
 												<HardDriveIcon size={11} class="shrink-0" />
 												{disk.mountpoint} ({disk.fstype})
 											</span>
-											<span class="text-[11px] font-medium tabular-nums">
+											<span class="text-foreground font-mono text-[11px] font-medium">
 												{bytes(disk.freeBytes)} livres ({Math.round(100 - disk.usedPercent)}%)
 											</span>
 										</div>
@@ -303,7 +333,7 @@
 										<HardDriveIcon size={11} />
 										Disco principal
 									</span>
-									<span class="text-[11px] font-medium tabular-nums">
+									<span class="text-foreground font-mono text-[11px] font-medium">
 										{bytes(snap.host.freeDiskBytes)} livres ({100 - diskPct}%)
 									</span>
 								</div>
@@ -316,19 +346,25 @@
 
 						<!-- Detalhes de Processador e Memória -->
 						<div
-							class="text-muted-foreground border-border/50 flex items-center justify-between border-t pt-1 text-[11px]"
+							class="text-muted-foreground border-border/50 flex items-center justify-between border-t pt-1.5 text-[11px]"
 						>
 							<span class="mr-2 flex items-center gap-1 truncate" title={snap.host.cpuModel}>
 								<CpuIcon size={12} class="shrink-0" />
 								{snap.host.logicalCpus} núcleos · {snap.host.arch}
 							</span>
-							<span class="shrink-0 font-medium">RAM: {bytes(snap.host.totalMemoryBytes)}</span>
+							<span class="text-foreground shrink-0 font-mono font-medium"
+								>RAM: {bytes(snap.host.totalMemoryBytes)}</span
+							>
 						</div>
 					</div>
 				</AcerolaCard>
 			</div>
 		{:else}
-			<p class="text-muted-foreground flex-1 text-sm">Coletando métricas…</p>
+			<div
+				class="text-muted-foreground flex flex-1 items-center justify-center p-6 text-center text-sm"
+			>
+				Coletando métricas do sistema…
+			</div>
 		{/if}
 	</main>
 </div>
