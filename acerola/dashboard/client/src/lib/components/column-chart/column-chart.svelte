@@ -70,6 +70,20 @@
     }),
   );
 
+  let containerEl: HTMLDivElement | undefined = $state();
+
+  function updateTooltip(slice: ChartSlice, e: MouseEvent) {
+    tooltipSlice = slice;
+    if (containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      tooltipX = e.clientX - rect.left;
+      tooltipY = e.clientY - rect.top;
+    } else {
+      tooltipX = e.offsetX;
+      tooltipY = e.offsetY;
+    }
+  }
+
   // pill width: min 20px, based on text length
   function pillWidth(text: string): number {
     return Math.max(20, text.length * 6.5 + 12);
@@ -92,7 +106,7 @@
   <!-- `overflow-hidden`: se quem usa esquecer de dar uma altura de verdade ao redor (como o
        SVG por baixo precisa), o rótulo virado embaixo de cada coluna fica contido no cartão
        em vez de vazar por cima do que vem depois na tela. -->
-  <div class="relative h-full w-full overflow-hidden">
+  <div bind:this={containerEl} class="relative h-full w-full overflow-hidden">
     <svg
       bind:clientWidth={svgWidth}
       bind:clientHeight={svgHeight}
@@ -111,11 +125,8 @@
           style="cursor: {actions?.onSelect ? 'pointer' : 'default'}"
           onclick={() => handleBarClick(bar.slice)}
           onkeydown={(e) => e.key === 'Enter' && handleBarClick(bar.slice)}
-          onmouseenter={(e) => {
-            tooltipSlice = bar.slice;
-            tooltipX = e.clientX;
-            tooltipY = e.clientY;
-          }}
+          onmouseenter={(e) => updateTooltip(bar.slice, e)}
+          onmousemove={(e) => updateTooltip(bar.slice, e)}
           onmouseleave={() => (tooltipSlice = null)}
         >
           <rect
@@ -171,11 +182,11 @@
     <!-- Tooltip -->
     {#if tooltipSlice}
       <div
-        class="bg-card pointer-events-none fixed z-50 rounded-xl px-3 py-2.5 text-xs shadow-lg ring-1 ring-black/5"
-        style="left: {tooltipX + 12}px; top: {tooltipY - 8}px;"
+        class="bg-popover text-popover-foreground pointer-events-none absolute z-50 rounded-xl border border-border px-3 py-2 text-xs shadow-lg"
+        style="left: {Math.max(8, Math.min(tooltipX + 12, (svgWidth || 200) - 130))}px; top: {Math.max(8, tooltipY - 38)}px;"
       >
-        <p class="font-semibold">{tooltipSlice.label}</p>
-        <p class="text-muted-foreground">{data.seriesLabel}: {tooltipSlice.value}</p>
+        <p class="font-semibold text-neutral-900 dark:text-neutral-100">{tooltipSlice.label}</p>
+        <p class="text-neutral-500 dark:text-neutral-400">{data.seriesLabel}: <span class="font-medium text-neutral-900 dark:text-neutral-100">{tooltipSlice.value}</span></p>
       </div>
     {/if}
   </div>

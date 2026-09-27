@@ -75,6 +75,14 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
@@ -169,62 +177,64 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[760px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Máquina</th>
-            <th scope="col" class="py-2 pr-3">Tipo</th>
-            <th scope="col" class="py-2 pr-3">Motivo</th>
-            <th scope="col" class="py-2 pr-3">Saiu em</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.computers as computer (computer.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0 align-top">
-              <td class="max-w-[240px] py-2 pr-3">
-                <span class="text-ink-900 font-semibold break-words">
-                  {machineLabelOf(computer)}
-                </span>
-                <span class="text-ink-500 block text-xs break-words">
-                  {computer.name}
-                  {#if computer.department}
-                    · {departmentLabel(computer.department)}
-                  {/if}
-                </span>
-              </td>
-              <td class="py-2 pr-3">
-                {#if computer.disposalType}
-                  <StatusBadge
-                    data={{ label: disposalTypeLabel(computer.disposalType) }}
-                    ui={{ tone: disposalTypeTone(computer.disposalType), size: 'sm' }}
-                  />
+    <Table class="min-w-[760px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Máquina</TableHead>
+          <TableHead>Tipo</TableHead>
+          <TableHead>Motivo</TableHead>
+          <TableHead>Saiu em</TableHead>
+          <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.computers as computer (computer.id)}
+          <TableRow class="align-top">
+            <TableCell class="max-w-[240px]">
+              <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                {machineLabelOf(computer)}
+              </span>
+              <span class="block text-xs text-neutral-400 break-words">
+                {computer.name}
+                {#if computer.department}
+                  · {departmentLabel(computer.department)}
                 {/if}
-              </td>
-              <td class="text-ink-700 max-w-[320px] py-2 pr-3 break-words">
-                {computer.disposalReason ?? '—'}
-              </td>
-              <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                {formatDate(computer.disposedAt)}
-              </td>
-              <td class="py-2 text-right whitespace-nowrap">
-                <ActionButton
-                  data={{ label: 'Ver ficha' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onOpenMachine(computer) }}
+              </span>
+            </TableCell>
+            <TableCell>
+              {#if computer.disposalType}
+                <StatusBadge
+                  data={{ label: disposalTypeLabel(computer.disposalType) }}
+                  ui={{ tone: disposalTypeTone(computer.disposalType), size: 'sm' }}
                 />
-                <ActionButton
-                  data={{ label: 'Voltar ao inventário' }}
-                  ui={{ variant: 'ghost', size: 'sm' }}
-                  actions={{ onClick: () => actions.onAskRestore(computer) }}
-                />
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+              {/if}
+            </TableCell>
+            <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+              {computer.disposalReason ?? '—'}
+            </TableCell>
+            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              {formatDate(computer.disposedAt)}
+            </TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <ActionButton
+                data={{ label: 'Ver ficha' }}
+                ui={{ variant: 'secondary', size: 'sm' }}
+                actions={{ onClick: () => actions.onOpenMachine(computer) }}
+              />
+              <ActionButton
+                data={{ label: 'Voltar ao inventário' }}
+                ui={{ variant: 'ghost', size: 'sm' }}
+                actions={{ onClick: () => actions.onAskRestore(computer) }}
+              />
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Máquinas baixadas e arquivadas</span>
+        <span>{data.computers.length} registro(s)</span>
+      {/snippet}
+    </Table>
   {/if}
 </div>
 

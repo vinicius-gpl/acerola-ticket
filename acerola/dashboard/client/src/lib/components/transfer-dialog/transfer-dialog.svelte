@@ -92,6 +92,8 @@
     DialogTitle,
   } from '$lib/components/ui/dialog';
 
+  import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
+
   let { data, state: dialogState, actions }: TransferDialogProps = $props();
 
   const goingToShelf = $derived(data.toDepartment === '');
@@ -107,40 +109,47 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
   <DialogContent>
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>Transferir de departamento</DialogTitle>
-        <DialogDescription>
+    <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ArrowRightLeft class="size-4" aria-hidden="true" />
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">Transferir de departamento</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {machineLabelOf(data.computer)} · hoje em <strong>{currentPlaceOf(data.computer)}</strong>
         </DialogDescription>
       </DialogHeader>
 
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">Para onde vai</span>
-        <SelectField
-          data={{ value: data.toDepartment, options: data.departments }}
-          ui={{ ariaLabel: 'Para onde vai' }}
-          state={{ isDisabled: dialogState.isSubmitting }}
-          actions={{ onChange: actions.onDepartmentChange }}
-        />
-        {#if goingToShelf}
-          <span class="text-ink-500 text-xs">
-            A máquina volta a ser reserva: ela perde o responsável e passa a se chamar
-            "Reserva — {data.computer.name}".
-          </span>
-        {/if}
-      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">Para onde vai</span>
+          <SelectField
+            data={{ value: data.toDepartment, options: data.departments }}
+            ui={{ ariaLabel: 'Para onde vai' }}
+            state={{ isDisabled: dialogState.isSubmitting }}
+            actions={{ onChange: actions.onDepartmentChange }}
+          />
+          {#if goingToShelf}
+            <span class="text-muted-foreground text-xs">
+              A máquina volta a ser reserva: ela perde o responsável e passa a se chamar
+              "Reserva — {data.computer.name}".
+            </span>
+          {/if}
+        </div>
 
-      <TextField
-        data={{
-          label: 'Quem levou',
-          name: 'responsible',
-          value: data.responsible,
-          placeholder: 'Quem acompanhou a mudança',
-        }}
-        state={{ isDisabled: dialogState.isSubmitting }}
-        actions={{ onChange: actions.onResponsibleChange }}
-      />
+        <TextField
+          data={{
+            label: 'Quem levou',
+            name: 'responsible',
+            value: data.responsible,
+            placeholder: 'Quem acompanhou a mudança',
+          }}
+          state={{ isDisabled: dialogState.isSubmitting }}
+          actions={{ onChange: actions.onResponsibleChange }}
+        />
+      </div>
 
       <TextAreaField
         data={{

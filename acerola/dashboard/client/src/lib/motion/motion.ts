@@ -51,6 +51,7 @@ export function fadeInUp(targets: gsap.TweenTarget, options: { delay?: number } 
     duration: DURATION.base,
     ease: EASE.out,
     delay: options.delay ?? 0,
+    clearProps: 'transform',
   });
 }
 

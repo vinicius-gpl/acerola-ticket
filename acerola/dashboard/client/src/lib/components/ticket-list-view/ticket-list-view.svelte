@@ -132,6 +132,14 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
 
   let { data, state, actions }: TicketListViewProps = $props();
@@ -199,8 +207,11 @@
   </StatCardGrid>
 
   <div class="grid gap-4 lg:grid-cols-2">
-    <section class="bg-card rounded-xl border p-4">
-      <h2 class="text-ink-900 mb-2 text-sm font-semibold">Problemas por tipo</h2>
+    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Problemas por tipo</h2>
+        <span class="text-[11px] text-neutral-400">Distribuição</span>
+      </div>
       <!-- Altura fixa: o gráfico preenche o espaço que recebe, e sem uma caixa de altura de
            verdade ele nasce com altura zero e os rótulos vazam por cima do que vem depois. -->
       <div class="h-64">
@@ -211,8 +222,11 @@
         />
       </div>
     </section>
-    <section class="bg-card rounded-xl border p-4">
-      <h2 class="text-ink-900 mb-2 text-sm font-semibold">Departamentos com mais chamados</h2>
+    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Departamentos com mais chamados</h2>
+        <span class="text-[11px] text-neutral-400">Volume</span>
+      </div>
       <div class="h-64">
         <ColumnChart
           data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
@@ -298,57 +312,59 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[720px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Protocolo</th>
-            <th scope="col" class="py-2 pr-3">Quem abriu</th>
-            <th scope="col" class="py-2 pr-3">Tipo</th>
-            <th scope="col" class="py-2 pr-3">Urgência</th>
-            <th scope="col" class="py-2 pr-3">Situação</th>
-            <th scope="col" class="py-2 pr-3">Aberto em</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.tickets as ticket (ticket.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0">
-              <td class="text-ink-900 py-2 pr-3 font-semibold">{ticket.protocol}</td>
-              <td class="py-2 pr-3">
-                <span class="text-ink-900">{ticket.requesterName}</span>
-                <span class="text-ink-500 block text-xs">
-                  {ticketDepartmentLabel(ticket.department)}
-                </span>
-              </td>
-              <td class="text-ink-700 py-2 pr-3">{ticketProblemTypeLabel(ticket.problemType)}</td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: ticketPriorityLabel(ticket.priority) }}
-                  ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
-                />
-              </td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: ticketStatusLabel(ticket.status) }}
-                  ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
-                />
-              </td>
-              <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                {formatDate(ticket.createdAt)}
-              </td>
-              <td class="py-2 text-right">
-                <ActionButton
-                  data={{ label: 'Atender' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onAnswer(ticket) }}
-                />
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+    <Table class="min-w-[720px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead class="min-w-[110px]">Protocolo</TableHead>
+          <TableHead class="min-w-[180px]">Quem abriu</TableHead>
+          <TableHead class="min-w-[140px]">Tipo</TableHead>
+          <TableHead class="min-w-[110px]">Urgência</TableHead>
+          <TableHead class="min-w-[120px]">Situação</TableHead>
+          <TableHead class="min-w-[110px]">Aberto em</TableHead>
+          <TableHead class="min-w-[90px] text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.tickets as ticket (ticket.id)}
+          <TableRow>
+            <TableCell class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">{ticket.protocol}</TableCell>
+            <TableCell>
+              <span class="font-medium text-neutral-900 dark:text-neutral-100">{ticket.requesterName}</span>
+              <span class="block text-xs text-neutral-400">
+                {ticketDepartmentLabel(ticket.department)}
+              </span>
+            </TableCell>
+            <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
+            <TableCell>
+              <StatusBadge
+                data={{ label: ticketPriorityLabel(ticket.priority) }}
+                ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
+              />
+            </TableCell>
+            <TableCell>
+              <StatusBadge
+                data={{ label: ticketStatusLabel(ticket.status) }}
+                ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+              />
+            </TableCell>
+            <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
+              {formatDate(ticket.createdAt)}
+            </TableCell>
+            <TableCell class="text-right">
+              <ActionButton
+                data={{ label: 'Atender' }}
+                ui={{ variant: 'secondary', size: 'sm' }}
+                actions={{ onClick: () => actions.onAnswer(ticket) }}
+              />
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Fila de chamados sincronizada em tempo real</span>
+        <span>{data.tickets.length} chamado(s) listado(s)</span>
+      {/snippet}
+    </Table>
 
     <!-- Truncar calado é mentir sobre o tamanho da fila. -->
     {#if state.isTruncated}

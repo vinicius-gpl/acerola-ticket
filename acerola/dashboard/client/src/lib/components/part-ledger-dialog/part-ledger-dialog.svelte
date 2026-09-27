@@ -83,6 +83,14 @@
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import { formatDateTime } from '$lib/utils/format-date';
 
   let { data, state: dialogState, actions }: PartLedgerDialogProps = $props();
@@ -120,52 +128,54 @@
         Esta peça ainda não teve entrada nem saída registrada.
       </p>
     {:else}
-      <div class="max-h-[50vh] overflow-auto">
-        <table class="w-full min-w-[620px] text-left text-sm">
-          <thead class="bg-card text-ink-500 sticky top-0 border-b text-xs uppercase">
-            <tr>
-              <th scope="col" class="py-2 pr-3">Quando</th>
-              <th scope="col" class="py-2 pr-3">Movimento</th>
-              <th scope="col" class="py-2 pr-3">Máquina</th>
-              <th scope="col" class="py-2 pr-3">Quem</th>
-              <th scope="col" class="py-2 pr-3">Saldo</th>
-              <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each data.movements as movement (movement.id)}
-              <tr class="border-b align-top last:border-0">
-                <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                  {formatDateTime(movement.createdAt)}
-                </td>
-                <td class="py-2 pr-3">
-                  <StatusBadge
-                    data={{ label: `${movementTypeLabel(movement.type)} ${signedQuantity(movement)}` }}
-                    ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
-                  />
-                  {#if movement.note}
-                    <span class="text-ink-500 block text-xs break-words">{movement.note}</span>
-                  {/if}
-                </td>
-                <td class="text-ink-700 max-w-[200px] py-2 pr-3 break-words">
-                  {destinationOf(movement)}
-                </td>
-                <td class="text-ink-500 py-2 pr-3 break-words">{movement.handledBy ?? '—'}</td>
-                <td class="text-ink-900 py-2 pr-3 font-semibold tabular-nums">
-                  {movement.balanceAfter}
-                </td>
-                <td class="py-2 text-right">
-                  <ActionButton
-                    data={{ label: 'Excluir movimentação' }}
-                    ui={{ variant: 'ghost', size: 'sm', icon: Trash2, isIconOnly: true }}
-                    actions={{ onClick: () => actions.onAskRemove(movement) }}
-                  />
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <Table class="min-w-[620px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Quando</TableHead>
+            <TableHead>Movimento</TableHead>
+            <TableHead>Máquina</TableHead>
+            <TableHead>Quem</TableHead>
+            <TableHead>Saldo</TableHead>
+            <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.movements as movement (movement.id)}
+            <TableRow class="align-top">
+              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                {formatDateTime(movement.createdAt)}
+              </TableCell>
+              <TableCell>
+                <StatusBadge
+                  data={{ label: `${movementTypeLabel(movement.type)} ${signedQuantity(movement)}` }}
+                  ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
+                />
+                {#if movement.note}
+                  <span class="text-neutral-400 block text-xs break-words">{movement.note}</span>
+                {/if}
+              </TableCell>
+              <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[200px] break-words">
+                {destinationOf(movement)}
+              </TableCell>
+              <TableCell class="text-neutral-500 break-words text-xs">{movement.handledBy ?? '—'}</TableCell>
+              <TableCell class="text-neutral-900 dark:text-neutral-100 font-semibold tabular-nums">
+                {movement.balanceAfter}
+              </TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <ActionButton
+                  data={{ label: 'Excluir movimentação' }}
+                  ui={{ variant: 'ghost', size: 'sm', icon: Trash2, isIconOnly: true }}
+                  actions={{ onClick: () => actions.onAskRemove(movement) }}
+                />
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Extrato de movimentações de estoque</span>
+          <span>{data.movements.length} registro(s)</span>
+        {/snippet}
+      </Table>
     {/if}
 
     <DialogFooter>

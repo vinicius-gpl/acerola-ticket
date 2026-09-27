@@ -4,16 +4,10 @@
   /**
    * O número que se lê de relance, no alto do painel.
    *
-   * O cartão em si é NEUTRO — quem carrega a cor é o quadrado do ícone. Pintar o cartão
-   * inteiro de uma cor suave parecia mais "colorido" à primeira vista, mas numa fileira de
-   * vários cartões o efeito é o oposto: tudo compete por atenção ao mesmo tempo, e o olho não
-   * acha o que importa mais rápido do que achava sem cor nenhuma.
-   *
-   * Sem ícone (a maioria dos cartões deste sistema ainda não tem um), o número grande é que
-   * carrega o tom — é o que sobra pra fazer o "vermelho puxa o olho" continuar funcionando.
-   *
-   * O `hint` existe para número que EXCLUI algo ("exclui 1.067 arquivados"). Sem ele, dois
-   * painéis contando a mesma coisa de formas diferentes discordam, e ninguém descobre por quê.
+   * Quando o cartão tem um tom (danger, info, success, brand, warning), ele ganha o fundo
+   * sólido da cor correspondente sem borda (bg-rose-100, bg-sky-100, etc.) no espírito
+   * dos cards de dashboard modernos do VibePrompts. Sem tom escolhido (neutral), ele
+   * permanece neutro com borda padrão.
    */
   export type StatCardTone = 'brand' | 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -32,25 +26,41 @@
     state?: { isLoading?: boolean };
   };
 
-  /** O quadrado do ícone — sólido, sem opacidade, é o principal carregador de cor do cartão. */
+  /** O fundo do cartão inteiro — quando colorido, não tem borda; quando neutro, usa bg-card com borda */
+  const TONE_CARD: Record<StatCardTone, string> = {
+    brand: 'bg-purple-100 text-purple-950 dark:bg-purple-950 dark:text-purple-100',
+    neutral: 'bg-card border-border border text-card-foreground',
+    success: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100',
+    warning: 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100',
+    danger: 'bg-rose-100 text-rose-950 dark:bg-rose-950 dark:text-rose-100',
+    info: 'bg-sky-100 text-sky-950 dark:bg-sky-950 dark:text-sky-100',
+  };
+
+  const TONE_LABEL: Record<StatCardTone, string> = {
+    brand: 'text-purple-800 dark:text-purple-300',
+    neutral: 'text-ink-500',
+    success: 'text-emerald-800 dark:text-emerald-300',
+    warning: 'text-amber-800 dark:text-amber-300',
+    danger: 'text-rose-800 dark:text-rose-300',
+    info: 'text-sky-800 dark:text-sky-300',
+  };
+
+  const TONE_VALUE: Record<StatCardTone, string> = {
+    brand: 'text-purple-950 dark:text-purple-50',
+    neutral: 'text-ink-900',
+    success: 'text-emerald-950 dark:text-emerald-50',
+    warning: 'text-amber-950 dark:text-amber-50',
+    danger: 'text-rose-950 dark:text-rose-50',
+    info: 'text-sky-950 dark:text-sky-50',
+  };
+
   const TONE_ICON: Record<StatCardTone, string> = {
-    brand: 'bg-primary text-primary-foreground',
+    brand: 'bg-purple-600 text-white',
     neutral: 'bg-ink-700 text-white',
     success: 'bg-emerald-600 text-white',
     warning: 'bg-amber-600 text-white',
     danger: 'bg-rose-600 text-white',
     info: 'bg-sky-600 text-white',
-  };
-
-  /** Texto colorido sobre o cartão neutro — para a variação ao lado do número, e para o
-   * número em si nos cartões sem ícone (onde ninguém mais carrega a cor). */
-  const TONE_TEXT: Record<StatCardTone, string> = {
-    brand: 'text-primary',
-    neutral: 'text-ink-900',
-    success: 'text-emerald-600 dark:text-emerald-400',
-    warning: 'text-amber-600 dark:text-amber-400',
-    danger: 'text-rose-600 dark:text-rose-400',
-    info: 'text-sky-600 dark:text-sky-400',
   };
 </script>
 
@@ -62,23 +72,26 @@
 
   const tone = $derived(ui?.tone ?? 'neutral');
   const Icon = $derived(ui?.icon);
-  /* Com ícone, ELE carrega a cor e o número fica neutro — a mesma régua de qualquer painel de
-     métricas: só um elemento grita de cada vez. Sem ícone, o número é o que sobra. */
-  const valueTone = $derived(Icon ? 'neutral' : tone);
 </script>
 
-<div class={cn('bg-card border-border rounded-lg border py-4 pr-4 pl-5', ui?.className)}>
+<div
+  class={cn(
+    'rounded-xl py-4 pr-4 pl-5 transition-all shadow-xs',
+    TONE_CARD[tone],
+    ui?.className,
+  )}
+>
   {#if Icon}
     <div class="mb-2 flex items-center gap-2.5">
       <span class={cn('flex size-8 shrink-0 items-center justify-center rounded-md', TONE_ICON[tone])}>
         <Icon size={15} aria-hidden="true" />
       </span>
-      <p class="text-ink-500 text-[11px] font-semibold tracking-wider uppercase">
+      <p class={cn('text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
         {data.label}
       </p>
     </div>
   {:else}
-    <p class="text-ink-500 mb-0.5 text-[11px] font-semibold tracking-wider uppercase">
+    <p class={cn('mb-1 text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
       {data.label}
     </p>
   {/if}
@@ -90,17 +103,15 @@
       <p
         class={cn(
           'font-bold tabular-nums',
-          ui?.size === 'lg' ? 'text-4xl' : 'text-2xl',
-          TONE_TEXT[valueTone],
+          ui?.size === 'lg' ? 'text-4xl' : 'text-3xl font-semibold tracking-tight',
+          TONE_VALUE[tone],
         )}
       >
         {data.value}
       </p>
 
       {#if data.hint}
-        <!-- O hint é uma RESSALVA ("exclui arquivados"), não uma tendência — colorir feito
-             o número faria parecer bom/ruim algo que só está explicando uma exclusão. -->
-        <p class="text-ink-500 text-xs">{data.hint}</p>
+        <p class={cn('text-xs mt-0.5', TONE_LABEL[tone])}>{data.hint}</p>
       {/if}
     </div>
   {/if}

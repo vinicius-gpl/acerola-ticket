@@ -60,6 +60,7 @@
   import SelectField from '$lib/components/select-field/select-field.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import Package from '@lucide/svelte/icons/package';
 
   let { data, state: dialogState, actions }: PartFormDialogProps = $props();
 
@@ -77,10 +78,15 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
   <DialogContent>
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>{isEdit ? 'Corrigir peça' : 'Cadastrar peça'}</DialogTitle>
-        <DialogDescription>
+    <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Package class="size-4" aria-hidden="true" />
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">{isEdit ? 'Corrigir peça' : 'Cadastrar peça'}</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {isEdit
             ? 'Descrição, categoria e condição. O saldo muda por entrada e saída.'
             : 'O que é a peça e quantas existem hoje na prateleira.'}
@@ -105,45 +111,47 @@
         }}
       />
 
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">Categoria</span>
-        <SelectField
-          data={{ value: fields.category.value, options: CATEGORY_OPTIONS }}
-          ui={{ ariaLabel: 'Categoria' }}
-          state={{ isDisabled: dialogState.isSubmitting }}
-          actions={{ onChange: (value: string) => actions.onChange('category', value) }}
-        />
-      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">Categoria</span>
+          <SelectField
+            data={{ value: fields.category.value, options: CATEGORY_OPTIONS }}
+            ui={{ ariaLabel: 'Categoria' }}
+            state={{ isDisabled: dialogState.isSubmitting }}
+            actions={{ onChange: (value: string) => actions.onChange('category', value) }}
+          />
+        </div>
 
-      <!-- Peça nova e peça usada são linhas diferentes no depósito: somar as duas esconderia
-           que o que sobrou na prateleira é tudo usado. -->
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">Condição</span>
-        <SelectField
-          data={{ value: fields.condition.value, options: CONDITION_OPTIONS }}
-          ui={{ ariaLabel: 'Condição' }}
-          state={{ isDisabled: dialogState.isSubmitting }}
-          actions={{ onChange: (value: string) => actions.onChange('condition', value) }}
-        />
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">Condição</span>
+          <SelectField
+            data={{ value: fields.condition.value, options: CONDITION_OPTIONS }}
+            ui={{ ariaLabel: 'Condição' }}
+            state={{ isDisabled: dialogState.isSubmitting }}
+            actions={{ onChange: (value: string) => actions.onChange('condition', value) }}
+          />
+        </div>
       </div>
 
       {#if !isEdit}
-        <TextField
-          data={{
-            label: 'Quantas existem hoje',
-            name: 'initialQuantity',
-            value: fields.initialQuantity.value,
-            placeholder: 'Deixe em branco se a prateleira está vazia',
-          }}
-          state={{ error: fields.initialQuantity.error, isDisabled: dialogState.isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('initialQuantity', value),
-            onBlur: () => actions.onBlur('initialQuantity'),
-          }}
-        />
-        <p class="text-ink-500 -mt-2 text-xs">
-          Isso entra como a primeira entrada no histórico da peça.
-        </p>
+        <div class="flex flex-col gap-1.5">
+          <TextField
+            data={{
+              label: 'Quantas existem hoje',
+              name: 'initialQuantity',
+              value: fields.initialQuantity.value,
+              placeholder: 'Deixe em branco se a prateleira está vazia',
+            }}
+            state={{ error: fields.initialQuantity.error, isDisabled: dialogState.isSubmitting }}
+            actions={{
+              onChange: (value: string) => actions.onChange('initialQuantity', value),
+              onBlur: () => actions.onBlur('initialQuantity'),
+            }}
+          />
+          <p class="text-muted-foreground text-xs">
+            Isso entra como a primeira entrada no histórico da peça.
+          </p>
+        </div>
       {/if}
 
       {#if dialogState.error}

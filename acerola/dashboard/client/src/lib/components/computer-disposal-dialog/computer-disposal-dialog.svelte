@@ -45,6 +45,8 @@
   import SelectField from '$lib/components/select-field/select-field.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
 
+  import Trash2 from '@lucide/svelte/icons/trash-2';
+
   let { data, state: dialogState, actions }: ComputerDisposalDialogProps = $props();
 
   /* Estado puramente visual: o que está escolhido enquanto o diálogo está aberto. */
@@ -72,9 +74,14 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onCancel())}
 >
   <DialogContent showCloseButton={false}>
-    <DialogHeader>
-      <DialogTitle>Descartar esta máquina?</DialogTitle>
-      <DialogDescription>
+    <DialogHeader class="gap-1.5">
+      <div class="flex items-center gap-2.5">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+          <Trash2 class="size-4" aria-hidden="true" />
+        </span>
+        <DialogTitle class="text-lg font-semibold tracking-tight">Descartar esta máquina?</DialogTitle>
+      </div>
+      <DialogDescription class="text-xs text-muted-foreground">
         {data.computerName} sai das listas do dia a dia e vai para o Descarte. Nada é apagado: o
         histórico, as manutenções e as peças dela continuam salvos, e ela pode voltar depois.
       </DialogDescription>

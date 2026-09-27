@@ -91,6 +91,14 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { cn } from '$lib/utils/cn';
 
@@ -212,69 +220,70 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[760px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Peça</th>
-            <th scope="col" class="py-2 pr-3">Categoria</th>
-            <th scope="col" class="py-2 pr-3">Condição</th>
-            <th scope="col" class="py-2 pr-3">Na prateleira</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.parts as part (part.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0 align-top">
-              <td class="max-w-[280px] py-2 pr-3">
-                <button
-                  type="button"
-                  class="text-ink-900 text-left font-semibold break-words hover:underline"
-                  onclick={() => actions.onOpenLedger(part)}
-                >
-                  {part.name}
-                </button>
-                <span class="text-ink-500 block text-xs">Ver o histórico desta peça</span>
-              </td>
-              <td class="text-ink-700 py-2 pr-3">{partCategoryLabel(part.category)}</td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: partConditionLabel(part.condition) }}
-                  ui={{ tone: partConditionTone(part.condition), size: 'sm' }}
-                />
-              </td>
-              <!-- Zero em vermelho: é o número que decide uma compra. -->
-              <td
-                class={cn(
-                  'py-2 pr-3 text-base font-semibold tabular-nums',
-                  part.balance === 0 ? 'text-red-600' : 'text-ink-900',
-                )}
+    <Table class="min-w-[760px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Peça</TableHead>
+          <TableHead>Categoria</TableHead>
+          <TableHead>Condição</TableHead>
+          <TableHead>Na prateleira</TableHead>
+          <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.parts as part (part.id)}
+          <TableRow class="align-top">
+            <TableCell class="max-w-[280px]">
+              <button
+                type="button"
+                class="font-medium text-neutral-900 dark:text-neutral-100 text-left break-words hover:underline"
+                onclick={() => actions.onOpenLedger(part)}
               >
-                {part.balance}
-              </td>
-              <td class="py-2 text-right whitespace-nowrap">
-                <ActionButton
-                  data={{ label: 'Entrada' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onMove(part, 'in') }}
-                />
-                <ActionButton
-                  data={{ label: 'Saída' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  state={{ isDisabled: part.balance === 0 }}
-                  actions={{ onClick: () => actions.onMove(part, 'out') }}
-                />
-                <ActionButton
-                  data={{ label: 'Corrigir' }}
-                  ui={{ variant: 'ghost', size: 'sm' }}
-                  actions={{ onClick: () => actions.onEdit(part) }}
-                />
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+                {part.name}
+              </button>
+              <span class="text-neutral-400 block text-xs">Ver o histórico desta peça</span>
+            </TableCell>
+            <TableCell class="text-neutral-700 dark:text-neutral-200">{partCategoryLabel(part.category)}</TableCell>
+            <TableCell>
+              <StatusBadge
+                data={{ label: partConditionLabel(part.condition) }}
+                ui={{ tone: partConditionTone(part.condition), size: 'sm' }}
+              />
+            </TableCell>
+            <TableCell
+              class={cn(
+                'text-base font-semibold tabular-nums',
+                part.balance === 0 ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100',
+              )}
+            >
+              {part.balance}
+            </TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <ActionButton
+                data={{ label: 'Entrada' }}
+                ui={{ variant: 'secondary', size: 'sm' }}
+                actions={{ onClick: () => actions.onMove(part, 'in') }}
+              />
+              <ActionButton
+                data={{ label: 'Saída' }}
+                ui={{ variant: 'secondary', size: 'sm' }}
+                state={{ isDisabled: part.balance === 0 }}
+                actions={{ onClick: () => actions.onMove(part, 'out') }}
+              />
+              <ActionButton
+                data={{ label: 'Corrigir' }}
+                ui={{ variant: 'ghost', size: 'sm' }}
+                actions={{ onClick: () => actions.onEdit(part) }}
+              />
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Controle de estoque e saldo de prateleira</span>
+        <span>{data.parts.length} item(ns)</span>
+      {/snippet}
+    </Table>
 
     <!-- Truncar calado é mentir sobre o tamanho do depósito. -->
     {#if viewState.isTruncated}

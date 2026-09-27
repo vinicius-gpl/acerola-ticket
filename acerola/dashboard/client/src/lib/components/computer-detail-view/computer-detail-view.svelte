@@ -163,6 +163,14 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import UsageChart from '$lib/components/usage-chart/usage-chart.svelte';
   import ComputerBlockDialog from '$lib/components/computer-block-dialog/computer-block-dialog.svelte';
   import ComputerDisposalDialog from '$lib/components/computer-disposal-dialog/computer-disposal-dialog.svelte';
@@ -422,43 +430,45 @@
         ela volta ao normal.
       </p>
     {:else}
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[620px] text-left text-sm">
-          <thead class="text-ink-500 border-b text-xs uppercase">
-            <tr>
-              <th scope="col" class="py-2 pr-3">Medida</th>
-              <th scope="col" class="py-2 pr-3">Pico</th>
-              <th scope="col" class="py-2 pr-3">Começou</th>
-              <th scope="col" class="py-2 pr-3">Durou</th>
-              <th scope="col" class="py-2">Causa provável</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each data.alerts as alert (alert.id)}
-              <tr class="border-b last:border-0">
-                <td class="text-ink-900 py-2 pr-3">{metricLabel(alert.metric)}</td>
-                <td class="text-ink-700 py-2 pr-3 tabular-nums">
-                  {formatPercent(alert.peakValue)}
-                </td>
-                <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                  {formatDateTime(alert.startedAt)}
-                </td>
-                <td class="py-2 pr-3">
-                  {#if alert.recoveredAt}
-                    <span class="text-ink-700">{alertDurationLabel(alert)}</span>
-                  {:else}
-                    <StatusBadge
-                      data={{ label: 'Acontecendo agora' }}
-                      ui={{ tone: 'danger', size: 'sm' }}
-                    />
-                  {/if}
-                </td>
-                <td class="text-ink-500 py-2 break-words">{alert.causeProcess ?? '—'}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      <Table class="min-w-[620px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Medida</TableHead>
+            <TableHead>Pico</TableHead>
+            <TableHead>Começou</TableHead>
+            <TableHead>Durou</TableHead>
+            <TableHead>Causa provável</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.alerts as alert (alert.id)}
+            <TableRow>
+              <TableCell class="font-medium text-neutral-900 dark:text-neutral-100">{metricLabel(alert.metric)}</TableCell>
+              <TableCell class="tabular-nums text-neutral-700 dark:text-neutral-200">
+                {formatPercent(alert.peakValue)}
+              </TableCell>
+              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                {formatDateTime(alert.startedAt)}
+              </TableCell>
+              <TableCell>
+                {#if alert.recoveredAt}
+                  <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+                {:else}
+                  <StatusBadge
+                    data={{ label: 'Acontecendo agora' }}
+                    ui={{ tone: 'danger', size: 'sm' }}
+                  />
+                {/if}
+              </TableCell>
+              <TableCell class="text-neutral-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Alertas automáticos gerados pelo agente</span>
+          <span>{data.alerts.length} alerta(s)</span>
+        {/snippet}
+      </Table>
     {/if}
   </section>
 

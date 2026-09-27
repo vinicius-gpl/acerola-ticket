@@ -28,8 +28,8 @@
   disabled={isBusy || state?.isDisabled}
   aria-busy={isBusy}
   class={cn(
-    'inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5',
-    'bg-primary text-primary-foreground text-sm font-semibold transition-colors',
+    'inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-4 py-2',
+    'bg-primary text-primary-foreground text-sm font-semibold transition-colors shadow-xs',
     'hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60',
     ui?.className,
   )}

@@ -100,75 +100,97 @@
   open={state.isOpen}
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
-  <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <div class="flex flex-wrap items-center gap-2">
-          <DialogTitle>Chamado {ticket.protocol}</DialogTitle>
-          <StatusBadge
-            data={{ label: TICKET_STATUS_LABELS[fields.status.value as Ticket['status']] }}
-            ui={{ tone: ticketStatusTone(fields.status.value as Ticket['status']), size: 'sm' }}
-          />
+  <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-2xl rounded-2xl border border-border bg-card shadow-2xl p-6">
+    <form novalidate class="flex flex-col gap-5" onsubmit={handleSubmit}>
+      <DialogHeader class="border-b border-border/80 pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <DialogTitle class="font-mono text-base font-bold text-foreground">Chamado {ticket.protocol}</DialogTitle>
+            <StatusBadge
+              data={{ label: TICKET_STATUS_LABELS[fields.status.value as Ticket['status']] }}
+              ui={{ tone: ticketStatusTone(fields.status.value as Ticket['status']), size: 'sm' }}
+            />
+          </div>
+          <span class="text-xs text-muted-foreground">
+            {formatDateTime(ticket.createdAt)}
+          </span>
         </div>
-        <DialogDescription>
-          Aberto por {ticket.requesterName} em {formatDateTime(ticket.createdAt)}.
+        <DialogDescription class="mt-1 text-xs text-muted-foreground">
+          Aberto por <strong class="font-medium text-foreground">{ticket.requesterName}</strong>
         </DialogDescription>
       </DialogHeader>
 
-      <!-- O pedido, como a pessoa escreveu. Só leitura, de propósito. -->
-      <section class="bg-muted flex flex-col gap-3 rounded-lg border p-3 text-sm">
+      <!-- O pedido, como a pessoa escreveu. Estilo Approvals Queue / Drawer de Diagnóstico. -->
+      <section class="rounded-2xl border border-border/80 bg-neutral-50/60 dark:bg-neutral-900/40 p-4.5 flex flex-col gap-3.5 shadow-xs">
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div class="flex items-start gap-1.5">
-            <Building2 class="text-ink-500 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <div class="flex items-start gap-2">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+              <Building2 class="size-3.5" aria-hidden="true" />
+            </span>
             <div class="min-w-0">
-              <p class="text-ink-500 text-[10px] font-semibold tracking-wide uppercase">Departamento</p>
-              <p class="text-ink-900 truncate font-medium">{ticketDepartmentLabel(ticket.department)}</p>
+              <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">Departamento</p>
+              <p class="truncate text-xs font-medium text-foreground">{ticketDepartmentLabel(ticket.department)}</p>
             </div>
           </div>
-          <div class="flex items-start gap-1.5">
-            <Wrench class="text-ink-500 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+
+          <div class="flex items-start gap-2">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+              <Wrench class="size-3.5" aria-hidden="true" />
+            </span>
             <div class="min-w-0">
-              <p class="text-ink-500 text-[10px] font-semibold tracking-wide uppercase">Tipo</p>
-              <p class="text-ink-900 truncate font-medium">{ticketProblemTypeLabel(ticket.problemType)}</p>
+              <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">Tipo</p>
+              <p class="truncate text-xs font-medium text-foreground">{ticketProblemTypeLabel(ticket.problemType)}</p>
             </div>
           </div>
-          <div class="flex items-start gap-1.5">
-            <MonitorSmartphone class="text-ink-500 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+
+          <div class="flex items-start gap-2">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+              <MonitorSmartphone class="size-3.5" aria-hidden="true" />
+            </span>
             <div class="min-w-0">
-              <p class="text-ink-500 text-[10px] font-semibold tracking-wide uppercase">AnyDesk</p>
-              <p class="text-ink-900 truncate font-medium">{ticket.anydeskId ?? 'Não informado'}</p>
+              <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">AnyDesk</p>
+              <p class="truncate text-xs font-medium text-foreground font-mono">{ticket.anydeskId ?? 'Não informado'}</p>
             </div>
           </div>
-          <div class="flex items-start gap-1.5">
-            <Phone class="text-ink-500 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+
+          <div class="flex items-start gap-2">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+              <Phone class="size-3.5" aria-hidden="true" />
+            </span>
             <div class="min-w-0">
-              <p class="text-ink-500 text-[10px] font-semibold tracking-wide uppercase">WhatsApp</p>
-              <p class="text-ink-900 truncate font-medium">{ticket.contactPhone ?? 'Não informado'}</p>
+              <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">WhatsApp</p>
+              <p class="truncate text-xs font-medium text-foreground">{ticket.contactPhone ?? 'Não informado'}</p>
             </div>
           </div>
         </div>
 
-        <p class="text-ink-900 border-border whitespace-pre-line border-t pt-3">{ticket.description}</p>
+        <!-- Descrição em bloco de citação diagnóstica -->
+        <div class="rounded-xl border border-border/80 bg-card p-3.5 text-xs leading-relaxed text-foreground shadow-xs">
+          <p class="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Descrição do problema</p>
+          <p class="whitespace-pre-line text-sm text-foreground/90">{ticket.description}</p>
+        </div>
 
         {#if ticket.screenshotUrl}
           <a
-            class="text-primary inline-flex w-fit items-center gap-1.5 text-sm font-semibold underline"
+            class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-xs"
             href={ticket.screenshotUrl}
             target="_blank"
             rel="noopener"
           >
-            <ImageIcon class="size-4" aria-hidden="true" />
+            <ImageIcon class="size-3.5" aria-hidden="true" />
             Abrir o print enviado
           </a>
         {/if}
       </section>
 
-      <div class="flex flex-col gap-3">
-        <h3 class="text-ink-900 text-sm font-semibold">Atendimento</h3>
+      <div class="flex flex-col gap-4">
+        <div class="border-b border-border/80 pb-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Atualização do Atendimento</h3>
+        </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="flex flex-col gap-1.5">
-            <span class="text-ink-700 text-sm font-medium">Situação</span>
+            <span class="text-xs font-medium text-muted-foreground">Situação</span>
             <SelectField
               data={{ value: fields.status.value, options: STATUS_OPTIONS }}
               ui={{ ariaLabel: 'Situação' }}
@@ -178,7 +200,7 @@
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <span class="text-ink-700 text-sm font-medium">Urgência</span>
+            <span class="text-xs font-medium text-muted-foreground">Urgência</span>
             <SelectField
               data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}
               ui={{ ariaLabel: 'Urgência' }}
@@ -217,11 +239,9 @@
           }}
         />
 
-        <!-- O botão só existe quando a pessoa PEDIU para ser avisada: ter o telefone dela no
-             chamado não é autorização para usá-lo. -->
         {#if data.whatsAppLink}
           <a
-            class="inline-flex w-fit items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            class="inline-flex w-fit items-center gap-2 rounded-xl bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-xs"
             href={data.whatsAppLink}
             target="_blank"
             rel="noopener"
@@ -236,7 +256,7 @@
         <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
       {/if}
 
-      <DialogFooter>
+      <DialogFooter class="border-t border-border/80 pt-4 mt-2">
         <ActionButton
           data={{ label: 'Fechar' }}
           ui={{ variant: 'secondary' }}
