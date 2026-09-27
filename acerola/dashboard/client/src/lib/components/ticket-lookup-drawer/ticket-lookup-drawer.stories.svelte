@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type PublicTicket } from '@template/shared/schemas/ticket.schema';
 
-  import TicketLookupCard from './ticket-lookup-card.svelte';
+  import TicketLookupDrawer from './ticket-lookup-drawer.svelte';
 
   const ticket: PublicTicket = {
     id: 7,
@@ -18,47 +18,59 @@
     createdAt: '2026-09-15T12:10:00.000Z',
   };
 
-  const actions = { onProtocolChange: () => {}, onSearch: () => {} };
+  const actions = { onProtocolChange: () => {}, onSearch: () => {}, onClose: () => {} };
 
   const { Story } = defineMeta({
-    title: 'Components/TicketLookupCard',
-    component: TicketLookupCard,
+    title: 'Components/TicketLookupDrawer',
+    component: TicketLookupDrawer,
   });
 </script>
 
 <!-- Ninguém procurou nada ainda: só o campo e o botão. -->
 <Story
   name="Default"
-  args={{ data: { protocol: '', ticket: null }, state: {}, actions }}
+  args={{ data: { protocol: '', ticket: null }, state: { isOpen: true }, actions }}
 />
 
 <Story
   name="Found"
-  args={{ data: { protocol: 'CH-0007', ticket }, state: {}, actions }}
+  args={{ data: { protocol: 'CH-0007', ticket }, state: { isOpen: true }, actions }}
 />
 
 <Story
   name="Searching"
-  args={{ data: { protocol: 'CH-0007', ticket: null }, state: { isSearching: true }, actions }}
+  args={{
+    data: { protocol: 'CH-0007', ticket: null },
+    state: { isOpen: true, isSearching: true },
+    actions,
+  }}
 />
 
 <!-- "Não encontrado" é resposta, não falha do site: por isso não aparece em vermelho. -->
 <Story
   name="NotFound"
-  args={{ data: { protocol: 'CH-9999', ticket: null }, state: { isNotFound: true }, actions }}
+  args={{
+    data: { protocol: 'CH-9999', ticket: null },
+    state: { isOpen: true, isNotFound: true },
+    actions,
+  }}
 />
 
 <!-- O aviso explica por que o botão está desligado, em vez de acusar erro. -->
 <Story
   name="InvalidProtocol"
-  args={{ data: { protocol: 'abc', ticket: null }, state: { isInvalid: true }, actions }}
+  args={{
+    data: { protocol: 'abc', ticket: null },
+    state: { isOpen: true, isInvalid: true },
+    actions,
+  }}
 />
 
 <Story
   name="ServerDown"
   args={{
     data: { protocol: 'CH-0007', ticket: null },
-    state: { error: 'Não consegui falar com o servidor.' },
+    state: { isOpen: true, error: 'Não consegui falar com o servidor.' },
     actions,
   }}
 />
@@ -83,7 +95,7 @@
           'ícones demoram para aparecer e o antivírus reclama de um arquivo que não consigo ler.',
       },
     },
-    state: {},
+    state: { isOpen: true },
     actions,
   }}
 />
