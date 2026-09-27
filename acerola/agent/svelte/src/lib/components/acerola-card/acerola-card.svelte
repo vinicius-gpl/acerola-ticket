@@ -4,6 +4,7 @@
 	export type AcerolaCardProps = {
 		data?: {
 			title?: string;
+			description?: string;
 		};
 		ui?: {
 			size?: 'default' | 'sm';
@@ -13,6 +14,7 @@
 
 	export type AcerolaCardSnippets = {
 		children?: Snippet;
+		headerAction?: Snippet;
 	};
 </script>
 
@@ -20,23 +22,39 @@
 	import * as Card from '$lib/components/ui/card';
 	import { cn } from '$lib/utils/cn';
 
-	let { data, ui, children }: AcerolaCardProps & AcerolaCardSnippets = $props();
+	let { data, ui, children, headerAction }: AcerolaCardProps & AcerolaCardSnippets = $props();
 </script>
 
-<!-- border-border/ring-0: toda AcerolaCard usa moldura de borda sólida fina,
-     não o ring translúcido do vendor — é essa borda que faz o cartão parecer
-     "recortado" do fundo, em vez de só uma mancha de cor um pouco mais clara. -->
-<Card.Root size={ui?.size ?? 'default'} class={cn('border-border border ring-0', ui?.class)}>
+<!-- ReUI Card style: bordas nítidas, cantos arredondados generosos, tipografia técnica elegante -->
+<Card.Root
+	size={ui?.size ?? 'default'}
+	class={cn(
+		'border-border/80 bg-card text-card-foreground hover:border-border rounded-2xl border shadow-xs transition-all flex flex-col',
+		ui?.class
+	)}
+>
 	{#if data?.title}
-		<Card.Header>
-			<Card.Title class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-				{data.title}
-			</Card.Title>
+		<Card.Header class="flex flex-row items-center justify-between pb-1 shrink-0">
+			<div>
+				<Card.Title
+					class="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase"
+				>
+					{data.title}
+				</Card.Title>
+				{#if data.description}
+					<p class="text-muted-foreground mt-0.5 text-xs">{data.description}</p>
+				{/if}
+			</div>
+			{#if headerAction}
+				<div>
+					{@render headerAction()}
+				</div>
+			{/if}
 		</Card.Header>
 	{/if}
 
 	{#if children}
-		<Card.Content>
+		<Card.Content class="flex-1 flex flex-col min-h-0">
 			{@render children()}
 		</Card.Content>
 	{/if}

@@ -33,6 +33,14 @@ describe('TextAreaField', () => {
     expect(screen.getByText('85/100')).toBeInTheDocument();
   });
 
+  /* O `*` é decoração de CSS (`aria-hidden`): quem ouve a tela precisa do `required` de
+     verdade no campo, não de um caractere solto no meio do rótulo. */
+  it('marks the field as required, for assistive technology and for CSS', () => {
+    render(TextAreaField, { props: { data: { ...data, isRequired: true } } });
+
+    expect(screen.getByLabelText(/descrição/i)).toBeRequired();
+  });
+
   // triste
   it('announces the error to assistive technology', () => {
     render(TextAreaField, {
@@ -48,5 +56,11 @@ describe('TextAreaField', () => {
     render(TextAreaField, { props: { data } });
 
     expect(screen.getByLabelText('Descrição')).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('does not mark a field as required unless asked', () => {
+    render(TextAreaField, { props: { data } });
+
+    expect(screen.getByLabelText('Descrição')).not.toBeRequired();
   });
 });

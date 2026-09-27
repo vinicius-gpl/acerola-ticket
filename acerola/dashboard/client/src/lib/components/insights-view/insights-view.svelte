@@ -95,8 +95,8 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
@@ -127,7 +127,7 @@
       description: 'O que os dados juntos dizem, e que nenhuma tela sozinha mostra.',
     }}
   >
-    <SelectField
+    <OptionPicker
       data={{ value: String(data.days), options: PERIOD_OPTIONS }}
       ui={{ ariaLabel: 'Período' }}
       actions={{ onChange: (value: string) => actions.onPeriodChange(Number(value)) }}

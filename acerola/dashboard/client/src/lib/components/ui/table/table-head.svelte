@@ -15,7 +15,7 @@
   bind:this={ref}
   data-slot="table-head"
   class={cn(
-    "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+    "px-6 py-3.5 text-left align-middle text-[11px] font-semibold uppercase tracking-widest text-neutral-400 whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
     className
   )}
   {...restProps}

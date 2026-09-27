@@ -104,11 +104,20 @@
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableActions,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
 
   let { data, state: viewState, actions }: DashboardViewProps = $props();
 
@@ -127,7 +136,7 @@
   <PageHeader
     data={{ title: 'Painel', description: 'A saúde do parque num lugar só.' }}
   >
-    <SelectField
+    <OptionPicker
       data={{ value: String(data.days), options: PERIOD_SELECT_OPTIONS }}
       ui={{ ariaLabel: 'Período do painel' }}
       actions={{ onChange: (value: string) => actions.onPeriodChange(Number(value)) }}
@@ -195,32 +204,36 @@
     </StatCardGrid>
 
     <!-- O que aconteceu no período. -->
-    <section class="bg-card rounded-xl border p-4">
-      <h2 class="text-ink-900 mb-3 text-sm font-semibold">Nos últimos {summary.days} dias</h2>
+    <!-- O que aconteceu no período. -->
+    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Nos últimos {summary.days} dias</h2>
+        <span class="text-[11px] text-neutral-400">Resumo de desempenho</span>
+      </div>
       <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
         <!-- "Que entraram", e não "abertos": o cartão lá em cima já usa "abertos" para a
              FILA de agora, e o mesmo rótulo para duas contas diferentes é como alguém lê o
              número errado e tira a conclusão errada. -->
         <div>
-          <dt class="text-ink-500 text-xs">Chamados que entraram</dt>
+          <dt class="text-xs text-neutral-400">Chamados que entraram</dt>
           <dd class="text-ink-900 text-lg font-semibold">{summary.tickets.openedInPeriod}</dd>
         </div>
         <div>
-          <dt class="text-ink-500 text-xs">Chamados resolvidos</dt>
+          <dt class="text-xs text-neutral-400">Chamados resolvidos</dt>
           <dd class="text-ink-900 text-lg font-semibold">{summary.tickets.resolvedInPeriod}</dd>
         </div>
         <div>
-          <dt class="text-ink-500 text-xs">Tempo médio de resolução</dt>
+          <dt class="text-xs text-neutral-400">Tempo médio de resolução</dt>
           <dd class="text-ink-900 text-lg font-semibold">
             {formatAverage(summary.tickets.averageResolutionHours)}
           </dd>
         </div>
         <div>
-          <dt class="text-ink-500 text-xs">Manutenções feitas</dt>
+          <dt class="text-xs text-neutral-400">Manutenções feitas</dt>
           <dd class="text-ink-900 text-lg font-semibold">{summary.maintenance.doneInPeriod}</dd>
         </div>
       </dl>
-      <div class="mt-3 flex flex-wrap gap-2">
+      <div class="mt-4 flex flex-wrap gap-2 border-t border-border/60 pt-3">
         <ActionButton
           data={{ label: 'Ver chamados' }}
           ui={{ variant: 'secondary', size: 'sm' }}
@@ -240,62 +253,98 @@
     </section>
 
     <!-- O mapa: as máquinas em pior estado, da mais grave para a menos. -->
-    <section class="bg-card rounded-xl border p-4">
-      <h2 class="text-ink-900 mb-1 text-sm font-semibold">Máquinas que precisam de atenção</h2>
-      <p class="text-ink-500 mb-3 text-xs">
-        Da mais grave para a menos. Alerta acontecendo agora pesa mais do que nota baixa parada.
-      </p>
+    <section class="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+      <div class="border-b border-border/80 px-6 py-4">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Máquinas que precisam de atenção</h2>
+        <p class="mt-0.5 text-xs text-neutral-400">
+          Da mais grave para a menos. Alerta acontecendo agora pesa mais do que nota baixa parada.
+        </p>
+      </div>
 
       {#if summary.worstMachines.length === 0}
-        <p class="flex items-center gap-2 text-sm text-emerald-700">
-          <PartyPopper class="size-4" aria-hidden="true" />
-          Nenhuma máquina apontada. O parque está em ordem.
-        </p>
+        <div class="p-6">
+          <p class="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+            <PartyPopper class="size-4" aria-hidden="true" />
+            Nenhuma máquina apontada. O parque está em ordem.
+          </p>
+        </div>
       {:else}
-        <ul class="flex flex-col divide-y">
-          {#each summary.worstMachines as machine (machine.computerId)}
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div class="min-w-0">
-                <p class="text-ink-900 text-sm font-semibold break-words">
-                  {machineLabelOf(machine)}
-                </p>
-                <p class="text-ink-500 text-xs">
-                  {machine.department ? departmentLabel(machine.department) : 'Sem departamento'}
-                  · {problemSummaryOf(machine)}
-                </p>
-              </div>
-              <div class="flex shrink-0 items-center gap-2">
-                <StatusBadge
-                  data={{ label: healthStatusLabel(machine.healthStatus) }}
-                  ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
-                />
-                <ActionButton
-                  data={{ label: 'Abrir ficha' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onOpenMachine(machine) }}
-                />
-              </div>
-            </li>
-          {/each}
-        </ul>
+        <Table class="min-w-[640px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Máquina</TableHead>
+              <TableHead>Diagnóstico / Alertas</TableHead>
+              <TableHead>Estado de saúde</TableHead>
+              <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {#each summary.worstMachines as machine (machine.computerId)}
+              <TableRow>
+                <TableCell>
+                  <p class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                    {machineLabelOf(machine)}
+                  </p>
+                  <p class="text-xs text-neutral-400">
+                    {machine.department ? departmentLabel(machine.department) : 'Sem departamento'}
+                  </p>
+                </TableCell>
+                <TableCell class="text-xs text-neutral-600 dark:text-neutral-300">
+                  {problemSummaryOf(machine)}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge
+                    data={{ label: healthStatusLabel(machine.healthStatus) }}
+                    ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
+                  />
+                </TableCell>
+                <TableCell class="text-right whitespace-nowrap">
+                  <TableActions>
+                    <ActionButton
+                      data={{ label: 'Abrir ficha' }}
+                      ui={{ variant: 'secondary', size: 'sm' }}
+                      actions={{ onClick: () => actions.onOpenMachine(machine) }}
+                    />
+                  </TableActions>
+                </TableCell>
+              </TableRow>
+            {/each}
+          </TableBody>
+          {#snippet footer()}
+            <span>Triagem automática por gravidade</span>
+            <span>{summary.worstMachines.length} máquina(s) com pendência</span>
+          {/snippet}
+        </Table>
       {/if}
     </section>
 
     <!-- O que serve para decidir, não para apagar incêndio. -->
     <div class="grid gap-4 lg:grid-cols-2">
-      <section class="bg-card rounded-xl border p-4">
-        <h2 class="text-ink-900 mb-2 text-sm font-semibold">Problemas por tipo</h2>
-        <ColumnChart
-          data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
-          ui={{ emptyLabel: 'Nenhum chamado no período.' }}
-        />
+      <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Problemas por tipo</h2>
+          <span class="text-[11px] text-neutral-400">Distribuição</span>
+        </div>
+        <!-- Altura fixa: o gráfico preenche o espaço que recebe, e sem uma caixa de altura de
+             verdade ele nasce com altura zero e os rótulos vazam por cima do que vem depois. -->
+        <div class="h-64">
+          <ColumnChart
+            data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
+            ui={{ emptyLabel: 'Nenhum chamado no período.' }}
+          />
+        </div>
       </section>
-      <section class="bg-card rounded-xl border p-4">
-        <h2 class="text-ink-900 mb-2 text-sm font-semibold">Quem mais pediu socorro</h2>
-        <ColumnChart
-          data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
-          ui={{ emptyLabel: 'Nenhum chamado no período.' }}
-        />
+      <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Quem mais pediu socorro</h2>
+          <span class="text-[11px] text-neutral-400">Volume</span>
+        </div>
+        <div class="h-64">
+          <ColumnChart
+            data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
+            ui={{ emptyLabel: 'Nenhum chamado no período.' }}
+          />
+        </div>
       </section>
     </div>
   {/if}

@@ -17,6 +17,9 @@
       value: string;
       placeholder?: string;
       maxLength?: number;
+      /** Pinta um `*` vermelho depois do rótulo. O texto do rótulo continua limpo, sem
+       * caractere solto — só CSS, não string. */
+      isRequired?: boolean;
     };
     ui?: { rows?: number; className?: string };
     state?: { error?: string | null; isDisabled?: boolean };
@@ -35,21 +38,30 @@
 <div class={cn('flex flex-col gap-1.5', ui?.className)}>
   <label for={inputId} class="text-ink-700 text-sm font-medium">
     {data.label}
+    {#if data.isRequired}
+      <span class="text-destructive" aria-hidden="true">*</span>
+    {/if}
   </label>
 
+  <!-- `bind:value` com getter/setter, e não `value={...}` + `oninput` — mesmo motivo do
+       `TextField`: se algum dia um `onChange` aqui rejeitar ou transformar o texto e o
+       resultado empatar com o valor anterior, só a comparação contra o valor VIVO do
+       elemento (o que `bind:value` faz) corrige o que o navegador já inseriu sozinho. -->
   <textarea
     id={inputId}
     name={data.name}
-    value={data.value}
+    bind:value={() => data.value, (value) => actions?.onChange?.(value)}
     rows={ui?.rows ?? 4}
     placeholder={data.placeholder}
     disabled={state?.isDisabled}
+    required={data.isRequired}
     aria-invalid={Boolean(error)}
     aria-describedby={error ? errorId : undefined}
-    oninput={(event) => actions?.onChange?.((event.target as HTMLTextAreaElement).value)}
     onblur={() => actions?.onBlur?.()}
     class={cn(
-      'bg-card text-foreground w-full resize-y rounded-lg border px-3 py-2.5 text-sm transition-colors',
+      /* `rounded-xl`, igual ao `TextField`, ao `DatePicker` e ao `ActionButton` — o raio
+         padrão de todo campo e botão da tela. */
+      'bg-card text-foreground w-full resize-y rounded-xl border px-3 py-2.5 text-sm transition-colors',
       'placeholder:text-ink-500 disabled:cursor-not-allowed disabled:opacity-60',
       error ? 'border-destructive' : 'border-input',
     )}

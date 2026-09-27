@@ -79,7 +79,7 @@
 <script lang="ts">
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
@@ -91,6 +91,8 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+
+  import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
 
   let { data, state: dialogState, actions }: TransferDialogProps = $props();
 
@@ -107,40 +109,47 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
   <DialogContent>
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>Transferir de departamento</DialogTitle>
-        <DialogDescription>
+    <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ArrowRightLeft class="size-4" aria-hidden="true" />
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">Transferir de departamento</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {machineLabelOf(data.computer)} · hoje em <strong>{currentPlaceOf(data.computer)}</strong>
         </DialogDescription>
       </DialogHeader>
 
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">Para onde vai</span>
-        <SelectField
-          data={{ value: data.toDepartment, options: data.departments }}
-          ui={{ ariaLabel: 'Para onde vai' }}
-          state={{ isDisabled: dialogState.isSubmitting }}
-          actions={{ onChange: actions.onDepartmentChange }}
-        />
-        {#if goingToShelf}
-          <span class="text-ink-500 text-xs">
-            A máquina volta a ser reserva: ela perde o responsável e passa a se chamar
-            "Reserva — {data.computer.name}".
-          </span>
-        {/if}
-      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">Para onde vai</span>
+          <OptionPicker
+            data={{ value: data.toDepartment, options: data.departments }}
+            ui={{ ariaLabel: 'Para onde vai', fullWidth: true }}
+            state={{ isDisabled: dialogState.isSubmitting }}
+            actions={{ onChange: actions.onDepartmentChange }}
+          />
+          {#if goingToShelf}
+            <span class="text-muted-foreground text-xs">
+              A máquina volta a ser reserva: ela perde o responsável e passa a se chamar
+              "Reserva — {data.computer.name}".
+            </span>
+          {/if}
+        </div>
 
-      <TextField
-        data={{
-          label: 'Quem levou',
-          name: 'responsible',
-          value: data.responsible,
-          placeholder: 'Quem acompanhou a mudança',
-        }}
-        state={{ isDisabled: dialogState.isSubmitting }}
-        actions={{ onChange: actions.onResponsibleChange }}
-      />
+        <TextField
+          data={{
+            label: 'Quem levou',
+            name: 'responsible',
+            value: data.responsible,
+            placeholder: 'Quem acompanhou a mudança',
+          }}
+          state={{ isDisabled: dialogState.isSubmitting }}
+          actions={{ onChange: actions.onResponsibleChange }}
+        />
+      </div>
 
       <TextAreaField
         data={{
@@ -183,12 +192,12 @@
               </div>
 
               {#if peripheral.destiny === 'station'}
-                <SelectField
+                <OptionPicker
                   data={{
                     value: peripheral.destinationComputerId,
                     options: [{ value: '', label: '— máquina que assume —' }, ...data.machines],
                   }}
-                  ui={{ ariaLabel: `Máquina que assume ${peripheral.label}` }}
+                  ui={{ ariaLabel: `Máquina que assume ${peripheral.label}`, fullWidth: true }}
                   state={{ isDisabled: dialogState.isSubmitting }}
                   actions={{
                     onChange: (value: string) =>

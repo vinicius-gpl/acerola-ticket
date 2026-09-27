@@ -68,6 +68,56 @@ describe('TextField', () => {
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  /* O `*` é decoração de CSS (`aria-hidden`): quem ouve a tela precisa do `required` de
+     verdade no campo, não de um caractere solto no meio do rótulo. */
+  it('marks the field as required, for assistive technology and for CSS', () => {
+    render(TextField, {
+      props: { data: { label: 'Seu nome', name: 'name', value: '', isRequired: true } },
+    });
+
+    expect(screen.getByLabelText(/seu nome/i)).toBeRequired();
+  });
+
+  it('does not mark a field as required unless asked', () => {
+    render(TextField, {
+      props: { data: { label: 'E-mail', name: 'email', value: '' } },
+    });
+
+    expect(screen.getByLabelText('E-mail')).not.toBeRequired();
+  });
+});
+
+describe('TextField as a controlled input (a parent that rejects or rewrites what was typed)', () => {
+  /* O bug de verdade: `value={data.value}` + `oninput` só devolve a prop pro elemento QUANDO
+     ELA MUDA. Uma letra rejeitada que resulta no MESMO valor de antes (a letra não entra em
+     lugar nenhum) não muda a prop — e o navegador já tinha inserido a letra sozinho antes do
+     evento chegar aqui. Sem comparar contra o valor VIVO do elemento (o que `bind:value`
+     faz), essa letra ficava visível no campo mesmo com o estado da aplicação limpo por
+     baixo — foi assim que "62abc999" virava "62999...abc" na tela do telefone do chamado. */
+  it('corrects the rendered value even when a rejected keystroke is a no-op for the app', async () => {
+    const user = userEvent.setup();
+    let value = '62';
+
+    function handleChange(next: string) {
+      value = next.replace(/\D/g, ''); // rejeita qualquer letra, como um campo de telefone faria
+      rendered.rerender({
+        data: { label: 'Telefone', name: 'phone', value },
+        actions: { onChange: handleChange },
+      });
+    }
+
+    const rendered = render(TextField, {
+      props: {
+        data: { label: 'Telefone', name: 'phone', value },
+        actions: { onChange: handleChange },
+      },
+    });
+
+    await user.type(screen.getByLabelText('Telefone'), 'x');
+
+    expect(screen.getByLabelText('Telefone')).toHaveValue('62');
+  });
 });
 
 describe('TextField as a date', () => {

@@ -1,5 +1,5 @@
 import { type Part } from '@template/shared/schemas/part.schema';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -78,9 +78,12 @@ describe('PartListView', () => {
   it('shows the part with its condition and what is on the shelf', () => {
     renderView();
 
-    expect(screen.getByText('SSD 240 GB Kingston')).toBeInTheDocument();
-    expect(screen.getByText('Nova')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
+    const table = screen.getByRole('table');
+
+    expect(within(table).getByText('SSD 240 GB Kingston')).toBeInTheDocument();
+    /* "Nova" também é o rótulo da pastilha de filtro de condição, fora da tabela. */
+    expect(within(table).getByText('Nova')).toBeInTheDocument();
+    expect(within(table).getByText('3')).toBeInTheDocument();
   });
 
   it('opens the entry form for that part', async () => {

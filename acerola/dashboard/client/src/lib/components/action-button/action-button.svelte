@@ -3,12 +3,12 @@
   import { tv } from 'tailwind-variants';
 
   export const actionButton = tv({
-    base: 'font-semibold',
+    base: 'align-middle font-semibold rounded-xl shadow-xs transition-all',
     variants: {
       variant: {
         primary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
-        secondary: 'border-input bg-card text-foreground hover:bg-accent border',
-        ghost: 'text-ink-700 hover:bg-accent hover:text-accent-foreground bg-transparent shadow-none',
+        secondary: 'border-border bg-card text-foreground hover:bg-accent/50 border',
+        ghost: 'text-foreground/80 hover:bg-accent hover:text-foreground bg-transparent shadow-none border border-transparent',
         danger: 'bg-red-600 text-white hover:bg-red-700',
       },
     },

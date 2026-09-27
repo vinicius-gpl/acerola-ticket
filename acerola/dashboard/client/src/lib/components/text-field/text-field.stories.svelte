@@ -46,6 +46,14 @@
   }}
 />
 
+<!-- O `*` vem de CSS (`data.isRequired`), nunca digitado dentro do rótulo. -->
+<Story
+  name="Required"
+  args={{
+    data: { label: 'Seu nome', name: 'name', value: '', isRequired: true },
+  }}
+/>
+
 <Story
   name="Disabled"
   args={{

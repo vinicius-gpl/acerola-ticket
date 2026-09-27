@@ -64,21 +64,16 @@
     };
   };
 
-  const TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os avisos' },
-    ...NETWORK_EVENT_TYPES.map((type) => ({
-      value: type,
-      label: NETWORK_EVENT_TYPE_LABELS[type],
-    })),
-  ];
+  const TYPE_FILTER_OPTIONS = NETWORK_EVENT_TYPES.map((type) => ({
+    value: type,
+    label: NETWORK_EVENT_TYPE_LABELS[type],
+  }));
 
-  const SEVERITY_FILTER_OPTIONS = [
-    { value: '', label: 'Qualquer gravidade' },
-    ...NETWORK_SEVERITIES.map((severity) => ({
-      value: severity,
-      label: NETWORK_SEVERITY_LABELS[severity],
-    })),
-  ];
+  const SEVERITY_FILTER_OPTIONS = NETWORK_SEVERITIES.map((severity) => ({
+    value: severity,
+    label: NETWORK_SEVERITY_LABELS[severity],
+    tone: networkSeverityTone(severity),
+  }));
 
   const PERIOD_OPTIONS = [7, 30, 90].map((days) => ({
     value: String(days),
@@ -112,11 +107,20 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableActions,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import { formatDateTime } from '$lib/utils/format-date';
 
   let { data, state: viewState, actions }: NetworkListViewProps = $props();
@@ -128,7 +132,7 @@
   <PageHeader
     data={{ title: 'Rede', description: 'Quedas e instabilidade do link de internet.' }}
   >
-    <SelectField
+    <OptionPicker
       data={{ value: String(data.filter.days), options: PERIOD_OPTIONS }}
       ui={{ ariaLabel: 'Período' }}
       actions={{ onChange: (value: string) => actions.onPeriodChange(Number(value)) }}
@@ -173,19 +177,21 @@
     <ErrorState data={{ title: 'Não consegui salvar', message: viewState.actionError }} />
   {/if}
 
-  <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-    <SelectField
-      data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-      ui={{ ariaLabel: 'Filtrar por tipo de aviso' }}
-      actions={{ onChange: (value: string) => actions.onTypeChange(value as NetworkEventType | '') }}
-    />
-    <SelectField
-      data={{ value: data.filter.severity, options: SEVERITY_FILTER_OPTIONS }}
-      ui={{ ariaLabel: 'Filtrar por gravidade' }}
-      actions={{
-        onChange: (value: string) => actions.onSeverityChange(value as NetworkSeverity | ''),
-      }}
-    />
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <OptionPicker
+        data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
+        ui={{ ariaLabel: 'Filtrar por tipo de aviso', allLabel: 'Todos os avisos' }}
+        actions={{ onChange: (value: string) => actions.onTypeChange(value as NetworkEventType | '') }}
+      />
+      <OptionPicker
+        data={{ value: data.filter.severity, options: SEVERITY_FILTER_OPTIONS }}
+        ui={{ ariaLabel: 'Filtrar por gravidade', allLabel: 'Qualquer gravidade' }}
+        actions={{
+          onChange: (value: string) => actions.onSeverityChange(value as NetworkSeverity | ''),
+        }}
+      />
+    </div>
     <label class="text-ink-700 flex items-center gap-2 text-sm">
       <input
         type="checkbox"
@@ -231,49 +237,49 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[820px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Quando</th>
-            <th scope="col" class="py-2 pr-3">O que houve</th>
-            <th scope="col" class="py-2 pr-3">Link</th>
-            <th scope="col" class="py-2 pr-3">Medidas</th>
-            <th scope="col" class="py-2 pr-3">Durou</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.events as event (event.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0 align-top">
-              <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                {formatDateTime(event.occurredAt)}
-              </td>
-              <td class="max-w-[320px] py-2 pr-3">
-                <div class="flex flex-wrap items-center gap-2">
-                  <StatusBadge
-                    data={{ label: networkSeverityLabel(event.severity) }}
-                    ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
-                  />
-                  <span class="text-ink-900 font-semibold break-words">
-                    {networkEventTypeLabel(event.type)}
-                  </span>
-                </div>
-                <span class="text-ink-500 block text-xs break-words">{event.title}</span>
-                {#if event.message}
-                  <span class="text-ink-500 block text-xs break-words">{event.message}</span>
-                {/if}
-              </td>
-              <td class="text-ink-700 py-2 pr-3 break-words">{event.linkName ?? '—'}</td>
-              <td class="text-ink-700 py-2 pr-3 whitespace-nowrap">{measuresOf(event) || '—'}</td>
-              <td class="py-2 pr-3">
-                {#if event.resolvedAt}
-                  <span class="text-ink-700">{durationLabelOf(event)}</span>
-                {:else}
-                  <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
-                {/if}
-              </td>
-              <td class="py-2 text-right whitespace-nowrap">
+    <Table class="min-w-[820px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Quando</TableHead>
+          <TableHead>O que houve</TableHead>
+          <TableHead>Link</TableHead>
+          <TableHead>Medidas</TableHead>
+          <TableHead>Durou</TableHead>
+          <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.events as event (event.id)}
+          <TableRow class="align-top">
+            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              {formatDateTime(event.occurredAt)}
+            </TableCell>
+            <TableCell class="max-w-[320px]">
+              <div class="flex flex-wrap items-center gap-2">
+                <StatusBadge
+                  data={{ label: networkSeverityLabel(event.severity) }}
+                  ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
+                />
+                <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                  {networkEventTypeLabel(event.type)}
+                </span>
+              </div>
+              <span class="text-neutral-400 block text-xs break-words">{event.title}</span>
+              {#if event.message}
+                <span class="text-neutral-500 block text-xs break-words">{event.message}</span>
+              {/if}
+            </TableCell>
+            <TableCell class="text-neutral-700 dark:text-neutral-200 break-words">{event.linkName ?? '—'}</TableCell>
+            <TableCell class="text-neutral-700 dark:text-neutral-200 whitespace-nowrap text-xs">{measuresOf(event) || '—'}</TableCell>
+            <TableCell>
+              {#if event.resolvedAt}
+                <span class="text-neutral-700 dark:text-neutral-200 text-xs">{durationLabelOf(event)}</span>
+              {:else}
+                <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
+              {/if}
+            </TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <TableActions>
                 {#if event.resolvedAt}
                   <ActionButton
                     data={{ label: 'Reabrir' }}
@@ -289,12 +295,16 @@
                     actions={{ onClick: () => actions.onResolveChange(event, true) }}
                   />
                 {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+              </TableActions>
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Monitoramento de instabilidade de rede e link</span>
+        <span>{data.events.length} evento(s)</span>
+      {/snippet}
+    </Table>
 
     <!-- Truncar calado é mentir sobre o tamanho do histórico. -->
     {#if viewState.isTruncated}

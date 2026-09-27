@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import TicketLookupCard from './ticket-lookup-card.svelte';
+import TicketLookupDrawer from './ticket-lookup-drawer.svelte';
 
 const ticket: PublicTicket = {
   id: 7,
@@ -19,20 +19,20 @@ const ticket: PublicTicket = {
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 
-const actions = { onProtocolChange: vi.fn(), onSearch: vi.fn() };
+const actions = { onProtocolChange: vi.fn(), onSearch: vi.fn(), onClose: vi.fn() };
 
-function setup(props: Partial<Parameters<typeof render>[1]> = {}) {
-  return render(TicketLookupCard, {
+function setup(props: Record<string, unknown> = {}) {
+  return render(TicketLookupDrawer, {
     props: {
       data: { protocol: '', ticket: null },
-      state: {},
+      state: { isOpen: true },
       actions,
-      ...(props as object),
+      ...props,
     },
   });
 }
 
-describe('TicketLookupCard', () => {
+describe('TicketLookupDrawer', () => {
   // feliz
   it('shows the ticket it was given, in words the requester understands', () => {
     setup({ data: { protocol: 'CH-0007', ticket } });
@@ -63,17 +63,29 @@ describe('TicketLookupCard', () => {
     );
   });
 
+  it('shows the AnyDesk number when the ticket has one', () => {
+    setup({ data: { protocol: 'CH-0007', ticket: { ...ticket, anydeskId: '111 222 333' } } });
+
+    expect(screen.getByText('111 222 333')).toBeInTheDocument();
+  });
+
   // triste
+  it('stays closed until asked to open', () => {
+    setup({ state: { isOpen: false } });
+
+    expect(screen.queryByText(/consultar chamado/i)).not.toBeInTheDocument();
+  });
+
   /* "Não encontrado" é resposta, não falha do site: vir em vermelho faria a pessoa achar
      que o sistema quebrou quando ela só digitou um número errado. */
   it('says nothing was found without dressing it up as a failure', () => {
-    setup({ data: { protocol: 'CH-9999', ticket: null }, state: { isNotFound: true } });
+    setup({ data: { protocol: 'CH-9999', ticket: null }, state: { isOpen: true, isNotFound: true } });
 
     expect(screen.getByText(/não encontrei nenhum chamado/i)).toBeInTheDocument();
   });
 
   it('explains why the button is off when the protocol cannot be read', () => {
-    setup({ data: { protocol: 'abc', ticket: null }, state: { isInvalid: true } });
+    setup({ data: { protocol: 'abc', ticket: null }, state: { isOpen: true, isInvalid: true } });
 
     expect(screen.getByText(/digite o número do protocolo/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /consultar/i })).toBeDisabled();
@@ -82,7 +94,7 @@ describe('TicketLookupCard', () => {
   it('shows a server failure as an error, unlike a ticket that does not exist', () => {
     setup({
       data: { protocol: 'CH-0007', ticket: null },
-      state: { error: 'Não consegui falar com o servidor.' },
+      state: { isOpen: true, error: 'Não consegui falar com o servidor.' },
     });
 
     expect(screen.getByText(/não consegui falar com o servidor/i)).toBeInTheDocument();

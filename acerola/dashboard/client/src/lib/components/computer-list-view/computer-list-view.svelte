@@ -72,18 +72,16 @@
     };
   };
 
-  const DEPARTMENT_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os departamentos' },
-    ...DEPARTMENTS.map((department) => ({
-      value: department,
-      label: DEPARTMENT_LABELS[department],
-    })),
-  ];
+  const DEPARTMENT_FILTER_OPTIONS = DEPARTMENTS.map((department) => ({
+    value: department,
+    label: DEPARTMENT_LABELS[department],
+  }));
 
-  const HEALTH_FILTER_OPTIONS = [
-    { value: '', label: 'Toda a saúde' },
-    ...HEALTH_STATUSES.map((status) => ({ value: status, label: HEALTH_STATUS_LABELS[status] })),
-  ];
+  const HEALTH_FILTER_OPTIONS = HEALTH_STATUSES.map((status) => ({
+    value: status,
+    label: HEALTH_STATUS_LABELS[status],
+    tone: healthStatusTone(status),
+  }));
 
   /**
    * O nome que a pessoa reconhece.
@@ -105,13 +103,22 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import {
+    Table,
+    TableActions,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import { formatTimeAgo } from '$lib/utils/format-machine';
 
   let { data, state, actions }: ComputerListViewProps = $props();
@@ -181,21 +188,23 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      <SelectField
-        data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por departamento' }}
-        actions={{
-          onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
-        }}
-      />
-      <SelectField
-        data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por saúde' }}
-        actions={{
-          onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
-        }}
-      />
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <OptionPicker
+          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+          actions={{
+            onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por saúde', allLabel: 'Toda a saúde' }}
+          actions={{
+            onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
+          }}
+        />
+      </div>
       <label class="text-ink-700 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -247,70 +256,74 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[760px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Máquina</th>
-            <th scope="col" class="py-2 pr-3">Responsável</th>
-            <th scope="col" class="py-2 pr-3">Saúde</th>
-            <th scope="col" class="py-2 pr-3">Situação</th>
-            <th scope="col" class="py-2 pr-3">Vista</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.computers as computer (computer.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0">
-              <td class="max-w-[260px] py-2 pr-3">
-                <span class="text-ink-900 font-semibold break-words">
-                  {displayNameOf(computer)}
-                </span>
-                <span class="text-ink-500 block text-xs break-words">{computer.name}</span>
-              </td>
-              <td class="max-w-[200px] py-2 pr-3">
-                <span class="text-ink-700 break-words">{computer.responsibleName ?? '—'}</span>
-                <span class="text-ink-500 block text-xs">
-                  {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
-                </span>
-              </td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: healthStatusLabel(computer.healthStatus) }}
-                  ui={{ tone: healthStatusTone(computer.healthStatus), size: 'sm' }}
-                />
-                <span class="text-ink-500 block text-xs tabular-nums">
-                  {computer.healthScore}/100
-                </span>
-              </td>
-              <td class="py-2 pr-3">
-                <!-- Arquivada e bloqueada vêm antes de online/offline: são decisões do TI, e
-                     explicam por que a máquina não está enviando nada. -->
-                {#if computer.isArchived}
-                  <StatusBadge data={{ label: 'Arquivada' }} ui={{ tone: 'neutral', size: 'sm' }} />
-                {:else if computer.isBlocked}
-                  <StatusBadge data={{ label: 'Bloqueada' }} ui={{ tone: 'danger', size: 'sm' }} />
-                {:else if computer.isOnline}
-                  <StatusBadge data={{ label: 'Online' }} ui={{ tone: 'success', size: 'sm' }} />
-                {:else}
-                  <StatusBadge data={{ label: 'Offline' }} ui={{ tone: 'neutral', size: 'sm' }} />
-                {/if}
-              </td>
-              <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                {formatTimeAgo(computer.lastSeenAt)}
-              </td>
-              <td class="py-2 text-right">
+    <Table class="min-w-[760px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead class="min-w-[240px]">Máquina</TableHead>
+          <TableHead class="min-w-[180px]">Responsável</TableHead>
+          <TableHead class="min-w-[120px]">Saúde</TableHead>
+          <TableHead class="min-w-[120px]">Situação</TableHead>
+          <TableHead class="min-w-[110px]">Vista</TableHead>
+          <TableHead class="min-w-[100px] text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.computers as computer (computer.id)}
+          <TableRow>
+            <TableCell class="max-w-[280px]">
+              <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+                {displayNameOf(computer)}
+              </span>
+              <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">{computer.name}</span>
+            </TableCell>
+            <TableCell class="max-w-[220px]">
+              <span class="block text-neutral-700 dark:text-neutral-200 break-words leading-snug">{computer.responsibleName ?? '—'}</span>
+              <span class="block text-xs text-neutral-400 mt-0.5">
+                {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
+              </span>
+            </TableCell>
+            <TableCell>
+              <StatusBadge
+                data={{ label: healthStatusLabel(computer.healthStatus) }}
+                ui={{ tone: healthStatusTone(computer.healthStatus), size: 'sm' }}
+              />
+              <span class="block text-xs text-neutral-400 tabular-nums">
+                {computer.healthScore}/100
+              </span>
+            </TableCell>
+            <TableCell>
+              <!-- Arquivada e bloqueada vêm antes de online/offline: são decisões do TI, e
+                   explicam por que a máquina não está enviando nada. -->
+              {#if computer.isArchived}
+                <StatusBadge data={{ label: 'Arquivada' }} ui={{ tone: 'neutral', size: 'sm' }} />
+              {:else if computer.isBlocked}
+                <StatusBadge data={{ label: 'Bloqueada' }} ui={{ tone: 'danger', size: 'sm' }} />
+              {:else if computer.isOnline}
+                <StatusBadge data={{ label: 'Online' }} ui={{ tone: 'success', size: 'sm' }} />
+              {:else}
+                <StatusBadge data={{ label: 'Offline' }} ui={{ tone: 'neutral', size: 'sm' }} />
+              {/if}
+            </TableCell>
+            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              {formatTimeAgo(computer.lastSeenAt)}
+            </TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <TableActions>
                 <ActionButton
                   data={{ label: 'Ver ficha' }}
                   ui={{ variant: 'secondary', size: 'sm' }}
                   actions={{ onClick: () => actions.onOpen(computer) }}
                 />
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+              </TableActions>
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Parque de computadores sincronizado com o agente</span>
+        <span>{data.computers.length} computador(es) listado(s)</span>
+      {/snippet}
+    </Table>
 
     <!-- Truncar calado é mentir sobre o tamanho do parque. -->
     {#if state.isTruncated}

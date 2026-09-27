@@ -4,12 +4,10 @@
   /**
    * O número que se lê de relance, no alto do painel.
    *
-   * O `tone` não é enfeite: é o que permite varrer a fileira de cartões sem ler rótulo por
-   * rótulo — vermelho puxa o olho para o que está vencido. Com ícone, o quadrado sólido
-   * substitui a barra lateral; as duas juntas seriam a mesma informação dita duas vezes.
-   *
-   * O `hint` existe para número que EXCLUI algo ("exclui 1.067 arquivados"). Sem ele, dois
-   * painéis contando a mesma coisa de formas diferentes discordam, e ninguém descobre por quê.
+   * Quando o cartão tem um tom (danger, info, success, brand, warning), ele ganha o fundo
+   * sólido da cor correspondente sem borda (bg-rose-100, bg-sky-100, etc.) no espírito
+   * dos cards de dashboard modernos do VibePrompts. Sem tom escolhido (neutral), ele
+   * permanece neutro com borda padrão.
    */
   export type StatCardTone = 'brand' | 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -28,26 +26,36 @@
     state?: { isLoading?: boolean };
   };
 
-  const TONE_BAR: Record<StatCardTone, string> = {
-    brand: 'bg-primary',
-    neutral: 'bg-ink-300',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-rose-500',
-    info: 'bg-sky-500',
+  /** O fundo do cartão inteiro — quando colorido, não tem borda; quando neutro, usa bg-card com borda */
+  const TONE_CARD: Record<StatCardTone, string> = {
+    brand: 'bg-purple-100 text-purple-950 dark:bg-purple-950 dark:text-purple-100',
+    neutral: 'bg-card border-border border text-card-foreground',
+    success: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100',
+    warning: 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100',
+    danger: 'bg-rose-100 text-rose-950 dark:bg-rose-950 dark:text-rose-100',
+    info: 'bg-sky-100 text-sky-950 dark:bg-sky-950 dark:text-sky-100',
+  };
+
+  const TONE_LABEL: Record<StatCardTone, string> = {
+    brand: 'text-purple-800 dark:text-purple-300',
+    neutral: 'text-ink-500',
+    success: 'text-emerald-800 dark:text-emerald-300',
+    warning: 'text-amber-800 dark:text-amber-300',
+    danger: 'text-rose-800 dark:text-rose-300',
+    info: 'text-sky-800 dark:text-sky-300',
   };
 
   const TONE_VALUE: Record<StatCardTone, string> = {
-    brand: 'text-primary',
+    brand: 'text-purple-950 dark:text-purple-50',
     neutral: 'text-ink-900',
-    success: 'text-emerald-600',
-    warning: 'text-amber-600',
-    danger: 'text-rose-600',
-    info: 'text-sky-600',
+    success: 'text-emerald-950 dark:text-emerald-50',
+    warning: 'text-amber-950 dark:text-amber-50',
+    danger: 'text-rose-950 dark:text-rose-50',
+    info: 'text-sky-950 dark:text-sky-50',
   };
 
   const TONE_ICON: Record<StatCardTone, string> = {
-    brand: 'bg-primary text-primary-foreground',
+    brand: 'bg-purple-600 text-white',
     neutral: 'bg-ink-700 text-white',
     success: 'bg-emerald-600 text-white',
     warning: 'bg-amber-600 text-white',
@@ -68,39 +76,43 @@
 
 <div
   class={cn(
-    'border-ink-300 bg-ink-100/50 relative overflow-hidden rounded-lg border py-4 pr-4 pl-5',
-    ui?.className
+    'rounded-xl py-4 pr-4 pl-5 transition-all shadow-xs',
+    TONE_CARD[tone],
+    ui?.className,
   )}
 >
   {#if Icon}
-    <span
-      class={cn('mb-3 flex size-9 items-center justify-center rounded-lg', TONE_ICON[tone])}
-    >
-      <Icon size={16} aria-hidden="true" />
-    </span>
+    <div class="mb-2 flex items-center gap-2.5">
+      <span class={cn('flex size-8 shrink-0 items-center justify-center rounded-md', TONE_ICON[tone])}>
+        <Icon size={15} aria-hidden="true" />
+      </span>
+      <p class={cn('text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
+        {data.label}
+      </p>
+    </div>
   {:else}
-    <span aria-hidden="true" class={cn('absolute inset-y-0 left-0 w-1', TONE_BAR[tone])} />
+    <p class={cn('mb-1 text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
+      {data.label}
+    </p>
   {/if}
-
-  <p class="text-ink-500 text-[11px] font-semibold tracking-wider uppercase">
-    {data.label}
-  </p>
 
   {#if state?.isLoading}
     <Skeleton class="mt-1 h-8 w-20" />
   {:else}
-    <p
-      class={cn(
-        'mt-0.5 font-bold tabular-nums',
-        ui?.size === 'lg' ? 'text-4xl' : 'text-2xl',
-        TONE_VALUE[tone]
-      )}
-    >
-      {data.value}
-    </p>
-  {/if}
+    <div class="flex flex-wrap items-baseline gap-x-2">
+      <p
+        class={cn(
+          'font-bold tabular-nums',
+          ui?.size === 'lg' ? 'text-4xl' : 'text-3xl font-semibold tracking-tight',
+          TONE_VALUE[tone],
+        )}
+      >
+        {data.value}
+      </p>
 
-  {#if data.hint}
-    <p class="text-ink-500 mt-1 text-[11px]">{data.hint}</p>
+      {#if data.hint}
+        <p class={cn('text-xs mt-0.5', TONE_LABEL[tone])}>{data.hint}</p>
+      {/if}
+    </div>
   {/if}
 </div>

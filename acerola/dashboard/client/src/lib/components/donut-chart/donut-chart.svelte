@@ -113,6 +113,20 @@
   let tooltipX = $state(0);
   let tooltipY = $state(0);
 
+  let containerEl: HTMLDivElement | undefined = $state();
+
+  function updateTooltip(slice: ChartSlice, e: MouseEvent) {
+    tooltipSlice = slice;
+    if (containerEl) {
+      const rect = containerEl.getBoundingClientRect();
+      tooltipX = e.clientX - rect.left;
+      tooltipY = e.clientY - rect.top;
+    } else {
+      tooltipX = e.offsetX;
+      tooltipY = e.offsetY;
+    }
+  }
+
   const total = $derived(data.slices.reduce((s, sl) => s + sl.value, 0));
   const colors = $derived(data.slices.map((sl, i) => colorOfSlice(sl.label, i)));
   const arcs = $derived(buildArcs(data.slices, colors));
@@ -125,7 +139,7 @@
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}
   </p>
 {:else}
-  <div class="flex h-full items-center gap-4">
+  <div bind:this={containerEl} class="relative flex h-full items-center gap-4">
     <!-- Quadrado próprio para a rosca: sem ele, a legenda ao lado empurra o centro do
          anel para fora do meio visual do cartão, e o total sobreposto fica desalinhado. -->
     <div class="relative aspect-square h-full shrink-0">
@@ -141,11 +155,8 @@
             aria-label="{arc.slice.label}: {arc.slice.value}"
             onclick={() => actions?.onSelect?.(arc.slice.label)}
             onkeydown={(e) => e.key === 'Enter' && actions?.onSelect?.(arc.slice.label)}
-            onmouseenter={(e) => {
-              tooltipSlice = arc.slice;
-              tooltipX = e.clientX;
-              tooltipY = e.clientY;
-            }}
+            onmouseenter={(e) => updateTooltip(arc.slice, e)}
+            onmousemove={(e) => updateTooltip(arc.slice, e)}
             onmouseleave={() => (tooltipSlice = null)}
           />
 
@@ -224,11 +235,11 @@
     <!-- Tooltip -->
     {#if tooltipSlice}
       <div
-        class="bg-card pointer-events-none fixed z-50 rounded-xl px-3 py-2.5 text-xs shadow-lg ring-1 ring-black/5"
-        style="left: {tooltipX + 12}px; top: {tooltipY - 8}px;"
+        class="bg-popover text-popover-foreground pointer-events-none absolute z-50 rounded-xl border border-border px-3 py-2 text-xs shadow-lg"
+        style="left: {Math.max(8, tooltipX + 12)}px; top: {Math.max(8, tooltipY - 38)}px;"
       >
-        <p class="font-semibold">{tooltipSlice.label}</p>
-        <p class="text-muted-foreground">{data.seriesLabel}: {tooltipSlice.value}</p>
+        <p class="font-semibold text-neutral-900 dark:text-neutral-100">{tooltipSlice.label}</p>
+        <p class="text-neutral-500 dark:text-neutral-400">{data.seriesLabel}: <span class="font-medium text-neutral-900 dark:text-neutral-100">{tooltipSlice.value}</span></p>
       </div>
     {/if}
   </div>

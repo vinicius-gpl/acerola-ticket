@@ -5,4 +5,5 @@ export { default as TableFooter } from './table-footer.svelte';
 export { default as TableHead } from './table-head.svelte';
 export { default as TableRow } from './table-row.svelte';
 export { default as TableCell } from './table-cell.svelte';
+export { default as TableActions } from './table-actions.svelte';
 export { default as TableCaption } from './table-caption.svelte';

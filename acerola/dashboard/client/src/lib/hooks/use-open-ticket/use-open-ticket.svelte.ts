@@ -118,7 +118,14 @@ export function useOpenTicketModel(): OpenTicketModel {
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
-      onBlur: (field) => void form.validateField(field, 'change'),
+      /* `validateField` só marca o campo como "tocado" quando existe um `form.Field` montado
+         — e esses hooks nunca montam um, só chamam `setFieldValue`/`validateField` direto.
+         Sem marcar aqui, o erro nunca aparecia ao SAIR do campo, só depois de um envio (ver
+         `toFieldState`, em form-projection.svelte.ts). */
+      onBlur: (field) => {
+        form.setFieldMeta(field, (prev) => ({ ...prev, isTouched: true }));
+        void form.validateField(field, 'change');
+      },
       onNotifyChange: (notify) => form.setFieldValue('notifyWhatsapp', notify),
       onScreenshotChange: (file) => (screenshot = file),
       onSubmit: () => void form.handleSubmit(),
@@ -140,6 +147,6 @@ function buildNotice(ticket: Ticket): string | null {
 
   return buildWhatsAppLink(
     ticket.contactPhone,
-    `Protocolo do meu chamado no Grupo Azuos: ${ticket.protocol}. Guarde este número para acompanhar.`,
+    `Protocolo do meu chamado: ${ticket.protocol}. Guarde este número para acompanhar.`,
   );
 }

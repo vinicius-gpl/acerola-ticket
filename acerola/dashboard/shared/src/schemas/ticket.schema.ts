@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { anydeskFormSchema, anydeskSchema } from '../domain/anydesk.util';
+import { contactPhoneSchema } from '../domain/phone.util';
 import { TICKET_DEPARTMENTS, TICKET_PROBLEM_TYPES } from '../domain/ticket-catalog.util';
 import {
   DEFAULT_TICKET_PRIORITY,
@@ -18,13 +20,11 @@ import { reportFormatSchema } from './report.schema';
  */
 export const REQUESTER_NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 5000;
-export const ANYDESK_MAX_LENGTH = 60;
-export const CONTACT_PHONE_MAX_LENGTH = 40;
 export const ASSIGNEE_MAX_LENGTH = 200;
 export const SOLUTION_MAX_LENGTH = 5000;
 
-/** Menos que isto não é telefone com DDD — é engano de digitação. */
-const MIN_PHONE_DIGITS = 10;
+export { CONTACT_PHONE_MAX_LENGTH } from '../domain/phone.util';
+export { ANYDESK_MIN_DIGITS, ANYDESK_MAX_DIGITS } from '../domain/anydesk.util';
 
 /**
  * A mensagem de lista fechada, em português.
@@ -56,20 +56,6 @@ const descriptionSchema = z
   .min(1, 'Descreva o problema')
   .max(DESCRIPTION_MAX_LENGTH, `A descrição pode ter até ${DESCRIPTION_MAX_LENGTH} caracteres`);
 
-/**
- * O telefone é exigido porque é como o TI retorna quando o chamado precisa de conversa. A
- * contagem ignora parênteses, traço e espaço — senão quem digita bonito seria recusado e
- * quem digita tudo junto passaria.
- */
-const contactPhoneSchema = z
-  .string({ required_error: 'Informe seu WhatsApp com DDD' })
-  .trim()
-  .max(CONTACT_PHONE_MAX_LENGTH, 'Esse telefone é longo demais')
-  .refine(
-    (value) => value.replace(/\D/g, '').length >= MIN_PHONE_DIGITS,
-    'Informe o WhatsApp com DDD',
-  );
-
 /** Texto opcional: vazio vira nulo, para a busca não tratar "" e nulo como coisas diferentes. */
 const optionalText = (max: number, tooLong: string) =>
   z
@@ -78,11 +64,6 @@ const optionalText = (max: number, tooLong: string) =>
     .max(max, tooLong)
     .transform((value) => (value === '' ? null : value))
     .nullable();
-
-const anydeskSchema = optionalText(
-  ANYDESK_MAX_LENGTH,
-  `O número do AnyDesk pode ter até ${ANYDESK_MAX_LENGTH} caracteres`,
-);
 
 const assigneeSchema = optionalText(
   ASSIGNEE_MAX_LENGTH,
@@ -190,9 +171,7 @@ export const ticketFormSchema = z.object({
   requesterName: requesterNameSchema,
   department: ticketDepartmentSchema,
   problemType: ticketProblemTypeSchema,
-  anydeskId: z
-    .string()
-    .max(ANYDESK_MAX_LENGTH, `O número do AnyDesk pode ter até ${ANYDESK_MAX_LENGTH} caracteres`),
+  anydeskId: anydeskFormSchema,
   priority: ticketPrioritySchema,
   contactPhone: contactPhoneSchema,
   notifyWhatsapp: z.boolean(),

@@ -3,6 +3,7 @@
     DISPOSAL_TYPES,
     DISPOSAL_TYPE_LABELS,
     disposalTypeHint,
+    disposalTypeTone,
     type DisposalType,
   } from '@template/shared/domain/disposal.util';
   import { DISPOSAL_REASON_MAX_LENGTH } from '@template/shared/schemas/computer.schema';
@@ -25,9 +26,15 @@
     };
   };
 
+  /**
+   * A pastilha mostra só o nome — a explicação do que ele significa vai numa legenda
+   * embaixo. O nome mais o motivo juntos ("Com defeito — ainda rende peça...") era comprido
+   * demais para caber numa pastilha, o formato pensado pra uma palavra ou duas.
+   */
   const TYPE_OPTIONS = DISPOSAL_TYPES.map((type) => ({
     value: type,
-    label: `${DISPOSAL_TYPE_LABELS[type]} — ${disposalTypeHint(type)}`,
+    label: DISPOSAL_TYPE_LABELS[type],
+    tone: disposalTypeTone(type),
   }));
 </script>
 
@@ -42,8 +49,10 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
+
+  import Trash2 from '@lucide/svelte/icons/trash-2';
 
   let { data, state: dialogState, actions }: ComputerDisposalDialogProps = $props();
 
@@ -72,9 +81,14 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onCancel())}
 >
   <DialogContent showCloseButton={false}>
-    <DialogHeader>
-      <DialogTitle>Descartar esta máquina?</DialogTitle>
-      <DialogDescription>
+    <DialogHeader class="gap-1.5">
+      <div class="flex items-center gap-2.5">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+          <Trash2 class="size-4" aria-hidden="true" />
+        </span>
+        <DialogTitle class="text-lg font-semibold tracking-tight">Descartar esta máquina?</DialogTitle>
+      </div>
+      <DialogDescription class="text-xs text-muted-foreground">
         {data.computerName} sai das listas do dia a dia e vai para o Descarte. Nada é apagado: o
         histórico, as manutenções e as peças dela continuam salvos, e ela pode voltar depois.
       </DialogDescription>
@@ -82,12 +96,13 @@
 
     <div class="flex flex-col gap-1.5">
       <span class="text-ink-700 text-sm font-medium">Tipo de descarte</span>
-      <SelectField
+      <OptionPicker
         data={{ value: type, options: TYPE_OPTIONS }}
-        ui={{ ariaLabel: 'Tipo de descarte' }}
+        ui={{ ariaLabel: 'Tipo de descarte', fullWidth: true }}
         state={{ isDisabled: dialogState?.isConfirming }}
         actions={{ onChange: (value: string) => (type = value as DisposalType) }}
       />
+      <span class="text-muted-foreground text-xs">{disposalTypeHint(type)}</span>
     </div>
 
     <TextAreaField

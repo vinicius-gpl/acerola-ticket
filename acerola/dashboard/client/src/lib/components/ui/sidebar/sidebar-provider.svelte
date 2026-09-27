@@ -1,72 +1,53 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import type { HTMLAttributes } from 'svelte/elements';
-  import { cn } from '$lib/utils/cn';
-  import { useIsMobile } from '$lib/hooks/use-mobile.svelte.ts';
-  import { TooltipProvider } from '$lib/components/ui/tooltip';
-  import { SidebarState, setSidebar } from './context.svelte.ts';
+	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+	import { cn, type WithElementRef } from "$lib/utils/cn.js";
+	import {
+		SIDEBAR_COOKIE_MAX_AGE,
+		SIDEBAR_COOKIE_NAME,
+		SIDEBAR_WIDTH,
+		SIDEBAR_WIDTH_ICON,
+	} from "./constants.js";
+	import { setSidebar } from "./context.svelte.js";
+	import type { HTMLAttributes } from "svelte/elements";
 
-  const SIDEBAR_WIDTH = '16rem';
-  const SIDEBAR_WIDTH_ICON = '3rem';
-  const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
+	let {
+		ref = $bindable(null),
+		open = $bindable(true),
+		onOpenChange = () => {},
+		class: className,
+		style,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+		open?: boolean;
+		onOpenChange?: (open: boolean) => void;
+	} = $props();
 
-  type Props = HTMLAttributes<HTMLDivElement> & {
-    defaultOpen?: boolean;
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
-    children?: Snippet;
-  };
+	const sidebar = setSidebar({
+		open: () => open,
+		setOpen: (value: boolean) => {
+			open = value;
+			onOpenChange(value);
 
-  let {
-    defaultOpen = true,
-    open = $bindable(undefined),
-    onOpenChange,
-    class: className,
-    style,
-    children,
-    ...restProps
-  }: Props = $props();
-
-  const isMobileState = useIsMobile();
-  const sidebar = new SidebarState(open ?? defaultOpen, isMobileState.current);
-  setSidebar(sidebar);
-
-  $effect(() => {
-    sidebar.isMobile = isMobileState.current;
-  });
-
-  $effect(() => {
-    if (open !== undefined) {
-      sidebar.open = open;
-    }
-  });
-
-  $effect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-        (event.metaKey || event.ctrlKey)
-      ) {
-        event.preventDefault();
-        sidebar.toggleSidebar();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+			// This sets the cookie to keep the sidebar state.
+			document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+		},
+	});
 </script>
 
-<TooltipProvider delayDuration={0}>
-  <div
-    data-slot="sidebar-wrapper"
-    style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style ?? ''}"
-    class={cn(
-      'group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar',
-      className
-    )}
-    {...restProps}
-  >
-    {@render children?.()}
-  </div>
-</TooltipProvider>
+<svelte:window onkeydown={sidebar.handleShortcutKeydown} />
+
+<Tooltip.Provider delayDuration={0}>
+	<div
+		data-slot="sidebar-wrapper"
+		style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style}"
+		class={cn(
+			"group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
+			className
+		)}
+		bind:this={ref}
+		{...restProps}
+	>
+		{@render children?.()}
+	</div>
+</Tooltip.Provider>

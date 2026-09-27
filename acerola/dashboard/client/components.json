@@ -1,6 +1,6 @@
 {
   "$schema": "https://shadcn-svelte.com/schema.json",
-  "style": "default",
+  "style": "nova",
   "tailwind": {
     "config": "",
     "css": "src/lib/theme/tokens.css",
