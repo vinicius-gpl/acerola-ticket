@@ -1,9 +1,8 @@
 // Package tray roda a presença do agente na bandeja do Windows. Clique
 // esquerdo no ícone abre a popup (a "telinha" da própria janela Wails);
-// clique direito mostra o menu nativo de texto (Configurar chave, Abrir
-// Dashboard, Sair) — o systray já cai automaticamente no menu quando não há um
-// handler de clique direito registrado, então não precisamos montar isso na
-// mão.
+// clique direito mostra o menu nativo de texto (Abrir Dashboard, Sair) — o
+// systray já cai automaticamente no menu quando não há um handler de clique
+// direito registrado, então não precisamos montar isso na mão.
 package tray
 
 import (
@@ -48,35 +47,18 @@ func onReady(callbacks Callbacks) {
 		callbacks.ShowPopup()
 	})
 
-	/* Esta janela também entra no menu, e não só no clique esquerdo: em algumas
-	   máquinas o clique no ícone não chega até aqui (a bandeja escondida do
-	   Windows, por exemplo, engole o toque). A entrada leva o nome do motivo de
-	   alguém abri-la numa máquina recém-instalada: colar a chave. */
-	popupItem := systray.AddMenuItem("Configurar chave", "Abre a tela onde se cola a chave desta máquina")
 	dashboardItem := systray.AddMenuItem("Abrir Dashboard", "Abre o painel completo")
-	systray.AddSeparator()
 	quitItem := systray.AddMenuItem("Sair", "Encerra o agente")
 
-	go watchMenu(menuItems{popup: popupItem, dashboard: dashboardItem, quit: quitItem}, callbacks)
+	go watchMenu(dashboardItem, quitItem, callbacks)
 }
 
-// menuItems são as entradas do menu do botão direito. Agrupadas num struct
-// porque três parâmetros do mesmo tipo em sequência é um convite a trocar a
-// ordem sem o compilador reclamar.
-type menuItems struct {
-	popup     *systray.MenuItem
-	dashboard *systray.MenuItem
-	quit      *systray.MenuItem
-}
-
-func watchMenu(items menuItems, callbacks Callbacks) {
+func watchMenu(dashboardItem, quitItem *systray.MenuItem, callbacks Callbacks) {
 	for {
 		select {
-		case <-items.popup.ClickedCh:
-			callbacks.ShowPopup()
-		case <-items.dashboard.ClickedCh:
+		case <-dashboardItem.ClickedCh:
 			callbacks.ShowDashboard()
-		case <-items.quit.ClickedCh:
+		case <-quitItem.ClickedCh:
 			callbacks.Quit()
 			return
 		}

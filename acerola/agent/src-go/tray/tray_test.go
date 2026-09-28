@@ -34,51 +34,45 @@ func TestCallbacksInvocationHappyPath(testingContext *testing.T) {
 	}
 }
 
-// newMenuItems monta as entradas do menu sem bandeja nenhuma: só os canais de
-// clique, que é o que watchMenu consome.
-func newMenuItems() menuItems {
-	return menuItems{
-		popup:     &systray.MenuItem{ClickedCh: make(chan struct{}, 1)},
-		dashboard: &systray.MenuItem{ClickedCh: make(chan struct{}, 1)},
-		quit:      &systray.MenuItem{ClickedCh: make(chan struct{}, 1)},
-	}
+// newClickChannels monta as entradas do menu sem bandeja nenhuma: só os canais
+// de clique, que é o que watchMenu consome.
+func newClickChannels() (dashboard, quit *systray.MenuItem) {
+	return &systray.MenuItem{ClickedCh: make(chan struct{}, 1)},
+		&systray.MenuItem{ClickedCh: make(chan struct{}, 1)}
 }
 
 func TestWatchMenuRoutesEachItemToItsAction(testingContext *testing.T) {
 	// feliz: cada entrada do menu chama a ação dela, e não a da vizinha
-	items := newMenuItems()
-	opened := make(chan string, 2)
+	dashboard, quit := newClickChannels()
+	done := make(chan string, 2)
 
-	go watchMenu(items, Callbacks{
-		ShowPopup:     func() { opened <- "popup" },
-		ShowDashboard: func() { opened <- "dashboard" },
-		Quit:          func() { opened <- "quit" },
+	go watchMenu(dashboard, quit, Callbacks{
+		ShowPopup:     func() { done <- "popup" },
+		ShowDashboard: func() { done <- "dashboard" },
+		Quit:          func() { done <- "quit" },
 	})
 
-	items.popup.ClickedCh <- struct{}{}
-	expectOpened(testingContext, opened, "popup")
-
-	items.dashboard.ClickedCh <- struct{}{}
-	expectOpened(testingContext, opened, "dashboard")
+	dashboard.ClickedCh <- struct{}{}
+	expectDone(testingContext, done, "dashboard")
 }
 
 func TestWatchMenuStopsAfterQuit(testingContext *testing.T) {
 	// triste: depois de Sair, ninguém continua esperando clique de janela
-	items := newMenuItems()
-	opened := make(chan string, 2)
+	dashboard, quit := newClickChannels()
+	done := make(chan string, 2)
 	finished := make(chan struct{})
 
 	go func() {
-		watchMenu(items, Callbacks{
-			ShowPopup:     func() { opened <- "popup" },
-			ShowDashboard: func() { opened <- "dashboard" },
-			Quit:          func() { opened <- "quit" },
+		watchMenu(dashboard, quit, Callbacks{
+			ShowPopup:     func() { done <- "popup" },
+			ShowDashboard: func() { done <- "dashboard" },
+			Quit:          func() { done <- "quit" },
 		})
 		close(finished)
 	}()
 
-	items.quit.ClickedCh <- struct{}{}
-	expectOpened(testingContext, opened, "quit")
+	quit.ClickedCh <- struct{}{}
+	expectDone(testingContext, done, "quit")
 
 	select {
 	case <-finished:
@@ -87,11 +81,11 @@ func TestWatchMenuStopsAfterQuit(testingContext *testing.T) {
 	}
 }
 
-func expectOpened(testingContext *testing.T, opened <-chan string, expected string) {
+func expectDone(testingContext *testing.T, done <-chan string, expected string) {
 	testingContext.Helper()
 
 	select {
-	case got := <-opened:
+	case got := <-done:
 		if got != expected {
 			testingContext.Errorf("esperava %q, veio %q", expected, got)
 		}
