@@ -4,6 +4,7 @@
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
+	import AcerolaReportingCard from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
 	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 	import AcerolaTooltip from '$lib/components/acerola-tooltip/acerola-tooltip.svelte';
@@ -13,20 +14,15 @@
 	import MonitorIcon from '@lucide/svelte/icons/monitor';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { useMetrics } from '$lib/metrics/store.svelte';
+	import { useReporting } from '$lib/reporting/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
 	import { HideWindow } from '../../../wailsjs/go/main/App';
 	import { EventsOn } from '../../../wailsjs/runtime/runtime';
 
 	const metrics = useMetrics();
+	const reporting = useReporting();
 
-	// "Fecha ao clicar fora": quando a janela perde o foco (blur), deve fechar imediatamente.
-	// Porém, nos primeiros milissegundos após o Windows exibir a janela (especialmente ao abrir
-	// a partir de outro monitor), o SO e o WebView2 podem disparar um blur transitório durante
-	// a troca de foco do primeiro plano. Para não "abrir e fechar" instantaneamente, usamos uma
-	// janela de tolerância de 200ms: se um blur ocorrer nesse intervalo, agendamos uma verificação;
-	// se a janela de fato continuar sem foco ao término da transição, fechamos. Qualquer perda de foco
-	// subsequente fecha a popup imediatamente.
 	const STABILIZATION_MS = 200;
 	let shownAt = 0;
 	let pendingBlurTimer: ReturnType<typeof setTimeout> | null = null;
@@ -92,7 +88,12 @@
 		window.addEventListener('pointerdown', onFocus);
 		window.addEventListener('keydown', onKeyDown);
 
+		/* A conexão muda sozinha (o painel caiu, a rede voltou, o TI desbloqueou),
+		   e só quem pergunta descobre — o Go não empurra evento para esta tela. */
+		const unwatchReporting = reporting.watch();
+
 		return () => {
+			unwatchReporting();
 			cancelPendingBlur();
 			unsubChange();
 			unsubShown();
@@ -358,6 +359,12 @@
 						</div>
 					</div>
 				</AcerolaCard>
+
+				<AcerolaReportingCard
+					data={reporting.card}
+					state={reporting.state}
+					events={{ onSave: reporting.save }}
+				/>
 			</div>
 		{:else}
 			<div

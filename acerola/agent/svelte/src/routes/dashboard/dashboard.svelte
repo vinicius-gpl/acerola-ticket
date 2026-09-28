@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import AcerolaBadge from '$lib/components/acerola-badge/acerola-badge.svelte';
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
 	import AcerolaProcessTable from '$lib/components/acerola-process-table/acerola-process-table.svelte';
+	import AcerolaReportingCard from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
 	import AcerolaProcessDrawer from '$lib/components/acerola-process-drawer/acerola-process-drawer.svelte';
 	import AcerolaPopover from '$lib/components/acerola-popover/acerola-popover.svelte';
 	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
@@ -25,6 +27,7 @@
 	import XIcon from '@lucide/svelte/icons/x';
 
 	import { useMetrics } from '$lib/metrics/store.svelte';
+	import { useReporting } from '$lib/reporting/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
 	import { cn } from '$lib/utils/cn';
@@ -32,6 +35,11 @@
 	import { HideWindow } from '../../../wailsjs/go/main/App';
 
 	const metrics = useMetrics();
+	const reporting = useReporting();
+
+	/* A conexão com o painel muda sozinha (o painel caiu, a rede voltou, o TI
+	   desbloqueou), e só quem pergunta descobre. */
+	onMount(() => reporting.watch());
 
 	type DashboardTab = 'overview' | 'queue' | 'system';
 	let activeTab = $state<DashboardTab>('overview');
@@ -412,14 +420,17 @@
 				<!-- Camada 3: Tabela VibePrompts Cost Explorer + Card de Inventário -->
 				<section class="mt-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
 					<!-- Tabela de Processos (2 colunas) -->
-					<div class="h-full flex flex-col lg:col-span-2">
+					<div class="flex h-full flex-col lg:col-span-2">
 						<AcerolaProcessTable data={{ processes: snap.processes }} ui={{ class: 'h-full' }} />
 					</div>
 
 					<!-- Card de Inventário do Sistema (1 coluna) -->
-					<div class="h-full flex flex-col">
-						<AcerolaCard data={{ title: 'Inventário da Estação' }} ui={{ class: 'h-full p-4 sm:p-5' }}>
-							<dl class="flex flex-col justify-between flex-1 gap-2 text-xs">
+					<div class="flex h-full flex-col">
+						<AcerolaCard
+							data={{ title: 'Inventário da Estação' }}
+							ui={{ class: 'h-full p-4 sm:p-5' }}
+						>
+							<dl class="flex flex-1 flex-col justify-between gap-2 text-xs">
 								<div class="border-border/40 flex items-center justify-between border-b pb-1.5">
 									<dt class="text-muted-foreground">Hostname</dt>
 									<dd class="text-foreground font-medium">{snap.host.hostname}</dd>
@@ -475,6 +486,17 @@
 								</div>
 							</dl>
 						</AcerolaCard>
+					</div>
+				</section>
+
+				<!-- Configuração do envio ao painel central do TI -->
+				<section class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+					<div class="lg:col-span-1">
+						<AcerolaReportingCard
+							data={reporting.card}
+							state={reporting.state}
+							events={{ onSave: reporting.save }}
+						/>
 					</div>
 				</section>
 
