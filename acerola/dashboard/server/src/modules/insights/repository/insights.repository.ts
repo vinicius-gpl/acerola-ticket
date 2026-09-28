@@ -4,6 +4,7 @@ import { and, eq, gte, isNull, sql } from 'drizzle-orm';
 import { runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { asDate, asTimestamp } from '../../../lib/db/sql-timestamp.util';
 import { qualified } from '../../../lib/db/sql-column.util';
 import { computerAlerts } from '../../../lib/db/schema/computer-alerts.schema';
 import { computerSamples } from '../../../lib/db/schema/computer-samples.schema';
@@ -136,12 +137,15 @@ export class InsightsRepository {
           alertCount: sql<number>`(
             select count(*)::int from ${computerAlerts}
             where ${qualified(computerAlerts.computerId)} = ${qualified(computers.id)}
-              and ${qualified(computerAlerts.startedAt)} >= ${since}
+              and ${qualified(computerAlerts.startedAt)} >= ${asTimestamp(since)}
           )`,
-          lastMaintenanceAt: sql<Date | null>`(
-            select max(${qualified(maintenances.performedAt)}) from ${maintenances}
-            where ${qualified(maintenances.computerId)} = ${qualified(computers.id)}
-          )`,
+          lastMaintenanceAt: asDate(
+            sql<Date | null>`(
+              select max(${qualified(maintenances.performedAt)}) from ${maintenances}
+              where ${qualified(maintenances.computerId)} = ${qualified(computers.id)}
+            )`,
+            maintenances.performedAt,
+          ),
         })
         .from(computers)
         .where(and(eq(computers.isArchived, false), isNull(computers.disposedAt))),

@@ -5,6 +5,7 @@ import { and, count, desc, eq, gte, isNull, sql, type SQL } from 'drizzle-orm';
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { asTimestamp } from '../../../lib/db/sql-timestamp.util';
 import {
   networkEvents,
   type NetworkEventInsert,
@@ -93,13 +94,13 @@ export class NetworkRepository {
       this.db
         .select({
           open: sql<number>`count(*) filter (where ${networkEvents.resolvedAt} is null)::int`,
-          outages: sql<number>`count(*) filter (where ${networkEvents.type} = 'wan_down' and ${networkEvents.occurredAt} >= ${since})::int`,
+          outages: sql<number>`count(*) filter (where ${networkEvents.type} = 'wan_down' and ${networkEvents.occurredAt} >= ${asTimestamp(since)})::int`,
           totalOutageSeconds: sql<number | null>`
             sum(extract(epoch from (${networkEvents.resolvedAt} - ${networkEvents.occurredAt})))
-              filter (where ${networkEvents.type} = 'wan_down' and ${networkEvents.occurredAt} >= ${since})
+              filter (where ${networkEvents.type} = 'wan_down' and ${networkEvents.occurredAt} >= ${asTimestamp(since)})
           `,
-          worstLatencyMs: sql<number | null>`max(${networkEvents.latencyMs}) filter (where ${networkEvents.occurredAt} >= ${since})`,
-          worstPacketLossPercent: sql<number | null>`max(${networkEvents.packetLossPercent}) filter (where ${networkEvents.occurredAt} >= ${since})`,
+          worstLatencyMs: sql<number | null>`max(${networkEvents.latencyMs}) filter (where ${networkEvents.occurredAt} >= ${asTimestamp(since)})`,
+          worstPacketLossPercent: sql<number | null>`max(${networkEvents.packetLossPercent}) filter (where ${networkEvents.occurredAt} >= ${asTimestamp(since)})`,
         })
         .from(networkEvents),
       'resumir a rede do período',

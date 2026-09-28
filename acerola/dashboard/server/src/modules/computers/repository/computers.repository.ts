@@ -21,6 +21,7 @@ import {
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { asTimestamp } from '../../../lib/db/sql-timestamp.util';
 import {
   computerAlerts,
   type ComputerAlertInsert,
@@ -169,7 +170,7 @@ export class ComputersRepository {
     const deleted = await runQuery(
       this.db
         .delete(computerSamples)
-        .where(sql`${computerSamples.sampledAt} < ${cutoff}`)
+        .where(sql`${computerSamples.sampledAt} < ${asTimestamp(cutoff)}`)
         .returning({ id: computerSamples.id }),
       'limpar amostras antigas',
     );
