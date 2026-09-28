@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import AcerolaBadge from '$lib/components/acerola-badge/acerola-badge.svelte';
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
 	import AcerolaProcessTable from '$lib/components/acerola-process-table/acerola-process-table.svelte';
-	import AcerolaReportingCard from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
 	import AcerolaProcessDrawer from '$lib/components/acerola-process-drawer/acerola-process-drawer.svelte';
 	import AcerolaPopover from '$lib/components/acerola-popover/acerola-popover.svelte';
 	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
@@ -23,24 +21,18 @@
 	import LayoutPanelLeftIcon from '@lucide/svelte/icons/layout-panel-left';
 	import NetworkIcon from '@lucide/svelte/icons/network';
 	import ServerIcon from '@lucide/svelte/icons/server';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import XIcon from '@lucide/svelte/icons/x';
 
 	import { useMetrics } from '$lib/metrics/store.svelte';
-	import { useReporting } from '$lib/reporting/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
 	import { cn } from '$lib/utils/cn';
 
-	import { HideWindow } from '../../../wailsjs/go/main/App';
+	import { HideWindow, ShowSettings } from '../../../wailsjs/go/main/App';
 
 	const metrics = useMetrics();
-	const reporting = useReporting();
-
-	/* A conexão com o painel muda sozinha (o painel caiu, a rede voltou, o TI
-	   desbloqueou), e só quem pergunta descobre. */
-	onMount(() => reporting.watch());
-
 	type DashboardTab = 'overview' | 'queue' | 'system';
 	let activeTab = $state<DashboardTab>('overview');
 
@@ -76,9 +68,7 @@
 	});
 </script>
 
-<div
-	class="border-border/80 bg-background text-foreground flex h-full flex-col overflow-hidden rounded-2xl border shadow-2xl"
->
+<div class="bg-background text-foreground flex h-full flex-col overflow-hidden rounded-2xl">
 	<!-- Header Chrome com Estilo Moderno ReUI / VibePrompts -->
 	<header
 		data-drag-region
@@ -173,6 +163,14 @@
 
 		<!-- Lado Direito: Ações & Controles -->
 		<div class="flex items-center gap-2">
+			<!-- A configuração é OUTRA tela: aqui fica só a porta para ela. -->
+			<AcerolaButton
+				ui={{ variant: 'ghost', size: 'icon', title: 'Configuração do agente' }}
+				events={{ onClick: () => void ShowSettings() }}
+			>
+				<SettingsIcon size={16} />
+			</AcerolaButton>
+
 			<span
 				class="border-border/70 bg-muted/40 text-muted-foreground hidden rounded-full border px-2.5 py-1 font-mono text-[11px] sm:inline-flex"
 			>
@@ -486,17 +484,6 @@
 								</div>
 							</dl>
 						</AcerolaCard>
-					</div>
-				</section>
-
-				<!-- Configuração do envio ao painel central do TI -->
-				<section class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-					<div class="lg:col-span-1">
-						<AcerolaReportingCard
-							data={reporting.card}
-							state={reporting.state}
-							events={{ onSave: reporting.save }}
-						/>
 					</div>
 				</section>
 

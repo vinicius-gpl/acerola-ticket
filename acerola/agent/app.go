@@ -393,6 +393,27 @@ func (app *App) ShowPopup() {
 	})
 }
 
+// ShowSettings abre a tela de CONFIGURAÇÃO do agente, e só ela.
+//
+// É uma tela à parte de propósito: ligar esta máquina ao painel do TI é uma
+// tarefa de instalação, feita uma vez, e não tem nada a ver com acompanhar o
+// desempenho — que é para o que servem a telinha e o Dashboard. Misturar as
+// duas coisas deixaria um formulário de chave no meio de gráficos.
+//
+// Usa o tamanho da popup: é um formulário de dois campos, e a janela grande
+// só criaria espaço vazio.
+func (app *App) ShowSettings() {
+	app.dispatch(func(ctx context.Context) {
+		app.setVisible(true)
+		runtime.WindowSetAlwaysOnTop(ctx, false)
+		app.placeWindow(popupWidth, popupHeight)
+		runtime.EventsEmit(ctx, "view:change", "settings")
+		app.awaitViewReady()
+		runtime.WindowShow(ctx)
+		runtime.EventsEmit(ctx, "window:shown", "settings")
+	})
+}
+
 // ShowDashboard é a ação do item "Abrir Dashboard" no menu da bandeja:
 // redimensiona pro tamanho cheio e ancora no canto inferior direito da área
 // útil do monitor em que a pessoa está trabalhando — do mesmo lado da
