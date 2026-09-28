@@ -1,4 +1,5 @@
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
+import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
   type ComputerAlert,
@@ -27,6 +28,8 @@ export type ComputerDetailModel = {
     computer: Computer | null;
     samples: ComputerSample[];
     alerts: ComputerAlert[];
+    /** O que está acontecendo na máquina AGORA. Nulo enquanto ela nunca tiver enviado nada. */
+    live: ComputerLive | null;
     /** O que já foi feito NESTA máquina — o histórico que sustenta trocar em vez de remendar. */
     maintenances: Maintenance[];
     /** As peças que saíram do depósito para esta máquina. */
@@ -43,6 +46,7 @@ export type ComputerDetailModel = {
     isLoading: boolean;
     isSamplesLoading: boolean;
     isAlertsLoading: boolean;
+    isLiveLoading: boolean;
     isMaintenancesLoading: boolean;
     isPartsLoading: boolean;
     isTransfersLoading: boolean;
@@ -74,6 +78,16 @@ export type ComputerDetailModel = {
  * Editar a identificação não está aqui: tem view-model próprio (`use-computer-form`), porque
  * é formulário e formulário morre junto com o diálogo que o abriu.
  */
+/**
+ * De quanto em quanto tempo a ficha pede a leitura nova.
+ *
+ * Um segundo porque, com a ficha aberta, é esse o ritmo em que o agente passa a enviar: o
+ * próprio pedido avisa o servidor que alguém está olhando, e ele manda a máquina acelerar
+ * (ver `live-watch.service` na API). Pedir mais devagar do que a máquina envia jogaria fora
+ * justamente as leituras que existem por causa desta tela.
+ */
+const LIVE_REFRESH_MS = 1000;
+
 export function useComputerDetailModel(id: number): ComputerDetailModel {
   const queryClient = useQueryClient();
 
@@ -100,6 +114,27 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
       writable({
         queryKey: [...COMPUTERS_QUERY_KEY, 'alerts', id],
         queryFn: () => computersApi.alerts(id),
+      }),
+    ),
+  );
+
+  /**
+   * A leitura ao vivo se REFAZ sozinha enquanto a ficha estiver aberta.
+   *
+   * É o que faz a tela responder "o que está acontecendo nesta máquina agora" em vez de
+   * mostrar o retrato de quando a página foi aberta. E não é só a tela que fica mais rápida:
+   * cada pedido conta ao servidor que esta máquina está sendo olhada, e ele pede ao agente
+   * dela para enviar de segundo em segundo enquanto isso durar.
+   */
+  const live = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...COMPUTERS_QUERY_KEY, 'live', id],
+        queryFn: () => computersApi.live(id),
+        refetchInterval: LIVE_REFRESH_MS,
+        /* Sem isto a atualização para quando a janela perde o foco, e quem deixa a ficha
+           aberta num monitor ao lado — que é o uso desta tela — veria um valor congelado. */
+        refetchIntervalInBackground: true,
       }),
     ),
   );
@@ -182,6 +217,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         computer: computer.current.data ?? null,
         samples: samples.current.data ?? [],
         alerts: alerts.current.data ?? [],
+        live: live.current.data ?? null,
         maintenances: maintenances.current.data?.items ?? [],
         partMovements: partMovements.current.data?.items ?? [],
         transfers: transfers.current.data ?? [],
@@ -193,6 +229,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         computer: computer.current,
         isSamplesLoading: samples.current.isPending,
         isAlertsLoading: alerts.current.isPending,
+        isLiveLoading: live.current.isPending,
         isMaintenancesLoading: maintenances.current.isPending,
         isPartsLoading: partMovements.current.isPending,
         isTransfersLoading: transfers.current.isPending,
@@ -264,6 +301,7 @@ function buildDetailState(input: {
   computer: DetailQueryLike;
   isSamplesLoading: boolean;
   isAlertsLoading: boolean;
+  isLiveLoading: boolean;
   isMaintenancesLoading: boolean;
   isPartsLoading: boolean;
   isTransfersLoading: boolean;
@@ -276,6 +314,7 @@ function buildDetailState(input: {
     isLoading: input.computer.isPending,
     isSamplesLoading: input.isSamplesLoading,
     isAlertsLoading: input.isAlertsLoading,
+    isLiveLoading: input.isLiveLoading,
     isMaintenancesLoading: input.isMaintenancesLoading,
     isPartsLoading: input.isPartsLoading,
     isTransfersLoading: input.isTransfersLoading,

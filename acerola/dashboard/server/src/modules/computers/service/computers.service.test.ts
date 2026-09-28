@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService } from '../presence/live-watch.service';
 import { type ComputersRepository } from '../repository/computers.repository';
 import { hashComputerToken } from '../token/computer-token.util';
 import { ComputersService } from './computers.service';
@@ -60,7 +61,9 @@ function computerRow(over: Partial<ComputerRow> = {}): ComputerRow {
   };
 }
 
-function snapshot(over: { cpu?: number; memory?: number; freeDiskBytes?: number } = {}): AgentSnapshot {
+function snapshot(
+  over: { cpu?: number; memory?: number; freeDiskBytes?: number } = {},
+): AgentSnapshot {
   return {
     timestamp: '2026-09-22T12:00:00.000Z',
     host: {
@@ -95,16 +98,35 @@ function snapshot(over: { cpu?: number; memory?: number; freeDiskBytes?: number 
     diskIo: { readBytesPerSec: 0, writeBytesPerSec: 0 },
     network: [],
     processes: [
-      { name: 'chrome', instanceCount: 9, cpuPercent: 180, memPercent: 12, memBytes: 2 * GB, instances: [] },
-      { name: 'explorer', instanceCount: 1, cpuPercent: 1, memPercent: 1, memBytes: GB, instances: [] },
+      {
+        name: 'chrome',
+        instanceCount: 9,
+        cpuPercent: 180,
+        memPercent: 12,
+        memBytes: 2 * GB,
+        instances: [],
+      },
+      {
+        name: 'explorer',
+        instanceCount: 1,
+        cpuPercent: 1,
+        memPercent: 1,
+        memBytes: GB,
+        instances: [],
+      },
     ],
   };
 }
 
-function makeService(repository: Partial<ComputersRepository>, presence = new AgentPresenceService()) {
+function makeService(
+  repository: Partial<ComputersRepository>,
+  presence = new AgentPresenceService(),
+  watch = new LiveWatchService(),
+) {
   return {
-    service: new ComputersService(repository as ComputersRepository, presence),
+    service: new ComputersService(repository as ComputersRepository, presence, watch),
     presence,
+    watch,
   };
 }
 
@@ -128,7 +150,11 @@ describe('ComputersService.list', () => {
     const presence = new AgentPresenceService();
     presence.connect(7, 'RECEPCAO-01');
     const { service } = makeService(
-      { list: vi.fn().mockResolvedValue({ rows: [computerRow(), computerRow({ id: 8 })], total: 2 }) },
+      {
+        list: vi
+          .fn()
+          .mockResolvedValue({ rows: [computerRow(), computerRow({ id: 8 })], total: 2 }),
+      },
       presence,
     );
 
@@ -407,6 +433,51 @@ describe('ComputersService.samples', () => {
   });
 });
 
+describe('ComputersService.live', () => {
+  // feliz
+  it('brings the last full reading, saying whether the machine is connected now', async () => {
+    const presence = new AgentPresenceService();
+    presence.connect(7, 'RECEPCAO-01');
+
+    const { service } = makeService(
+      {
+        findById: vi
+          .fn()
+          .mockResolvedValue(
+            computerRow({ id: 7, lastSnapshot: snapshot(), lastSeenAt: new Date() }),
+          ),
+      },
+      presence,
+    );
+
+    const live = await service.live(ana, 7);
+
+    expect(live?.isOnline).toBe(true);
+    expect(live?.cpu.percentTotal).toBe(30);
+    expect(live?.memory.usedPercent).toBe(50);
+  });
+
+  // triste
+  /* Cadastrada e sem agente instalado: a tela precisa dizer isso, e não mostrar zeros. */
+  it('answers nothing for a machine that never reported', async () => {
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(computerRow()) });
+
+    expect(await service.live(ana, 7)).toBeNull();
+  });
+
+  it('says the machine was not found', async () => {
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(null) });
+
+    await expect(service.live(ana, 99)).rejects.toThrow(NotFoundException);
+  });
+
+  it('refuses an unidentified request', async () => {
+    const { service } = makeService({ findById: vi.fn() });
+
+    await expect(service.live(noRole, 7)).rejects.toThrow(ForbiddenException);
+  });
+});
+
 describe('ComputersService.dispose', () => {
   // feliz
   it('stamps the day the machine left, with the type and the reason', async () => {
@@ -427,7 +498,11 @@ describe('ComputersService.dispose', () => {
     const left = new Date('2026-06-01T12:00:00.000Z');
     const update = vi.fn().mockResolvedValue(computerRow({ disposedAt: left }));
     const { service } = makeService({
-      findById: vi.fn().mockResolvedValue(computerRow({ disposedAt: left, disposalType: 'defect', disposalReason: 'x' })),
+      findById: vi
+        .fn()
+        .mockResolvedValue(
+          computerRow({ disposedAt: left, disposalType: 'defect', disposalReason: 'x' }),
+        ),
       update,
     });
 
@@ -441,9 +516,9 @@ describe('ComputersService.dispose', () => {
     const update = vi.fn();
     const { service } = makeService({ update });
 
-    await expect(
-      service.dispose(noRole, 7, { type: 'scrap', reason: 'x' }),
-    ).rejects.toThrow(ForbiddenException);
+    await expect(service.dispose(noRole, 7, { type: 'scrap', reason: 'x' })).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -451,9 +526,9 @@ describe('ComputersService.dispose', () => {
     const update = vi.fn();
     const { service } = makeService({ findById: vi.fn().mockResolvedValue(null), update });
 
-    await expect(
-      service.dispose(ana, 99, { type: 'scrap', reason: 'x' }),
-    ).rejects.toThrow(NotFoundException);
+    await expect(service.dispose(ana, 99, { type: 'scrap', reason: 'x' })).rejects.toThrow(
+      NotFoundException,
+    );
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -465,7 +540,11 @@ describe('ComputersService.restore', () => {
   it('clears the whole disposal when the machine comes back', async () => {
     const update = vi.fn().mockResolvedValue(computerRow());
     const { service } = makeService({
-      findById: vi.fn().mockResolvedValue(computerRow({ disposedAt: new Date(), disposalType: 'defect', disposalReason: 'x' })),
+      findById: vi
+        .fn()
+        .mockResolvedValue(
+          computerRow({ disposedAt: new Date(), disposalType: 'defect', disposalReason: 'x' }),
+        ),
       update,
     });
 

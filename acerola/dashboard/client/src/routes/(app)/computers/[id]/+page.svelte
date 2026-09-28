@@ -65,6 +65,7 @@
       computer: detail.data.computer,
       samples: detail.data.samples,
       alerts: detail.data.alerts,
+      live: detail.data.live,
       maintenances: detail.data.maintenances,
       partMovements: detail.data.partMovements,
       transfers: detail.data.transfers,

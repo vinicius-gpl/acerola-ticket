@@ -9,6 +9,7 @@ import {
   disposeComputerSchema,
   updateComputerSchema,
 } from '@template/shared/schemas/computer.schema';
+import { computerLiveResponseSchema } from '@template/shared/schemas/computer-live.schema';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -28,6 +29,13 @@ export class CreatedComputerDto extends createZodDto(createdComputerSchema) {}
 export class ComputerSampleDto extends createZodDto(computerSampleSchema) {}
 
 export class ComputerAlertDto extends createZodDto(computerAlertSchema) {}
+
+/**
+ * A leitura ao vivo vai DENTRO de um objeto, e não solta: a resposta precisa poder dizer
+ * "não há nenhuma" (`live: null`), e um corpo `null` puro não tem onde documentar isso no
+ * Swagger nem como crescer depois sem quebrar quem já lê.
+ */
+export class ComputerLiveDto extends createZodDto(computerLiveResponseSchema) {}
 
 /** O descarte: tipo e motivo. A data é do servidor, e por isso não entra no corpo. */
 export class DisposeComputerDto extends createZodDto(disposeComputerSchema) {}

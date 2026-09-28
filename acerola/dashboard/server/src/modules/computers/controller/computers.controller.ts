@@ -27,6 +27,7 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
   ComputerAlertDto,
+  ComputerLiveDto,
   ComputerDto,
   ComputerListQueryDto,
   ComputerListResponseDto,
@@ -120,6 +121,21 @@ export class ComputersController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ComputerSampleDto[]> {
     return this.service.samples(user, id);
+  }
+
+  @Get(':id/live')
+  @ApiOperation({
+    summary: 'O que está acontecendo na máquina agora',
+    description:
+      'A última leitura completa do agente: aplicativos que mais pesam, uso por núcleo, volumes e interfaces de rede. Vem nulo enquanto o agente nunca tiver conectado nesta máquina.',
+  })
+  @ApiOkResponse({ type: ComputerLiveDto })
+  @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
+  async live(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ComputerLiveDto> {
+    return { live: await this.service.live(user, id) };
   }
 
   @Get(':id/alerts')

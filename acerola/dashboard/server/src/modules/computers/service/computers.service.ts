@@ -9,6 +9,7 @@ import { healthStatusLabel, healthStatusTone } from '@template/shared/domain/com
 import { departmentLabel } from '@template/shared/domain/department.util';
 import { disposalTypeLabel } from '@template/shared/domain/disposal.util';
 import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.schema';
+import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
   type ComputerAlert,
@@ -25,11 +26,16 @@ import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanCreate, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
-import { type BuiltReport, type ReportColumn, type ReportTone } from '../../../lib/report/report.types';
+import {
+  type BuiltReport,
+  type ReportColumn,
+  type ReportTone,
+} from '../../../lib/report/report.types';
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import {
   toComputer,
   toComputerAlert,
+  toComputerLive,
   toComputerInsert,
   toComputerSample,
   toComputerUpdate,
@@ -37,6 +43,7 @@ import {
   toSnapshotUpdate,
 } from '../mapper/computers.mapper';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService, WATCHED_CADENCE_SECONDS } from '../presence/live-watch.service';
 import { ComputersRepository } from '../repository/computers.repository';
 import { createComputerToken, hashComputerToken } from '../token/computer-token.util';
 
@@ -71,7 +78,10 @@ function situationTone(row: ComputerRow): ReportTone {
 const COMPUTER_REPORT_COLUMNS: ReportColumn<ComputerRow>[] = [
   { header: 'Máquina', value: (row) => row.displayName?.trim() || row.name, isTitle: true },
   { header: 'Nome técnico', value: (row) => row.name },
-  { header: 'Departamento', value: (row) => (row.department ? departmentLabel(row.department) : 'Sem departamento') },
+  {
+    header: 'Departamento',
+    value: (row) => (row.department ? departmentLabel(row.department) : 'Sem departamento'),
+  },
   { header: 'Responsável', value: (row) => row.responsibleName ?? '—' },
   {
     header: 'Saúde',
@@ -104,8 +114,7 @@ const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 export type AgentRejection = 'invalid-token' | 'blocked';
 
 export type AgentAuthResult =
-  | { ok: true; computer: ComputerRow }
-  | { ok: false; reason: AgentRejection };
+  { ok: true; computer: ComputerRow } | { ok: false; reason: AgentRejection };
 
 /**
  * O ÚNICO caminho de escrita de computador.
@@ -125,6 +134,7 @@ export class ComputersService {
   constructor(
     private readonly repository: ComputersRepository,
     private readonly presence: AgentPresenceService,
+    private readonly watch: LiveWatchService,
   ) {}
 
   async list(user: RequestUser, query: ComputerListQuery): Promise<Paginated<Computer>> {
@@ -262,13 +272,36 @@ export class ComputersService {
   }
 
   /** As amostras de uso das últimas horas, para o gráfico da tela de detalhe. */
-  async samples(user: RequestUser, id: number, hours = DEFAULT_SAMPLE_HOURS): Promise<ComputerSample[]> {
+  async samples(
+    user: RequestUser,
+    id: number,
+    hours = DEFAULT_SAMPLE_HOURS,
+  ): Promise<ComputerSample[]> {
     assertCanRead(user.role, 'os computadores');
 
     await this.requireComputer(id);
     const since = new Date(Date.now() - hours * MILLISECONDS_PER_HOUR);
 
     return (await this.repository.listSamplesSince(id, since)).map(toComputerSample);
+  }
+
+  /**
+   * O que está acontecendo NESTA máquina agora: processos, volumes, rede, núcleos.
+   *
+   * Devolve nulo quando a máquina nunca enviou nada — a tela precisa distinguir "ociosa" de
+   * "o agente ainda não foi instalado aqui", e um objeto zerado confundiria as duas.
+   */
+  async live(user: RequestUser, id: number): Promise<ComputerLive | null> {
+    assertCanRead(user.role, 'os computadores');
+
+    const row = await this.requireComputer(id);
+
+    /* Pedir a leitura É dizer que alguém está olhando. Isto faz o agente daquela máquina
+       acelerar, e é o que torna a ficha um retrato ao vivo em vez de um de meio em meio
+       minuto. Parar de pedir devolve a máquina ao ritmo dela sozinho. */
+    this.watch.touch(row.id, WATCHED_CADENCE_SECONDS);
+
+    return toComputerLive(row, this.presence.isOnline(row.id));
   }
 
   async alerts(user: RequestUser, id: number): Promise<ComputerAlert[]> {
@@ -305,17 +338,25 @@ export class ComputersService {
    * é histórico e pode esperar; os alertas por último, porque dependem da leitura já estar
    * registrada para o episódio ter começo coerente.
    */
-  async ingest(computer: ComputerRow, snapshot: AgentSnapshot, agentVersion: string): Promise<void> {
+  async ingest(
+    computer: ComputerRow,
+    snapshot: AgentSnapshot,
+    agentVersion: string,
+  ): Promise<void> {
     await this.repository.update(computer.id, toSnapshotUpdate(snapshot, agentVersion));
 
     const sample = toSample(computer.id, snapshot);
     await this.repository.insertSample(sample);
 
-    await this.applyAlerts(computer.id, {
-      cpu: sample.cpuPercent,
-      memory: sample.memoryPercent,
-      disk: sample.diskPercent,
-    }, snapshot);
+    await this.applyAlerts(
+      computer.id,
+      {
+        cpu: sample.cpuPercent,
+        memory: sample.memoryPercent,
+        disk: sample.diskPercent,
+      },
+      snapshot,
+    );
   }
 
   /**

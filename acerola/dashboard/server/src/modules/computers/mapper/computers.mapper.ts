@@ -1,8 +1,10 @@
 import { computeHealth } from '@template/shared/domain/computer-health.util';
 import {
+  agentSnapshotSchema,
   type AgentSnapshot,
   type AgentInventory,
 } from '@template/shared/schemas/agent-snapshot.schema';
+import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
   type ComputerAlert,
@@ -13,9 +15,7 @@ import {
 
 import { mapDefined, setIfDefined } from '../../../lib/db/partial-update.util';
 import { type ComputerAlertRow } from '../../../lib/db/schema/computer-alerts.schema';
-import {
-  type ComputerSampleInsert,
-} from '../../../lib/db/schema/computer-samples.schema';
+import { type ComputerSampleInsert } from '../../../lib/db/schema/computer-samples.schema';
 import { type ComputerInsert, type ComputerRow } from '../../../lib/db/schema/computers.schema';
 
 /**
@@ -233,5 +233,39 @@ export function toComputerAlert(row: ComputerAlertRow): ComputerAlert {
     startedAt: row.startedAt.toISOString(),
     recoveredAt: row.recoveredAt?.toISOString() ?? null,
     causeProcess: row.causeProcess,
+  };
+}
+
+/**
+ * A ÚLTIMA leitura da máquina, do banco para a tela.
+ *
+ * O que está guardado em `last_snapshot` é o que o agente mandou, cru. Ele passa pelo schema
+ * na SAÍDA também, e não só na entrada: a coluna é `jsonb` e aceita qualquer forma, então uma
+ * linha gravada por uma versão antiga do agente chegaria aqui com um campo a menos e
+ * quebraria a tela num lugar distante. Recusando aqui, a ficha diz "ainda não sei" em vez de
+ * estourar.
+ *
+ * Os processos saem ORDENADOS por consumo de processador: é a pergunta que alguém faz ao
+ * abrir a lista, e ordenar na tela deixaria cada tela livre para discordar da outra.
+ */
+export function toComputerLive(row: ComputerRow, isOnline: boolean): ComputerLive | null {
+  const parsed = agentSnapshotSchema.safeParse(row.lastSnapshot);
+  if (!parsed.success) return null;
+
+  const snapshot = parsed.data;
+
+  return {
+    computerId: row.id,
+    measuredAt: snapshot.timestamp,
+    /* `lastSeenAt` é carimbado pelo servidor na mesma escrita que guardou o snapshot, então
+       é ele que responde "de quando é isto" sem depender do relógio da outra máquina. */
+    receivedAt: (row.lastSeenAt ?? new Date()).toISOString(),
+    isOnline,
+    cpu: snapshot.cpu,
+    memory: snapshot.memory,
+    disks: snapshot.disks,
+    diskIo: snapshot.diskIo,
+    network: snapshot.network,
+    processes: [...snapshot.processes].sort((a, b) => b.cpuPercent - a.cpuPercent),
   };
 }

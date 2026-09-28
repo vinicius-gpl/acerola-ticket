@@ -144,3 +144,43 @@ export const agentMessageSchema = z.discriminatedUnion('type', [
 ]);
 
 export type AgentMessage = z.infer<typeof agentMessageSchema>;
+
+/**
+ * O que o SERVIDOR manda ao agente. A conversa deixa de ser de mão única aqui.
+ *
+ * Só existem duas mensagens, e as duas existem por um motivo concreto:
+ *
+ * - `welcome` confirma que o token passou. Sem ela, o agente teria que supor que deu certo
+ *   pelo silêncio — e silêncio também é o que um servidor travado devolve.
+ * - `cadence` mudou o jogo do tempo real: o agente manda uma leitura a cada 30 segundos, que
+ *   é o certo para uma frota inteira e é lentidão demais para quem abriu UMA máquina e quer
+ *   ver o processador mexer. Em vez de todo mundo mandar depressa o tempo todo, o servidor
+ *   pede pressa só à máquina que alguém está olhando, e só enquanto estiver olhando.
+ */
+export const serverWelcomeSchema = z.object({
+  type: z.literal('welcome'),
+  computerName: z.string(),
+});
+
+/**
+ * ZERO tem significado: "volte ao SEU intervalo".
+ *
+ * Quem sabe qual é o intervalo de repouso de uma máquina é o agente dela — foi decidido na
+ * instalação. Se o "voltar ao normal" viajasse como um número, o servidor estaria impondo um
+ * valor que ele não conhece, e toda máquina acabaria no mesmo ritmo depois da primeira visita.
+ */
+export const CADENCE_RESTORE = 0;
+export const CADENCE_MAX_SECONDS = 300;
+
+export const serverCadenceSchema = z.object({
+  type: z.literal('cadence'),
+  /** De quanto em quanto tempo mandar, a partir de agora. Zero devolve o ritmo configurado. */
+  seconds: z.number().int().min(CADENCE_RESTORE).max(CADENCE_MAX_SECONDS),
+});
+
+export const serverMessageSchema = z.discriminatedUnion('type', [
+  serverWelcomeSchema,
+  serverCadenceSchema,
+]);
+
+export type ServerMessage = z.infer<typeof serverMessageSchema>;
