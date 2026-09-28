@@ -10,6 +10,7 @@ import {
   toComputerUpdate,
   toSample,
   toSnapshotUpdate,
+  toComputerLive,
 } from './computers.mapper';
 
 const GB = 1024 ** 3;
@@ -300,5 +301,74 @@ describe('toComputerAlert', () => {
 
     expect(alert.recoveredAt).toBeNull();
     expect(alert.status).toBe('active');
+  });
+});
+
+describe('toComputerLive', () => {
+  const heavy = {
+    name: 'chrome.exe',
+    instanceCount: 14,
+    cpuPercent: 42,
+    memPercent: 18,
+    memBytes: 2 * GB,
+    instances: [],
+  };
+  const light = {
+    name: 'explorer.exe',
+    instanceCount: 1,
+    cpuPercent: 3,
+    memPercent: 2,
+    memBytes: 200 * 1024 * 1024,
+    instances: [],
+  };
+
+  const rowWithSnapshot = (over: Partial<AgentSnapshot> = {}) =>
+    computerRow({ lastSnapshot: { ...snapshot(), ...over }, lastSeenAt: NOW });
+
+  // feliz
+  it('brings everything the agent measured about the machine', () => {
+    const live = toComputerLive(rowWithSnapshot(), true);
+
+    expect(live?.cpu.percentPerCore).toEqual([25, 35]);
+    expect(live?.memory.usedPercent).toBe(50);
+    expect(live?.network).toHaveLength(2);
+    expect(live?.isOnline).toBe(true);
+  });
+
+  /* Quem abre a lista quer saber o que está pesando: a ordem é do servidor para as telas não
+     discordarem entre si. */
+  it('sorts the applications by processor use, heaviest first', () => {
+    const live = toComputerLive(rowWithSnapshot({ processes: [light, heavy] }), true);
+
+    expect(live?.processes.map((process) => process.name)).toEqual(['chrome.exe', 'explorer.exe']);
+  });
+
+  /* O relógio de quem mediu e o de quem recebeu são coisas diferentes, e máquina com a hora
+     errada é comum — a tela precisa dos dois para não mentir sozinha. */
+  it('keeps when it was measured apart from when it arrived', () => {
+    const live = toComputerLive(
+      computerRow({
+        lastSnapshot: { ...snapshot(), timestamp: '2026-09-22T09:00:00.000Z' },
+        lastSeenAt: NOW,
+      }),
+      false,
+    );
+
+    expect(live?.measuredAt).toBe('2026-09-22T09:00:00.000Z');
+    expect(live?.receivedAt).toBe(NOW.toISOString());
+  });
+
+  // triste
+  /* "Nunca enviou" não é "ligada e ociosa": um objeto zerado faria a tela dizer que a máquina
+     está de boa quando na verdade o agente nem foi instalado nela. */
+  it('answers nothing for a machine that never reported', () => {
+    expect(toComputerLive(computerRow(), false)).toBeNull();
+  });
+
+  /* Uma versão antiga do agente pode ter gravado uma forma que não existe mais. A coluna é
+     jsonb e aceita qualquer coisa — quem recusa é isto aqui, perto do banco. */
+  it('answers nothing for a stored reading that no longer fits the contract', () => {
+    expect(toComputerLive(computerRow({ lastSnapshot: { cpu: 'muito' } }), false)).toBeNull();
+    expect(toComputerLive(computerRow({ lastSnapshot: 'nem json de objeto' }), false)).toBeNull();
   });
 });

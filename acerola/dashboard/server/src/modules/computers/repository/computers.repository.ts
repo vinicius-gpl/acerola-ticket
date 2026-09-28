@@ -153,7 +153,9 @@ export class ComputersRepository {
       this.db
         .select()
         .from(computerSamples)
-        .where(and(eq(computerSamples.computerId, computerId), gte(computerSamples.sampledAt, since)))
+        .where(
+          and(eq(computerSamples.computerId, computerId), gte(computerSamples.sampledAt, since)),
+        )
         .orderBy(computerSamples.sampledAt),
       'ler o uso da máquina',
     );

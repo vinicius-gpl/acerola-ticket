@@ -103,7 +103,11 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Tudo que chega aqui é DADO DE FORA: passa pelo schema antes de encostar no banco. Um campo
    * a mais, um número negativo ou um JSON quebrado fecham a conexão em vez de virarem linha.
    */
-  private async onMessage(client: AgentSocket, raw: string, timeout: NodeJS.Timeout): Promise<void> {
+  private async onMessage(
+    client: AgentSocket,
+    raw: string,
+    timeout: NodeJS.Timeout,
+  ): Promise<void> {
     const message = this.parse(raw);
     if (!message) return this.close(client, CLOSE_BAD_MESSAGE, 'unreadable message');
 
