@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
+	"log"
 	"math"
+	"os"
 	"sync"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/memory"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/metrics"
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/reporting"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/window"
@@ -19,6 +23,11 @@ import (
 const (
 	sampleInterval  = 1 * time.Second
 	topProcessCount = 25
+
+	// A versão que o agente informa ao painel central no `hello`. É o que
+	// aparece na ficha do computador e permite descobrir, sem ir até a
+	// máquina, qual delas ainda está com o agente antigo.
+	agentVersion = "0.1.0"
 
 	popupWidth  = 380
 	popupHeight = 650
@@ -90,6 +99,7 @@ func (app *App) startup(ctx context.Context) {
 	go app.broadcaster.Run(ctx)
 	go app.forwardSnapshots(ctx)
 	go app.runActions(ctx)
+	go app.reportToDashboard(ctx)
 	go tray.Run(tray.Callbacks{
 		ShowPopup:     app.ShowPopup,
 		ShowDashboard: app.ShowDashboard,
@@ -102,6 +112,34 @@ func (app *App) startup(ctx context.Context) {
 		time.Sleep(1 * time.Second)
 		memory.TrimWorkingSet()
 	}()
+}
+
+// reportToDashboard liga o envio para o painel central, quando esta máquina
+// foi configurada para reportar (ver src-go/reporting).
+//
+// Sem configuração o agente segue exatamente como era: local, mostrando as
+// métricas na própria máquina. É de propósito que a falta de configuração
+// não seja erro — nem toda instalação deste agente é de uma máquina que o
+// TI acompanha pelo painel.
+func (app *App) reportToDashboard(ctx context.Context) {
+	configPath, configPathError := reporting.DefaultConfigPath()
+	if configPathError != nil {
+		log.Printf("reporting: %v", configPathError)
+		return
+	}
+
+	config, configError := reporting.Load(os.Getenv, configPath)
+	if errors.Is(configError, reporting.ErrNotConfigured) {
+		log.Printf("reporting: not configured, running locally only (%s)", configPath)
+		return
+	}
+	if configError != nil {
+		log.Printf("reporting: %v", configError)
+		return
+	}
+
+	log.Printf("reporting: sending snapshots to %s every %v", config.ServerURL, config.Interval)
+	reporting.NewReporter(config, app.broadcaster, agentVersion).Run(ctx)
 }
 
 // forwardSnapshots assina o broadcaster e empurra cada leitura pro frontend

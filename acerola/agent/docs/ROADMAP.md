@@ -1,41 +1,17 @@
 # Roadmap
 
-O que esta fase **não** faz de propósito, e a direção prevista para quando isso entrar em pauta.
-Nada aqui está implementado — é só o plano, para quem for continuar não precisar redescobrir as
-decisões.
+O que o agente **ainda não** faz de propósito, e a direção prevista para quando isso entrar em
+pauta — para quem for continuar não precisar redescobrir as decisões. O que já saiu do plano fica
+marcado como **feito**, com o link para a documentação de verdade.
 
-## Envio remoto de dados
+## Envio remoto de dados — **feito**
 
-Hoje o agente é 100% local: coleta métricas e as mostra na própria máquina, ponto final. A
-próxima fase deve adicionar um cliente que envie snapshots periódicos para um servidor central.
+O agente reporta ao painel central por WebSocket, com token por máquina. Como configurar, o que
+cada código de recusa significa e como conferir estão em [ENVIO-REMOTO.md](ENVIO-REMOTO.md).
 
-Direção prevista:
-- Autenticação por **token** (não usuário/senha) — um token por agente, provisionado na
-  instalação, permite revogar uma máquina sem afetar as outras.
-- Reaproveitar o `metrics.Broadcaster` já existente: o cliente remoto vira só mais um assinante
-  (`Subscribe()`), do mesmo jeito que hoje o `app.go` assina pra repassar ao Svelte
-  (`forwardSnapshots`, ver `ARQUITETURA.md`). Não deve exigir mexer no `Collector`.
-- Intervalo de envio provavelmente mais espaçado que o 1s do dashboard (ex: a cada 30s–1min), para
-  não gerar tráfego/custo desnecessário num parque de muitas máquinas.
-
-## Recepção no dashboard central (`acerola/dashboard`)
-
-O agente ainda não envia nada (item acima). Mas o lado que vai receber — o dashboard — já está
-com a direção combinada, para o agente ter um alvo pronto quando chegar a vez dele:
-
-- Cada computador é criado **no dashboard primeiro** (só um nome), o que gera um token aleatório
-  mostrado uma única vez. Esse token é o que se cola no agente na instalação — sem ele o agente
-  não conecta. Só o hash do token fica salvo no banco, nunca o valor original (mesmo princípio
-  de senha).
-- "Online"/"offline" não é um campo salvo: é ter, ou não, uma conexão WebSocket aberta agora.
-  Assim nenhum computador fica preso em "online" depois de queda de energia ou crash do agente.
-- WebSocket puro (`@nestjs/websockets` + `@nestjs/platform-ws`), não Socket.IO — o protocolo é
-  bem mais simples de falar a partir de um cliente Go, o que interessa quando este agente vira
-  esse cliente.
-- Histórico: cada snapshot recebido grava uma amostra enxuta (CPU%, memória%, disco%, rede) numa
-  tabela de série temporal, para gráfico de uso ao longo do tempo; amostras com mais de 7 dias
-  são limpas automaticamente. O snapshot completo (processos, discos, interfaces de rede) fica
-  guardado só o **mais recente**, para a tela de detalhe — isso não precisa de histórico.
+O que continua valendo do plano original: o envio é só mais um assinante do `metrics.Broadcaster`
+(nada mudou no `Collector`), e a cadência é bem mais espaçada que o 1s do dashboard local —
+30s por padrão.
 
 ## Persistência local em caso de falha de rede
 
