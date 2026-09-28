@@ -54,6 +54,28 @@ export function buildObjectKey(folder: string, fileName: string): string {
   return `${safeFolder}/${randomUUID()}${safeExtension}`;
 }
 
+export type DownloadOptions = {
+  /** `inline` mostra no navegador; `attachment` baixa. Sem isto, quem decide é o navegador. */
+  as?: 'inline' | 'attachment';
+  /** O nome com que o arquivo chega no disco de quem baixa. */
+  fileName?: string;
+};
+
+/**
+ * Monta o cabeçalho que diz ao navegador o que fazer com o arquivo.
+ *
+ * O nome vai em `filename*` no formato do RFC 5987: sem isso, um nome com acento — que é a
+ * regra e não a exceção aqui — chega truncado ou trocado no disco de quem baixa. Aspas e
+ * quebras de linha nunca chegam neste ponto (o `fileNameSchema` já as recusou), mas o nome é
+ * codificado mesmo assim: é a última linha antes de virar cabeçalho HTTP.
+ */
+function dispositionOf(options: DownloadOptions): string | undefined {
+  if (!options.as) return undefined;
+  if (!options.fileName) return options.as;
+
+  return `${options.as}; filename*=UTF-8''${encodeURIComponent(options.fileName)}`;
+}
+
 /**
  * Os arquivos do sistema, no Cloudflare R2.
  *
@@ -87,22 +109,28 @@ export class StorageService {
   }
 
   /**
-   * Um link temporário para o navegador baixar o arquivo direto do R2.
+   * Um link temporário para o navegador pegar o arquivo direto do R2.
    *
    * O arquivo não passa pela API: fazer o Nest baixar do R2 e repassar dobraria o tráfego e
    * prenderia um processo do server por download.
+   *
+   * `as` decide o que o navegador faz com ele — MOSTRAR na tela ou BAIXAR —, e são dois gestos
+   * diferentes: quem atende um chamado quer olhar a foto sem encher a pasta de downloads, e
+   * quem vai anexar a nota num processo quer o arquivo em disco, com o nome certo.
    */
-  createDownloadUrl(key: string): Promise<string> {
+  createDownloadUrl(key: string, options: DownloadOptions = {}): Promise<string> {
     return getSignedUrl(
       this.client,
-      new GetObjectCommand({ Bucket: this.env.R2_BUCKET, Key: key }),
+      new GetObjectCommand({
+        Bucket: this.env.R2_BUCKET,
+        Key: key,
+        ResponseContentDisposition: dispositionOf(options),
+      }),
       { expiresIn: this.env.R2_SIGNED_URL_TTL_SECONDS },
     );
   }
 
   async remove(key: string): Promise<void> {
-    await this.client.send(
-      new DeleteObjectCommand({ Bucket: this.env.R2_BUCKET, Key: key }),
-    );
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.env.R2_BUCKET, Key: key }));
   }
 }

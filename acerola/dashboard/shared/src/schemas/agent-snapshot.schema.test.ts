@@ -104,7 +104,11 @@ describe('agentSnapshotSchema', () => {
 describe('agentMessageSchema', () => {
   // feliz
   it('reads the opening message, where the agent proves who it is', () => {
-    const parsed = agentMessageSchema.parse({ type: 'hello', token: 'abc123', agentVersion: '1.0' });
+    const parsed = agentMessageSchema.parse({
+      type: 'hello',
+      token: 'abc123',
+      agentVersion: '1.0',
+    });
 
     expect(parsed.type).toBe('hello');
   });

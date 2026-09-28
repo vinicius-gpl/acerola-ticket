@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ticketListQuerySchema } from '@template/shared/schemas/ticket.schema';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -6,6 +10,7 @@ import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { type StorageService } from '../../../lib/storage/storage.service';
 import { type TicketsRepository } from '../repository/tickets.repository';
+import { type TicketAttachmentsService } from './ticket-attachments.service';
 import { TicketsService, type UploadedScreenshot } from './tickets.service';
 
 const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
@@ -44,11 +49,23 @@ const storageStub = {
   createDownloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed'),
 };
 
+/* Os anexos têm serviço próprio, com testes próprios: aqui só se confere que o chamado o
+   chama. Um duplo que não faz nada é o suficiente — e mantém este teste sobre chamados. */
+const attachmentsStub = {
+  attach: vi.fn().mockResolvedValue([]),
+  list: vi.fn().mockResolvedValue([]),
+};
+
 function makeService(
   repository: Partial<TicketsRepository>,
   storage: Partial<StorageService> = storageStub,
+  attachments: Partial<TicketAttachmentsService> = attachmentsStub,
 ) {
-  return new TicketsService(repository as TicketsRepository, storage as StorageService);
+  return new TicketsService(
+    repository as TicketsRepository,
+    storage as StorageService,
+    attachments as TicketAttachmentsService,
+  );
 }
 
 const query = (overrides: Record<string, unknown> = {}) => ticketListQuerySchema.parse(overrides);
@@ -274,7 +291,9 @@ describe('TicketsService.update', () => {
     const update = vi.fn();
     const service = makeService({ findById: vi.fn().mockResolvedValue(null), update });
 
-    await expect(service.update(ana, 99, { status: 'resolved' })).rejects.toThrow(NotFoundException);
+    await expect(service.update(ana, 99, { status: 'resolved' })).rejects.toThrow(
+      NotFoundException,
+    );
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -297,7 +316,9 @@ describe('TicketsService.exportList', () => {
     const listAll = vi.fn();
     const service = makeService({ listAll });
 
-    await expect(service.exportList(noRole, { format: 'xlsx' })).rejects.toThrow(ForbiddenException);
+    await expect(service.exportList(noRole, { format: 'xlsx' })).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(listAll).not.toHaveBeenCalled();
   });
 });

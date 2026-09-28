@@ -36,7 +36,11 @@ describe('createMaintenanceSchema', () => {
   });
 
   it('accepts a record with nothing but the machine, the type and the date', () => {
-    const parsed = createMaintenanceSchema.parse({ computerId: 1, type: 'cleaning', performedAt: AT });
+    const parsed = createMaintenanceSchema.parse({
+      computerId: 1,
+      type: 'cleaning',
+      performedAt: AT,
+    });
 
     expect(parsed.description).toBeUndefined();
     expect(parsed.performedBy).toBeUndefined();

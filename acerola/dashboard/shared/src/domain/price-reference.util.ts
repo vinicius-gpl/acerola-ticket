@@ -92,7 +92,10 @@ export const PRICE_REFERENCES: PriceReference[] = [
     maxPrice: 80,
     links: [
       { store: 'Kabum', url: 'https://www.kabum.com.br/busca/adaptador-displayport-vga' },
-      { store: 'Mercado Livre', url: 'https://lista.mercadolivre.com.br/adaptador-displayport-vga' },
+      {
+        store: 'Mercado Livre',
+        url: 'https://lista.mercadolivre.com.br/adaptador-displayport-vga',
+      },
       { store: 'Amazon', url: 'https://www.amazon.com.br/s?k=adaptador+displayport+vga' },
     ],
   },

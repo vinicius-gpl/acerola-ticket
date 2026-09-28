@@ -10,6 +10,7 @@ import {
 } from '../domain/ticket-status.util';
 import { paginationQuerySchema } from './pagination.schema';
 import { reportFormatSchema } from './report.schema';
+import { ticketAttachmentSchema } from './ticket-attachment.schema';
 
 /**
  * O CONTRATO do chamado. Um schema, duas pontas: a API o usa como DTO e Swagger (via
@@ -115,19 +116,30 @@ export type Ticket = z.infer<typeof ticketSchema>;
  * contato, o responsável e o que foi feito NÃO saem daqui. Quem consulta confere a situação
  * do que pediu; não vira uma porta para ler o cadastro dos outros.
  */
-export const publicTicketSchema = ticketSchema.pick({
-  id: true,
-  protocol: true,
-  status: true,
-  priority: true,
-  requesterName: true,
-  department: true,
-  problemType: true,
-  anydeskId: true,
-  description: true,
-  screenshotUrl: true,
-  createdAt: true,
-});
+export const publicTicketSchema = ticketSchema
+  .pick({
+    id: true,
+    protocol: true,
+    status: true,
+    priority: true,
+    requesterName: true,
+    department: true,
+    problemType: true,
+    anydeskId: true,
+    description: true,
+    screenshotUrl: true,
+    createdAt: true,
+  })
+  .extend({
+    /**
+     * Os arquivos que ACOMPANHARAM o chamado.
+     *
+     * Saem na consulta pública porque são de quem abriu: ela precisa conferir que a nota
+     * fiscal chegou, e rever o vídeo que mandou. Mexer neles é outra história — excluir só
+     * pelo painel, com identidade (ver o controller de anexos).
+     */
+    attachments: z.array(ticketAttachmentSchema),
+  });
 
 export type PublicTicket = z.infer<typeof publicTicketSchema>;
 

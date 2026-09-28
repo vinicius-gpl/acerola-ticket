@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { ticketDepartmentLabel, ticketProblemTypeLabel } from '@template/shared/domain/ticket-catalog.util';
-import { parseTicketProtocol, formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
+import {
+  ticketDepartmentLabel,
+  ticketProblemTypeLabel,
+} from '@template/shared/domain/ticket-catalog.util';
+import {
+  parseTicketProtocol,
+  formatTicketProtocol,
+} from '@template/shared/domain/ticket-protocol.util';
 import {
   countByField,
   summarizeTickets,
@@ -29,6 +35,7 @@ import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
+import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
 import { TicketsRepository } from '../repository/tickets.repository';
 
 /**
@@ -110,6 +117,7 @@ export class TicketsService {
   constructor(
     private readonly repository: TicketsRepository,
     private readonly storage: StorageService,
+    private readonly attachments: TicketAttachmentsService,
   ) {}
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
@@ -174,9 +182,19 @@ export class TicketsService {
    * sobra um arquivo órfão no bucket — o contrário (chamado apontando para um arquivo que
    * não subiu) mostraria uma imagem quebrada para o TI, e essa é a falha pior.
    */
-  async create(input: CreateTicketInput, screenshot?: UploadedScreenshot): Promise<Ticket> {
+  async create(
+    input: CreateTicketInput,
+    screenshot?: UploadedScreenshot,
+    attachments: readonly UploadedAttachment[] = [],
+  ): Promise<Ticket> {
     const screenshotKey = await this.storeScreenshot(screenshot);
     const row = await this.repository.insert(toTicketInsert(input, screenshotKey));
+
+    /* Os arquivos entram DEPOIS do chamado existir, porque é a ele que eles pertencem. Um
+       arquivo fora das regras derruba a requisição — e o chamado já gravado fica, sem os
+       anexos: perder o pedido de socorro por causa de um PDF grande demais seria o pior dos
+       dois males. Quem envia vê o protocolo e o motivo, e anexa o resto pelo painel. */
+    await this.attachments.attach(row.id, attachments, null);
 
     return this.withScreenshot(row);
   }
@@ -194,7 +212,12 @@ export class TicketsService {
     const row = await this.repository.findById(id);
     if (!row) throw new NotFoundException(NOT_FOUND);
 
-    return toPublicTicket(row, await this.screenshotUrl(row));
+    const [screenshotUrl, attachments] = await Promise.all([
+      this.screenshotUrl(row),
+      this.attachments.list(row.id),
+    ]);
+
+    return toPublicTicket(row, screenshotUrl, attachments);
   }
 
   async update(user: RequestUser, id: number, input: UpdateTicketInput): Promise<Ticket> {

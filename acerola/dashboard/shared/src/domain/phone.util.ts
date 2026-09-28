@@ -60,7 +60,8 @@ export function formatPhoneInput(value: string): string {
 
   const ddd = digits.slice(0, 2);
   const rest = digits.slice(2);
-  const firstGroupLength = digits.length >= MOBILE_DIGIT_COUNT ? FIRST_GROUP_MOBILE : FIRST_GROUP_LANDLINE;
+  const firstGroupLength =
+    digits.length >= MOBILE_DIGIT_COUNT ? FIRST_GROUP_MOBILE : FIRST_GROUP_LANDLINE;
   const firstGroup = rest.slice(0, firstGroupLength);
   const secondGroup = rest.slice(firstGroupLength);
 

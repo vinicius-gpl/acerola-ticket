@@ -69,9 +69,9 @@ describe('createTicketSchema', () => {
   });
 
   it('accepts a phone typed with no punctuation at all', () => {
-    expect(createTicketSchema.safeParse({ ...validInput, contactPhone: '62999999999' }).success).toBe(
-      true,
-    );
+    expect(
+      createTicketSchema.safeParse({ ...validInput, contactPhone: '62999999999' }).success,
+    ).toBe(true);
   });
 
   /* Contar dígitos com `\D` some com letra no meio: "62abc9999999" tinha dígitos de sobra e
@@ -168,6 +168,7 @@ describe('publicTicketSchema', () => {
     resolvedAt: null,
     updatedAt: null,
     updatedBy: null,
+    attachments: [],
   };
 
   // feliz
@@ -185,6 +186,32 @@ describe('publicTicketSchema', () => {
     expect(parsed).not.toHaveProperty('contactPhone');
     expect(parsed).not.toHaveProperty('assignee');
     expect(parsed).not.toHaveProperty('solution');
+  });
+
+  /* Os arquivos SAEM na consulta pública: são de quem abriu, e ela precisa conferir que a
+     nota fiscal chegou. Mexer neles é outra história — isso só pelo painel. */
+  it('keeps the files the person sent, so they can check what arrived', () => {
+    const withFile = publicTicketSchema.parse({
+      ...stored,
+      attachments: [
+        {
+          id: 1,
+          ticketId: 7,
+          kind: 'pdf' as const,
+          fileName: 'nota.pdf',
+          contentType: 'application/pdf',
+          sizeBytes: 1024,
+          viewUrl: 'https://r2.example/abrir',
+          downloadUrl: 'https://r2.example/baixar',
+          createdAt: '2026-03-01T08:00:00.000Z',
+          createdBy: null,
+        },
+      ],
+    });
+
+    expect(withFile.attachments[0]?.fileName).toBe('nota.pdf');
+    expect(withFile.attachments[0]?.viewUrl).toBeTruthy();
+    expect(withFile.attachments[0]?.downloadUrl).toBeTruthy();
   });
 });
 

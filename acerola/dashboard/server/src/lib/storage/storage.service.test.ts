@@ -15,7 +15,9 @@ function fakeClient() {
 
   return {
     sent,
-    client: { send: vi.fn(async (command: unknown) => void sent.push(command)) } as unknown as S3Client,
+    client: {
+      send: vi.fn(async (command: unknown) => void sent.push(command)),
+    } as unknown as S3Client,
   };
 }
 
@@ -104,7 +106,9 @@ describe('StorageService', () => {
   // triste
   /* A falha do R2 precisa chegar a quem chamou: engolir faria a tela dizer que salvou. */
   it('lets a storage failure through instead of swallowing it', async () => {
-    const client = { send: vi.fn().mockRejectedValue(new Error('R2 fora do ar')) } as unknown as S3Client;
+    const client = {
+      send: vi.fn().mockRejectedValue(new Error('R2 fora do ar')),
+    } as unknown as S3Client;
     const service = new StorageService(client, env);
 
     await expect(

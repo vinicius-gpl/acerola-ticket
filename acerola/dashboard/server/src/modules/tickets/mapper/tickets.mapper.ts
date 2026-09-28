@@ -1,3 +1,4 @@
+import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import { type TicketStatus } from '@template/shared/domain/ticket-status.util';
 import {
@@ -51,7 +52,11 @@ export function toTicket(row: TicketRow, screenshotUrl: string | null): Ticket {
  * Montado a partir de `toTicket` e podado depois: é o que impede um campo novo do painel de
  * aparecer na consulta pública só porque alguém o acrescentou ao contrato e esqueceu daqui.
  */
-export function toPublicTicket(row: TicketRow, screenshotUrl: string | null): PublicTicket {
+export function toPublicTicket(
+  row: TicketRow,
+  screenshotUrl: string | null,
+  attachments: TicketAttachment[] = [],
+): PublicTicket {
   const ticket = toTicket(row, screenshotUrl);
 
   return {
@@ -65,6 +70,7 @@ export function toPublicTicket(row: TicketRow, screenshotUrl: string | null): Pu
     anydeskId: ticket.anydeskId,
     description: ticket.description,
     screenshotUrl: ticket.screenshotUrl,
+    attachments,
     createdAt: ticket.createdAt,
   };
 }

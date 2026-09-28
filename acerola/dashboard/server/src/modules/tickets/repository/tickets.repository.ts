@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type TicketListQuery, type TicketReportQuery } from '@template/shared/schemas/ticket.schema';
+import {
+  type TicketListQuery,
+  type TicketReportQuery,
+} from '@template/shared/schemas/ticket.schema';
 import { and, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';

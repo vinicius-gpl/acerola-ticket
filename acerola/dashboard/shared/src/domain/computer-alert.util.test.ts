@@ -124,9 +124,7 @@ describe('describeAlert', () => {
 describe('alertDurationSeconds', () => {
   // feliz
   it('measures how long the episode lasted', () => {
-    expect(
-      alertDurationSeconds('2026-09-22T12:00:00.000Z', '2026-09-22T12:20:00.000Z'),
-    ).toBe(1200);
+    expect(alertDurationSeconds('2026-09-22T12:00:00.000Z', '2026-09-22T12:20:00.000Z')).toBe(1200);
   });
 
   // triste
@@ -136,9 +134,7 @@ describe('alertDurationSeconds', () => {
   });
 
   it('refuses a recovery dated before the start', () => {
-    expect(
-      alertDurationSeconds('2026-09-22T12:00:00.000Z', '2026-09-22T11:00:00.000Z'),
-    ).toBeNull();
+    expect(alertDurationSeconds('2026-09-22T12:00:00.000Z', '2026-09-22T11:00:00.000Z')).toBeNull();
   });
 
   it('refuses an unreadable date instead of returning NaN', () => {

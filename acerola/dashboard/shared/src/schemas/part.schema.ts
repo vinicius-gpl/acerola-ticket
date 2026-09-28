@@ -1,10 +1,6 @@
 import { z } from 'zod';
 
-import {
-  MOVEMENT_TYPES,
-  PART_CATEGORIES,
-  PART_CONDITIONS,
-} from '../domain/part-catalog.util';
+import { MOVEMENT_TYPES, PART_CATEGORIES, PART_CONDITIONS } from '../domain/part-catalog.util';
 import { departmentSchema } from './computer.schema';
 import { paginationQuerySchema } from './pagination.schema';
 

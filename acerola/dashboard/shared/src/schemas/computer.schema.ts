@@ -234,7 +234,10 @@ export const disposeComputerSchema = z.object({
     .string({ required_error: 'Diga por que a máquina saiu de uso' })
     .trim()
     .min(1, 'Diga por que a máquina saiu de uso')
-    .max(DISPOSAL_REASON_MAX_LENGTH, `O motivo pode ter até ${DISPOSAL_REASON_MAX_LENGTH} caracteres`),
+    .max(
+      DISPOSAL_REASON_MAX_LENGTH,
+      `O motivo pode ter até ${DISPOSAL_REASON_MAX_LENGTH} caracteres`,
+    ),
 });
 
 export type DisposeComputerInput = z.input<typeof disposeComputerSchema>;

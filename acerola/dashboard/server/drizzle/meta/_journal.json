@@ -78,6 +78,13 @@
       "when": 1790358359548,
       "tag": "0010_supreme_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790607005913,
+      "tag": "0011_normal_stephen_strange",
+      "breakpoints": true
     }
   ]
 }
