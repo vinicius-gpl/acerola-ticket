@@ -4,6 +4,9 @@
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
+	import AcerolaReportingCard, {
+		type ReportingState
+	} from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
 	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 	import AcerolaTooltip from '$lib/components/acerola-tooltip/acerola-tooltip.svelte';
@@ -15,10 +18,51 @@
 	import { useMetrics } from '$lib/metrics/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
-	import { HideWindow } from '../../../wailsjs/go/main/App';
+	import {
+		HideWindow,
+		ReportingSettings,
+		ReportingState as readReportingState,
+		SaveReportingSettings
+	} from '../../../wailsjs/go/main/App';
 	import { EventsOn } from '../../../wailsjs/runtime/runtime';
 
 	const metrics = useMetrics();
+
+	/* O card do painel central. O Go é a fonte da verdade: a tela só pergunta o
+	   que está salvo e em que pé está a conexão — a chave nunca vem de volta. */
+	const STATE_POLL_MS = 2000;
+
+	let reporting = $state({ serverUrl: '', hasToken: false, state: 'off' as ReportingState });
+	let isSavingReporting = $state(false);
+	let reportingError = $state('');
+
+	async function refreshReporting() {
+		const [settings, connectionState] = await Promise.all([
+			ReportingSettings(),
+			readReportingState()
+		]);
+
+		reporting = {
+			serverUrl: settings.serverUrl ?? '',
+			hasToken: settings.hasToken ?? false,
+			state: connectionState as ReportingState
+		};
+	}
+
+	async function saveReporting(serverUrl: string, token: string) {
+		isSavingReporting = true;
+		reportingError = '';
+
+		try {
+			/* O Go devolve a recusa já em português, ou vazio quando deu certo — é a
+			   única mensagem dele que existe para ser lida por gente. */
+			reportingError = await SaveReportingSettings(serverUrl, token);
+		} finally {
+			isSavingReporting = false;
+		}
+
+		await refreshReporting();
+	}
 
 	// "Fecha ao clicar fora": quando a janela perde o foco (blur), deve fechar imediatamente.
 	// Porém, nos primeiros milissegundos após o Windows exibir a janela (especialmente ao abrir
@@ -92,7 +136,13 @@
 		window.addEventListener('pointerdown', onFocus);
 		window.addEventListener('keydown', onKeyDown);
 
+		/* A conexão muda sozinha (o painel caiu, a rede voltou, o TI desbloqueou),
+		   e só quem pergunta descobre — o Go não empurra evento para esta tela. */
+		void refreshReporting();
+		const statePoll = setInterval(() => void refreshReporting(), STATE_POLL_MS);
+
 		return () => {
+			clearInterval(statePoll);
 			cancelPendingBlur();
 			unsubChange();
 			unsubShown();
@@ -358,6 +408,12 @@
 						</div>
 					</div>
 				</AcerolaCard>
+
+				<AcerolaReportingCard
+					data={reporting}
+					state={{ isSaving: isSavingReporting, error: reportingError }}
+					events={{ onSave: saveReporting }}
+				/>
 			</div>
 		{:else}
 			<div

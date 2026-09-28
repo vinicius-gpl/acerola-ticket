@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -47,10 +48,13 @@ func TestLoadFromEnvironment(testingContext *testing.T) {
 	}
 }
 
-func TestLoadFromFile(testingContext *testing.T) {
-	// feliz: sem ambiente, vale o arquivo que o instalador gravou
-	configPath := writeConfigFile(testingContext,
-		`{"serverUrl":"https://painel.exemplo.com","token":"do-arquivo","intervalSeconds":60}`)
+func TestSaveThenLoad(testingContext *testing.T) {
+	// feliz: o que a tela do agente salvou é o que ele usa para conectar
+	configPath := filepath.Join(testingContext.TempDir(), "config.json")
+
+	if _, saveError := Save(configPath, "https://painel.exemplo.com", "do-arquivo", 60); saveError != nil {
+		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	}
 
 	loaded, loadError := Load(environmentOf(nil), configPath)
 	if loadError != nil {
@@ -68,8 +72,10 @@ func TestLoadFromFile(testingContext *testing.T) {
 
 func TestEnvironmentWinsOverFile(testingContext *testing.T) {
 	// feliz: apontar a máquina para outro servidor não exige reescrever o arquivo
-	configPath := writeConfigFile(testingContext,
-		`{"serverUrl":"wss://producao.exemplo.com/agent","token":"do-arquivo"}`)
+	configPath := filepath.Join(testingContext.TempDir(), "config.json")
+	if _, saveError := Save(configPath, "wss://producao.exemplo.com/agent", "do-arquivo", 0); saveError != nil {
+		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	}
 
 	loaded, loadError := Load(environmentOf(map[string]string{
 		"ACEROLA_SERVER_URL":  "ws://localhost:3005/agent",
@@ -157,5 +163,79 @@ func TestLoadRefusesBrokenFile(testingContext *testing.T) {
 	_, loadError := Load(environmentOf(nil), configPath)
 	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
 		testingContext.Errorf("esperava erro de JSON inválido, veio %v", loadError)
+	}
+}
+
+func TestSaveKeepsTheTokenOutOfTheFile(testingContext *testing.T) {
+	// feliz: quem abrir o arquivo no disco não encontra a chave
+	configPath := filepath.Join(testingContext.TempDir(), "config.json")
+	const token = "chave-secreta-da-maquina"
+
+	if _, saveError := Save(configPath, "http://localhost:3005", token, 0); saveError != nil {
+		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	}
+
+	content, readError := os.ReadFile(configPath)
+	if readError != nil {
+		testingContext.Fatalf("não consegui ler o arquivo: %v", readError)
+	}
+
+	if strings.Contains(string(content), token) {
+		testingContext.Error("a chave apareceu em texto puro no arquivo")
+	}
+	if !strings.Contains(string(content), "tokenCipher") {
+		testingContext.Error("o arquivo deveria guardar a chave cifrada")
+	}
+}
+
+func TestCurrentTellsWhatIsConfiguredWithoutTheSecret(testingContext *testing.T) {
+	// feliz: a tela sabe o endereço e que existe uma chave — nunca a chave
+	configPath := filepath.Join(testingContext.TempDir(), "config.json")
+	if _, saveError := Save(configPath, "http://localhost:3005", "chave", 45); saveError != nil {
+		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	}
+
+	current := Current(configPath)
+	if current.ServerURL != "ws://localhost:3005/agent" {
+		testingContext.Errorf("endereço inesperado: %q", current.ServerURL)
+	}
+	if !current.HasToken {
+		testingContext.Error("deveria dizer que existe uma chave salva")
+	}
+	if current.IntervalSeconds != 45 {
+		testingContext.Errorf("intervalo inesperado: %d", current.IntervalSeconds)
+	}
+
+	// triste: máquina sem configuração nenhuma não inventa endereço nem chave
+	empty := Current(filepath.Join(testingContext.TempDir(), "nao-existe.json"))
+	if empty.ServerURL != "" || empty.HasToken {
+		testingContext.Errorf("esperava vazio, veio %+v", empty)
+	}
+}
+
+func TestSaveRefusesWhatWouldNeverConnect(testingContext *testing.T) {
+	// triste: erro de digitação para na hora de salvar, e não depois, calado
+	configPath := filepath.Join(testingContext.TempDir(), "config.json")
+
+	if _, saveError := Save(configPath, "http://localhost:3005", "   ", 0); saveError == nil {
+		testingContext.Error("esperava recusa para uma chave em branco")
+	}
+	if _, saveError := Save(configPath, "ftp://painel", "chave", 0); saveError == nil {
+		testingContext.Error("esperava recusa para um endereço impossível")
+	}
+
+	if _, statError := os.Stat(configPath); statError == nil {
+		testingContext.Error("nada deveria ter sido gravado")
+	}
+}
+
+func TestLoadRefusesASecretFromAnotherMachine(testingContext *testing.T) {
+	// triste: arquivo copiado de outro computador não abre — e diz isso
+	configPath := writeConfigFile(testingContext,
+		`{"serverUrl":"http://localhost:3005","tokenCipher":"dGV4dG8gcXVlIG7Do28gYWJyZQ=="}`)
+
+	_, loadError := Load(environmentOf(nil), configPath)
+	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
+		testingContext.Errorf("esperava erro de chave ilegível, veio %v", loadError)
 	}
 }

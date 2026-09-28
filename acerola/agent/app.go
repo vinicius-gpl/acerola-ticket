@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -61,6 +62,11 @@ type App struct {
 	viewReady       chan struct{}
 	isWindowVisible bool
 	windowHandle    windows.HWND
+
+	// O envio ao painel central: o que está rodando agora, e como pará-lo.
+	// Trocar a chave na tela derruba o envio antigo e sobe um novo.
+	reporter     *reporting.Reporter
+	stopReporter context.CancelFunc
 }
 
 func NewApp() *App {
@@ -118,9 +124,9 @@ func (app *App) startup(ctx context.Context) {
 // foi configurada para reportar (ver src-go/reporting).
 //
 // Sem configuração o agente segue exatamente como era: local, mostrando as
-// métricas na própria máquina. É de propósito que a falta de configuração
-// não seja erro — nem toda instalação deste agente é de uma máquina que o
-// TI acompanha pelo painel.
+// métricas na própria máquina. É de propósito que a falta de configuração não
+// seja erro — nem toda instalação deste agente é de uma máquina que o TI
+// acompanha pelo painel.
 func (app *App) reportToDashboard(ctx context.Context) {
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
@@ -138,8 +144,105 @@ func (app *App) reportToDashboard(ctx context.Context) {
 		return
 	}
 
+	app.startReporting(ctx, config)
+}
+
+// startReporting sobe o envio, parando o anterior se houver.
+func (app *App) startReporting(ctx context.Context, config reporting.Config) {
+	app.stopReporting()
+
+	reportingContext, stop := context.WithCancel(ctx)
+	reporter := reporting.NewReporter(config, app.broadcaster, agentVersion)
+
+	app.mu.Lock()
+	app.reporter = reporter
+	app.stopReporter = stop
+	app.mu.Unlock()
+
 	log.Printf("reporting: sending snapshots to %s every %v", config.ServerURL, config.Interval)
-	reporting.NewReporter(config, app.broadcaster, agentVersion).Run(ctx)
+	go reporter.Run(reportingContext)
+}
+
+func (app *App) stopReporting() {
+	app.mu.Lock()
+	stop := app.stopReporter
+	app.reporter = nil
+	app.stopReporter = nil
+	app.mu.Unlock()
+
+	if stop != nil {
+		stop()
+	}
+}
+
+// ReportingSettings é exposto ao frontend (via Bind): o que a tela mostra no
+// card do painel central. O TOKEN NÃO SAI daqui — só a informação de que
+// existe um salvo. Devolvê-lo recolocaria em texto puro, na memória da tela,
+// o segredo que acabou de ser cifrado em disco.
+func (app *App) ReportingSettings() reporting.Settings {
+	configPath, configPathError := reporting.DefaultConfigPath()
+	if configPathError != nil {
+		return reporting.Settings{}
+	}
+
+	return reporting.Current(configPath)
+}
+
+// ReportingState é exposto ao frontend (via Bind): em que pé está a conexão.
+func (app *App) ReportingState() string {
+	app.mu.RLock()
+	reporter := app.reporter
+	app.mu.RUnlock()
+
+	if reporter == nil {
+		return string(reporting.StateOff)
+	}
+
+	return string(reporter.State())
+}
+
+// SaveReportingSettings é exposto ao frontend (via Bind): guarda o endereço e
+// a chave desta máquina — a chave cifrada — e já reconecta com ela.
+//
+// A mensagem de erro que volta daqui APARECE NA TELA, então ela é a única
+// coisa deste arquivo escrita em português.
+func (app *App) SaveReportingSettings(serverURL string, token string) string {
+	configPath, configPathError := reporting.DefaultConfigPath()
+	if configPathError != nil {
+		return "Não consegui achar a pasta de configuração desta máquina."
+	}
+
+	config, saveError := reporting.Save(configPath, serverURL, token, 0)
+	if saveError != nil {
+		log.Printf("reporting: %v", saveError)
+
+		return saveMessage(saveError)
+	}
+
+	app.mu.RLock()
+	ctx := app.ctx
+	app.mu.RUnlock()
+
+	app.startReporting(ctx, config)
+
+	return ""
+}
+
+// saveMessage traduz a recusa para uma frase que diz O QUE FAZER. O erro
+// original vai para o log, em inglês, para quem for investigar.
+func saveMessage(saveError error) string {
+	switch {
+	case strings.Contains(saveError.Error(), "token is missing"):
+		return "Cole a chave que o painel mostrou quando o computador foi cadastrado."
+	case strings.Contains(saveError.Error(), "server URL is missing"):
+		return "Informe o endereço do painel."
+	case strings.Contains(saveError.Error(), "server URL"):
+		return "O endereço do painel não parece certo. Use o mesmo endereço que você abre no navegador."
+	case strings.Contains(saveError.Error(), "protect"):
+		return "Não consegui guardar a chave com segurança nesta máquina."
+	default:
+		return "Não consegui salvar. Tente de novo."
+	}
 }
 
 // forwardSnapshots assina o broadcaster e empurra cada leitura pro frontend

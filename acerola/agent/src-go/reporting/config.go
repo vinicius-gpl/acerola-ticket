@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/secret"
 )
 
 const (
@@ -58,11 +60,23 @@ type Config struct {
 }
 
 // fileConfig é o formato do config.json, em inglês como todo identificador
-// do projeto. Quem escreve este arquivo é quem instala o agente.
+// do projeto. Quem escreve este arquivo é a própria tela do agente.
+//
+// O token mora aqui CIFRADO (ver src-go/secret) e nunca em texto puro: este
+// arquivo fica na pasta do usuário, vai junto num backup e aparece inteiro
+// para quem tiver acesso ao disco.
 type fileConfig struct {
 	ServerURL       string `json:"serverUrl"`
-	Token           string `json:"token"`
+	TokenCipher     string `json:"tokenCipher"`
 	IntervalSeconds int    `json:"intervalSeconds"`
+}
+
+// rawConfig é a configuração já com o token LEGÍVEL, só em memória, vinda do
+// arquivo (decifrada) ou do ambiente.
+type rawConfig struct {
+	ServerURL       string
+	Token           string
+	IntervalSeconds int
 }
 
 // Environment é a leitura de variáveis de ambiente, injetável para teste.
@@ -98,21 +112,45 @@ func DefaultConfigPath() (string, error) {
 	return filepath.Join(base, configDirName, configFileName), nil
 }
 
-func readEnvironment(lookupEnv Environment) fileConfig {
+func readEnvironment(lookupEnv Environment) rawConfig {
 	if lookupEnv == nil {
-		return fileConfig{}
+		return rawConfig{}
 	}
 
 	seconds, _ := strconv.Atoi(strings.TrimSpace(lookupEnv("ACEROLA_REPORT_INTERVAL_SECONDS")))
 
-	return fileConfig{
+	return rawConfig{
 		ServerURL:       lookupEnv("ACEROLA_SERVER_URL"),
 		Token:           lookupEnv("ACEROLA_AGENT_TOKEN"),
 		IntervalSeconds: seconds,
 	}
 }
 
-func readFile(configPath string) (fileConfig, error) {
+func readFile(configPath string) (rawConfig, error) {
+	stored, readError := readStored(configPath)
+	if readError != nil {
+		return rawConfig{}, readError
+	}
+
+	raw := rawConfig{ServerURL: stored.ServerURL, IntervalSeconds: stored.IntervalSeconds}
+	if stored.TokenCipher == "" {
+		return raw, nil
+	}
+
+	token, unprotectError := unprotect(stored.TokenCipher)
+	if unprotectError != nil {
+		/* O segredo existe mas não abre: foi cifrado por outro usuário, veio de
+		   outra máquina, ou o arquivo foi mexido. Dizer isso é melhor do que
+		   fingir que a máquina nunca foi configurada. */
+		return rawConfig{}, fmt.Errorf("reporting: the saved key cannot be read on this machine: %w", unprotectError)
+	}
+
+	raw.Token = token
+
+	return raw, nil
+}
+
+func readStored(configPath string) (fileConfig, error) {
 	if configPath == "" {
 		return fileConfig{}, ErrNotConfigured
 	}
@@ -133,7 +171,7 @@ func readFile(configPath string) (fileConfig, error) {
 	return parsed, nil
 }
 
-func normalize(raw fileConfig) (Config, error) {
+func normalize(raw rawConfig) (Config, error) {
 	token := strings.TrimSpace(raw.Token)
 	address := strings.TrimSpace(raw.ServerURL)
 
@@ -204,4 +242,87 @@ func normalizeInterval(seconds int) time.Duration {
 	}
 
 	return interval
+}
+
+/*
+A cifra do token, em variável para o teste conseguir simular a máquina em
+
+	que o segredo NÃO abre — o caso de um arquivo copiado de outro computador.
+*/
+var (
+	protect   = secret.Protect
+	unprotect = secret.Unprotect
+)
+
+// Settings é o que a TELA do agente mostra e grava.
+//
+// O token só entra, nunca sai: a tela informa se existe um salvo (`HasToken`),
+// e não o valor. Devolvê-lo ao frontend recolocaria em texto puro, na memória
+// do navegador embutido, o segredo que acabamos de cifrar em disco.
+type Settings struct {
+	ServerURL       string `json:"serverUrl"`
+	HasToken        bool   `json:"hasToken"`
+	IntervalSeconds int    `json:"intervalSeconds"`
+}
+
+// Current lê o que está configurado hoje, sem o segredo.
+func Current(configPath string) Settings {
+	stored, readError := readStored(configPath)
+	if readError != nil {
+		return Settings{IntervalSeconds: int(DefaultInterval.Seconds())}
+	}
+
+	seconds := stored.IntervalSeconds
+	if seconds <= 0 {
+		seconds = int(DefaultInterval.Seconds())
+	}
+
+	return Settings{
+		ServerURL:       stored.ServerURL,
+		HasToken:        stored.TokenCipher != "",
+		IntervalSeconds: seconds,
+	}
+}
+
+// Save grava o endereço e o token desta máquina, com o token cifrado.
+//
+// A configuração é VALIDADA antes de ir para o disco: um endereço impossível
+// ou um token vazio param aqui, com o motivo, em vez de virarem um agente que
+// tenta para sempre sem ninguém entender por quê.
+func Save(configPath string, serverURL string, token string, intervalSeconds int) (Config, error) {
+	config, validationError := normalize(rawConfig{
+		ServerURL:       serverURL,
+		Token:           token,
+		IntervalSeconds: intervalSeconds,
+	})
+	if validationError != nil {
+		return Config{}, validationError
+	}
+
+	cipher, protectError := protect(config.Token)
+	if protectError != nil {
+		return Config{}, fmt.Errorf("reporting: cannot protect the key: %w", protectError)
+	}
+
+	content, marshalError := json.MarshalIndent(fileConfig{
+		ServerURL:       config.ServerURL,
+		TokenCipher:     cipher,
+		IntervalSeconds: int(config.Interval.Seconds()),
+	}, "", "  ")
+	if marshalError != nil {
+		return Config{}, marshalError
+	}
+
+	if directoryError := os.MkdirAll(filepath.Dir(configPath), 0o700); directoryError != nil {
+		return Config{}, fmt.Errorf("reporting: cannot create %s: %w", filepath.Dir(configPath), directoryError)
+	}
+
+	/* 0600: só o dono lê. No Windows a permissão POSIX não é o que protege —
+	   quem protege é a cifra —, mas o mesmo código roda igual em qualquer
+	   sistema e não custa nada estar certo nos dois. */
+	if writeError := os.WriteFile(configPath, content, 0o600); writeError != nil {
+		return Config{}, fmt.Errorf("reporting: cannot write %s: %w", configPath, writeError)
+	}
+
+	return config, nil
 }

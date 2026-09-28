@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -60,6 +61,23 @@ type snapshotMessage struct {
 	Snapshot metrics.Snapshot `json:"snapshot"`
 }
 
+// State é o que a TELA do agente mostra sobre o envio. Em inglês como todo
+// identificador; quem escreve a frase em português é o frontend.
+type State string
+
+const (
+	// StateOff: esta máquina não foi configurada para reportar.
+	StateOff State = "off"
+	// StateConnecting: tentando — nunca conectou ainda, ou caiu e vai voltar.
+	StateConnecting State = "connecting"
+	// StateConnected: conexão aberta, leituras saindo.
+	StateConnected State = "connected"
+	// StateRejected: o painel recusou a chave. Só configuração conserta.
+	StateRejected State = "rejected"
+	// StateBlocked: o TI bloqueou esta máquina no painel.
+	StateBlocked State = "blocked"
+)
+
 // SnapshotSource é o que o Reporter precisa de uma fonte de leituras — o
 // mesmo par de métodos que o `metrics.Broadcaster` já expõe.
 //
@@ -80,10 +98,32 @@ type Reporter struct {
 	config       Config
 	source       SnapshotSource
 	agentVersion string
+
+	mutex sync.RWMutex
+	state State
 }
 
 func NewReporter(config Config, source SnapshotSource, agentVersion string) *Reporter {
-	return &Reporter{config: config, source: source, agentVersion: agentVersion}
+	return &Reporter{
+		config:       config,
+		source:       source,
+		agentVersion: agentVersion,
+		state:        StateConnecting,
+	}
+}
+
+// State é o estado atual, para a tela. Seguro de chamar de qualquer goroutine.
+func (reporter *Reporter) State() State {
+	reporter.mutex.RLock()
+	defer reporter.mutex.RUnlock()
+
+	return reporter.state
+}
+
+func (reporter *Reporter) setState(state State) {
+	reporter.mutex.Lock()
+	reporter.state = state
+	reporter.mutex.Unlock()
 }
 
 // Run conecta, reconecta e envia até ctx ser cancelado. Chame numa
@@ -92,6 +132,8 @@ func (reporter *Reporter) Run(ctx context.Context) {
 	attempt := 0
 
 	for {
+		reporter.setState(StateConnecting)
+
 		sessionError := reporter.session(ctx)
 		if ctx.Err() != nil {
 			return
@@ -99,9 +141,12 @@ func (reporter *Reporter) Run(ctx context.Context) {
 
 		switch classify(sessionError) {
 		case outcomeStop:
+			reporter.setState(StateRejected)
 			log.Printf("reporting: giving up, fix the agent configuration: %v", sessionError)
+
 			return
 		case outcomeWait:
+			reporter.setState(StateBlocked)
 			log.Printf("reporting: this machine is blocked by IT, retrying later: %v", sessionError)
 			attempt = maxAttempt
 		default:
@@ -136,6 +181,10 @@ func (reporter *Reporter) session(ctx context.Context) error {
 	   e toda recusa viraria "conexão caiu". */
 	closed := make(chan error, 1)
 	go func() { closed <- drain(connection) }()
+
+	/* A conexão aberta e o `hello` enviado é o que a tela chama de conectado: se
+	   o token não valesse, o servidor já teria fechado antes da primeira leitura. */
+	reporter.setState(StateConnected)
 
 	return reporter.pump(ctx, connection, closed)
 }

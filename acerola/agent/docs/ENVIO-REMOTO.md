@@ -36,33 +36,45 @@ energia aparece offline sozinha.
 No dashboard, **Inventário → Cadastrar computador**. Ao salvar, ele mostra o **token desta
 máquina uma única vez** — só o hash fica no banco, igual a senha. Copie ali.
 
-### 2. Grave a configuração na máquina
+### 2. Cole a chave no agente
 
-Arquivo `%APPDATA%\Acerola Agent\config.json`:
+Na máquina, clique no ícone do agente na bandeja do Windows. No card **Painel central**:
 
-```json
-{
-  "serverUrl": "https://painel.da.empresa",
-  "token": "o-token-que-o-painel-mostrou",
-  "intervalSeconds": 30
-}
-```
+1. confira o **endereço do painel** (aceita `http://`, `https://`, `ws://` ou `wss://` — o
+   caminho `/agent` é completado sozinho);
+2. cole a **chave desta máquina** no campo (ele é de senha: não fica à mostra);
+3. **Salvar**.
 
-- `serverUrl` aceita o endereço como você o tem na mão: `http://`, `https://`, `ws://` ou
-  `wss://`. Ele é convertido, e o caminho `/agent` é completado quando falta.
-- `intervalSeconds` é opcional (padrão 30). Fora da faixa de 5s a 5min, o valor é preso na
-  borda mais próxima — número errado no arquivo não pode fazer a máquina parar de reportar.
+O card diz na hora em que pé está: *Não configurado* · *Conectando…* · *Conectado* · *Chave
+recusada* · *Bloqueada pelo TI*.
 
-### Ou por variável de ambiente
+### Como a chave fica guardada
 
-O ambiente **vence** o arquivo, o que permite apontar uma máquina para outro servidor (teste,
-homologação) sem reescrever o que o instalador gravou:
+Cifrada com a **DPAPI do Windows**, somando uma **entropia** feita do identificador desta
+instalação do Windows (ver `src-go/secret`). Não existe chave criptográfica guardada em lugar
+nenhum — quem guarda é o Windows, amarrada à conta que cifrou. Na prática:
+
+- o arquivo `%APPDATA%\Acerola Agent\config.json` guarda só o texto cifrado, em `tokenCipher`;
+- copiar esse arquivo para outro computador **não** abre;
+- outro usuário do mesmo computador **não** abre;
+- e a entropia extra impede que outro programa rodando como o mesmo usuário decifre.
+
+Se o arquivo vier de outra máquina, o agente diz que a chave salva não pode ser lida ali, em vez
+de ficar tentando calado.
+
+### Para instalação em massa: variável de ambiente
+
+O ambiente **vence** o arquivo, o que permite provisionar muitas máquinas de uma vez ou apontar
+uma para outro servidor (teste, homologação) sem abrir a tela:
 
 ```
 ACEROLA_SERVER_URL=ws://localhost:3005/agent
 ACEROLA_AGENT_TOKEN=o-token
 ACEROLA_REPORT_INTERVAL_SECONDS=30
 ```
+
+Aqui o token fica em texto puro na variável — é o preço de não ter ninguém na máquina para
+digitar. Para uma instalação feita por pessoa, o campo da tela é o caminho.
 
 ## Como conferir se está funcionando
 
