@@ -48,6 +48,10 @@
     onBlur: () => {},
     onSubmit: () => {},
     onClose: () => {},
+    onChosenFilesChange: () => {},
+    onAttachmentError: () => {},
+    onAttach: () => {},
+    onRemoveAttachment: () => {},
   };
 
   const { Story } = defineMeta({
@@ -59,7 +63,7 @@
 <Story
   name="Default"
   args={{
-    data: { ticket, fields: freshFields, whatsAppLink: null },
+    data: { ticket, fields: freshFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
     state: { isOpen: true },
     actions,
   }}
@@ -68,7 +72,7 @@
 <Story
   name="Answered"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
     state: { isOpen: true },
     actions,
   }}
@@ -82,6 +86,8 @@
       ticket,
       fields: answeredFields,
       whatsAppLink: 'https://wa.me/5562999990001?text=Seu%20chamado',
+      attachments: [],
+      chosenFiles: [],
     },
     state: { isOpen: true },
     actions,
@@ -95,6 +101,8 @@
       ticket: { ...ticket, screenshotUrl: 'https://example.invalid/print.png' },
       fields: freshFields,
       whatsAppLink: null,
+      attachments: [],
+      chosenFiles: [],
     },
     state: { isOpen: true },
     actions,
@@ -104,7 +112,7 @@
 <Story
   name="Submitting"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
     state: { isOpen: true, isSubmitting: true },
     actions,
   }}
@@ -114,7 +122,7 @@
 <Story
   name="ServerRefused"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
     state: { isOpen: true, error: 'O banco recusou o valor enviado.' },
     actions,
   }}
@@ -135,6 +143,8 @@
       },
       fields: freshFields,
       whatsAppLink: null,
+      attachments: [],
+      chosenFiles: [],
     },
     state: { isOpen: true },
     actions,

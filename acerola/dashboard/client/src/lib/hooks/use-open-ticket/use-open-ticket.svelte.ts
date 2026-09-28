@@ -34,14 +34,18 @@ export type OpenTicketModel = {
     notifyWhatsapp: boolean;
     /** O nome do print escolhido, para a pessoa conferir o que vai anexar. */
     screenshotName: string | null;
+    /** Os anexos escolhidos, ainda não enviados. Some quando o chamado é aberto. */
+    attachments: File[];
     opened: OpenedTicket | null;
   };
-  state: { isSubmitting: boolean; error: string | null };
+  state: { isSubmitting: boolean; error: string | null; attachmentError: string | null };
   actions: {
     onChange: (field: OpenTicketField, value: string) => void;
     onBlur: (field: OpenTicketField) => void;
     onNotifyChange: (notify: boolean) => void;
     onScreenshotChange: (file: File | null) => void;
+    onAttachmentsChange: (files: File[]) => void;
+    onAttachmentError: (message: string | null) => void;
     onSubmit: () => void;
     onOpenAnother: () => void;
   };
@@ -67,11 +71,17 @@ const EMPTY_VALUES: TicketFormValues = {
  */
 export function useOpenTicketModel(): OpenTicketModel {
   let screenshot = $state<File | null>(null);
+  /* Os arquivos só existem enquanto o formulário está aberto: eles viajam junto com o
+     chamado, num envio só, e não há onde guardá-los antes de o chamado existir. */
+  let attachments = $state<File[]>([]);
+  /* A recusa da ESCOLHA, separada da falha de enviar: uma é sobre o arquivo, a outra é
+     sobre a rede, e misturá-las faria a tela dizer a coisa errada. */
+  let attachmentError = $state<string | null>(null);
   let opened = $state<OpenedTicket | null>(null);
 
   const save = mirrorStore(
     createMutation({
-      mutationFn: (values: TicketFormValues) => ticketsApi.create(values, screenshot),
+      mutationFn: (values: TicketFormValues) => ticketsApi.create(values, screenshot, attachments),
       onSuccess: (ticket: Ticket) => {
         opened = { protocol: ticket.protocol, whatsAppLink: buildNotice(ticket) };
       },
@@ -110,11 +120,16 @@ export function useOpenTicketModel(): OpenTicketModel {
         },
         notifyWhatsapp: values.current.notifyWhatsapp,
         screenshotName: screenshot?.name ?? null,
+        attachments,
         opened,
       };
     },
     get state() {
-      return { isSubmitting: save.current.isPending, error: readError(save.current.error) };
+      return {
+        isSubmitting: save.current.isPending,
+        error: readError(save.current.error),
+        attachmentError,
+      };
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
@@ -128,12 +143,16 @@ export function useOpenTicketModel(): OpenTicketModel {
       },
       onNotifyChange: (notify) => form.setFieldValue('notifyWhatsapp', notify),
       onScreenshotChange: (file) => (screenshot = file),
+      onAttachmentsChange: (files: File[]) => (attachments = files),
+      onAttachmentError: (message: string | null) => (attachmentError = message),
       onSubmit: () => void form.handleSubmit(),
       /* Abrir outro chamado é um formulário NOVO, do zero: reaproveitar os valores do
          anterior faria a pessoa abrir sem querer o mesmo chamado duas vezes. */
       onOpenAnother: () => {
         opened = null;
         screenshot = null;
+        attachments = [];
+        attachmentError = null;
         save.current.reset();
         form.reset();
       },

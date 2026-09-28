@@ -9,10 +9,10 @@ import {
   Query,
   Res,
   StreamableFile,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   ApiBody,
   ApiConsumes,
@@ -39,7 +39,12 @@ import {
   TicketReportQueryDto,
   UpdateTicketDto,
 } from '../dto/ticket.dto';
-import { type TicketDashboard, TicketsService, type UploadedScreenshot } from '../service/tickets.service';
+import { type UploadedAttachment } from '../service/ticket-attachments.service';
+import {
+  type TicketDashboard,
+  TicketsService,
+  type UploadedScreenshot,
+} from '../service/tickets.service';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -54,6 +59,18 @@ import { type TicketDashboard, TicketsService, type UploadedScreenshot } from '.
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
  * resposta. A documentação fica em http://localhost:3336/docs.
  */
+/**
+ * O teto de arquivos numa requisição. O limite de verdade é por formato, e quem o aplica é o
+ * domínio — este número só impede que um envio de mil arquivos seja lido antes disso.
+ */
+const MAX_ATTACHMENTS_PER_REQUEST = 25;
+
+/** Os arquivos como o interceptor de vários campos os entrega. */
+type TicketUploads = {
+  screenshot?: UploadedScreenshot[];
+  attachments?: UploadedAttachment[];
+};
+
 @ApiTags('Chamados')
 @Controller('tickets')
 export class TicketsController {
@@ -61,12 +78,17 @@ export class TicketsController {
 
   @Post()
   @Public()
-  @UseInterceptors(FileInterceptor('screenshot'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'screenshot', maxCount: 1 },
+      { name: 'attachments', maxCount: MAX_ATTACHMENTS_PER_REQUEST },
+    ]),
+  )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Abre um chamado (público)',
     description:
-      'Não exige login. O print do erro viaja como arquivo no campo `screenshot`, na mesma requisição — não há endereço separado de envio de arquivo. A situação e o responsável não são aceitos no corpo: todo chamado nasce aberto e sem responsável.',
+      'Não exige login. Os arquivos viajam na mesma requisição: o print do erro no campo `screenshot` e os demais anexos no campo `attachments` — PDF, Word, Excel, PNG/JPG e MP4, cada formato com o teto dele. A situação e o responsável não são aceitos no corpo: todo chamado nasce aberto e sem responsável.',
   })
   @ApiBody({ type: CreateTicketDto })
   @ApiCreatedResponse({ type: TicketDto })
@@ -75,9 +97,9 @@ export class TicketsController {
   })
   async create(
     @Body() body: CreateTicketDto,
-    @UploadedFile() screenshot?: UploadedScreenshot,
+    @UploadedFiles() files?: TicketUploads,
   ): Promise<TicketDto> {
-    return this.service.create(body, screenshot);
+    return this.service.create(body, files?.screenshot?.[0], files?.attachments ?? []);
   }
 
   @Get('protocol/:protocol')

@@ -67,9 +67,9 @@ describe('classifyEvent', () => {
 describe('outageDurationSeconds', () => {
   // feliz
   it('measures how long the internet was out', () => {
-    expect(
-      outageDurationSeconds('2026-09-23T12:00:00.000Z', '2026-09-23T12:20:00.000Z'),
-    ).toBe(1200);
+    expect(outageDurationSeconds('2026-09-23T12:00:00.000Z', '2026-09-23T12:20:00.000Z')).toBe(
+      1200,
+    );
   });
 
   // triste

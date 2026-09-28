@@ -23,7 +23,10 @@ const ANYDESK_CHARACTERS = /^[\d\s]*$/;
 function hasValidDigitCount(value: string): boolean {
   const digits = value.replace(/\D/g, '');
 
-  return digits.length === 0 || (digits.length >= ANYDESK_MIN_DIGITS && digits.length <= ANYDESK_MAX_DIGITS);
+  return (
+    digits.length === 0 ||
+    (digits.length >= ANYDESK_MIN_DIGITS && digits.length <= ANYDESK_MAX_DIGITS)
+  );
 }
 
 /**

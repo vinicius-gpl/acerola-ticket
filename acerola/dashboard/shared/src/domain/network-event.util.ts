@@ -47,9 +47,7 @@ export function networkSeverityLabel(severity: NetworkSeverity): string {
   return NETWORK_SEVERITY_LABELS[severity];
 }
 
-export function networkSeverityTone(
-  severity: NetworkSeverity,
-): 'neutral' | 'warning' | 'danger' {
+export function networkSeverityTone(severity: NetworkSeverity): 'neutral' | 'warning' | 'danger' {
   if (severity === 'critical') return 'danger';
   if (severity === 'attention') return 'warning';
 
@@ -104,10 +102,7 @@ export function classifyEvent(text: string | null | undefined): NetworkEventType
  * Quanto tempo o problema durou, em segundos. Nulo enquanto ele não terminou — é o que
  * separa "está fora agora" de "caiu ontem por vinte minutos".
  */
-export function outageDurationSeconds(
-  startedAt: string,
-  resolvedAt: string | null,
-): number | null {
+export function outageDurationSeconds(startedAt: string, resolvedAt: string | null): number | null {
   if (!resolvedAt) return null;
 
   const start = Date.parse(startedAt);

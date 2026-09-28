@@ -25,8 +25,12 @@ describe('createPartSchema', () => {
 
   it('accepts the quantity already on the shelf', () => {
     expect(
-      createPartSchema.parse({ name: 'Mouse', category: 'mouse', condition: 'used', initialQuantity: 4 })
-        .initialQuantity,
+      createPartSchema.parse({
+        name: 'Mouse',
+        category: 'mouse',
+        condition: 'used',
+        initialQuantity: 4,
+      }).initialQuantity,
     ).toBe(4);
   });
 

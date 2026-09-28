@@ -16,6 +16,7 @@ const ticket: PublicTicket = {
   anydeskId: null,
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
+  attachments: [],
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 
@@ -54,7 +55,10 @@ describe('TicketLookupDrawer', () => {
 
   it('offers the screenshot when the ticket has one', () => {
     setup({
-      data: { protocol: 'CH-0007', ticket: { ...ticket, screenshotUrl: 'https://x.invalid/a.png' } },
+      data: {
+        protocol: 'CH-0007',
+        ticket: { ...ticket, screenshotUrl: 'https://x.invalid/a.png' },
+      },
     });
 
     expect(screen.getByRole('link', { name: /abrir o print/i })).toHaveAttribute(
@@ -79,7 +83,10 @@ describe('TicketLookupDrawer', () => {
   /* "Não encontrado" é resposta, não falha do site: vir em vermelho faria a pessoa achar
      que o sistema quebrou quando ela só digitou um número errado. */
   it('says nothing was found without dressing it up as a failure', () => {
-    setup({ data: { protocol: 'CH-9999', ticket: null }, state: { isOpen: true, isNotFound: true } });
+    setup({
+      data: { protocol: 'CH-9999', ticket: null },
+      state: { isOpen: true, isNotFound: true },
+    });
 
     expect(screen.getByText(/não encontrei nenhum chamado/i)).toBeInTheDocument();
   });
