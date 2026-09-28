@@ -4,7 +4,6 @@
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
-	import AcerolaReportingCard from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
 	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
 	import AcerolaThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 	import AcerolaTooltip from '$lib/components/acerola-tooltip/acerola-tooltip.svelte';
@@ -12,16 +11,15 @@
 	import CpuIcon from '@lucide/svelte/icons/cpu';
 	import HardDriveIcon from '@lucide/svelte/icons/hard-drive';
 	import MonitorIcon from '@lucide/svelte/icons/monitor';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { useMetrics } from '$lib/metrics/store.svelte';
-	import { useReporting } from '$lib/reporting/store.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
-	import { HideWindow } from '../../../wailsjs/go/main/App';
+	import { HideWindow, ShowSettings } from '../../../wailsjs/go/main/App';
 	import { EventsOn } from '../../../wailsjs/runtime/runtime';
 
 	const metrics = useMetrics();
-	const reporting = useReporting();
 
 	const STABILIZATION_MS = 200;
 	let shownAt = 0;
@@ -88,12 +86,7 @@
 		window.addEventListener('pointerdown', onFocus);
 		window.addEventListener('keydown', onKeyDown);
 
-		/* A conexão muda sozinha (o painel caiu, a rede voltou, o TI desbloqueou),
-		   e só quem pergunta descobre — o Go não empurra evento para esta tela. */
-		const unwatchReporting = reporting.watch();
-
 		return () => {
-			unwatchReporting();
 			cancelPendingBlur();
 			unsubChange();
 			unsubShown();
@@ -142,9 +135,7 @@
 	});
 </script>
 
-<div
-	class="border-border/80 bg-background text-foreground flex h-full w-full flex-col overflow-hidden rounded-2xl border shadow-2xl"
->
+<div class="bg-background text-foreground flex h-full w-full flex-col overflow-hidden rounded-2xl">
 	<header
 		data-drag-region
 		class="border-border/70 bg-card flex shrink-0 items-center justify-between border-b px-3.5 py-2.5 select-none"
@@ -168,6 +159,15 @@
 					</span>
 					{metrics.latest ? 'ao vivo' : 'conectando'}
 				</span>
+			</AcerolaTooltip>
+			<!-- A configuração é OUTRA tela: aqui fica só a porta para ela. -->
+			<AcerolaTooltip data={{ text: 'Configuração do agente' }}>
+				<AcerolaButton
+					events={{ onClick: () => void ShowSettings() }}
+					ui={{ variant: 'ghost', size: 'icon', title: 'Configuração do agente' }}
+				>
+					<SettingsIcon size={16} />
+				</AcerolaButton>
 			</AcerolaTooltip>
 			<AcerolaThemeToggle />
 			<AcerolaTooltip data={{ text: 'Fechar (Esc)' }}>
@@ -359,12 +359,6 @@
 						</div>
 					</div>
 				</AcerolaCard>
-
-				<AcerolaReportingCard
-					data={reporting.card}
-					state={reporting.state}
-					events={{ onSave: reporting.save }}
-				/>
 			</div>
 		{:else}
 			<div

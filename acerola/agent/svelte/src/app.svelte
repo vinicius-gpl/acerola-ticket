@@ -4,6 +4,7 @@
 	import Dashboard from './routes/dashboard/dashboard.svelte';
 	import Idle from './routes/idle/idle.svelte';
 	import Popup from './routes/popup/popup.svelte';
+	import Settings from './routes/settings/settings.svelte';
 	import { ViewReady } from '../wailsjs/go/main/App';
 	import { EventsOn } from '../wailsjs/runtime/runtime';
 
@@ -14,6 +15,7 @@
 	const routes = {
 		'/popup': Popup,
 		'/dashboard': Dashboard,
+		'/settings': Settings,
 		'/idle': Idle,
 		'*': Idle
 	};
@@ -29,7 +31,7 @@
 	// ao DOM. Como em janelas escondidas o WebView2/Chromium pode suspender
 	// requestAnimationFrame até a janela aparecer, combinamos com um timer
 	// curto para avisar o Go rapidamente sem travar no timeout de 200ms.
-	const unsubscribe = EventsOn('view:change', (view: 'popup' | 'dashboard') => {
+	const unsubscribe = EventsOn('view:change', (view: 'popup' | 'dashboard' | 'settings') => {
 		push(`/${view}`);
 		tick().then(() => {
 			let sent = false;
