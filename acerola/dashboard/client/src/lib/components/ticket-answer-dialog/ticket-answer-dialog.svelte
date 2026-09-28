@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
   import {
     ticketDepartmentLabel,
     ticketProblemTypeLabel,
@@ -35,13 +36,27 @@
       fields: Record<TicketAnswerField, FormFieldState>;
       /** Pronto e já com o texto. Nulo quando a pessoa não pediu para ser avisada. */
       whatsAppLink: string | null;
+      attachments: TicketAttachment[];
+      chosenFiles: File[];
     };
-    state: { isOpen: boolean; isSubmitting?: boolean; error?: string | null };
+    state: {
+      isOpen: boolean;
+      isSubmitting?: boolean;
+      error?: string | null;
+      isAttachmentsLoading?: boolean;
+      isAttaching?: boolean;
+      removingAttachmentId?: number | null;
+      attachmentError?: string | null;
+    };
     actions: {
       onChange: (field: TicketAnswerField, value: string) => void;
       onBlur: (field: TicketAnswerField) => void;
       onSubmit: () => void;
       onClose: () => void;
+      onChosenFilesChange: (files: File[]) => void;
+      onAttachmentError: (message: string | null) => void;
+      onAttach: () => void;
+      onRemoveAttachment: (attachment: TicketAttachment) => void;
     };
   };
 
@@ -83,6 +98,8 @@
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import AttachmentList from '$lib/components/attachment-list/attachment-list.svelte';
+  import AttachmentPicker from '$lib/components/attachment-picker/attachment-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
@@ -188,6 +205,47 @@
             <ImageIcon class="size-3.5" aria-hidden="true" />
             Abrir o print enviado
           </a>
+        {/if}
+      </section>
+
+      <section class="flex flex-col gap-2">
+        <div class="border-b border-border/80 pb-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Arquivos do chamado
+          </h3>
+        </div>
+
+        <AttachmentList
+          data={{ attachments: data.attachments }}
+          ui={{ emptyLabel: 'Nenhum arquivo neste chamado.' }}
+          state={{
+            isLoading: state.isAttachmentsLoading,
+            removingId: state.removingAttachmentId,
+          }}
+          actions={{ onRemove: actions.onRemoveAttachment }}
+        />
+
+        <AttachmentPicker
+          data={{
+            files: data.chosenFiles,
+            existingKinds: data.attachments.map((attachment) => attachment.kind),
+          }}
+          state={{ isDisabled: state.isAttaching, error: state.attachmentError }}
+          actions={{
+            onChange: actions.onChosenFilesChange,
+            onError: actions.onAttachmentError,
+          }}
+        />
+
+        {#if data.chosenFiles.length > 0}
+          <!-- Os arquivos entram num envio à parte do formulário: quem está atendendo pode
+               juntar a nota fiscal sem ter de salvar a situação do chamado junto. -->
+          <ActionButton
+            data={{ label: 'Anexar ao chamado', loadingLabel: 'Anexando…' }}
+            ui={{ variant: 'secondary', size: 'sm' }}
+            state={{ isLoading: state.isAttaching }}
+            actions={{ onClick: actions.onAttach }}
+          />
         {/if}
       </section>
 

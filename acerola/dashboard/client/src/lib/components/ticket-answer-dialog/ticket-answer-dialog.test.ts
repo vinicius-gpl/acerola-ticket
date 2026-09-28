@@ -37,12 +37,21 @@ const fields: Record<TicketAnswerField, FormFieldState> = {
   solution: field(''),
 };
 
-const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn(), onClose: vi.fn() };
+const actions = {
+  onChange: vi.fn(),
+  onBlur: vi.fn(),
+  onSubmit: vi.fn(),
+  onClose: vi.fn(),
+  onChosenFilesChange: vi.fn(),
+  onAttachmentError: vi.fn(),
+  onAttach: vi.fn(),
+  onRemoveAttachment: vi.fn(),
+};
 
 function setup(props: Record<string, unknown> = {}) {
   return render(TicketAnswerDialog, {
     props: {
-      data: { ticket, fields, whatsAppLink: null },
+      data: { ticket, fields, whatsAppLink: null, attachments: [], chosenFiles: [] },
       state: { isOpen: true },
       actions,
       ...props,
@@ -78,7 +87,15 @@ describe('TicketAnswerDialog', () => {
 
   it('offers the notice link when the person asked to be warned', () => {
     setup({
-      data: { ticket, fields, whatsAppLink: 'https://wa.me/5562999990001?text=oi' },
+      data: {
+        ticket,
+        fields,
+        whatsAppLink: 'https://wa.me/5562999990001?text=oi',
+        attachments: [],
+        chosenFiles: [],
+      },
+      attachments: [],
+      chosenFiles: [],
     });
 
     expect(screen.getByRole('link', { name: /avisar no whatsapp/i })).toHaveAttribute(
@@ -93,6 +110,8 @@ describe('TicketAnswerDialog', () => {
         ticket: { ...ticket, screenshotUrl: 'https://x.invalid/print.png' },
         fields,
         whatsAppLink: null,
+        attachments: [],
+        chosenFiles: [],
       },
     });
 
@@ -117,7 +136,13 @@ describe('TicketAnswerDialog', () => {
 
   it('shows the server refusal without closing, so nothing typed is lost', () => {
     setup({
-      data: { ticket, fields: { ...fields, solution: field('Troquei o rolete.') }, whatsAppLink: null },
+      data: {
+        ticket,
+        fields: { ...fields, solution: field('Troquei o rolete.') },
+        whatsAppLink: null,
+        attachments: [],
+        chosenFiles: [],
+      },
       state: { isOpen: true, error: 'O banco recusou o valor enviado.' },
     });
 
@@ -132,7 +157,15 @@ describe('TicketAnswerDialog', () => {
   });
 
   it('says the AnyDesk was not informed instead of leaving a blank gap', () => {
-    setup({ data: { ticket: { ...ticket, anydeskId: null }, fields, whatsAppLink: null } });
+    setup({
+      data: {
+        ticket: { ...ticket, anydeskId: null },
+        fields,
+        whatsAppLink: null,
+        attachments: [],
+        chosenFiles: [],
+      },
+    });
 
     /* O rótulo e o valor são elementos diferentes, então a conferência é sobre o texto
        renderizado — é o que a pessoa lê, independentemente de como foi marcado. */

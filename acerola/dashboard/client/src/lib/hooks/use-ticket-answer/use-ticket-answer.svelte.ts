@@ -1,6 +1,8 @@
 import { createForm } from '@tanstack/svelte-form';
-import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+import { writable } from 'svelte/store';
+import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { buildWhatsAppLink } from '@template/shared/domain/ticket-whatsapp.util';
+import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { ticketStatusLabel } from '@template/shared/domain/ticket-status.util';
 import {
   type Ticket,
@@ -23,12 +25,29 @@ export type TicketAnswerModel = {
     fields: Record<TicketAnswerField, FormFieldState>;
     /** O link de aviso, pronto. Nulo quando não há como (ou não se deve) avisar. */
     whatsAppLink: string | null;
+    /** Os arquivos já anexados ao chamado. */
+    attachments: TicketAttachment[];
+    /** Os escolhidos agora, ainda não enviados. */
+    chosenFiles: File[];
   };
-  state: { isSubmitting: boolean; error: string | null };
+  state: {
+    isSubmitting: boolean;
+    error: string | null;
+    isAttachmentsLoading: boolean;
+    isAttaching: boolean;
+    /** Qual anexo está sendo excluído — trava a linha dele, não a lista. */
+    removingAttachmentId: number | null;
+    /** A recusa da escolha ou da gravação de anexo, separada da falha do formulário. */
+    attachmentError: string | null;
+  };
   actions: {
     onChange: (field: TicketAnswerField, value: string) => void;
     onBlur: (field: TicketAnswerField) => void;
     onSubmit: () => void;
+    onChosenFilesChange: (files: File[]) => void;
+    onAttachmentError: (message: string | null) => void;
+    onAttach: () => void;
+    onRemoveAttachment: (attachment: TicketAttachment) => void;
   };
 };
 
@@ -50,6 +69,42 @@ export function useTicketAnswerModel({
   onSaved: () => void;
 }): TicketAnswerModel {
   const queryClient = useQueryClient();
+
+  /** A chave da consulta de anexos DESTE chamado: anexar e excluir a refazem. */
+  const attachmentsKey = [...TICKETS_QUERY_KEY, 'attachments', ticket.id];
+
+  const attachments = mirrorStore(
+    createQuery(
+      writable({ queryKey: attachmentsKey, queryFn: () => ticketsApi.attachments(ticket.id) }),
+    ),
+  );
+
+  /* Os escolhidos vivem só aqui, até alguém mandar guardar: antes disso eles não são do
+     chamado, são da tela. */
+  let chosenFiles = $state<File[]>([]);
+  let attachmentError = $state<string | null>(null);
+  let removingAttachmentId = $state<number | null>(null);
+
+  const attach = mirrorStore(
+    createMutation({
+      mutationFn: (files: readonly File[]) => ticketsApi.attach(ticket.id, files),
+      onSuccess: async () => {
+        chosenFiles = [];
+        attachmentError = null;
+        await queryClient.invalidateQueries({ queryKey: attachmentsKey });
+      },
+    }),
+  );
+
+  const removeAttachment = mirrorStore(
+    createMutation({
+      mutationFn: (attachmentId: number) => ticketsApi.removeAttachment(ticket.id, attachmentId),
+      onSettled: async () => {
+        removingAttachmentId = null;
+        await queryClient.invalidateQueries({ queryKey: attachmentsKey });
+      },
+    }),
+  );
 
   const save = mirrorStore(
     createMutation({
@@ -92,10 +147,25 @@ export function useTicketAnswerModel({
           solution: toFieldState(current.solution, fieldMeta.current.solution, isSubmitted.current),
         },
         whatsAppLink: buildNotice(ticket, current.status),
+        attachments: attachments.current.data ?? [],
+        chosenFiles,
       };
     },
     get state() {
-      return { isSubmitting: save.current.isPending, error: readError(save.current.error) };
+      return {
+        isSubmitting: save.current.isPending,
+        error: readError(save.current.error),
+        isAttachmentsLoading: attachments.current.isPending,
+        isAttaching: attach.current.isPending,
+        removingAttachmentId,
+        /* A recusa da ESCOLHA (o arquivo não cabe) e a da GRAVAÇÃO (a rede caiu) aparecem no
+           mesmo lugar: para quem está olhando, as duas respondem "por que meu arquivo não
+           entrou?". */
+        attachmentError:
+          attachmentError ??
+          readError(attach.current.error) ??
+          readError(removeAttachment.current.error),
+      };
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
@@ -107,6 +177,18 @@ export function useTicketAnswerModel({
         void form.validateField(field, 'change');
       },
       onSubmit: () => void form.handleSubmit(),
+      onChosenFilesChange: (files) => (chosenFiles = files),
+      onAttachmentError: (message) => (attachmentError = message),
+      onAttach: () => {
+        if (chosenFiles.length === 0) return;
+
+        attachmentError = null;
+        attach.current.mutate(chosenFiles);
+      },
+      onRemoveAttachment: (attachment) => {
+        removingAttachmentId = attachment.id;
+        removeAttachment.current.mutate(attachment.id);
+      },
     },
   };
 }

@@ -43,14 +43,18 @@
       fields: Record<OpenTicketField, FormFieldState>;
       notifyWhatsapp: boolean;
       screenshotName: string | null;
+      /** Os arquivos escolhidos, ainda não enviados. */
+      attachments: File[];
       opened: { protocol: string; whatsAppLink: string | null } | null;
     };
-    state: { isSubmitting?: boolean; error?: string | null };
+    state: { isSubmitting?: boolean; error?: string | null; attachmentError?: string | null };
     actions: {
       onChange: (field: OpenTicketField, value: string) => void;
       onBlur: (field: OpenTicketField) => void;
       onNotifyChange: (notify: boolean) => void;
       onScreenshotChange: (file: File | null) => void;
+      onAttachmentsChange: (files: File[]) => void;
+      onAttachmentError: (message: string | null) => void;
       onSubmit: () => void;
       onOpenAnother: () => void;
     };
@@ -122,6 +126,7 @@
   import XIcon from '@lucide/svelte/icons/x';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
+  import AttachmentPicker from '$lib/components/attachment-picker/attachment-picker.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
@@ -420,6 +425,21 @@
                 disabled={formState.isSubmitting}
                 onchange={handleFile}
                 class="sr-only"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <span class="text-ink-700 text-sm font-medium">Outros arquivos (opcional)</span>
+              <!-- O print continua sendo um campo só, de imagem: ele nasceu antes e é o que a
+                   maioria manda. Aqui entra o resto — a nota da peça, a planilha, o vídeo do
+                   defeito que não dá para descrever por escrito. -->
+              <AttachmentPicker
+                data={{ files: data.attachments }}
+                state={{ isDisabled: formState.isSubmitting, error: formState.attachmentError }}
+                actions={{
+                  onChange: actions.onAttachmentsChange,
+                  onError: actions.onAttachmentError,
+                }}
               />
             </div>
           </TimelineStep>

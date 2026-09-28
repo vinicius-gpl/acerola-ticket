@@ -23,6 +23,8 @@ const actions = {
   onBlur: vi.fn(),
   onNotifyChange: vi.fn(),
   onScreenshotChange: vi.fn(),
+  onAttachmentsChange: vi.fn(),
+  onAttachmentError: vi.fn(),
   onSubmit: vi.fn(),
   onOpenAnother: vi.fn(),
 };
@@ -30,7 +32,7 @@ const actions = {
 function setup(props: Record<string, unknown> = {}) {
   return render(OpenTicketForm, {
     props: {
-      data: { fields, notifyWhatsapp: false, screenshotName: null, opened: null },
+      data: { fields, notifyWhatsapp: false, screenshotName: null, attachments: [], opened: null },
       state: {},
       actions,
       ...props,
@@ -79,7 +81,13 @@ describe('OpenTicketForm', () => {
       const nextValue = name === 'contactPhone' ? formatPhoneInput(value) : value;
       currentFields = { ...currentFields, [name]: field(nextValue) };
       rendered.rerender({
-        data: { fields: currentFields, notifyWhatsapp: false, screenshotName: null, opened: null },
+        data: {
+          fields: currentFields,
+          notifyWhatsapp: false,
+          screenshotName: null,
+          attachments: [],
+          opened: null,
+        },
         state: {},
         actions: { ...actions, onChange: handleChange },
       });
@@ -87,7 +95,13 @@ describe('OpenTicketForm', () => {
 
     const rendered = render(OpenTicketForm, {
       props: {
-        data: { fields: currentFields, notifyWhatsapp: false, screenshotName: null, opened: null },
+        data: {
+          fields: currentFields,
+          notifyWhatsapp: false,
+          screenshotName: null,
+          attachments: [],
+          opened: null,
+        },
         state: {},
         actions: { ...actions, onChange: handleChange },
       },
@@ -102,7 +116,13 @@ describe('OpenTicketForm', () => {
   it('reports the chosen screenshot on its own step, so the person can check what will be attached', async () => {
     const user = userEvent.setup();
     setup({
-      data: { fields, notifyWhatsapp: false, screenshotName: 'erro.png', opened: null },
+      data: {
+        fields,
+        notifyWhatsapp: false,
+        screenshotName: 'erro.png',
+        attachments: [],
+        opened: null,
+      },
     });
 
     await advanceTo(user, 2);
@@ -114,7 +134,13 @@ describe('OpenTicketForm', () => {
     const user = userEvent.setup();
     const onScreenshotChange = vi.fn();
     setup({
-      data: { fields, notifyWhatsapp: false, screenshotName: 'erro.png', opened: null },
+      data: {
+        fields,
+        notifyWhatsapp: false,
+        screenshotName: 'erro.png',
+        attachments: [],
+        opened: null,
+      },
       actions: { ...actions, onScreenshotChange },
     });
 
@@ -144,6 +170,7 @@ describe('OpenTicketForm', () => {
         fields,
         notifyWhatsapp: false,
         screenshotName: null,
+        attachments: [],
         opened: { protocol: 'CH-0013', whatsAppLink: null },
       },
     });
@@ -158,6 +185,7 @@ describe('OpenTicketForm', () => {
         fields,
         notifyWhatsapp: true,
         screenshotName: null,
+        attachments: [],
         opened: { protocol: 'CH-0013', whatsAppLink: 'https://wa.me/5562999999999?text=oi' },
       },
     });
@@ -179,6 +207,7 @@ describe('OpenTicketForm', () => {
         },
         notifyWhatsapp: false,
         screenshotName: null,
+        attachments: [],
         opened: null,
       },
     });
@@ -201,6 +230,7 @@ describe('OpenTicketForm', () => {
         fields: { ...fields, requesterName: field('', 'Informe seu nome') },
         notifyWhatsapp: false,
         screenshotName: null,
+        attachments: [],
         opened: null,
       },
       state: {},
@@ -239,6 +269,7 @@ describe('OpenTicketForm', () => {
         fields,
         notifyWhatsapp: false,
         screenshotName: null,
+        attachments: [],
         opened: { protocol: 'CH-0013', whatsAppLink: null },
       },
     });
