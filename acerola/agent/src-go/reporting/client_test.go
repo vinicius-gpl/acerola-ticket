@@ -76,6 +76,12 @@ func startFakeDashboard(testingContext *testing.T, closeWith int) (string, <-cha
 				return
 			}
 
+			/* O dashboard confirma a apresentação antes de aceitar leituras, e o
+			   agente espera por essa confirmação — o servidor de teste faz igual. */
+			if strings.Contains(string(payload), `"hello"`) {
+				_ = connection.WriteMessage(websocket.TextMessage, []byte(`{"type":"welcome"}`))
+			}
+
 			select {
 			case received <- string(payload):
 			default:
@@ -324,7 +330,8 @@ func TestReporterGivesUpOnASilentServer(testingContext *testing.T) {
 	defer func() { _ = connection.Close() }()
 
 	cadence := make(chan time.Duration, 1)
-	readError := read(connection, cadence, reporter.config.Interval, 200*time.Millisecond)
+	welcome := make(chan struct{}, 1)
+	readError := read(connection, cadence, welcome, reporter.config.Interval, 200*time.Millisecond)
 
 	if readError == nil {
 		testingContext.Error("a leitura deveria ter desistido do servidor mudo")
@@ -333,5 +340,60 @@ func TestReporterGivesUpOnASilentServer(testingContext *testing.T) {
 	// feliz: desistir é uma queda comum, e queda comum se tenta de novo
 	if decision := classify(readError); decision != outcomeRetry {
 		testingContext.Errorf("esperava nova tentativa, veio %v", decision)
+	}
+}
+
+func TestReporterWaitsForTheWelcomeBeforeSending(testingContext *testing.T) {
+	// triste: servidor que aceita a conexão e NÃO confirma não recebe leitura nenhuma
+	silent := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		connection, upgradeError := (&websocket.Upgrader{}).Upgrade(writer, request, nil)
+		if upgradeError != nil {
+			return
+		}
+		defer func() { _ = connection.Close() }()
+
+		/* Lê a apresentação e fica quieto: é o servidor ainda conferindo o token.
+		   Mandar a leitura agora seria o "snapshot before hello" que derrubava a
+		   conexão a cada reconexão. */
+		for {
+			_, payload, readError := connection.ReadMessage()
+			if readError != nil {
+				return
+			}
+			if strings.Contains(string(payload), `"snapshot"`) {
+				testingContext.Error("o agente mandou leitura antes da confirmação")
+			}
+		}
+	}))
+	testingContext.Cleanup(silent.Close)
+
+	config := Config{
+		ServerURL: "ws" + strings.TrimPrefix(silent.URL, "http"),
+		Token:     "token-de-teste",
+		Interval:  MinInterval,
+	}
+	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
+
+	ctx, cancel := context.WithTimeout(testingContext.Context(), 2*time.Second)
+	defer cancel()
+	_ = reporter.session(ctx)
+}
+
+func TestReporterSendsOnlyAfterTheWelcome(testingContext *testing.T) {
+	// feliz: com a confirmação, a primeira leitura sai na hora
+	address, received := startFakeDashboard(testingContext, 0)
+
+	config := Config{ServerURL: address, Token: "token-de-teste", Interval: time.Hour}
+	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
+
+	ctx, cancel := context.WithCancel(testingContext.Context())
+	defer cancel()
+	go reporter.Run(ctx)
+
+	if hello := waitForMessage(testingContext, received); !strings.Contains(hello, `"hello"`) {
+		testingContext.Fatalf("esperava a apresentação primeiro, veio %s", hello)
+	}
+	if snapshot := waitForMessage(testingContext, received); !strings.Contains(snapshot, `"snapshot"`) {
+		testingContext.Errorf("esperava a leitura logo após a confirmação, veio %s", snapshot)
 	}
 }
