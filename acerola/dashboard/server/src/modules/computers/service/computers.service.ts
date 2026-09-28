@@ -43,8 +43,7 @@ import {
   toSnapshotUpdate,
 } from '../mapper/computers.mapper';
 import { AgentPresenceService } from '../presence/agent-presence.service';
-import { LiveWatchService } from '../presence/live-watch.service';
-import { WATCHED_CADENCE_SECONDS } from '../gateway/agent.gateway';
+import { LiveWatchService, WATCHED_CADENCE_SECONDS } from '../presence/live-watch.service';
 import { ComputersRepository } from '../repository/computers.repository';
 import { createComputerToken, hashComputerToken } from '../token/computer-token.util';
 

@@ -26,7 +26,10 @@ const (
 	// que caiu volta em minutos, e insistir de segundo em segundo só
 	// atrapalharia os dois.
 	firstRetryDelay = 5 * time.Second
-	maxRetryDelay   = 5 * time.Minute
+	/* Teto de um minuto, e não de cinco: este agente existe para a máquina
+	   aparecer no painel, e cinco minutos escondida depois de o servidor
+	   reiniciar é tempo demais para quem está olhando a ficha dela. */
+	maxRetryDelay = time.Minute
 
 	// Quanto esperar pela conexão e por uma escrita antes de desistir dela.
 	dialTimeout  = 15 * time.Second
@@ -36,6 +39,18 @@ const (
 	// tela do próprio agente: abaixo disso não há leitura nova para mandar,
 	// porque o coletor mede uma vez por segundo.
 	fastestCadence = time.Second
+
+	// Quanto tempo de silêncio TOTAL do servidor conta como conexão morta.
+	//
+	// O servidor manda um ping a cada 15 segundos (ver agent.gateway.ts). Um
+	// cabo arrancado ou um Wi-Fi que cai não fecham a conexão: os dois lados
+	// continuam achando que ela está de pé, e o agente segue "enviando" para um
+	// cano que não existe mais. Este prazo é o que transforma isso numa queda
+	// detectada, que leva à reconexão.
+	//
+	// Três rodadas de ping de folga: uma perdida é rede engasgando, três é
+	// queda.
+	serverSilenceTimeout = 45 * time.Second
 )
 
 // outcome é o que fazer depois que uma sessão terminou.
@@ -186,7 +201,7 @@ func (reporter *Reporter) session(ctx context.Context) error {
 	   caiu") e é por ela que chega o pedido de mudar o ritmo. */
 	closed := make(chan error, 1)
 	cadence := make(chan time.Duration, 1)
-	go func() { closed <- read(connection, cadence, reporter.config.Interval) }()
+	go func() { closed <- read(connection, cadence, reporter.config.Interval, serverSilenceTimeout) }()
 
 	/* A conexão aberta e o `hello` enviado é o que a tela chama de conectado: se
 	   o token não valesse, o servidor já teria fechado antes da primeira leitura. */
@@ -300,11 +315,39 @@ type serverMessage struct {
 // servidor pode ser mais novo que este agente e ter passado a mandar algo que
 // ele ainda não conhece. Perder o envio inteiro por causa disso seria trocar
 // uma máquina monitorada por nada.
-func read(connection *websocket.Conn, cadence chan<- time.Duration, rest time.Duration) error {
+func read(
+	connection *websocket.Conn,
+	cadence chan<- time.Duration,
+	rest time.Duration,
+	silenceTimeout time.Duration,
+) error {
+	/* Cada sinal de vida do servidor empurra o prazo para frente. Sem prazo, uma
+	   conexão meio aberta prenderia esta leitura para sempre e o agente nunca
+	   tentaria reconectar. */
+	renew := func() error { return connection.SetReadDeadline(time.Now().Add(silenceTimeout)) }
+
+	if deadlineError := renew(); deadlineError != nil {
+		return deadlineError
+	}
+
+	/* O `gorilla` responde ao ping sozinho; o que ele não faz é renovar o prazo,
+	   e é por isso que o tratador é trocado aqui em vez de deixado no padrão. */
+	connection.SetPingHandler(func(message string) error {
+		if deadlineError := renew(); deadlineError != nil {
+			return deadlineError
+		}
+
+		return connection.WriteControl(websocket.PongMessage, []byte(message), time.Now().Add(writeTimeout))
+	})
+
 	for {
 		_, payload, readError := connection.ReadMessage()
 		if readError != nil {
 			return readError
+		}
+
+		if deadlineError := renew(); deadlineError != nil {
+			return deadlineError
 		}
 
 		var message serverMessage

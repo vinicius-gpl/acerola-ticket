@@ -12,7 +12,7 @@ import {
 
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import { AgentPresenceService } from '../presence/agent-presence.service';
-import { LiveWatchService } from '../presence/live-watch.service';
+import { LiveWatchService, WATCHED_CADENCE_SECONDS } from '../presence/live-watch.service';
 import { ComputersService } from '../service/computers.service';
 
 /**
@@ -37,14 +37,20 @@ const CLOSE_HELLO_TIMEOUT = 4009;
 const HELLO_TIMEOUT_MS = 10_000;
 
 /**
- * O ritmo de quem está sendo olhado, e o de quem não está.
+ * O BATIMENTO da conexão.
  *
- * Um segundo é a mesma cadência que o agente usa na tela dele: é o que faz o número na ficha
- * mexer junto com a máquina. O ritmo de repouso NÃO é decidido aqui — é o configurado em cada
- * agente —, e por isso o "volte ao normal" viaja como um valor que o agente interpreta como
- * "o seu", e não como um número imposto de fora.
+ * **Por que isto existe:** um cabo arrancado, um Wi-Fi que cai, um notebook que dorme — nada
+ * disso fecha a conexão. Os dois lados ficam achando que ela está de pé ("conexão meio
+ * aberta"), o servidor continua contando a máquina como online, e a ficha mostra a última
+ * leitura como se fosse de agora. Foi exatamente o que aconteceu: máquina marcada Online com
+ * a última leitura de vinte minutos antes.
+ *
+ * Sem tráfego, só o TCP perceberia — e ele leva dezenas de minutos. O ping cria o tráfego que
+ * falta: quem não devolve o pong em duas rodadas perde a conexão, e a máquina aparece offline
+ * na tela, que é a verdade.
  */
-export const WATCHED_CADENCE_SECONDS = 1;
+const HEARTBEAT_INTERVAL_MS = 15_000;
+const HEARTBEAT_TOLERANCE = 2;
 
 /**
  * A conexão, como o `ws` a entrega.
@@ -56,6 +62,9 @@ type AgentSocket = {
   on: (event: string, listener: (payload: never) => void) => void;
   send: (data: string) => void;
   close: (code?: number, reason?: string) => void;
+  /** O batimento: o `ws` responde sozinho ao ping do outro lado, com um pong. */
+  ping: () => void;
+  terminate: () => void;
 };
 
 /** O que o servidor sabe sobre uma conexão enquanto ela está aberta. */
@@ -85,6 +94,9 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** Máquina → a conexão dela, para o servidor conseguir FALAR com o agente. */
   private readonly byComputer = new Map<number, AgentSocket>();
+
+  /** Conexão → o timer de batimento dela. */
+  private readonly heartbeats = new Map<AgentSocket, NodeJS.Timeout>();
 
   constructor(
     private readonly service: ComputersService,
@@ -118,6 +130,8 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.close(client, CLOSE_HELLO_TIMEOUT, 'hello timeout');
     }, HELLO_TIMEOUT_MS);
 
+    this.startHeartbeat(client);
+
     client.on('message', (raw: unknown) => {
       void this.onMessage(client, String(raw), timeout);
     });
@@ -128,6 +142,8 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: AgentSocket): void {
+    this.stopHeartbeat(client);
+
     const session = this.sessions.get(client);
     if (!session) return;
 
@@ -190,6 +206,47 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
        que supor que deu certo pelo silêncio, e silêncio também é o que um servidor travado
        devolve. */
     client.send(JSON.stringify({ type: 'welcome', computerName: result.computer.name }));
+  }
+
+  /**
+   * Liga o batimento desta conexão.
+   *
+   * A conta é de rodadas sem resposta, e não de tempo desde o último pong: o `ws` responde ao
+   * ping sozinho, então uma conexão viva zera o contador a cada rodada. Duas rodadas sem
+   * resposta (trinta segundos) é queda, e não lentidão de rede.
+   *
+   * `terminate` e não `close`: fechar educadamente espera uma resposta do outro lado, e o
+   * outro lado é justamente quem não está respondendo.
+   */
+  private startHeartbeat(client: AgentSocket): void {
+    let missed = 0;
+
+    client.on('pong', (() => {
+      missed = 0;
+    }) as (payload: never) => void);
+
+    const beat = setInterval(() => {
+      if (missed >= HEARTBEAT_TOLERANCE) {
+        this.logger.warn('Agent connection went silent: dropping it');
+        this.stopHeartbeat(client);
+        client.terminate();
+
+        return;
+      }
+
+      missed += 1;
+      client.ping();
+    }, HEARTBEAT_INTERVAL_MS);
+
+    this.heartbeats.set(client, beat);
+  }
+
+  private stopHeartbeat(client: AgentSocket): void {
+    const beat = this.heartbeats.get(client);
+    if (!beat) return;
+
+    clearInterval(beat);
+    this.heartbeats.delete(client);
   }
 
   private parse(raw: string) {

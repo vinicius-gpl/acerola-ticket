@@ -20,6 +20,19 @@ import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 /** Quanto tempo um pedido mantém a máquina como "sendo olhada". */
 export const WATCH_TTL_MS = 10_000;
 
+/**
+ * O ritmo de quem está sendo olhado.
+ *
+ * Um segundo é a mesma cadência que o agente usa na tela dele: é o que faz o número na ficha
+ * mexer junto com a máquina. O ritmo de REPOUSO não é decidido aqui — é o configurado em cada
+ * agente —, e por isso o "volte ao normal" viaja como zero, e não como um número imposto.
+ *
+ * Mora neste arquivo, e não no gateway, porque quem o usa são os dois: o gateway para mandar
+ * o comando e o service para pedir a aceleração. Tê-lo no gateway fazia o service importar o
+ * gateway, que importa o service — e o Nest recusa a subir com essa volta.
+ */
+export const WATCHED_CADENCE_SECONDS = 1;
+
 /** De quanto em quanto tempo as inscrições vencidas são varridas. */
 const SWEEP_INTERVAL_MS = 2_000;
 

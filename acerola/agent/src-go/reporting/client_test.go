@@ -293,3 +293,45 @@ func TestReporterSpeedsUpWhenTheServerAsks(testingContext *testing.T) {
 		testingContext.Errorf("esperava uma leitura nova depois do pedido, veio %s", second)
 	}
 }
+
+func TestReporterGivesUpOnASilentServer(testingContext *testing.T) {
+	// triste: conexão meio aberta — o servidor aceita e some, sem fechar nada
+	silent := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		connection, upgradeError := (&websocket.Upgrader{}).Upgrade(writer, request, nil)
+		if upgradeError != nil {
+			return
+		}
+
+		/* Nem lê, nem fala, nem fecha: é o cano que caiu sem ninguém avisar. */
+		<-request.Context().Done()
+		_ = connection.Close()
+	}))
+	testingContext.Cleanup(silent.Close)
+
+	config := Config{
+		ServerURL: "ws" + strings.TrimPrefix(silent.URL, "http"),
+		Token:     "token-de-teste",
+		Interval:  time.Hour,
+	}
+	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
+
+	/* O prazo de verdade é de 45 segundos; o teste passa um curto no lugar, para
+	   conferir a decisão sem esperar quase um minuto por ela. */
+	connection, _, dialError := websocket.DefaultDialer.Dial(config.ServerURL, nil)
+	if dialError != nil {
+		testingContext.Fatalf("não consegui conectar ao servidor mudo: %v", dialError)
+	}
+	defer func() { _ = connection.Close() }()
+
+	cadence := make(chan time.Duration, 1)
+	readError := read(connection, cadence, reporter.config.Interval, 200*time.Millisecond)
+
+	if readError == nil {
+		testingContext.Error("a leitura deveria ter desistido do servidor mudo")
+	}
+
+	// feliz: desistir é uma queda comum, e queda comum se tenta de novo
+	if decision := classify(readError); decision != outcomeRetry {
+		testingContext.Errorf("esperava nova tentativa, veio %v", decision)
+	}
+}
