@@ -132,8 +132,21 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.startHeartbeat(client);
 
+    /**
+     * As mensagens são tratadas EM FILA, uma de cada vez.
+     *
+     * Conferir o token é assíncrono (vai ao banco), e o agente manda a apresentação e a
+     * primeira leitura em sequência, sem esperar. Sem a fila, a leitura chegava enquanto a
+     * apresentação ainda estava no ar, a sessão ainda não existia, e a conexão era derrubada
+     * com "snapshot before hello" — de novo, e de novo, a cada reconexão.
+     *
+     * Enfileirar aqui, e não pedir ao agente que espere, é o que faz isso valer para QUALQUER
+     * versão do agente já instalada por aí.
+     */
+    let queue = Promise.resolve();
+
     client.on('message', (raw: unknown) => {
-      void this.onMessage(client, String(raw), timeout);
+      queue = queue.then(() => this.onMessage(client, String(raw), timeout));
     });
 
     client.on('error', (error: Error) => {

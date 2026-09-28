@@ -51,6 +51,13 @@ const (
 	// Três rodadas de ping de folga: uma perdida é rede engasgando, três é
 	// queda.
 	serverSilenceTimeout = 45 * time.Second
+
+	// Quanto esperar pela confirmação do servidor depois de se apresentar.
+	//
+	// Generoso: do outro lado há uma consulta ao banco, e um banco na nuvem
+	// acordando de suspensão leva alguns segundos. Estourar aqui é tratado como
+	// queda comum — tenta de novo, e não desiste.
+	welcomeTimeout = 20 * time.Second
 )
 
 // outcome é o que fazer depois que uma sessão terminou.
@@ -201,10 +208,26 @@ func (reporter *Reporter) session(ctx context.Context) error {
 	   caiu") e é por ela que chega o pedido de mudar o ritmo. */
 	closed := make(chan error, 1)
 	cadence := make(chan time.Duration, 1)
-	go func() { closed <- read(connection, cadence, reporter.config.Interval, serverSilenceTimeout) }()
+	welcome := make(chan struct{}, 1)
+	go func() {
+		closed <- read(connection, cadence, welcome, reporter.config.Interval, serverSilenceTimeout)
+	}()
 
-	/* A conexão aberta e o `hello` enviado é o que a tela chama de conectado: se
-	   o token não valesse, o servidor já teria fechado antes da primeira leitura. */
+	/* ESPERA a confirmação antes de mandar qualquer leitura.
+	   É para isto que o `welcome` existe. Conferir o token, do lado do servidor, é uma ida ao
+	   banco: mandar a leitura logo atrás da apresentação faz ela chegar enquanto a sessão
+	   ainda não existe, e a conexão cai com "snapshot before hello" — o que acontecia a cada
+	   reconexão, deixando a ficha da máquina congelada no painel. */
+	select {
+	case <-welcome:
+	case closeError := <-closed:
+		return closeError
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(welcomeTimeout):
+		return errNoWelcome
+	}
+
 	reporter.setState(StateConnected)
 
 	return reporter.pump(ctx, connection, closed, cadence)
@@ -301,6 +324,10 @@ func finalError(closed <-chan error, fallback error) error {
 	}
 }
 
+// errNoWelcome é o fim de uma conexão que abriu e nunca confirmou a
+// apresentação. É queda comum: tenta de novo.
+var errNoWelcome = errors.New("reporting: the server did not confirm the connection")
+
 // serverMessage é o que o servidor manda. Os nomes batem com
 // `serverMessageSchema` do dashboard.
 type serverMessage struct {
@@ -318,6 +345,7 @@ type serverMessage struct {
 func read(
 	connection *websocket.Conn,
 	cadence chan<- time.Duration,
+	welcome chan<- struct{},
 	rest time.Duration,
 	silenceTimeout time.Duration,
 ) error {
@@ -350,16 +378,39 @@ func read(
 			return deadlineError
 		}
 
-		var message serverMessage
-		if json.Unmarshal(payload, &message) != nil || message.Type != "cadence" {
-			continue
-		}
+		dispatch(payload, cadence, welcome, rest)
+	}
+}
 
+// dispatch entrega a mensagem do servidor a quem a espera.
+//
+// Os envios são NÃO BLOQUEANTES: quem lê a conexão não pode ficar parado
+// esperando alguém consumir um aviso, ou o prazo de silêncio venceria com a
+// conexão viva. Um aviso repetido que não coube é descartado — o mais novo
+// não acrescenta nada ao que já está na fila.
+func dispatch(
+	payload []byte,
+	cadence chan<- time.Duration,
+	welcome chan<- struct{},
+	rest time.Duration,
+) {
+	var message serverMessage
+	if json.Unmarshal(payload, &message) != nil {
+		/* Mensagem ilegível não derruba o envio: o servidor pode ser mais novo que
+		   este agente e ter passado a mandar algo que ele ainda não conhece. */
+		return
+	}
+
+	switch message.Type {
+	case "welcome":
+		select {
+		case welcome <- struct{}{}:
+		default:
+		}
+	case "cadence":
 		select {
 		case cadence <- cadenceOf(message.Seconds, rest):
 		default:
-			/* Já existe um pedido esperando: o mais novo não acrescenta nada, e
-			   bloquear aqui travaria a leitura da conexão. */
 		}
 	}
 }
