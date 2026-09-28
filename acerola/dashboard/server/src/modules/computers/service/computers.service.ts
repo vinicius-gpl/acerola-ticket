@@ -43,6 +43,8 @@ import {
   toSnapshotUpdate,
 } from '../mapper/computers.mapper';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService } from '../presence/live-watch.service';
+import { WATCHED_CADENCE_SECONDS } from '../gateway/agent.gateway';
 import { ComputersRepository } from '../repository/computers.repository';
 import { createComputerToken, hashComputerToken } from '../token/computer-token.util';
 
@@ -133,6 +135,7 @@ export class ComputersService {
   constructor(
     private readonly repository: ComputersRepository,
     private readonly presence: AgentPresenceService,
+    private readonly watch: LiveWatchService,
   ) {}
 
   async list(user: RequestUser, query: ComputerListQuery): Promise<Paginated<Computer>> {
@@ -293,6 +296,11 @@ export class ComputersService {
     assertCanRead(user.role, 'os computadores');
 
     const row = await this.requireComputer(id);
+
+    /* Pedir a leitura É dizer que alguém está olhando. Isto faz o agente daquela máquina
+       acelerar, e é o que torna a ficha um retrato ao vivo em vez de um de meio em meio
+       minuto. Parar de pedir devolve a máquina ao ritmo dela sozinho. */
+    this.watch.touch(row.id, WATCHED_CADENCE_SECONDS);
 
     return toComputerLive(row, this.presence.isOnline(row.id));
   }

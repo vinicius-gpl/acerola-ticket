@@ -31,6 +31,11 @@ const (
 	// Quanto esperar pela conexão e por uma escrita antes de desistir dela.
 	dialTimeout  = 15 * time.Second
 	writeTimeout = 10 * time.Second
+
+	// O ritmo mais rápido que o servidor consegue pedir. É a mesma cadência da
+	// tela do próprio agente: abaixo disso não há leitura nova para mandar,
+	// porque o coletor mede uma vez por segundo.
+	fastestCadence = time.Second
 )
 
 // outcome é o que fazer depois que uma sessão terminou.
@@ -176,21 +181,27 @@ func (reporter *Reporter) session(ctx context.Context) error {
 		return writeError
 	}
 
-	/* A leitura roda à parte porque o servidor só fala para recusar ou para
-	   confirmar: sem alguém lendo, o motivo do fechamento nunca chegaria aqui
-	   e toda recusa viraria "conexão caiu". */
+	/* A leitura roda à parte: é por ela que chega a recusa (sem alguém lendo, o
+	   motivo do fechamento nunca chegaria aqui e toda recusa viraria "conexão
+	   caiu") e é por ela que chega o pedido de mudar o ritmo. */
 	closed := make(chan error, 1)
-	go func() { closed <- drain(connection) }()
+	cadence := make(chan time.Duration, 1)
+	go func() { closed <- read(connection, cadence, reporter.config.Interval) }()
 
 	/* A conexão aberta e o `hello` enviado é o que a tela chama de conectado: se
 	   o token não valesse, o servidor já teria fechado antes da primeira leitura. */
 	reporter.setState(StateConnected)
 
-	return reporter.pump(ctx, connection, closed)
+	return reporter.pump(ctx, connection, closed, cadence)
 }
 
 // pump envia um snapshot a cada intervalo configurado, até a conexão cair.
-func (reporter *Reporter) pump(ctx context.Context, connection *websocket.Conn, closed <-chan error) error {
+func (reporter *Reporter) pump(
+	ctx context.Context,
+	connection *websocket.Conn,
+	closed <-chan error,
+	cadence <-chan time.Duration,
+) error {
 	updates, unsubscribe := reporter.source.Subscribe()
 	defer unsubscribe()
 
@@ -210,6 +221,16 @@ func (reporter *Reporter) pump(ctx context.Context, connection *websocket.Conn, 
 		case closeError := <-closed:
 			return closeError
 		case <-ticker.C:
+			if sendError := reporter.send(connection); sendError != nil {
+				return finalError(closed, sendError)
+			}
+		case interval := <-cadence:
+			/* O servidor pediu outro ritmo — alguém abriu a ficha desta máquina no
+			   painel, ou fechou. Trocar o ticker aqui, e não reconectar, mantém a
+			   conexão de pé e o efeito é imediato na próxima leitura. */
+			log.Printf("reporting: server asked for readings every %v", interval)
+			ticker.Reset(interval)
+
 			if sendError := reporter.send(connection); sendError != nil {
 				return finalError(closed, sendError)
 			}
@@ -265,14 +286,61 @@ func finalError(closed <-chan error, fallback error) error {
 	}
 }
 
-// drain lê até a conexão fechar e devolve o motivo. O conteúdo não
-// interessa: o servidor só manda a confirmação do `hello`.
-func drain(connection *websocket.Conn) error {
+// serverMessage é o que o servidor manda. Os nomes batem com
+// `serverMessageSchema` do dashboard.
+type serverMessage struct {
+	Type    string `json:"type"`
+	Seconds int    `json:"seconds"`
+}
+
+// read lê até a conexão fechar e devolve o motivo, repassando pelo caminho os
+// pedidos de mudar o ritmo.
+//
+// Mensagem que não dá para entender é IGNORADA, e não derruba a conexão: o
+// servidor pode ser mais novo que este agente e ter passado a mandar algo que
+// ele ainda não conhece. Perder o envio inteiro por causa disso seria trocar
+// uma máquina monitorada por nada.
+func read(connection *websocket.Conn, cadence chan<- time.Duration, rest time.Duration) error {
 	for {
-		if _, _, readError := connection.ReadMessage(); readError != nil {
+		_, payload, readError := connection.ReadMessage()
+		if readError != nil {
 			return readError
 		}
+
+		var message serverMessage
+		if json.Unmarshal(payload, &message) != nil || message.Type != "cadence" {
+			continue
+		}
+
+		select {
+		case cadence <- cadenceOf(message.Seconds, rest):
+		default:
+			/* Já existe um pedido esperando: o mais novo não acrescenta nada, e
+			   bloquear aqui travaria a leitura da conexão. */
+		}
 	}
+}
+
+// cadenceOf traduz o pedido do servidor em intervalo.
+//
+// Zero é "volte ao SEU intervalo": quem sabe qual é ele é este agente — foi
+// decidido na instalação desta máquina —, e não o servidor. Valores fora da
+// faixa são presos na borda em vez de recusados: um número estranho vindo do
+// servidor não pode fazer a máquina parar de reportar.
+func cadenceOf(seconds int, rest time.Duration) time.Duration {
+	if seconds <= 0 {
+		return rest
+	}
+
+	asked := time.Duration(seconds) * time.Second
+	if asked < fastestCadence {
+		return fastestCadence
+	}
+	if asked > MaxInterval {
+		return MaxInterval
+	}
+
+	return asked
 }
 
 // classify traduz o fim de uma sessão na decisão de reconectar ou não.

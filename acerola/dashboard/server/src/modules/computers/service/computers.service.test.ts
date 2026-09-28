@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService } from '../presence/live-watch.service';
 import { type ComputersRepository } from '../repository/computers.repository';
 import { hashComputerToken } from '../token/computer-token.util';
 import { ComputersService } from './computers.service';
@@ -120,10 +121,12 @@ function snapshot(
 function makeService(
   repository: Partial<ComputersRepository>,
   presence = new AgentPresenceService(),
+  watch = new LiveWatchService(),
 ) {
   return {
-    service: new ComputersService(repository as ComputersRepository, presence),
+    service: new ComputersService(repository as ComputersRepository, presence, watch),
     presence,
+    watch,
   };
 }
 
@@ -438,9 +441,11 @@ describe('ComputersService.live', () => {
 
     const { service } = makeService(
       {
-        findById: vi.fn().mockResolvedValue(
-          computerRow({ id: 7, lastSnapshot: snapshot(), lastSeenAt: new Date() }),
-        ),
+        findById: vi
+          .fn()
+          .mockResolvedValue(
+            computerRow({ id: 7, lastSnapshot: snapshot(), lastSeenAt: new Date() }),
+          ),
       },
       presence,
     );

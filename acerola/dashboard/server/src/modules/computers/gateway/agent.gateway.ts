@@ -4,10 +4,15 @@ import {
   type OnGatewayDisconnect,
   WebSocketGateway,
 } from '@nestjs/websockets';
-import { agentMessageSchema } from '@template/shared/schemas/agent-snapshot.schema';
+import {
+  agentMessageSchema,
+  CADENCE_RESTORE,
+  type ServerMessage,
+} from '@template/shared/schemas/agent-snapshot.schema';
 
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService } from '../presence/live-watch.service';
 import { ComputersService } from '../service/computers.service';
 
 /**
@@ -30,6 +35,16 @@ const CLOSE_HELLO_TIMEOUT = 4009;
  * e é o formato mais barato de ataque que existe contra um servidor de WebSocket.
  */
 const HELLO_TIMEOUT_MS = 10_000;
+
+/**
+ * O ritmo de quem está sendo olhado, e o de quem não está.
+ *
+ * Um segundo é a mesma cadência que o agente usa na tela dele: é o que faz o número na ficha
+ * mexer junto com a máquina. O ritmo de repouso NÃO é decidido aqui — é o configurado em cada
+ * agente —, e por isso o "volte ao normal" viaja como um valor que o agente interpreta como
+ * "o seu", e não como um número imposto de fora.
+ */
+export const WATCHED_CADENCE_SECONDS = 1;
 
 /**
  * A conexão, como o `ws` a entrega.
@@ -68,10 +83,33 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /** Conexão → o que ela provou ser. Ausente enquanto o `hello` não chegou. */
   private readonly sessions = new Map<AgentSocket, AgentSession>();
 
+  /** Máquina → a conexão dela, para o servidor conseguir FALAR com o agente. */
+  private readonly byComputer = new Map<number, AgentSocket>();
+
   constructor(
     private readonly service: ComputersService,
     private readonly presence: AgentPresenceService,
-  ) {}
+    private readonly watch: LiveWatchService,
+  ) {
+    /* Quem decide o ritmo é o registro de quem está olhando; quem sabe falar com o agente é
+       este gateway. O registro avisa, e aqui a mensagem sai pelo socket daquela máquina. */
+    this.watch.onCadenceChange((computerId, seconds) => this.sendCadence(computerId, seconds));
+  }
+
+  /**
+   * Pede ao agente daquela máquina para mudar o ritmo de envio.
+   *
+   * Máquina desligada não tem socket, e isso não é erro: quando ela voltar, volta no ritmo
+   * configurado dela, e o primeiro pedido da ficha aberta a acelera de novo.
+   */
+  private sendCadence(computerId: number, seconds: number): void {
+    const client = this.byComputer.get(computerId);
+    if (!client) return;
+
+    /* Zero é "volte ao seu intervalo": quem sabe qual é ele é o agente, não o servidor. */
+    const message: ServerMessage = { type: 'cadence', seconds: seconds || CADENCE_RESTORE };
+    client.send(JSON.stringify(message));
+  }
 
   handleConnection(client: AgentSocket): void {
     /* O relógio começa a correr aqui: sem apresentação em dez segundos, a conexão cai. */
@@ -94,6 +132,9 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!session) return;
 
     this.sessions.delete(client);
+    if (this.byComputer.get(session.computer.id) === client) {
+      this.byComputer.delete(session.computer.id);
+    }
     this.presence.disconnect(session.computer.id, session.computer.name);
   }
 
@@ -135,7 +176,15 @@ export class AgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     this.sessions.set(client, { computer: result.computer, agentVersion });
+    this.byComputer.set(result.computer.id, client);
     this.presence.connect(result.computer.id, result.computer.name);
+
+    /* A máquina pode ter reconectado com alguém já olhando a ficha dela — depois de uma queda
+       de rede, por exemplo. Sem isto, ela voltaria no ritmo econômico e a tela pareceria
+       travada até alguém recarregar. */
+    if (this.watch.isWatched(result.computer.id)) {
+      this.sendCadence(result.computer.id, WATCHED_CADENCE_SECONDS);
+    }
 
     /* A confirmação existe para o agente saber que pode começar a enviar — sem ela ele teria
        que supor que deu certo pelo silêncio, e silêncio também é o que um servidor travado

@@ -78,8 +78,15 @@ export type ComputerDetailModel = {
  * Editar a identificação não está aqui: tem view-model próprio (`use-computer-form`), porque
  * é formulário e formulário morre junto com o diálogo que o abriu.
  */
-/** De quanto em quanto tempo a ficha pede a leitura nova. */
-const LIVE_REFRESH_MS = 5000;
+/**
+ * De quanto em quanto tempo a ficha pede a leitura nova.
+ *
+ * Um segundo porque, com a ficha aberta, é esse o ritmo em que o agente passa a enviar: o
+ * próprio pedido avisa o servidor que alguém está olhando, e ele manda a máquina acelerar
+ * (ver `live-watch.service` na API). Pedir mais devagar do que a máquina envia jogaria fora
+ * justamente as leituras que existem por causa desta tela.
+ */
+const LIVE_REFRESH_MS = 1000;
 
 export function useComputerDetailModel(id: number): ComputerDetailModel {
   const queryClient = useQueryClient();
@@ -115,9 +122,9 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
    * A leitura ao vivo se REFAZ sozinha enquanto a ficha estiver aberta.
    *
    * É o que faz a tela responder "o que está acontecendo nesta máquina agora" em vez de
-   * mostrar o retrato de quando a página foi aberta. O intervalo é mais curto que o do agente
-   * de propósito: assim a leitura nova aparece logo depois de chegar, em vez de esperar até
-   * meia consulta a mais.
+   * mostrar o retrato de quando a página foi aberta. E não é só a tela que fica mais rápida:
+   * cada pedido conta ao servidor que esta máquina está sendo olhada, e ele pede ao agente
+   * dela para enviar de segundo em segundo enquanto isso durar.
    */
   const live = mirrorStore(
     createQuery(
