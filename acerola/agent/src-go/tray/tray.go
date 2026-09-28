@@ -1,8 +1,9 @@
 // Package tray roda a presença do agente na bandeja do Windows. Clique
 // esquerdo no ícone abre a popup (a "telinha" da própria janela Wails);
-// clique direito mostra o menu nativo de texto (Abrir Dashboard, Sair) — o
-// systray já cai automaticamente no menu quando não há um handler de clique
-// direito registrado, então não precisamos montar isso na mão.
+// clique direito mostra o menu nativo de texto (Abrir telinha, Abrir
+// Dashboard, Sair) — o systray já cai automaticamente no menu quando não há um
+// handler de clique direito registrado, então não precisamos montar isso na
+// mão.
 package tray
 
 import (
@@ -47,18 +48,35 @@ func onReady(callbacks Callbacks) {
 		callbacks.ShowPopup()
 	})
 
+	/* A telinha também entra no menu, e não só no clique esquerdo: em algumas
+	   máquinas o clique no ícone não chega até aqui (a bandeja escondida do
+	   Windows, por exemplo, engole o toque), e sem esta entrada a telinha ficaria
+	   inalcançável — junto com tudo que só mora nela. */
+	popupItem := systray.AddMenuItem("Abrir telinha", "Abre o resumo rápido")
 	dashboardItem := systray.AddMenuItem("Abrir Dashboard", "Abre o painel completo")
+	systray.AddSeparator()
 	quitItem := systray.AddMenuItem("Sair", "Encerra o agente")
 
-	go watchMenu(dashboardItem, quitItem, callbacks)
+	go watchMenu(menuItems{popup: popupItem, dashboard: dashboardItem, quit: quitItem}, callbacks)
 }
 
-func watchMenu(dashboardItem, quitItem *systray.MenuItem, callbacks Callbacks) {
+// menuItems são as entradas do menu do botão direito. Agrupadas num struct
+// porque três parâmetros do mesmo tipo em sequência é um convite a trocar a
+// ordem sem o compilador reclamar.
+type menuItems struct {
+	popup     *systray.MenuItem
+	dashboard *systray.MenuItem
+	quit      *systray.MenuItem
+}
+
+func watchMenu(items menuItems, callbacks Callbacks) {
 	for {
 		select {
-		case <-dashboardItem.ClickedCh:
+		case <-items.popup.ClickedCh:
+			callbacks.ShowPopup()
+		case <-items.dashboard.ClickedCh:
 			callbacks.ShowDashboard()
-		case <-quitItem.ClickedCh:
+		case <-items.quit.ClickedCh:
 			callbacks.Quit()
 			return
 		}
