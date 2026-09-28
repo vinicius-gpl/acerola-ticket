@@ -48,6 +48,8 @@
       computer: Computer;
       samples: ComputerSample[];
       alerts: ComputerAlert[];
+      /** O que está acontecendo na máquina agora. Nulo enquanto ela nunca tiver enviado nada. */
+      live: ComputerLive | null;
       /** O que já foi feito nesta máquina. Vem da feature de Manutenção; a ficha só lê. */
       maintenances: Maintenance[];
       /** As peças que saíram do depósito para esta máquina. A ficha também só lê. */
@@ -58,6 +60,7 @@
     state?: {
       isSamplesLoading?: boolean;
       isAlertsLoading?: boolean;
+      isLiveLoading?: boolean;
       isMaintenancesLoading?: boolean;
       isPartsLoading?: boolean;
       isTransfersLoading?: boolean;
@@ -78,6 +81,8 @@
       onBack: () => void;
     };
   };
+
+  import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 
   export type HardwareFact = { label: string; value: string };
 
@@ -158,6 +163,8 @@
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
+  import ComputerLivePanel from '$lib/components/computer-live-panel/computer-live-panel.svelte';
+  import ComputerProcessTable from '$lib/components/computer-process-table/computer-process-table.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
@@ -184,6 +191,7 @@
   const computer = $derived(data.computer);
   const facts = $derived(hardwareFacts(computer));
   const lastSample = $derived(data.samples.at(-1) ?? null);
+  const live = $derived(data.live);
 
   const points = $derived(
     data.samples.map((sample) => ({
@@ -397,6 +405,24 @@
         {/each}
       </ul>
     {/if}
+  </section>
+
+  <section class="bg-card rounded-xl border p-4">
+    <div class="mb-3 flex items-baseline justify-between gap-3">
+      <h2 class="text-ink-900 text-sm font-semibold">O que está acontecendo agora</h2>
+      {#if live}
+        <span class="text-ink-500 shrink-0 text-xs">Lido {formatTimeAgo(live.receivedAt)}</span>
+      {/if}
+    </div>
+    <ComputerLivePanel data={{ live }} state={{ isLoading: viewState?.isLiveLoading }} />
+  </section>
+
+  <section class="bg-card rounded-xl border p-4">
+    <h2 class="text-ink-900 mb-3 text-sm font-semibold">Aplicativos que mais pesam</h2>
+    <ComputerProcessTable
+      data={{ processes: live?.processes ?? [] }}
+      state={{ isLoading: viewState?.isLiveLoading }}
+    />
   </section>
 
   <section class="bg-card rounded-xl border p-4">

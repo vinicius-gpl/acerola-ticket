@@ -1,3 +1,4 @@
+import { type ComputerLiveResponse } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
   type ComputerAlert,
@@ -58,6 +59,15 @@ export const computersApi = {
   alerts: (id: number) => apiRequest<ComputerAlert[]>(`/computers/${id}/alerts`),
 
   /**
+   * O que está acontecendo na máquina AGORA: aplicativos, núcleos, volumes, rede.
+   *
+   * Vem embrulhado (`{ live }`) porque a resposta precisa poder dizer "esta máquina nunca
+   * enviou nada" — que é diferente de uma máquina ociosa, e leva a outra frase na tela.
+   */
+  live: (id: number) =>
+    apiRequest<ComputerLiveResponse>(`/computers/${id}/live`).then((response) => response.live),
+
+  /**
    * Cadastra a máquina e recebe o token do agente.
    *
    * A resposta traz o token em texto puro, e é a ÚNICA vez que ele existe legível — quem
@@ -74,8 +84,7 @@ export const computersApi = {
     apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'POST', body }),
 
   /** Devolve a máquina descartada ao inventário, limpando o descarte inteiro. */
-  restore: (id: number) =>
-    apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'DELETE' }),
+  restore: (id: number) => apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'DELETE' }),
 
   /** Gera um token novo e invalida o anterior — token perdido ou token vazado. */
   regenerateToken: (id: number) =>

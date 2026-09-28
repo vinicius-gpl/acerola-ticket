@@ -143,7 +143,15 @@ const actions = {
 function renderDetail(over: Partial<Computer> = {}) {
   return render(ComputerDetailView, {
     props: {
-      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [], partMovements: [], transfers: [] },
+      data: {
+        computer: computer(over),
+        samples,
+        live: null,
+        alerts: [alert()],
+        maintenances: [],
+        partMovements: [],
+        transfers: [],
+      },
       actions,
     },
   });
@@ -175,6 +183,7 @@ describe('o histórico de transferências', () => {
         data: {
           computer: computer(),
           samples: [],
+          live: null,
           alerts: [],
           maintenances: [],
           partMovements: [],
@@ -202,9 +211,7 @@ describe('hardwareFacts', () => {
   it('reads the disk as free space out of the total', () => {
     const facts = hardwareFacts(computer());
 
-    expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe(
-      '14,0 GB livres de 500,0 GB',
-    );
+    expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe('14,0 GB livres de 500,0 GB');
   });
 
   // triste
@@ -269,7 +276,15 @@ describe('ComputerDetailView', () => {
   it('shows a dash for the current usage of a machine that never reported', () => {
     render(ComputerDetailView, {
       props: {
-        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [], partMovements: [], transfers: [] },
+        data: {
+          computer: neverSeen(),
+          samples: [],
+          live: null,
+          alerts: [],
+          maintenances: [],
+          partMovements: [],
+          transfers: [],
+        },
         actions,
       },
     });
@@ -285,6 +300,7 @@ describe('ComputerDetailView', () => {
         data: {
           computer: computer(),
           samples,
+          live: null,
           alerts: [],
           maintenances: [],
           partMovements: [],
