@@ -15,6 +15,7 @@
     anydeskId: '111 222 333',
     description: 'A impressora da sala não puxa papel e trava no meio da folha.',
     screenshotUrl: null,
+  attachments: [],
     createdAt: '2026-09-15T12:10:00.000Z',
   };
 
