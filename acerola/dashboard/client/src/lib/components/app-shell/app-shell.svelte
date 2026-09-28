@@ -91,7 +91,12 @@
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupContent>
-          <SidebarMenu>
+          <!-- `gap-1`: o item marcado e o item sob o cursor ganham fundo, e sem folga entre
+               eles os fundos encostam e viram um bloco só — o menu perde a leitura de quantos
+               itens são. O componente baixado vem com `gap-0`, e `lib/components/ui/` não se
+               edita (CONTRIBUTING §5): a folga entra por aqui, e o `cn` resolve a disputa em
+               favor desta. -->
+          <SidebarMenu class="gap-1">
             {#each items as item (item.key)}
               <AppShellNavEntry
                 {item}
@@ -114,7 +119,8 @@
         <ThemeToggle />
       </div>
 
-      <SidebarMenu>
+      <!-- A mesma folga do menu de cima: aqui são o cartão de quem entrou e o Sair. -->
+      <SidebarMenu class="gap-1">
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" tooltipContent={userName}>
             <PersonAvatar name={userName} ui={{ size: 'md' }} />
