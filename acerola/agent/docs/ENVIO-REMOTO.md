@@ -39,7 +39,7 @@ máquina uma única vez** — só o hash fica no banco, igual a senha. Copie ali
 ### 2. Cole a chave no agente
 
 Na máquina, abra o agente pela bandeja do Windows — clique no ícone, ou clique com o botão
-direito e escolha **Abrir telinha** ou **Abrir Dashboard**. O card **Painel central** está nas
+direito e escolha **Configurar chave** ou **Abrir Dashboard**. O card **Painel central** está nas
 duas telas. Nele:
 
 1. confira o **endereço do painel** (aceita `http://`, `https://`, `ws://` ou `wss://` — o

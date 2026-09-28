@@ -1,6 +1,6 @@
 // Package tray roda a presença do agente na bandeja do Windows. Clique
 // esquerdo no ícone abre a popup (a "telinha" da própria janela Wails);
-// clique direito mostra o menu nativo de texto (Abrir telinha, Abrir
+// clique direito mostra o menu nativo de texto (Configurar chave, Abrir
 // Dashboard, Sair) — o systray já cai automaticamente no menu quando não há um
 // handler de clique direito registrado, então não precisamos montar isso na
 // mão.
@@ -48,11 +48,11 @@ func onReady(callbacks Callbacks) {
 		callbacks.ShowPopup()
 	})
 
-	/* A telinha também entra no menu, e não só no clique esquerdo: em algumas
+	/* Esta janela também entra no menu, e não só no clique esquerdo: em algumas
 	   máquinas o clique no ícone não chega até aqui (a bandeja escondida do
-	   Windows, por exemplo, engole o toque), e sem esta entrada a telinha ficaria
-	   inalcançável — junto com tudo que só mora nela. */
-	popupItem := systray.AddMenuItem("Abrir telinha", "Abre o resumo rápido")
+	   Windows, por exemplo, engole o toque). A entrada leva o nome do motivo de
+	   alguém abri-la numa máquina recém-instalada: colar a chave. */
+	popupItem := systray.AddMenuItem("Configurar chave", "Abre a tela onde se cola a chave desta máquina")
 	dashboardItem := systray.AddMenuItem("Abrir Dashboard", "Abre o painel completo")
 	systray.AddSeparator()
 	quitItem := systray.AddMenuItem("Sair", "Encerra o agente")
