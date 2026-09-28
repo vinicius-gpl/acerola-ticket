@@ -5,6 +5,7 @@ import { and, count, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { asDate } from '../../../lib/db/sql-timestamp.util';
 import { computers } from '../../../lib/db/schema/computers.schema';
 import {
   maintenances,
@@ -147,7 +148,10 @@ export class MaintenancesRepository {
           computerName: computers.name,
           computerDisplayName: computers.displayName,
           computerDepartment: computers.department,
-          lastDoneAt: sql<Date | null>`max(${maintenances.performedAt}) filter (where ${maintenances.type} in ('preventive', 'corrective'))`,
+          lastDoneAt: asDate(
+            sql<Date | null>`max(${maintenances.performedAt}) filter (where ${maintenances.type} in ('preventive', 'corrective'))`,
+            maintenances.performedAt,
+          ),
           maintenanceCount: sql<number>`count(${maintenances.id})::int`,
         })
         .from(computers)

@@ -4,6 +4,7 @@ import { and, count, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { asDate, asTimestamp } from '../../../lib/db/sql-timestamp.util';
 import { qualified } from '../../../lib/db/sql-column.util';
 import { computerAlerts } from '../../../lib/db/schema/computer-alerts.schema';
 import { computers } from '../../../lib/db/schema/computers.schema';
@@ -124,11 +125,11 @@ export class DashboardRepository {
         .select({
           open: sql<number>`count(*) filter (where ${tickets.status} = 'open')::int`,
           inProgress: sql<number>`count(*) filter (where ${tickets.status} = 'in_progress')::int`,
-          openedInPeriod: sql<number>`count(*) filter (where ${tickets.createdAt} >= ${since})::int`,
-          resolvedInPeriod: sql<number>`count(*) filter (where ${tickets.resolvedAt} >= ${since})::int`,
+          openedInPeriod: sql<number>`count(*) filter (where ${tickets.createdAt} >= ${asTimestamp(since)})::int`,
+          resolvedInPeriod: sql<number>`count(*) filter (where ${tickets.resolvedAt} >= ${asTimestamp(since)})::int`,
           averageResolutionHours: sql<number | null>`
             avg(extract(epoch from (${tickets.resolvedAt} - ${tickets.createdAt})) / 3600)
-              filter (where ${tickets.resolvedAt} >= ${since})
+              filter (where ${tickets.resolvedAt} >= ${asTimestamp(since)})
           `,
         })
         .from(tickets),
@@ -238,7 +239,10 @@ export class DashboardRepository {
     return runQuery(
       this.db
         .select({
-          lastDoneAt: sql<Date | null>`max(${maintenances.performedAt}) filter (where ${maintenances.type} in ('preventive', 'corrective'))`,
+          lastDoneAt: asDate(
+            sql<Date | null>`max(${maintenances.performedAt}) filter (where ${maintenances.type} in ('preventive', 'corrective'))`,
+            maintenances.performedAt,
+          ),
         })
         .from(computers)
         .leftJoin(maintenances, eq(maintenances.computerId, computers.id))
