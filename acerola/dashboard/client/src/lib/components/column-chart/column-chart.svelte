@@ -75,8 +75,8 @@
    * vaza para fora do desenho, empurra a largura do cartão e a PÁGINA INTEIRA ganha barra de
    * rolagem horizontal. Deitado sobra largura, mas não é infinita.
    */
-  const HORIZONTAL_LABEL_MAX = 18;
-  const HORIZONTAL_LABEL_SPACE = 128;
+  const HORIZONTAL_LABEL_MAX = 22;
+  const HORIZONTAL_LABEL_SPACE = 150;
   const VERTICAL_LABEL_MAX = 14;
 
   /** O contrato de cores e rótulos que a moldura e o balão leem. */

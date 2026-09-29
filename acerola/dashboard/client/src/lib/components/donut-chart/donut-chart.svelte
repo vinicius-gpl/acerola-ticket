@@ -132,7 +132,11 @@
     style="background-color: {color}"
     aria-hidden="true"
   ></span>
-  <span class="text-muted-foreground w-20 shrink-0 truncate" title={slice.label}>
+  <!-- `w-32`: "Certificado digital" e "Instalação de programa" não cabiam em `w-20`, e a
+       legenda inteira virava uma coluna de reticências. Largura FIXA, e não automática, para
+       as barrinhas de proporção começarem todas na mesma linha vertical — desalinhadas, elas
+       deixam de ser comparáveis de relance, que é a única razão de existirem. -->
+  <span class="text-muted-foreground w-32 shrink-0 truncate" title={slice.label}>
     {slice.label}
   </span>
   <!-- Barrinha de proporção — não é `ProgressBar` (esse componente é pra "quanto já foi

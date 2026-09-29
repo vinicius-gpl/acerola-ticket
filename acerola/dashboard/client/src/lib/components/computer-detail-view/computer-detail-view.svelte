@@ -48,6 +48,14 @@
       computer: Computer;
       samples: ComputerSample[];
       alerts: ComputerAlert[];
+      /**
+       * ONDE a pessoa está em cada lista longa, e QUANTOS itens existem ao todo.
+       *
+       * As duas listas são paginadas no SERVIDOR: uma máquina que dá trabalho acumula
+       * centenas de episódios, e a tela nunca corta nada por conta própria.
+       */
+      alertPaging: ListPaging;
+      ticketPaging: ListPaging;
       /** O que está acontecendo na máquina agora. Nulo enquanto ela nunca tiver enviado nada. */
       live: ComputerLive | null;
       /** O que já foi feito nesta máquina. Vem da feature de Manutenção; a ficha só lê. */
@@ -82,6 +90,9 @@
       onDispose: (input: { type: 'defect' | 'scrap'; reason: string }) => void;
       onRestore: () => void;
       onBack: () => void;
+      /** Trocar de página vai BUSCAR no servidor — a tela não corta a lista por conta própria. */
+      onAlertPageChange: (page: number) => void;
+      onTicketPageChange: (page: number) => void;
     };
   };
 
@@ -92,6 +103,9 @@
     ticketStatusLabel,
     ticketStatusTone,
   } from '@template/shared/domain/ticket-status.util';
+
+  /** Onde a pessoa está numa lista paginada, e de que tamanho é a lista inteira. */
+  export type ListPaging = { page: number; pageSize: number; total: number };
 
   export type HardwareFact = { label: string; value: string };
 
@@ -248,6 +262,7 @@
   import ComputerProcessTable from '$lib/components/computer-process-table/computer-process-table.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -580,9 +595,22 @@
         </TableBody>
         {#snippet footer()}
           <span>Alertas automáticos gerados pelo agente</span>
-          <span>{data.alerts.length} alerta(s)</span>
         {/snippet}
       </Table>
+
+      <!-- A barra diz quantos episódios existem AO TODO, e não quantos vieram nesta página:
+           sem isso a lista seria cortada em silêncio (CONTRIBUTING §15). Quem pagina é o
+           servidor — ver `computersApi.alerts`. -->
+      <PaginationBar
+        data={{
+          page: data.alertPaging.page,
+          pageSize: data.alertPaging.pageSize,
+          total: data.alertPaging.total,
+          noun: ['alerta', 'alertas'],
+        }}
+        state={{ isLoading: viewState?.isAlertsLoading }}
+        actions={{ onPageChange: actions.onAlertPageChange }}
+      />
     {/if}
   </section>
 
@@ -659,6 +687,17 @@
           </li>
         {/each}
       </ul>
+
+      <PaginationBar
+        data={{
+          page: data.ticketPaging.page,
+          pageSize: data.ticketPaging.pageSize,
+          total: data.ticketPaging.total,
+          noun: ['chamado', 'chamados'],
+        }}
+        state={{ isLoading: viewState?.isTicketsLoading }}
+        actions={{ onPageChange: actions.onTicketPageChange }}
+      />
     {/if}
   </section>
 

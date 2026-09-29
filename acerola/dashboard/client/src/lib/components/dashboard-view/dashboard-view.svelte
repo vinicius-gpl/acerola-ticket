@@ -427,24 +427,23 @@
       />
     </div>
 
-    <!-- 5. Quais máquinas: é onde a decisão vira clique. -->
-    <section class="border-border bg-card overflow-hidden rounded-2xl border shadow-xs">
-      <div class="border-border/80 border-b px-6 py-4">
-        <h2 class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-          Máquinas que precisam de atenção
-        </h2>
-        <p class="text-muted-foreground/80 mt-0.5 text-xs">
-          Da mais grave para a menos. Alerta acontecendo agora pesa mais do que nota baixa parada.
-        </p>
-      </div>
+    <!-- 5. Quais máquinas: é onde a decisão vira clique.
 
+         Na MESMA casca dos outros blocos (`PanelCard`). Antes era uma seção própria com o
+         título coberto por uma linha de borda que ia de ponta a ponta do cartão: as linhas
+         encostavam nos cantos arredondados e o bloco parecia cortado nas laterais, enquanto
+         todos os outros da tela são fechados com uma borda fina em volta. -->
+    <PanelCard
+      data={{
+        title: 'Máquinas que precisam de atenção',
+        hint: 'Da mais grave para a menos. Alerta acontecendo agora pesa mais do que nota baixa parada.',
+      }}
+    >
       {#if summary.worstMachines.length === 0}
-        <div class="p-6">
-          <p class="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
-            <PartyPopper class="size-4" aria-hidden="true" />
-            Nenhuma máquina apontada. O parque está em ordem.
-          </p>
-        </div>
+        <p class="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+          <PartyPopper class="size-4" aria-hidden="true" />
+          Nenhuma máquina apontada. O parque está em ordem.
+        </p>
       {:else}
         <Table class="min-w-[640px]">
           <TableHeader>
@@ -493,6 +492,6 @@
           {/snippet}
         </Table>
       {/if}
-    </section>
+    </PanelCard>
   {/if}
 </div>

@@ -2,8 +2,9 @@ import { type ComputerLiveResponse } from '@template/shared/schemas/computer-liv
 import {
   type Computer,
   type ComputerListItem,
-  type ComputerAlert,
+  type ComputerAlertListQuery,
   type ComputerListQuery,
+  type PaginatedComputerAlerts,
   type DisposeComputerInput,
   type ComputerSample,
   type CreateComputerInput,
@@ -56,8 +57,16 @@ export const computersApi = {
   /** A série de uso das últimas horas, da mais antiga para a mais nova. */
   samples: (id: number) => apiRequest<ComputerSample[]>(`/computers/${id}/samples`),
 
-  /** Os episódios de alerta, do mais recente para o mais antigo. */
-  alerts: (id: number) => apiRequest<ComputerAlert[]>(`/computers/${id}/alerts`),
+  /**
+   * UMA PÁGINA de episódios de alerta, do mais recente para o mais antigo.
+   *
+   * Paginado no servidor: uma máquina ruim acumula centenas de episódios, e trazer todos para
+   * cortar aqui gastaria banco, rede e memória do navegador para jogar fora quase tudo.
+   */
+  alerts: (id: number, query: ComputerAlertListQuery) =>
+    apiRequest<PaginatedComputerAlerts>(`/computers/${id}/alerts`, {
+      query: { page: query.page, pageSize: query.pageSize },
+    }),
 
   /**
    * O que está acontecendo na máquina AGORA: aplicativos, núcleos, volumes, rede.

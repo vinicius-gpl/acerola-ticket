@@ -178,7 +178,13 @@
     onDispose: () => {},
     onRestore: () => {},
     onBack: () => {},
+    onAlertPageChange: () => {},
+    onTicketPageChange: () => {},
   };
+
+  /** Uma página de 25, com o total que o servidor devolveria. */
+  const paging = { page: 1, pageSize: 25, total: alerts.length };
+  const noPaging = { page: 1, pageSize: 25, total: 0 };
 
   const { Story } = defineMeta({
     title: 'Components/ComputerDetailView',
@@ -188,7 +194,7 @@
 
 <!-- A máquina com problema: é para ela que esta tela existe. -->
 <Story name="Default" args={{ data: { computer: computer(), samples, live: null,
-        tickets: [], alerts, maintenances, partMovements: [], transfers }, actions }} />
+        tickets: [], alerts, alertPaging: paging, ticketPaging: noPaging, maintenances, partMovements: [], transfers }, actions }} />
 
 <!-- Máquina saudável: nada apontado, e o texto diz isso em vez de ficar em branco. -->
 <Story
@@ -208,7 +214,7 @@
       samples,
       live: null,
         tickets: [],
-        alerts: [],
+        alerts: [], alertPaging: noPaging, ticketPaging: noPaging,
       maintenances: [],
       partMovements: [],
       transfers: [],
@@ -222,7 +228,7 @@
   args={{
     data: { computer: computer(), samples: [], live: null,
         tickets: [],
-        alerts: [], maintenances: [], partMovements: [], transfers },
+        alerts: [], alertPaging: noPaging, ticketPaging: noPaging, maintenances: [], partMovements: [], transfers },
     state: { isSamplesLoading: true, isAlertsLoading: true },
     actions,
   }}
@@ -233,7 +239,7 @@
   name="Agent never connected"
   args={{ data: { computer: pendingAgent, samples: [], live: null,
         tickets: [],
-        alerts: [], maintenances: [], partMovements: [], transfers }, actions }}
+        alerts: [], alertPaging: noPaging, ticketPaging: noPaging, maintenances: [], partMovements: [], transfers }, actions }}
 />
 
 <Story
@@ -248,7 +254,7 @@
       samples,
       live: null,
         tickets: [],
-      alerts,
+      alerts, alertPaging: paging, ticketPaging: noPaging,
       maintenances,
       partMovements: [],
       transfers: [],
@@ -261,7 +267,7 @@
   name="Archived"
   args={{
     data: { computer: computer({ isArchived: true, isOnline: false }), samples, live: null,
-        tickets: [], alerts, maintenances, partMovements: [], transfers },
+        tickets: [], alerts, alertPaging: paging, ticketPaging: noPaging, maintenances, partMovements: [], transfers },
     actions,
   }}
 />
@@ -271,7 +277,7 @@
   name="Action error"
   args={{
     data: { computer: computer(), samples, live: null,
-        tickets: [], alerts, maintenances, partMovements: [], transfers },
+        tickets: [], alerts, alertPaging: paging, ticketPaging: noPaging, maintenances, partMovements: [], transfers },
     state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
     actions,
   }}

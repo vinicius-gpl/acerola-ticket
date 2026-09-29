@@ -141,7 +141,12 @@ const actions = {
   onRestore: vi.fn(),
   onBack: vi.fn(),
   onTransfer: vi.fn(),
+  onAlertPageChange: vi.fn(),
+  onTicketPageChange: vi.fn(),
 };
+
+/** As duas listas paginadas: uma página de 25, e o total que o servidor devolveu. */
+const paging = { page: 1, pageSize: 25, total: 1 };
 
 function renderDetail(over: Partial<Computer> = {}) {
   return render(ComputerDetailView, {
@@ -152,6 +157,8 @@ function renderDetail(over: Partial<Computer> = {}) {
         live: null,
         tickets: [],
         alerts: [alert()],
+        alertPaging: paging,
+        ticketPaging: { ...paging, total: 0 },
         maintenances: [],
         partMovements: [],
         transfers: [],
@@ -190,6 +197,8 @@ describe('o histórico de transferências', () => {
           live: null,
           tickets: [],
           alerts: [],
+          alertPaging: { ...paging, total: 0 },
+          ticketPaging: { ...paging, total: 0 },
           maintenances: [],
           partMovements: [],
           transfers: [transfer],
@@ -412,6 +421,8 @@ describe('ComputerDetailView', () => {
           live: null,
           tickets: [],
           alerts: [],
+          alertPaging: { ...paging, total: 0 },
+          ticketPaging: { ...paging, total: 0 },
           maintenances: [],
           partMovements: [],
           transfers: [],
@@ -434,6 +445,8 @@ describe('ComputerDetailView', () => {
           live: null,
           tickets: [],
           alerts: [],
+          alertPaging: { ...paging, total: 0 },
+          ticketPaging: { ...paging, total: 0 },
           maintenances: [],
           partMovements: [],
           transfers: [],
