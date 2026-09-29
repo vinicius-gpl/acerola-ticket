@@ -1,4 +1,5 @@
 import { type TicketInsert } from '../../../server/src/lib/db/schema/tickets.schema';
+import { GENERATED_TICKETS_SEED } from './tickets.volume';
 
 /**
  * Os dados de teste de chamados. VERSIONADOS: toda máquina que rodar o seed vê exatamente isto.
@@ -34,7 +35,7 @@ function thisMonth(dayOfMonth: number, hour = 10): Date {
   return date > now ? now : date;
 }
 
-export const TICKETS_SEED: TicketInsert[] = [
+const HANDWRITTEN_TICKETS: TicketInsert[] = [
   {
     id: 1,
     status: 'resolved',
@@ -452,3 +453,13 @@ export const TICKETS_SEED: TicketInsert[] = [
     updatedBy: null,
   },
 ];
+
+/**
+ * TODOS os chamados: os escritos à mão, mais os gerados.
+ *
+ * Os escritos à mão vêm primeiro e cobrem os casos limite — o chamado sem máquina, o
+ * cancelado, os quatro de impressora da mesma pessoa que fazem a recorrência aparecer. Os
+ * gerados dão VOLUME: sem eles, o radar de tipos sai com barrinhas de 1 e 2 e o tempo médio
+ * de resolução é a média de quatro números.
+ */
+export const TICKETS_SEED: TicketInsert[] = [...HANDWRITTEN_TICKETS, ...GENERATED_TICKETS_SEED];

@@ -1,4 +1,5 @@
 import { type MaintenanceInsert } from '../../../server/src/lib/db/schema/maintenances.schema';
+import { GENERATED_MAINTENANCES_SEED } from './maintenances.volume';
 
 /**
  * Os dados de teste do histórico de manutenção. VERSIONADOS: toda máquina que rodar o seed
@@ -27,7 +28,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 const daysAgo = (days: number) => new Date(NOW - days * DAY);
 
-export const MAINTENANCES_SEED: MaintenanceInsert[] = [
+const HANDWRITTEN_MAINTENANCES: MaintenanceInsert[] = [
   /* RECEPCAO-01: preventiva recente — a máquina em dia, a referência das outras. */
   {
     id: 1,
@@ -171,4 +172,16 @@ export const MAINTENANCES_SEED: MaintenanceInsert[] = [
     createdAt: daysAgo(5),
     createdBy: TI,
   },
+];
+
+/**
+ * TODAS as manutenções: as escritas à mão, mais as geradas.
+ *
+ * As escritas à mão vêm primeiro e cobrem a régua da preventiva — a em dia, a vencida, a que
+ * nunca foi aberta, a que só levou limpeza. As geradas dão VOLUME, sem o qual o bloco "o que
+ * foi feito" tem uma linha no recorte do dia e "manutenção pesada" tem uma barra só.
+ */
+export const MAINTENANCES_SEED: MaintenanceInsert[] = [
+  ...HANDWRITTEN_MAINTENANCES,
+  ...GENERATED_MAINTENANCES_SEED,
 ];

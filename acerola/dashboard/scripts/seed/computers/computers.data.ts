@@ -1,6 +1,11 @@
 import { type ComputerAlertInsert } from '../../../server/src/lib/db/schema/computer-alerts.schema';
 import { type ComputerSampleInsert } from '../../../server/src/lib/db/schema/computer-samples.schema';
 import { type ComputerInsert } from '../../../server/src/lib/db/schema/computers.schema';
+import {
+  GENERATED_ALERTS_SEED,
+  GENERATED_COMPUTERS_SEED,
+  GENERATED_USAGE_TARGETS,
+} from './computers.volume';
 
 /**
  * Os dados de teste do inventário. VERSIONADOS: toda máquina que rodar o seed vê isto.
@@ -144,7 +149,7 @@ function snapshotOf(over: {
   };
 }
 
-export const COMPUTERS_SEED: ComputerInsert[] = [
+export const HANDWRITTEN_COMPUTERS: ComputerInsert[] = [
   /* Máquina saudável e recém-vista: o caso comum, e a referência para comparar as outras. */
   {
     ...base(1, 'RECEPCAO-01'),
@@ -529,7 +534,17 @@ function samplesOf(shape: UsageShape): ComputerSampleInsert[] {
   return samples;
 }
 
-export const COMPUTER_SAMPLES_SEED: ComputerSampleInsert[] = USAGE_SHAPES.flatMap(samplesOf);
+/**
+ * A série de uso: as máquinas escritas à mão MAIS as geradas que enviam telemetria.
+ *
+ * Quatro séries desenhavam quatro gráficos bonitos e não diziam nada sobre escala. Com as
+ * geradas junto, dá para abrir dez fichas diferentes e ver dez formas de curva diferentes —
+ * que é o que se quer conferir num gráfico de tempo.
+ */
+export const COMPUTER_SAMPLES_SEED: ComputerSampleInsert[] = [
+  ...USAGE_SHAPES,
+  ...GENERATED_USAGE_TARGETS,
+].flatMap(samplesOf);
 
 /**
  * Os episódios de alerta.
@@ -537,7 +552,7 @@ export const COMPUTER_SAMPLES_SEED: ComputerSampleInsert[] = USAGE_SHAPES.flatMa
  * Há um EM ABERTO de propósito (o disco da contábil): é o que a ficha precisa mostrar em
  * vermelho, e o que separa "está travada agora" de "travou ontem por vinte minutos".
  */
-export const COMPUTER_ALERTS_SEED: ComputerAlertInsert[] = [
+const HANDWRITTEN_ALERTS: ComputerAlertInsert[] = [
   {
     id: 1,
     computerId: 3,
@@ -586,4 +601,21 @@ export const COMPUTER_ALERTS_SEED: ComputerAlertInsert[] = [
     causeProcess: 'MsMpEng.exe',
     createdAt: daysAgo(2),
   },
+];
+
+/**
+ * O INVENTÁRIO INTEIRO: o que foi escrito à mão, mais o parque gerado.
+ *
+ * Os escritos à mão vêm primeiro e cobrem os casos limite — a máquina que nunca foi vista, a
+ * bloqueada, a descartada. Os gerados dão VOLUME: sem eles, uma tela com paginação, um
+ * medidor de "quantas de quantas" e um gráfico de ranking não têm como ser julgados.
+ */
+export const COMPUTERS_SEED: ComputerInsert[] = [
+  ...HANDWRITTEN_COMPUTERS,
+  ...GENERATED_COMPUTERS_SEED,
+];
+
+export const COMPUTER_ALERTS_SEED: ComputerAlertInsert[] = [
+  ...HANDWRITTEN_ALERTS,
+  ...GENERATED_ALERTS_SEED,
 ];
