@@ -39,6 +39,7 @@
           department: 'financeiro',
           maintenanceCount: 3,
           alertCount: 2,
+          ticketCount: 5,
           lastMaintenanceAt: '2026-06-20T12:00:00.000Z',
         },
       ],

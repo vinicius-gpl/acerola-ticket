@@ -117,11 +117,13 @@
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
+  import DonutChart from '$lib/components/donut-chart/donut-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
@@ -201,35 +203,34 @@
     />
   </StatCardGrid>
 
+  <!-- Dois gráficos, e de propósito NÃO do mesmo tipo: eles respondem perguntas de formas
+       diferentes. "Que fatia do bolo é impressora" é uma proporção, e proporção se lê em
+       ROSCA; "qual departamento abriu mais" é uma comparação entre nomes, e comparação entre
+       nomes se lê em BARRA deitada — em pé, "Certificado digital" vira um leque ilegível. -->
   <div class="grid gap-4 lg:grid-cols-2">
-    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Problemas por tipo</h2>
-        <span class="text-[11px] text-neutral-400">Distribuição</span>
-      </div>
-      <!-- Altura fixa: o gráfico preenche o espaço que recebe, e sem uma caixa de altura de
-           verdade ele nasce com altura zero e os rótulos vazam por cima do que vem depois. -->
-      <div class="h-64">
-        <ColumnChart
+    <PanelCard data={{ title: 'Problemas por tipo', hint: 'Como os chamados se dividem' }}>
+      <!-- Altura de verdade: a rosca preenche o espaço que recebe, e sem uma caixa com
+           altura ela nasce com zero e a legenda vaza por cima do que vem depois. -->
+      <div class="h-72 sm:h-64">
+        <DonutChart
           data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
           state={{ isLoading: state.isDashboardLoading }}
           ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
         />
       </div>
-    </section>
-    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Departamentos com mais chamados</h2>
-        <span class="text-[11px] text-neutral-400">Volume</span>
-      </div>
-      <div class="h-64">
+    </PanelCard>
+
+    <PanelCard
+      data={{ title: 'Departamentos com mais chamados', hint: 'Do que mais pediu para o que menos' }}
+    >
+      <div class="max-h-72 overflow-x-hidden overflow-y-auto">
         <ColumnChart
           data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
           state={{ isLoading: state.isDashboardLoading }}
-          ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
+          ui={{ orientation: 'horizontal', emptyLabel: 'Ainda não há chamados para comparar.' }}
         />
       </div>
-    </section>
+    </PanelCard>
   </div>
 
   <!-- Os filtros ficam juntos e acima da lista, para a pessoa ver de uma vez o que está

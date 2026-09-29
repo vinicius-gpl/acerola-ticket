@@ -5,9 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import InsightsView, {
   machineLabelOf,
+  overloadSlices,
   overloadSummaryOf,
   spareSummaryOf,
   troubleSummaryOf,
+  upgradeSlices,
   upgradeSummaryOf,
 } from './insights-view.svelte';
 
@@ -46,6 +48,7 @@ function insights(over: Partial<Insights> = {}): Insights {
         department: 'financeiro',
         maintenanceCount: 3,
         alertCount: 2,
+        ticketCount: 5,
         lastMaintenanceAt: '2026-06-20T12:00:00.000Z',
       },
     ],
@@ -106,6 +109,54 @@ describe('machineLabelOf', () => {
   });
 });
 
+describe('overloadSlices', () => {
+  // feliz
+  /**
+   * A barra mede a MÉDIA, e não o pico.
+   *
+   * Todo computador chega a 100% ao abrir um programa; ordenar pelo pico colocaria na frente
+   * justamente a máquina que está bem — e o gráfico apontaria para a troca errada.
+   */
+  it('measures the average and puts the worst machine in front', () => {
+    const slices = overloadSlices([
+      { ...insights().overloaded[0]!, computerDisplayName: 'Calma', averageCpuPercent: 41 },
+      { ...insights().overloaded[0]!, computerDisplayName: 'Sufocada', averageCpuPercent: 92 },
+    ]);
+
+    expect(slices).toEqual([
+      { label: 'Sufocada', value: 92 },
+      { label: 'Calma', value: 41 },
+    ]);
+  });
+
+  // triste
+  it('draws nothing when no machine is living on the edge', () => {
+    expect(overloadSlices([])).toEqual([]);
+  });
+});
+
+describe('upgradeSlices', () => {
+  // feliz
+  /* A rosca conta MÁQUINAS por motivo, e não os números que sustentam cada recomendação:
+     somar "4 GB" com "12% livre" daria um número sem significado nenhum. */
+  it('counts how many machines each reason explains', () => {
+    const base = insights().upgrades[0]!;
+    const slices = upgradeSlices([
+      { ...base, reason: 'memory' },
+      { ...base, reason: 'disk' },
+      { ...base, reason: 'memory' },
+    ]);
+
+    expect(slices[0]?.value).toBe(2);
+    expect(slices.reduce((sum, slice) => sum + slice.value, 0)).toBe(3);
+  });
+
+  // triste
+  it('draws nothing when no machine is asking for an upgrade', () => {
+    expect(upgradeSlices([])).toEqual([]);
+  });
+});
+
 describe('overloadSummaryOf', () => {
   // feliz
   /* A recomendação vem com o NÚMERO: sem ele, é só uma opinião da tela. */
@@ -131,9 +182,11 @@ describe('upgradeSummaryOf', () => {
 
 describe('troubleSummaryOf', () => {
   // feliz
-  it('counts the maintenance and the alerts', () => {
+  /* As três contas lado a lado, e nunca somadas: uma é trabalho feito, outra é a máquina
+     reclamando sozinha, a terceira é uma pessoa reclamando. */
+  it('counts maintenance, alerts and tickets side by side', () => {
     expect(troubleSummaryOf(insights().troublesome[0]!)).toBe(
-      '3 manutenções já feitas · 2 alerta(s) no período',
+      '3 manutenções já feitas · 2 alerta(s) no período · 5 chamado(s) no período',
     );
   });
 
@@ -141,7 +194,14 @@ describe('troubleSummaryOf', () => {
   it('leaves the alerts out when there was none', () => {
     const quiet = { ...insights().troublesome[0]!, alertCount: 0 };
 
-    expect(troubleSummaryOf(quiet)).toBe('3 manutenções já feitas');
+    expect(troubleSummaryOf(quiet)).toBe('3 manutenções já feitas · 5 chamado(s) no período');
+  });
+
+  /* Máquina sem chamado vinculado é o caso comum — o campo é opcional no chamado. */
+  it('leaves the tickets out when no ticket points to the machine (edge case)', () => {
+    const unlinked = { ...insights().troublesome[0]!, alertCount: 0, ticketCount: 0 };
+
+    expect(troubleSummaryOf(unlinked)).toBe('3 manutenções já feitas');
   });
 });
 
