@@ -67,9 +67,11 @@ export const partsSummarySchema = z.object({
 /**
  * Uma máquina no mapa de problemas.
  *
- * Os chamados NÃO entram na conta: um chamado é aberto por uma pessoa de um departamento e
- * não aponta para máquina nenhuma (ver o contrato de chamados). Somar os dois aqui daria um
- * número que parece preciso e não é.
+ * A nota de saúde e os alertas vêm da TELEMETRIA, e as manutenções do histórico da máquina.
+ * Os chamados ficam de fora de propósito: nem todo chamado aponta para uma máquina (o campo
+ * é opcional), e somar chamados a alertas daria um número que parece preciso e não é. A
+ * recorrência por máquina — `recurringByMachineSchema`, mais abaixo — é onde o chamado
+ * vinculado entra, e lá ele é contado separado.
  */
 export const problemMachineSchema = z.object({
   computerId: z.number().int(),
@@ -218,6 +220,22 @@ export const dashboardPanelsSchema = z.object({
 
 export type DashboardPanels = z.infer<typeof dashboardPanelsSchema>;
 
+/**
+ * O MOVIMENTO DIA A DIA do período — a régua do gráfico de tendência do painel.
+ *
+ * Um dia sem nada vem com zero, e não ausente: ver `daily-activity.util`. É o único bloco do
+ * painel que responde "está melhorando ou piorando?", e nenhum número sozinho responde isso.
+ */
+export const dailyActivitySchema = z.object({
+  /** O dia em `AAAA-MM-DD`. */
+  day: z.string(),
+  opened: z.number().int(),
+  resolved: z.number().int(),
+  maintenances: z.number().int(),
+});
+
+export type DailyActivityEntry = z.infer<typeof dailyActivitySchema>;
+
 export const dashboardSchema = z.object({
   /** O recorte usado, para a tela poder dizer "nos últimos 30 dias" com verdade. */
   days: z.number().int(),
@@ -231,6 +249,8 @@ export const dashboardSchema = z.object({
   byProblemType: z.array(countByKeySchema),
   /** Departamentos que mais pediram socorro no período. */
   byDepartment: z.array(countByKeySchema),
+  /** O movimento dia a dia do período — ver `dailyActivitySchema`. */
+  daily: z.array(dailyActivitySchema),
   /** Os blocos que o painel do sistema antigo tinha — ver `dashboardPanelsSchema`. */
   panels: dashboardPanelsSchema,
 });
