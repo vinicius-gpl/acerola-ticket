@@ -188,30 +188,41 @@ describe('publicTicketSchema', () => {
     expect(parsed).not.toHaveProperty('solution');
   });
 
-  /* Os arquivos SAEM na consulta pública: são de quem abriu, e ela precisa conferir que a
-     nota fiscal chegou. Mexer neles é outra história — isso só pelo painel. */
-  it('keeps the files the person sent, so they can check what arrived', () => {
-    const withFile = publicTicketSchema.parse({
+  /**
+   * Os arquivos SAEM na consulta pública, OS DOIS LADOS.
+   *
+   * O que a pessoa mandou, para ela conferir que a nota fiscal chegou; e o que o TI anexou na
+   * devolutiva, porque é parte da resposta que ela veio buscar. Mexer neles é outra história:
+   * cada lado só apaga o que é dele (ver `attachment-ownership.util`).
+   */
+  it('keeps both sides of the files, so the person sees what arrived and what came back', () => {
+    const file = (over: Record<string, unknown>) => ({
+      id: 1,
+      ticketId: 7,
+      kind: 'pdf' as const,
+      origin: 'requester' as const,
+      fileName: 'nota.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      viewUrl: 'https://r2.example/abrir',
+      downloadUrl: 'https://r2.example/baixar',
+      createdAt: '2026-03-01T08:00:00.000Z',
+      createdBy: null,
+      ...over,
+    });
+
+    const withFiles = publicTicketSchema.parse({
       ...stored,
       attachments: [
-        {
-          id: 1,
-          ticketId: 7,
-          kind: 'pdf' as const,
-          fileName: 'nota.pdf',
-          contentType: 'application/pdf',
-          sizeBytes: 1024,
-          viewUrl: 'https://r2.example/abrir',
-          downloadUrl: 'https://r2.example/baixar',
-          createdAt: '2026-03-01T08:00:00.000Z',
-          createdBy: null,
-        },
+        file({ id: 1, origin: 'requester' }),
+        file({ id: 2, origin: 'support', fileName: 'laudo-do-ti.pdf', createdBy: 'ti@azuos.local' }),
       ],
     });
 
-    expect(withFile.attachments[0]?.fileName).toBe('nota.pdf');
-    expect(withFile.attachments[0]?.viewUrl).toBeTruthy();
-    expect(withFile.attachments[0]?.downloadUrl).toBeTruthy();
+    expect(withFiles.attachments[0]?.origin).toBe('requester');
+    expect(withFiles.attachments[1]?.origin).toBe('support');
+    expect(withFiles.attachments[0]?.viewUrl).toBeTruthy();
+    expect(withFiles.attachments[1]?.downloadUrl).toBeTruthy();
   });
 });
 

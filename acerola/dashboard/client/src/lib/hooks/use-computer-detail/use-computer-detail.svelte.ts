@@ -1,7 +1,13 @@
-import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
+import {
+  createMutation,
+  createQuery,
+  keepPreviousData,
+  useQueryClient,
+} from '@tanstack/svelte-query';
 import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
+  ALERT_PAGE_SIZE,
   type ComputerAlert,
   type ComputerSample,
   type DisposeComputerInput,
@@ -11,7 +17,7 @@ import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
 import { type PartMovement } from '@template/shared/schemas/part.schema';
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
 import { type Transfer } from '@template/shared/schemas/transfer.schema';
-import { writable } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
@@ -26,11 +32,23 @@ import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';
 import { TICKETS_QUERY_KEY } from '$lib/hooks/use-ticket-list/use-ticket-list.svelte';
 import { TRANSFERS_QUERY_KEY } from '$lib/hooks/use-transfer-form/use-transfer-form.svelte';
 
+/** Onde a pessoa está numa lista paginada, e de que tamanho é a lista inteira. */
+export type ListPaging = { page: number; pageSize: number; total: number };
+
 export type ComputerDetailModel = {
   data: {
     computer: Computer | null;
     samples: ComputerSample[];
     alerts: ComputerAlert[];
+    /**
+     * ONDE a pessoa está em cada lista longa, e QUANTOS itens existem ao todo.
+     *
+     * As duas listas são paginadas no servidor: a máquina que dá trabalho acumula centenas de
+     * episódios, e trazer todos para cortar na tela gastaria banco, rede e memória do
+     * navegador para jogar fora quase tudo.
+     */
+    alertPaging: ListPaging;
+    ticketPaging: ListPaging;
     /** O que está acontecendo na máquina AGORA. Nulo enquanto ela nunca tiver enviado nada. */
     live: ComputerLive | null;
     /** O que já foi feito NESTA máquina — o histórico que sustenta trocar em vez de remendar. */
@@ -71,6 +89,8 @@ export type ComputerDetailModel = {
     onRestore: () => void;
     onDismissToken: () => void;
     onRetry: () => void;
+    onAlertPageChange: (page: number) => void;
+    onTicketPageChange: (page: number) => void;
   };
 };
 
@@ -94,6 +114,15 @@ export type ComputerDetailModel = {
  */
 const LIVE_REFRESH_MS = 1000;
 
+/**
+ * Os chamados da máquina também vão de 25 em 25, como os alertas.
+ *
+ * O número é DESTA tela, e não do contrato de chamados: na tela de Chamados a lista é o
+ * assunto e cabe página maior; aqui ela é um bloco no meio de uma ficha que já tem gráfico,
+ * alertas, manutenções e peças.
+ */
+const TICKET_PAGE_SIZE = 25;
+
 export function useComputerDetailModel(id: number): ComputerDetailModel {
   const queryClient = useQueryClient();
 
@@ -115,12 +144,29 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
     ),
   );
 
+  /**
+   * A PÁGINA de alertas e a de chamados vivem em STORES, e não em `$state`.
+   *
+   * Esta versão do @tanstack/svelte-query recebe as opções como store, e é ela quem decide
+   * quando refazer a busca. Trocar a página escreve na store, e a consulta vai buscar a
+   * página nova no servidor — que é o ponto: nenhuma das duas listas traz tudo para cortar
+   * aqui dentro.
+   */
+  const alertPageStore = writable(1);
+  const alertPage = mirrorStore(alertPageStore);
+
+  const ticketPageStore = writable(1);
+  const ticketPage = mirrorStore(ticketPageStore);
+
   const alerts = mirrorStore(
     createQuery(
-      writable({
-        queryKey: [...COMPUTERS_QUERY_KEY, 'alerts', id],
-        queryFn: () => computersApi.alerts(id),
-      }),
+      derived(alertPageStore, (page) => ({
+        queryKey: [...COMPUTERS_QUERY_KEY, 'alerts', id, page],
+        queryFn: () => computersApi.alerts(id, { page, pageSize: ALERT_PAGE_SIZE }),
+        /* A página anterior fica na tela enquanto a nova vem: sem isto a lista pisca para
+           vazio a cada clique, e a barra de página pula de lugar junto. */
+        placeholderData: keepPreviousData,
+      })),
     ),
   );
 
@@ -149,10 +195,11 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
      vincular um chamado a esta máquina atualiza as duas telas. */
   const tickets = mirrorStore(
     createQuery(
-      writable({
-        queryKey: [...TICKETS_QUERY_KEY, 'list', { computerId: id }],
-        queryFn: () => ticketsApi.list({ computerId: id, page: 1, pageSize: 50 }),
-      }),
+      derived(ticketPageStore, (page) => ({
+        queryKey: [...TICKETS_QUERY_KEY, 'list', { computerId: id, page }],
+        queryFn: () => ticketsApi.list({ computerId: id, page, pageSize: TICKET_PAGE_SIZE }),
+        placeholderData: keepPreviousData,
+      })),
     ),
   );
 
@@ -233,10 +280,20 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
       return buildDetailData({
         computer: computer.current.data,
         samples: samples.current.data,
-        alerts: alerts.current.data,
+        alerts: alerts.current.data?.items,
+        alertPaging: {
+          page: alertPage.current,
+          pageSize: ALERT_PAGE_SIZE,
+          total: alerts.current.data?.total ?? 0,
+        },
         live: live.current.data,
         maintenances: maintenances.current.data?.items,
         tickets: tickets.current.data?.items,
+        ticketPaging: {
+          page: ticketPage.current,
+          pageSize: TICKET_PAGE_SIZE,
+          total: tickets.current.data?.total ?? 0,
+        },
         partMovements: partMovements.current.data?.items,
         transfers: transfers.current.data,
         newToken: token.current,
@@ -275,6 +332,10 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
       onDispose: (input) => dispose.current.mutate(input),
       onRestore: () => restore.current.mutate(),
       onDismissToken: () => newToken.set(null),
+      /* Trocar a página escreve na store, e é a consulta que vai buscar a página nova no
+         servidor: a tela não corta nada por conta própria. */
+      onAlertPageChange: (page) => alertPageStore.set(page),
+      onTicketPageChange: (page) => ticketPageStore.set(page),
       onRetry: () => {
         void computer.current.refetch();
         void samples.current.refetch();
@@ -320,9 +381,11 @@ function buildDetailData(input: {
   computer: Computer | undefined;
   samples: ComputerSample[] | undefined;
   alerts: ComputerAlert[] | undefined;
+  alertPaging: ListPaging;
   live: ComputerLive | null | undefined;
   maintenances: Maintenance[] | undefined;
   tickets: Ticket[] | undefined;
+  ticketPaging: ListPaging;
   partMovements: PartMovement[] | undefined;
   transfers: Transfer[] | undefined;
   newToken: string | null;
@@ -331,9 +394,11 @@ function buildDetailData(input: {
     computer: input.computer ?? null,
     samples: input.samples ?? [],
     alerts: input.alerts ?? [],
+    alertPaging: input.alertPaging,
     live: input.live ?? null,
     maintenances: input.maintenances ?? [],
     tickets: input.tickets ?? [],
+    ticketPaging: input.ticketPaging,
     partMovements: input.partMovements ?? [],
     transfers: input.transfers ?? [],
     newToken: input.newToken,

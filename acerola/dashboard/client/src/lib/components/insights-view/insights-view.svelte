@@ -12,12 +12,15 @@
     upgradeReasonLabel,
   } from '@template/shared/domain/insight-rules.util';
   import {
+    UPGRADE_REASONS,
     type Insights,
     type OverloadedMachine,
     type SpareMachine,
     type TroublesomeMachine,
     type UpgradeCandidate,
   } from '@template/shared/schemas/insight.schema';
+
+  import { type ChartSlice } from '$lib/utils/chart-slice';
 
   /**
    * A INTELIGÊNCIA: o que os dados juntos dizem, e que nenhuma tela sozinha mostra.
@@ -70,10 +73,22 @@
       : `Só ${machine.value}% de espaço livre no disco`;
   }
 
+  /**
+   * As três contas LADO A LADO, e nunca somadas.
+   *
+   * Manutenção é trabalho feito, alerta é a máquina reclamando sozinha, chamado é uma pessoa
+   * reclamando. Somá-las daria um número que parece preciso e não é — e é justamente a
+   * leitura das três separadas que diz se o problema é a máquina ou quem a usa.
+   *
+   * Cada conta só aparece quando existe: "0 alerta" é ruído numa linha que já é longa.
+   */
   export function troubleSummaryOf(machine: TroublesomeMachine): string {
-    const alerts = machine.alertCount > 0 ? ` · ${machine.alertCount} alerta(s) no período` : '';
+    const parts = [`${machine.maintenanceCount} manutenções já feitas`];
 
-    return `${machine.maintenanceCount} manutenções já feitas${alerts}`;
+    if (machine.alertCount > 0) parts.push(`${machine.alertCount} alerta(s) no período`);
+    if (machine.ticketCount > 0) parts.push(`${machine.ticketCount} chamado(s) no período`);
+
+    return parts.join(' · ');
   }
 
   /** O que a máquina de reserva tem dentro, em uma linha. */
@@ -86,6 +101,39 @@
 
     return parts.length > 0 ? parts.join(' · ') : 'O agente ainda não informou o hardware';
   }
+
+  /**
+   * As máquinas sobrecarregadas em barras, pela MÉDIA de processador.
+   *
+   * A média, e não o pico: todo computador chega a 100% ao abrir um programa, e ordenar pelo
+   * pico colocaria na frente justamente a máquina que está bem.
+   */
+  export function overloadSlices(machines: readonly OverloadedMachine[]): ChartSlice[] {
+    return machines
+      .map((machine) => ({
+        label: machineLabelOf(machine),
+        value: Math.round(machine.averageCpuPercent),
+      }))
+      .sort((a, b) => b.value - a.value);
+  }
+
+  /**
+   * De que o bolo de upgrades é feito: quantas MÁQUINAS por motivo.
+   *
+   * Conta máquinas, e não os números que sustentam cada recomendação: somar "4 GB de memória"
+   * com "12% de disco livre" daria um número sem significado nenhum.
+   *
+   * Uma fatia por motivo do catálogo, mesmo quando ela é zero — as fatias zeradas saem no
+   * fim. Assim a rosca tem sempre as mesmas cores, e "só falta memória" se lê de relance.
+   */
+  export function upgradeSlices(machines: readonly UpgradeCandidate[]): ChartSlice[] {
+    return UPGRADE_REASONS.map((reason) => ({
+      label: upgradeReasonLabel(reason),
+      value: machines.filter((machine) => machine.reason === reason).length,
+    }))
+      .filter((slice) => slice.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }
 </script>
 
 <script lang="ts">
@@ -93,10 +141,13 @@
   import PartyPopper from '@lucide/svelte/icons/party-popper';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
+  import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
+  import DonutChart from '$lib/components/donut-chart/donut-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
@@ -164,6 +215,41 @@
         Nada a recomendar nos últimos {insights.days} dias: nenhuma máquina no limite, nenhuma
         pedindo upgrade e nenhuma dando trabalho demais.
       </p>
+    {/if}
+
+    <!-- O retrato dos números ANTES das listas: as listas dizem o que fazer com cada
+         máquina, os gráficos dizem se o problema é geral ou de duas máquinas. Barra deitada
+         para comparar máquinas pelo nome; rosca para ver de que o bolo de upgrades é feito. -->
+    {#if hasAnything}
+      <div class="grid gap-4 lg:grid-cols-2">
+        <PanelCard
+          data={{
+            title: 'Quem vive no limite',
+            hint: `Média de processador nos últimos ${insights.days} dias`,
+          }}
+        >
+          <div class="max-h-72 overflow-x-hidden overflow-y-auto">
+            <ColumnChart
+              data={{ slices: overloadSlices(insights.overloaded), seriesLabel: '% de processador' }}
+              ui={{
+                orientation: 'horizontal',
+                emptyLabel: 'Nenhuma máquina vivendo no limite no período.',
+              }}
+            />
+          </div>
+        </PanelCard>
+
+        <PanelCard
+          data={{ title: 'De que os upgrades são feitos', hint: 'O que falta nas máquinas apontadas' }}
+        >
+          <div class="h-60 sm:h-56">
+            <DonutChart
+              data={{ slices: upgradeSlices(insights.upgrades), seriesLabel: 'Máquinas' }}
+              ui={{ emptyLabel: 'Nenhuma máquina pedindo upgrade.' }}
+            />
+          </div>
+        </PanelCard>
+      </div>
     {/if}
 
     <!-- Sobrecarregadas -->

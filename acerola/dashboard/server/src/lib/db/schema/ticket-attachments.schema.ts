@@ -1,4 +1,5 @@
 import { ATTACHMENT_KINDS } from '@template/shared/domain/attachment-catalog.util';
+import { ATTACHMENT_ORIGINS } from '@template/shared/schemas/ticket-attachment.schema';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -50,6 +51,19 @@ export const ticketAttachments = pgTable(
       .references(() => tickets.id, { onDelete: 'cascade' }),
 
     kind: text('kind', { enum: ATTACHMENT_KINDS }).notNull(),
+
+    /**
+     * DE QUEM É O ARQUIVO: de quem abriu o chamado, ou do TI que atendeu.
+     *
+     * É o que decide quem pode apagá-lo (ver `attachment-ownership.util`). Coluna própria, e
+     * não uma leitura de `created_by` estar nulo: os dois coincidem hoje, mas `created_by` é
+     * auditoria — no dia em que alguém carimbar o autor também no envio público, a permissão
+     * viraria ao contrário, em silêncio.
+     *
+     * O padrão é `requester` porque é o que as linhas que já existem são: elas nasceram do
+     * formulário público, antes de o TI poder anexar.
+     */
+    origin: text('origin', { enum: ATTACHMENT_ORIGINS }).notNull().default('requester'),
     fileName: text('file_name').notNull(),
     contentType: text('content_type').notNull(),
     /* `bigint`: um vídeo de 50 MB cabe em `int4`, mas o teto pode subir, e um limite que
@@ -72,6 +86,13 @@ export const ticketAttachments = pgTable(
     /* A consulta é sempre "os anexos deste chamado". */
     index('ticket_attachments_ticket_idx').on(table.ticketId),
     check('ticket_attachments_kind_valid', sql`${table.kind} in (${valuesFor(ATTACHMENT_KINDS)})`),
+    /* O lado do arquivo decide quem pode apagá-lo, e por isso a checagem é do BANCO: um
+       valor inventado aqui viraria um arquivo que ninguém consegue apagar, ou pior, um que
+       todo mundo consegue. */
+    check(
+      'ticket_attachments_origin_valid',
+      sql`${table.origin} in (${valuesFor(ATTACHMENT_ORIGINS)})`,
+    ),
     /* Arquivo de zero byte é envio que falhou no meio, não arquivo. */
     check('ticket_attachments_size_positive', sql`${table.sizeBytes} > 0`),
   ],

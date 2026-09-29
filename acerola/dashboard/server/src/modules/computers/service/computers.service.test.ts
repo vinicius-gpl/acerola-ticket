@@ -565,3 +565,79 @@ describe('ComputersService.restore', () => {
     expect(update).not.toHaveBeenCalled();
   });
 });
+
+describe('ComputersService.alerts', () => {
+  const alertRow = (id: number) => ({
+    id,
+    computerId: 7,
+    metric: 'disk' as const,
+    peakValue: 97,
+    threshold: 90,
+    status: 'active' as const,
+    startedAt: new Date('2026-09-22T16:00:00.000Z'),
+    recoveredAt: null,
+    causeProcess: 'OneDrive.exe',
+    createdAt: new Date('2026-09-22T16:00:00.000Z'),
+  });
+
+  // feliz
+  /**
+   * A PÁGINA vem do banco, e o TOTAL vem junto.
+   *
+   * Sem o total, a tela não sabe quantas páginas existem — e a lista voltaria a ser cortada
+   * em silêncio, que é o que a trava do CONTRIBUTING §15 proíbe. Uma máquina que dá trabalho
+   * acumula centenas de episódios.
+   */
+  it('answers one page of alerts with the total of the whole list', async () => {
+    const listAlerts = vi.fn().mockResolvedValue([alertRow(1), alertRow(2)]);
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(computerRow()),
+      listAlerts,
+      countAlerts: vi.fn().mockResolvedValue(312),
+    });
+
+    const page = await service.alerts(ana, 7, { page: 3, pageSize: 25 });
+
+    expect(page).toMatchObject({ total: 312, page: 3, pageSize: 25 });
+    expect(page.items).toHaveLength(2);
+    /* O recorte é do BANCO: o service não corta nada depois de receber. */
+    expect(listAlerts).toHaveBeenCalledWith(7, { page: 3, pageSize: 25 });
+  });
+
+  // triste
+  /* Máquina sem episódio nenhum: página vazia com total zero, e não um erro. */
+  it('answers an empty page for a machine that never alerted', async () => {
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(computerRow()),
+      listAlerts: vi.fn().mockResolvedValue([]),
+      countAlerts: vi.fn().mockResolvedValue(0),
+    });
+
+    const page = await service.alerts(ana, 7, { page: 1, pageSize: 25 });
+
+    expect(page).toEqual({ items: [], total: 0, page: 1, pageSize: 25 });
+  });
+
+  it('refuses an unidentified request without touching the database', async () => {
+    const listAlerts = vi.fn();
+    const { service } = makeService({ listAlerts, countAlerts: vi.fn() });
+
+    await expect(service.alerts(noRole, 7, { page: 1, pageSize: 25 })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(listAlerts).not.toHaveBeenCalled();
+  });
+
+  /* Máquina que não existe: 404, e não uma lista vazia que parece "nunca deu problema". */
+  it('says the machine does not exist instead of answering an empty list', async () => {
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(undefined),
+      listAlerts: vi.fn(),
+      countAlerts: vi.fn(),
+    });
+
+    await expect(service.alerts(ana, 999, { page: 1, pageSize: 25 })).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+});

@@ -1,6 +1,16 @@
 <script lang="ts" module>
   import { ATTACHMENT_RULES } from '@template/shared/domain/attachment-catalog.util';
-  import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
+  import { canRemoveAttachment } from '@template/shared/domain/attachment-ownership.util';
+  import {
+    type AttachmentOrigin,
+    type TicketAttachment,
+  } from '@template/shared/schemas/ticket-attachment.schema';
+
+  /* O rótulo é texto de tela (português); a chave é do contrato (inglês). */
+  const ORIGIN_LABELS: Record<AttachmentOrigin, string> = {
+    requester: 'enviado por quem abriu',
+    support: 'anexado pelo TI',
+  };
 
   export type AttachmentListProps = {
     data: {
@@ -9,6 +19,16 @@
     ui?: {
       /** O texto quando não há nenhum arquivo. Cada tela diz isso do jeito dela. */
       emptyLabel?: string;
+      /**
+       * DE QUE LADO está quem olha a lista — e, portanto, o que ele pode apagar.
+       *
+       * Cada lado mexe só no que é dele: o TI vê e baixa o que a pessoa mandou, e não apaga.
+       * Sem isso, o botão de excluir apareceria em cima da prova de quem pediu socorro (ver
+       * `attachment-ownership.util`).
+       *
+       * @default 'support'
+       */
+      actor?: AttachmentOrigin;
     };
     state?: {
       isLoading?: boolean;
@@ -40,7 +60,20 @@
 
   let { data, ui, state: viewState, actions }: AttachmentListProps = $props();
 
-  const canRemove = $derived(actions?.onRemove !== undefined);
+  const actor = $derived(ui?.actor ?? 'support');
+
+  /**
+   * O botão de excluir aparece POR ARQUIVO, e não pela lista inteira.
+   *
+   * Duas condições, e as duas precisam valer: a tela tem que oferecer a exclusão (na consulta
+   * pública ela não oferece), e o arquivo tem que ser do lado de quem está olhando. A mesma
+   * régua que a API usa para recusar — esconder o botão é conveniência, a recusa do servidor
+   * é a que vale.
+   */
+  const canRemove = $derived(
+    (attachment: TicketAttachment) =>
+      actions?.onRemove !== undefined && canRemoveAttachment(attachment.origin, actor),
+  );
 </script>
 
 {#if viewState?.error}
@@ -57,8 +90,12 @@
       <li class="flex flex-wrap items-center justify-between gap-2 p-2.5">
         <div class="min-w-0 flex-1">
           <p class="text-ink-900 truncate text-sm">{attachment.fileName}</p>
+          <!-- De quem é o arquivo vai ESCRITO na linha. Sem isso, a única pista de por que uns
+               têm botão de excluir e outros não seria a ausência do botão — e ausência não
+               explica nada a quem está olhando. -->
           <p class="text-ink-500 text-xs">
-            {ATTACHMENT_RULES[attachment.kind].label} · {fileSizeOf(attachment.sizeBytes)}
+            {ATTACHMENT_RULES[attachment.kind].label} · {fileSizeOf(attachment.sizeBytes)} ·
+            {ORIGIN_LABELS[attachment.origin]}
           </p>
         </div>
 
@@ -89,7 +126,7 @@
             Baixar
           </a>
 
-          {#if canRemove}
+          {#if canRemove(attachment)}
             <ActionButton
               data={{ label: 'Excluir' }}
               ui={{ variant: 'ghost', size: 'sm', icon: Trash2, isIconOnly: true }}

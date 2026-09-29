@@ -93,6 +93,7 @@
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
   import MonitorSmartphone from '@lucide/svelte/icons/monitor-smartphone';
+  import Paperclip from '@lucide/svelte/icons/paperclip';
   import Phone from '@lucide/svelte/icons/phone';
   import UserCog from '@lucide/svelte/icons/user-cog';
   import Wrench from '@lucide/svelte/icons/wrench';
@@ -110,6 +111,8 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import { onlyFrom } from '@template/shared/domain/attachment-ownership.util';
+
   import AttachmentList from '$lib/components/attachment-list/attachment-list.svelte';
   import AttachmentPicker from '$lib/components/attachment-picker/attachment-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
@@ -127,6 +130,16 @@
   const ticket = $derived(data.ticket);
   const fields = $derived(data.fields);
 
+  /**
+   * OS DOIS CONJUNTOS DE ARQUIVO, separados na tela como são no contrato.
+   *
+   * A prova de quem pediu socorro fica junto do pedido dela, lá em cima, só de leitura. A
+   * devolutiva do TI fica dentro do passo de diagnóstico, que é onde ela é produzida — e é
+   * ali que o botão de anexar e o de excluir existem.
+   */
+  const requesterFiles = $derived(onlyFrom(data.attachments, 'requester'));
+  const supportFiles = $derived(onlyFrom(data.attachments, 'support'));
+
   function handleSubmit(event: SubmitEvent): void {
     event.preventDefault();
     actions.onSubmit();
@@ -141,9 +154,15 @@
   open={state.isOpen}
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
-  <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-2xl rounded-2xl border border-border bg-card shadow-2xl p-6">
-    <form novalidate class="flex flex-col gap-5" onsubmit={handleSubmit}>
-      <DialogHeader class="border-b border-border/80 pb-4">
+  <!-- O card NÃO rola inteiro: ele é uma coluna de altura limitada, e só o MIOLO rola. Com o
+       card inteiro rolando, o título e os botões subiam junto e sumiam num chamado com muito
+       conteúdo — e no celular, onde a altura é pouca, sumiam quase sempre. `min-h-0` é o que
+       permite o miolo encolher dentro da coluna; sem ele o flex ignora o limite de altura. -->
+  <DialogContent
+    class="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-2xl sm:max-w-2xl"
+  >
+    <form novalidate class="flex min-h-0 flex-1 flex-col" onsubmit={handleSubmit}>
+      <DialogHeader class="shrink-0 border-b border-border/80 px-6 pt-6 pb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2.5">
             <DialogTitle class="font-mono text-base font-bold text-foreground">Chamado {ticket.protocol}</DialogTitle>
@@ -161,6 +180,7 @@
         </DialogDescription>
       </DialogHeader>
 
+      <div class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
       <!-- O pedido, como a pessoa escreveu. Estilo Approvals Queue / Drawer de Diagnóstico. -->
       <section class="rounded-2xl border border-border/80 bg-neutral-50/60 dark:bg-neutral-900/40 p-4.5 flex flex-col gap-3.5 shadow-xs">
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -224,45 +244,22 @@
         {/if}
       </section>
 
+      <!-- O QUE A PESSOA MANDOU — só de leitura, e fica JUNTO do pedido dela, em cima.
+           Não há botão de excluir aqui, e não é esquecimento: é a prova de quem pediu
+           socorro. Apagar o print de alguém e depois dizer "não recebi print nenhum" é uma
+           história que o sistema não deixa acontecer (ver `attachment-ownership.util`). -->
       <section class="flex flex-col gap-2">
         <div class="border-b border-border/80 pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Arquivos do chamado
+          <h3 class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            O que a pessoa enviou
           </h3>
         </div>
 
         <AttachmentList
-          data={{ attachments: data.attachments }}
-          ui={{ emptyLabel: 'Nenhum arquivo neste chamado.' }}
-          state={{
-            isLoading: state.isAttachmentsLoading,
-            removingId: state.removingAttachmentId,
-          }}
-          actions={{ onRemove: actions.onRemoveAttachment }}
+          data={{ attachments: requesterFiles }}
+          ui={{ emptyLabel: 'Quem abriu o chamado não anexou nenhum arquivo.', actor: 'support' }}
+          state={{ isLoading: state.isAttachmentsLoading }}
         />
-
-        <AttachmentPicker
-          data={{
-            files: data.chosenFiles,
-            existingKinds: data.attachments.map((attachment) => attachment.kind),
-          }}
-          state={{ isDisabled: state.isAttaching, error: state.attachmentError }}
-          actions={{
-            onChange: actions.onChosenFilesChange,
-            onError: actions.onAttachmentError,
-          }}
-        />
-
-        {#if data.chosenFiles.length > 0}
-          <!-- Os arquivos entram num envio à parte do formulário: quem está atendendo pode
-               juntar a nota fiscal sem ter de salvar a situação do chamado junto. -->
-          <ActionButton
-            data={{ label: 'Anexar ao chamado', loadingLabel: 'Anexando…' }}
-            ui={{ variant: 'secondary', size: 'sm' }}
-            state={{ isLoading: state.isAttaching }}
-            actions={{ onClick: actions.onAttach }}
-          />
-        {/if}
       </section>
 
       <div class="flex flex-col gap-1">
@@ -294,7 +291,10 @@
               icon: ListChecks,
             }}
           >
-            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+            <!-- `min-w-0` na linha inteira: sem ele, um campo de conteúdo largo (o nome de uma
+                 máquina, por exemplo) empurra a linha para além do diálogo em vez de encolher,
+                 e a tela ganha barra de rolagem horizontal. -->
+            <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
               <div class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-muted-foreground">Situação</span>
                 <OptionPicker
@@ -322,7 +322,7 @@
                 <span class="text-xs font-medium text-muted-foreground">Tipo do problema</span>
                 <SelectField
                   data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
-                  ui={{ ariaLabel: 'Tipo do problema', className: 'min-w-[200px]' }}
+                  ui={{ ariaLabel: 'Tipo do problema', className: 'sm:min-w-[180px]' }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
                 />
@@ -331,11 +331,16 @@
               <!-- A máquina é preenchida AQUI, e não no formulário público: quem pede socorro
                    não sabe por qual nome o sistema conhece o computador dele. É este vínculo
                    que faz a ficha da máquina saber quantos problemas ela já deu. -->
-              <div class="flex flex-col gap-1.5">
+              <div class="flex min-w-0 flex-col gap-1.5 sm:flex-1 sm:basis-[240px]">
                 <span class="text-xs font-medium text-muted-foreground">Máquina</span>
-                <SelectField
+                <!-- `OptionPicker`, e não `SelectField`: este é o ÚNICO campo do sistema que
+                     escolhe entre o parque inteiro. Numa lista rolante de cinquenta máquinas,
+                     achar "a da recepção" é rolar e ler linha por linha; aqui a pessoa digita
+                     "recep" e sobra uma. O `OptionPicker` vira busca sozinho quando passa de
+                     seis opções, e continua pastilha onde há poucas. -->
+                <OptionPicker
                   data={{ value: fields.computerId.value, options: machineOptions }}
-                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma', className: 'min-w-[220px]' }}
+                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
                 />
@@ -362,6 +367,62 @@
               }}
             />
 
+            <!-- OS ARQUIVOS DA DEVOLUTIVA, aqui dentro e não lá em cima: eles são parte do
+                 que foi feito — a nota fiscal da peça trocada, a foto do antes e do depois.
+                 Ficam do lado do TI, e só o TI os apaga; quem abriu o chamado vê e baixa. -->
+            <div class="border-border/60 flex flex-col gap-2 rounded-xl border p-3">
+              <p class="text-muted-foreground text-xs font-medium">
+                Arquivos desta devolutiva
+                <span class="text-muted-foreground/70 font-normal">
+                  — quem abriu o chamado vê e baixa, mas não apaga
+                </span>
+              </p>
+
+              <AttachmentList
+                data={{ attachments: supportFiles }}
+                ui={{ emptyLabel: 'Você ainda não anexou nada a esta devolutiva.', actor: 'support' }}
+                state={{
+                  isLoading: state.isAttachmentsLoading,
+                  removingId: state.removingAttachmentId,
+                  error: state.attachmentError,
+                }}
+                actions={{ onRemove: actions.onRemoveAttachment }}
+              />
+
+              <!-- A cota é POR LADO: o que a pessoa mandou não ocupa o espaço do TI. Por isso
+                   só os arquivos do TI entram na conta do que ainda cabe. -->
+              <AttachmentPicker
+                data={{
+                  files: data.chosenFiles,
+                  existingKinds: supportFiles.map((attachment) => attachment.kind),
+                }}
+                state={{ isDisabled: state.isAttaching, error: state.attachmentError }}
+                actions={{
+                  onChange: actions.onChosenFilesChange,
+                  onError: actions.onAttachmentError,
+                }}
+              />
+
+              {#if data.chosenFiles.length > 0}
+                <!-- Os arquivos entram num envio à parte do formulário: quem está atendendo
+                     pode juntar a nota fiscal sem ter de salvar a situação do chamado junto.
+
+                     Por isso ele é COLORIDO (`primary`), e não mais um botão de borda: quem
+                     escolheu os arquivos acha que já anexou, e o passo que falta precisa se
+                     parecer com um passo que falta. Em cinza, ele some no meio do bloco e a
+                     pessoa fecha o diálogo achando que mandou. -->
+                <ActionButton
+                  data={{
+                    label: `Anexar ${data.chosenFiles.length} arquivo(s) à devolutiva`,
+                    loadingLabel: 'Anexando…',
+                  }}
+                  ui={{ variant: 'primary', size: 'sm', icon: Paperclip, className: 'w-fit' }}
+                  state={{ isLoading: state.isAttaching }}
+                  actions={{ onClick: actions.onAttach }}
+                />
+              {/if}
+            </div>
+
             {#if data.whatsAppLink}
               <a
                 class="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-600 transition-all hover:bg-emerald-500/20 dark:text-emerald-400"
@@ -380,8 +441,9 @@
       {#if state.error}
         <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
       {/if}
+      </div>
 
-      <DialogFooter class="border-t border-border/80 pt-4 mt-2">
+      <DialogFooter class="shrink-0 border-t border-border/80 px-6 py-4">
         <ActionButton
           data={{ label: 'Fechar' }}
           ui={{ variant: 'secondary' }}

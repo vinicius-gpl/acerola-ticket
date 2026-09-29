@@ -48,6 +48,14 @@
       computer: Computer;
       samples: ComputerSample[];
       alerts: ComputerAlert[];
+      /**
+       * ONDE a pessoa está em cada lista longa, e QUANTOS itens existem ao todo.
+       *
+       * As duas listas são paginadas no SERVIDOR: uma máquina que dá trabalho acumula
+       * centenas de episódios, e a tela nunca corta nada por conta própria.
+       */
+      alertPaging: ListPaging;
+      ticketPaging: ListPaging;
       /** O que está acontecendo na máquina agora. Nulo enquanto ela nunca tiver enviado nada. */
       live: ComputerLive | null;
       /** O que já foi feito nesta máquina. Vem da feature de Manutenção; a ficha só lê. */
@@ -82,6 +90,9 @@
       onDispose: (input: { type: 'defect' | 'scrap'; reason: string }) => void;
       onRestore: () => void;
       onBack: () => void;
+      /** Trocar de página vai BUSCAR no servidor — a tela não corta a lista por conta própria. */
+      onAlertPageChange: (page: number) => void;
+      onTicketPageChange: (page: number) => void;
     };
   };
 
@@ -92,6 +103,9 @@
     ticketStatusLabel,
     ticketStatusTone,
   } from '@template/shared/domain/ticket-status.util';
+
+  /** Onde a pessoa está numa lista paginada, e de que tamanho é a lista inteira. */
+  export type ListPaging = { page: number; pageSize: number; total: number };
 
   export type HardwareFact = { label: string; value: string };
 
@@ -110,6 +124,81 @@
   }
 
   /**
+   * O NÚMERO DE AGORA — e o que fazer quando não há "agora".
+   *
+   * Havia um defeito aqui, e ele era do pior tipo: os cartões do alto liam a última AMOSTRA
+   * gravada (um resumo periódico, de minutos atrás) e diziam "agora" em cima dela. O painel
+   * ao vivo, logo abaixo, mostrava a leitura do segundo — e os dois números não batiam.
+   * "Processador agora 100%" com "Processador — 37% no total" um centímetro abaixo.
+   *
+   * Então: a leitura AO VIVO manda, sempre que existe. Sem ela — agente desligado, máquina
+   * fora do ar — sobra a última amostra, e aí o rótulo PARA de dizer "agora": passa a dizer
+   * "na última leitura", porque é isso que é.
+   */
+  export type NowReading = {
+    cpuPercent: number | null;
+    memoryPercent: number | null;
+    diskPercent: number | null;
+    /** Verdadeiro quando o número é do segundo, e não um retrato guardado. */
+    isLive: boolean;
+  };
+
+  export function nowReadingOf(
+    live: ComputerLive | null,
+    lastSample: ComputerSample | null,
+  ): NowReading {
+    if (live) {
+      return {
+        cpuPercent: live.cpu.percentTotal,
+        memoryPercent: live.memory.usedPercent,
+        diskPercent: totalDiskPercentOf(live.disks),
+        isLive: true,
+      };
+    }
+
+    return {
+      cpuPercent: lastSample?.cpuPercent ?? null,
+      memoryPercent: lastSample?.memoryPercent ?? null,
+      diskPercent: lastSample?.diskPercent ?? null,
+      isLive: false,
+    };
+  }
+
+  /**
+   * O disco do PARQUE DA MÁQUINA, somando os volumes — a mesma conta da amostra guardada.
+   *
+   * Somar, e não pegar o pior volume: é assim que o servidor calcula a amostra
+   * (`computers.mapper`), e duas contas diferentes para o mesmo cartão fariam o número pular
+   * ao agente cair, sem nada ter mudado na máquina.
+   */
+  export function totalDiskPercentOf(disks: ComputerLive['disks']): number | null {
+    const total = disks.reduce((sum, disk) => sum + disk.totalBytes, 0);
+    if (total === 0) return null;
+
+    const used = disks.reduce((sum, disk) => sum + disk.usedBytes, 0);
+
+    return (used / total) * 100;
+  }
+
+  /**
+   * OS NÚCLEOS: os físicos e os lógicos, os dois.
+   *
+   * Só o lógico engana na hora de comprar e na hora de culpar a máquina: um i5 de 6 núcleos
+   * com hyper-threading aparece como 12, e quem lê "12 núcleos" acha que a máquina é o dobro
+   * do que é. Físico é quanto de silício existe; lógico é quantas filas o sistema enxerga.
+   *
+   * O agente pode informar um e não o outro (versão antiga, ou máquina virtual que esconde o
+   * físico), e aí a tela diz o que sabe em vez de inventar o que falta.
+   */
+  export function coreCountOf(physical: number | null, logical: number | null): string {
+    if (physical && logical) return `${physical} físicos · ${logical} lógicos`;
+    if (physical) return `${physical} físicos`;
+    if (logical) return `${logical} lógicos`;
+
+    return '—';
+  }
+
+  /**
    * Os fatos de hardware, já em palavras.
    *
    * Exportado e puro para ter teste próprio: é aqui que "ainda não sei" (nulo) precisa virar
@@ -123,10 +212,7 @@
     return [
       { label: 'Sistema', value: hardware.os ?? '—' },
       { label: 'Processador', value: hardware.cpuModel ?? '—' },
-      {
-        label: 'Núcleos',
-        value: hardware.logicalCpus ? `${hardware.logicalCpus} (lógicos)` : '—',
-      },
+      { label: 'Núcleos', value: coreCountOf(hardware.physicalCpus, hardware.logicalCpus) },
       { label: 'Memória', value: formatBytes(hardware.totalMemoryBytes) },
       {
         label: 'Disco',
@@ -176,6 +262,7 @@
   import ComputerProcessTable from '$lib/components/computer-process-table/computer-process-table.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
@@ -201,6 +288,10 @@
   const facts = $derived(hardwareFacts(computer));
   const lastSample = $derived(data.samples.at(-1) ?? null);
   const live = $derived(data.live);
+
+  /* Os cartões do alto leem daqui, e não da última amostra: ver `nowReadingOf`. */
+  const now = $derived(nowReadingOf(live, lastSample));
+  const nowSuffix = $derived(now.isLive ? 'agora' : 'na última leitura');
 
   const points = $derived(
     data.samples.map((sample) => ({
@@ -377,18 +468,21 @@
       data={{ label: 'Nota de saúde', value: `${computer.healthScore}/100` }}
       ui={{ tone: CARD_TONES[computer.healthStatus] }}
     />
+    <!-- O rótulo muda junto com a origem do número: com o agente ligado é "agora"; com ele
+         fora do ar vira "na última leitura", porque é o que o número é. Um cartão que diz
+         "agora" em cima de um retrato de minutos atrás faz decidir errado. -->
     <StatCard
-      data={{ label: 'Processador agora', value: formatPercent(lastSample?.cpuPercent ?? null) }}
+      data={{ label: `Processador ${nowSuffix}`, value: formatPercent(now.cpuPercent) }}
       ui={{ tone: 'info' }}
       state={{ isLoading: viewState?.isSamplesLoading }}
     />
     <StatCard
-      data={{ label: 'Memória agora', value: formatPercent(lastSample?.memoryPercent ?? null) }}
+      data={{ label: `Memória ${nowSuffix}`, value: formatPercent(now.memoryPercent) }}
       ui={{ tone: 'info' }}
       state={{ isLoading: viewState?.isSamplesLoading }}
     />
     <StatCard
-      data={{ label: 'Disco agora', value: formatPercent(lastSample?.diskPercent ?? null) }}
+      data={{ label: `Disco ${nowSuffix}`, value: formatPercent(now.diskPercent) }}
       ui={{ tone: 'brand' }}
       state={{ isLoading: viewState?.isSamplesLoading }}
     />
@@ -501,9 +595,22 @@
         </TableBody>
         {#snippet footer()}
           <span>Alertas automáticos gerados pelo agente</span>
-          <span>{data.alerts.length} alerta(s)</span>
         {/snippet}
       </Table>
+
+      <!-- A barra diz quantos episódios existem AO TODO, e não quantos vieram nesta página:
+           sem isso a lista seria cortada em silêncio (CONTRIBUTING §15). Quem pagina é o
+           servidor — ver `computersApi.alerts`. -->
+      <PaginationBar
+        data={{
+          page: data.alertPaging.page,
+          pageSize: data.alertPaging.pageSize,
+          total: data.alertPaging.total,
+          noun: ['alerta', 'alertas'],
+        }}
+        state={{ isLoading: viewState?.isAlertsLoading }}
+        actions={{ onPageChange: actions.onAlertPageChange }}
+      />
     {/if}
   </section>
 
@@ -580,6 +687,17 @@
           </li>
         {/each}
       </ul>
+
+      <PaginationBar
+        data={{
+          page: data.ticketPaging.page,
+          pageSize: data.ticketPaging.pageSize,
+          total: data.ticketPaging.total,
+          noun: ['chamado', 'chamados'],
+        }}
+        state={{ isLoading: viewState?.isTicketsLoading }}
+        actions={{ onPageChange: actions.onTicketPageChange }}
+      />
     {/if}
   </section>
 

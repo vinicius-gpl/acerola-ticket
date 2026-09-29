@@ -71,15 +71,22 @@ export type UpgradeCandidate = z.infer<typeof upgradeCandidateSchema>;
 /**
  * Máquina que DÁ TRABALHO: a que já consumiu manutenção demais.
  *
- * A conta é de MANUTENÇÕES e alertas, não de chamados. Um chamado, neste sistema, é aberto
- * por uma pessoa de um departamento e não aponta para máquina nenhuma — somar os dois daria
- * um número que parece preciso e não é.
+ * As três contas vêm SEPARADAS, e nunca somadas. Manutenção, alerta e chamado são coisas de
+ * naturezas diferentes — uma é trabalho feito, outra é a máquina reclamando sozinha, a
+ * terceira é uma pessoa reclamando. Somá-las daria um número que parece preciso e não é; é a
+ * leitura das três lado a lado que diz se o problema é a máquina ou quem a usa.
+ *
+ * O chamado entra porque agora ele APONTA para a máquina (o campo é opcional, então só os
+ * vinculados contam). No sistema antigo isso não existia, e a tela só conseguia olhar para
+ * manutenção.
  */
 export const troublesomeMachineSchema = z.object({
   ...machineShape,
   maintenanceCount: z.number().int(),
   /** Quantas vezes ela entrou em alerta no período. */
   alertCount: z.number().int(),
+  /** Chamados abertos NO PERÍODO com esta máquina no chamado. */
+  ticketCount: z.number().int(),
   lastMaintenanceAt: z.string().datetime().nullable(),
 });
 

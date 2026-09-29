@@ -65,6 +65,8 @@
       computer: detail.data.computer,
       samples: detail.data.samples,
       alerts: detail.data.alerts,
+      alertPaging: detail.data.alertPaging,
+      ticketPaging: detail.data.ticketPaging,
       live: detail.data.live,
       tickets: detail.data.tickets,
       maintenances: detail.data.maintenances,

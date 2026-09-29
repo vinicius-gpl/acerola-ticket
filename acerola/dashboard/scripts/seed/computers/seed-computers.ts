@@ -51,6 +51,7 @@ export async function seedComputers(db: Database): Promise<number> {
         healthScore: sql`excluded.health_score`,
         healthStatus: sql`excluded.health_status`,
         warnings: sql`excluded.warnings`,
+        lastSnapshot: sql`excluded.last_snapshot`,
         lastSeenAt: sql`excluded.last_seen_at`,
         agentVersion: sql`excluded.agent_version`,
         isArchived: sql`excluded.is_archived`,

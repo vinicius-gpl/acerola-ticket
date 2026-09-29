@@ -1,11 +1,23 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   attachmentKindOf,
   refuseAttachment,
   type AttachmentKind,
 } from '@template/shared/domain/attachment-catalog.util';
+import {
+  kindsUsedBy,
+  refuseAttachmentRemoval,
+} from '@template/shared/domain/attachment-ownership.util';
 import { fileNameSchema } from '@template/shared/domain/file-name.util';
-import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
+import {
+  type AttachmentOrigin,
+  type TicketAttachment,
+} from '@template/shared/schemas/ticket-attachment.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type TicketAttachmentRow } from '../../../lib/db/schema/ticket-attachments.schema';
@@ -79,13 +91,17 @@ export class TicketAttachmentsService {
     ticketId: number,
     files: readonly UploadedAttachment[],
     author: string | null,
+    origin: AttachmentOrigin,
   ): Promise<TicketAttachment[]> {
     if (files.length === 0) return [];
 
     await this.requireTicket(ticketId);
 
     const existing = await this.repository.listByTicket(ticketId);
-    const kinds: AttachmentKind[] = existing.map((row) => row.kind);
+    /* A cota é POR LADO: só conta o que ESTE lado já subiu. Com cota compartilhada, alguém
+       que abrisse o chamado com cinco PDFs deixaria o TI sem poder anexar a nota fiscal da
+       peça — e o TI não pode apagar os cinco para abrir espaço, porque não são dele. */
+    const kinds: AttachmentKind[] = kindsUsedBy(existing, origin);
 
     const accepted = files.map((file) => this.accept(file, kinds));
 
@@ -101,6 +117,7 @@ export class TicketAttachmentsService {
       const row = await this.repository.insert({
         ticketId,
         kind,
+        origin,
         fileName,
         contentType: stored.contentType,
         sizeBytes: stored.sizeBytes,
@@ -114,7 +131,13 @@ export class TicketAttachmentsService {
     return saved;
   }
 
-  /** Anexar pelo PAINEL, durante o atendimento. Exige identidade. */
+  /**
+   * Anexar pelo PAINEL, durante o atendimento. Exige identidade.
+   *
+   * O que entra por aqui é a DEVOLUTIVA do TI — a nota fiscal da peça, a foto do antes e do
+   * depois — e fica do lado dele: quem abriu o chamado vê e baixa, mas não apaga, do mesmo
+   * jeito que o TI não apaga o que a pessoa mandou.
+   */
   async attachAsUser(
     user: RequestUser,
     ticketId: number,
@@ -124,7 +147,7 @@ export class TicketAttachmentsService {
        atendimento, não um cadastro à parte com permissão própria. */
     assertCanAttendTicket(user.role);
 
-    return this.attach(ticketId, files, user.email);
+    return this.attach(ticketId, files, user.email, 'support');
   }
 
   /**
@@ -142,6 +165,16 @@ export class TicketAttachmentsService {
 
     const row = await this.repository.findInTicket(ticketId, attachmentId);
     if (!row) throw new NotFoundException(ATTACHMENT_NOT_FOUND);
+
+    /**
+     * O TI NÃO APAGA O ARQUIVO DE QUEM ABRIU O CHAMADO.
+     *
+     * A tela já esconde o botão, mas esconder botão é conveniência — a recusa que vale é
+     * esta. A regra existe porque apagar o print de alguém e depois dizer "não recebi print
+     * nenhum" é uma história que o sistema não pode deixar acontecer, nem por engano.
+     */
+    const refusal = refuseAttachmentRemoval(row.origin, 'support');
+    if (refusal) throw new ForbiddenException(refusal);
 
     await this.repository.remove(row.id);
     await this.storage.remove(row.storageKey);
@@ -199,6 +232,7 @@ export class TicketAttachmentsService {
       sizeBytes: row.sizeBytes,
       viewUrl,
       downloadUrl,
+      origin: row.origin,
       createdAt: row.createdAt.toISOString(),
       createdBy: row.createdBy,
     };

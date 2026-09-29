@@ -11,7 +11,7 @@
     };
   };
 
-  type UsageTone = 'calm' | 'attention' | 'critical';
+  export type UsageTone = 'calm' | 'attention' | 'critical';
 
   const TONE_CLASSES: Record<UsageTone, string> = {
     calm: 'bg-emerald-500',
@@ -27,8 +27,11 @@
    *
    * Os cortes são os mesmos que a régua de saúde usa (`computer-health.util`), para a barra
    * não ficar amarela numa máquina que a ficha chama de crítica.
+   *
+   * Exportada para ter teste próprio: um corte trocado aqui pinta de verde justamente a
+   * máquina que está prestes a parar.
    */
-  function usageTone(percentage: number): UsageTone {
+  export function usageTone(percentage: number): UsageTone {
     if (percentage >= 90) return 'critical';
     if (percentage >= 75) return 'attention';
 

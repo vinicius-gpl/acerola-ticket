@@ -67,9 +67,11 @@ export const partsSummarySchema = z.object({
 /**
  * Uma máquina no mapa de problemas.
  *
- * Os chamados NÃO entram na conta: um chamado é aberto por uma pessoa de um departamento e
- * não aponta para máquina nenhuma (ver o contrato de chamados). Somar os dois aqui daria um
- * número que parece preciso e não é.
+ * A nota de saúde e os alertas vêm da TELEMETRIA, e as manutenções do histórico da máquina.
+ * Os chamados ficam de fora de propósito: nem todo chamado aponta para uma máquina (o campo
+ * é opcional), e somar chamados a alertas daria um número que parece preciso e não é. A
+ * recorrência por máquina — `recurringByMachineSchema`, mais abaixo — é onde o chamado
+ * vinculado entra, e lá ele é contado separado.
  */
 export const problemMachineSchema = z.object({
   computerId: z.number().int(),
@@ -90,6 +92,150 @@ export const countByKeySchema = z.object({ key: z.string(), count: z.number().in
 
 export type CountByKey = z.infer<typeof countByKeySchema>;
 
+
+
+/**
+ * RECORRÊNCIA: o mesmo problema acontecendo de novo, e de novo.
+ *
+ * É a pergunta que um número total não responde. "Catorze chamados no mês" pode ser catorze
+ * coisas diferentes; "a mesma pessoa abriu quatro de impressora" é um problema que ninguém
+ * resolveu, e que vai voltar na semana que vem.
+ *
+ * O corte é TRÊS, o mesmo do sistema antigo: dois é coincidência, três é padrão.
+ */
+export const RECURRENCE_THRESHOLD = 3;
+
+/** Recorrência por PESSOA: aponta para treinamento, ou para um equipamento compartilhado. */
+export const recurringByPersonSchema = z.object({
+  requesterName: z.string(),
+  department: z.string().nullable(),
+  problemType: z.string(),
+  count: z.number().int(),
+});
+
+export type RecurringByPerson = z.infer<typeof recurringByPersonSchema>;
+
+/**
+ * Recorrência por MÁQUINA — o que o sistema antigo não conseguia ver.
+ *
+ * Lá o chamado não apontava para computador nenhum, então só dava para agrupar por pessoa.
+ * Com o vínculo, "a CONTABIL-03 deu quatro chamados de impressora" vira uma frase que decide
+ * troca de equipamento.
+ */
+export const recurringByMachineSchema = z.object({
+  computerId: z.number().int(),
+  computerName: z.string(),
+  problemType: z.string(),
+  count: z.number().int(),
+});
+
+export type RecurringByMachine = z.infer<typeof recurringByMachineSchema>;
+
+/** Máquina que já consumiu manutenção demais — a partir de três, é candidata a troca. */
+export const heavyMaintenanceSchema = z.object({
+  computerId: z.number().int(),
+  computerName: z.string(),
+  maintenanceCount: z.number().int(),
+});
+
+export type HeavyMaintenance = z.infer<typeof heavyMaintenanceSchema>;
+
+/**
+ * Máquina batendo no teto: quantos EPISÓDIOS de alerta ela teve.
+ *
+ * Só informativo, e é assim que a tela precisa dizer. Todo computador chega a 100% de
+ * processador ao abrir um programa; o que interessa é quem faz isso o tempo todo — quando
+ * alguém reclamar que a máquina está lenta, o motivo já está aqui.
+ */
+export const peakingMachineSchema = z.object({
+  computerId: z.number().int(),
+  computerName: z.string(),
+  /** Episódios de hoje e do mês. A tela alterna entre os dois. */
+  today: z.number().int(),
+  month: z.number().int(),
+  /** Qual medida mais estourou: processador, memória ou disco. */
+  topMetric: z.enum(['cpu', 'memory', 'disk']).nullable(),
+});
+
+export type PeakingMachine = z.infer<typeof peakingMachineSchema>;
+
+/** Uma manutenção na lista do "o que foi feito". */
+export const maintenanceEntrySchema = z.object({
+  id: z.number().int(),
+  computerName: z.string(),
+  type: z.string(),
+  description: z.string(),
+  performedBy: z.string().nullable(),
+  performedAt: z.string().datetime(),
+});
+
+export type MaintenanceEntry = z.infer<typeof maintenanceEntrySchema>;
+
+/**
+ * Os três recortes de tempo, prontos, na MESMA resposta.
+ *
+ * A tela alterna entre Dia, Semana e Mês com um clique. Buscar de novo a cada clique deixaria
+ * a troca lenta por um dado que é pequeno — são poucas manutenções por mês — e faria o painel
+ * inteiro recarregar para mudar um bloco.
+ */
+const periodsOf = <T extends z.ZodTypeAny>(item: T) =>
+  z.object({ day: z.array(item), week: z.array(item), month: z.array(item) });
+
+export const maintenanceLogSchema = periodsOf(maintenanceEntrySchema);
+
+export type MaintenanceLog = z.infer<typeof maintenanceLogSchema>;
+
+export const maintenanceByTypeSchema = periodsOf(countByKeySchema);
+
+/** O plano automático: uma máquina por dia útil, da mais urgente para a menos. */
+export const plannedMaintenanceSchema = z.object({
+  computerId: z.number().int(),
+  computerName: z.string(),
+  department: departmentSchema.nullable(),
+  /** O dia útil em que ela caiu no plano. */
+  plannedFor: z.string().datetime(),
+  /** Há quantos meses ela não é aberta. Nulo quando nunca foi. */
+  monthsSinceLast: z.number().nullable(),
+});
+
+export type PlannedMaintenance = z.infer<typeof plannedMaintenanceSchema>;
+
+/**
+ * Tudo que o painel do sistema antigo mostrava e este ainda não mostrava.
+ *
+ * Vai num objeto à parte, e não solto no `dashboardSchema`, porque é um bloco de tela: quem
+ * lê o contrato vê de uma vez o que compõe a metade de baixo do painel.
+ */
+export const dashboardPanelsSchema = z.object({
+  recurringByPerson: z.array(recurringByPersonSchema),
+  recurringByMachine: z.array(recurringByMachineSchema),
+  heavyMaintenance: z.array(heavyMaintenanceSchema),
+  peaking: z.array(peakingMachineSchema),
+  maintenanceLog: maintenanceLogSchema,
+  maintenanceByType: maintenanceByTypeSchema,
+  /** O que o plano automático manda fazer hoje, e se já foi feito. */
+  plannedToday: z.array(plannedMaintenanceSchema),
+  doneToday: z.boolean(),
+});
+
+export type DashboardPanels = z.infer<typeof dashboardPanelsSchema>;
+
+/**
+ * O MOVIMENTO DIA A DIA do período — a régua do gráfico de tendência do painel.
+ *
+ * Um dia sem nada vem com zero, e não ausente: ver `daily-activity.util`. É o único bloco do
+ * painel que responde "está melhorando ou piorando?", e nenhum número sozinho responde isso.
+ */
+export const dailyActivitySchema = z.object({
+  /** O dia em `AAAA-MM-DD`. */
+  day: z.string(),
+  opened: z.number().int(),
+  resolved: z.number().int(),
+  maintenances: z.number().int(),
+});
+
+export type DailyActivityEntry = z.infer<typeof dailyActivitySchema>;
+
 export const dashboardSchema = z.object({
   /** O recorte usado, para a tela poder dizer "nos últimos 30 dias" com verdade. */
   days: z.number().int(),
@@ -103,6 +249,10 @@ export const dashboardSchema = z.object({
   byProblemType: z.array(countByKeySchema),
   /** Departamentos que mais pediram socorro no período. */
   byDepartment: z.array(countByKeySchema),
+  /** O movimento dia a dia do período — ver `dailyActivitySchema`. */
+  daily: z.array(dailyActivitySchema),
+  /** Os blocos que o painel do sistema antigo tinha — ver `dashboardPanelsSchema`. */
+  panels: dashboardPanelsSchema,
 });
 
 export type Dashboard = z.infer<typeof dashboardSchema>;

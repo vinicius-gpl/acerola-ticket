@@ -38,8 +38,14 @@ describe('reviewChoice', () => {
   /* O limite conta o que o chamado já tem, o que já foi escolhido e o que está sendo
      escolhido agora — senão três vídeos de uma vez passariam pelo teto de dois. */
   it('counts what is already chosen against the limit', () => {
-    const video = () => fakeFile('defeito.mp4', 'video/mp4', MEGABYTE);
-    const { accepted, error } = reviewChoice([video(), video(), video()], [], []);
+    /* Três vídeos DIFERENTES: o teste é do teto de dois, e não da recusa de duplicata — com
+       o mesmo arquivo três vezes, quem barraria o segundo seria a outra regra. */
+    const video = (name: string) => fakeFile(name, 'video/mp4', MEGABYTE);
+    const { accepted, error } = reviewChoice(
+      [video('antes.mp4'), video('durante.mp4'), video('depois.mp4')],
+      [],
+      [],
+    );
 
     expect(accepted).toHaveLength(2);
     expect(error).toContain('2');
@@ -59,6 +65,46 @@ describe('reviewChoice', () => {
     const { error } = reviewChoice([fakeFile('grande.png', 'image/png', 6 * MEGABYTE)], [], []);
 
     expect(error).toContain('5 MB');
+  });
+
+  /**
+   * O MESMO ARQUIVO DE NOVO É RECUSADO — e isso já derrubou a tela de verdade.
+   *
+   * Escolher a mesma nota duas vezes é um clique a mais, não uma intenção: subiria o arquivo
+   * duplicado, pagaria o dobro de armazenamento e ocuparia duas vagas da cota. Pior: a lista
+   * é desenhada por uma chave montada do arquivo, e dois iguais davam CHAVE REPETIDA no
+   * `each` — o que não desenha torto, derruba a tela inteira.
+   */
+  it('refuses the same file a second time, saying which one', () => {
+    const nota = fakeFile('nota.pdf', 'application/pdf', MEGABYTE);
+    const { accepted, error } = reviewChoice([nota], [nota], []);
+
+    expect(accepted).toHaveLength(0);
+    expect(error).toContain('nota.pdf');
+    expect(error).toContain('já está na lista');
+  });
+
+  it('refuses the same file twice inside one single choice', () => {
+    const nota = fakeFile('nota.pdf', 'application/pdf', MEGABYTE);
+    const { accepted } = reviewChoice([nota, nota], [], []);
+
+    expect(accepted).toHaveLength(1);
+  });
+
+  /* Dois arquivos de mesmo NOME vindos de pastas diferentes continuam passando: eles quase
+     nunca têm o mesmo tamanho, e recusá-los bloquearia uma escolha legítima. */
+  it('still accepts two different files that happen to share a name', () => {
+    const { accepted, error } = reviewChoice(
+      [
+        fakeFile('nota.pdf', 'application/pdf', MEGABYTE),
+        fakeFile('nota.pdf', 'application/pdf', 2 * MEGABYTE),
+      ],
+      [],
+      [],
+    );
+
+    expect(accepted).toHaveLength(2);
+    expect(error).toBeNull();
   });
 });
 
@@ -129,5 +175,29 @@ describe('AttachmentPicker', () => {
     });
 
     expect(screen.getByRole('alert')).toHaveTextContent('não é aceito');
+  });
+
+  /**
+   * O DEFEITO QUE ESTE TESTE TRANCA, e ele quebrava o diálogo inteiro.
+   *
+   * O campo de arquivo é `sr-only`, e `sr-only` é `position: absolute`. Sem um ancestral
+   * POSICIONADO, ele se ancorava no painel do diálogo — a centenas de pixels do rótulo que o
+   * aciona. Quando o seletor de arquivos do sistema fechava, o navegador devolvia o foco ao
+   * campo e o rolava para dentro da vista: quem rolava era o PAINEL. O cabeçalho do chamado
+   * saía por cima, sobrava um vazio embaixo do rodapé, e não havia como desfazer — o painel é
+   * `overflow-hidden`, então não existe barra de rolagem para voltar.
+   */
+  it('keeps the hidden file field anchored to its own block, never to whatever is above', () => {
+    const { container } = render(AttachmentPicker, {
+      props: { data: { files: [] }, actions: { onChange: vi.fn(), onError: vi.fn() } },
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const wrapper = container.firstElementChild;
+
+    expect(input?.className).toContain('sr-only');
+    /* O bloco do seletor precisa ser o ancestral posicionado do campo escondido. */
+    expect(wrapper?.className).toContain('relative');
+    expect(wrapper?.contains(input)).toBe(true);
   });
 });

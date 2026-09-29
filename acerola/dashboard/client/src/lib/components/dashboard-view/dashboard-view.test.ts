@@ -4,10 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import DashboardView, {
+  departmentSlices,
   formatAverage,
+  healthyCountOf,
+  heavySlices,
   machineLabelOf,
   problemSummaryOf,
-  toSlices,
+  resolutionRateOf,
+  toDailyPoints,
 } from './dashboard-view.svelte';
 
 function machine(over: Partial<ProblemMachine> = {}): ProblemMachine {
@@ -40,6 +44,17 @@ function summary(over: Partial<Dashboard> = {}): Dashboard {
     worstMachines: [machine()],
     byProblemType: [{ key: 'printer', count: 4 }],
     byDepartment: [{ key: 'financeiro', count: 3 }],
+    daily: [{ day: '2026-09-23', opened: 2, resolved: 1, maintenances: 1 }],
+    panels: {
+      recurringByPerson: [],
+      recurringByMachine: [],
+      heavyMaintenance: [],
+      peaking: [],
+      maintenanceLog: { day: [], week: [], month: [] },
+      maintenanceByType: { day: [], week: [], month: [] },
+      plannedToday: [],
+      doneToday: false,
+    },
     ...over,
   };
 }
@@ -127,16 +142,110 @@ describe('formatAverage', () => {
   });
 });
 
-describe('toSlices', () => {
+describe('departmentSlices', () => {
   // feliz
   it('reads the keys as the words on screen', () => {
-    expect(toSlices([{ key: 'printer', count: 4 }], 'problem')[0]?.label).toBe('Impressora');
-    expect(toSlices([{ key: 'financeiro', count: 3 }], 'department')[0]?.label).toBe('FINANCEIRO');
+    expect(departmentSlices([{ key: 'financeiro', count: 3 }])[0]?.label).toBe('FINANCEIRO');
   });
 
   // triste
   it('turns an empty period into an empty chart, not into an error', () => {
-    expect(toSlices([], 'problem')).toEqual([]);
+    expect(departmentSlices([])).toEqual([]);
+  });
+});
+
+describe('heavySlices', () => {
+  // feliz
+  it('puts the machine name on the bar and the count as its size', () => {
+    expect(heavySlices([{ computerId: 3, computerName: 'CONTABIL-03', maintenanceCount: 4 }])).toEqual(
+      [{ label: 'CONTABIL-03', value: 4 }],
+    );
+  });
+
+  // triste
+  it('draws nothing when no machine passed the limit', () => {
+    expect(heavySlices([])).toEqual([]);
+  });
+});
+
+describe('toDailyPoints', () => {
+  // feliz
+  /**
+   * O dia vira um instante ao MEIO-DIA, e não à meia-noite.
+   *
+   * Num fuso negativo — o do Brasil — meia-noite em UTC já é o dia anterior aqui, e o gráfico
+   * sairia deslocado um dia inteiro: o pico de segunda apareceria no domingo.
+   */
+  it('anchors each day at midday so the chart does not slide a day back', () => {
+    const [point] = toDailyPoints([
+      { day: '2026-09-23', opened: 4, resolved: 2, maintenances: 1 },
+    ]);
+
+    expect(point!.at).toBe('2026-09-23T12:00:00.000Z');
+    expect(new Date(point!.at).getDate()).toBe(23);
+    expect(point!.values).toEqual({ opened: 4, resolved: 2, maintenances: 1 });
+  });
+
+  // triste
+  it('has nothing to draw for a period with no day', () => {
+    expect(toDailyPoints([])).toEqual([]);
+  });
+});
+
+describe('healthyCountOf', () => {
+  // feliz
+  /* "De pé" é o que sobra: nem crítica, nem sem o agente instalado. */
+  it('counts what is left after the critical ones and the ones with no agent', () => {
+    expect(healthyCountOf({ total: 10, critical: 2, attention: 3, neverSeen: 1 })).toBe(7);
+  });
+
+  // triste
+  /* Uma máquina pode ser crítica E estar sem agente, e aí a subtração passaria de zero — um
+     medidor com valor negativo desenha um arco ao contrário. */
+  it('never goes below zero when the counts overlap (edge case)', () => {
+    expect(healthyCountOf({ total: 2, critical: 2, attention: 0, neverSeen: 2 })).toBe(0);
+  });
+});
+
+describe('resolutionRateOf', () => {
+  // feliz
+  it('answers how much of what came in has already gone out', () => {
+    expect(
+      resolutionRateOf({
+        open: 0,
+        inProgress: 0,
+        openedInPeriod: 10,
+        resolvedInPeriod: 7,
+        averageResolutionHours: null,
+      }),
+    ).toBe(70);
+  });
+
+  /* Resolvendo a fila velha, sai mais do que entrou — e o medidor não passa de cheio. */
+  it('never goes past a full gauge (edge case)', () => {
+    expect(
+      resolutionRateOf({
+        open: 0,
+        inProgress: 0,
+        openedInPeriod: 2,
+        resolvedInPeriod: 9,
+        averageResolutionHours: null,
+      }),
+    ).toBe(100);
+  });
+
+  // triste
+  /* Sem nada entrando não há proporção: dividir por zero daria `NaN` no meio do medidor. */
+  it('answers zero when nothing came in (edge case)', () => {
+    expect(
+      resolutionRateOf({
+        open: 0,
+        inProgress: 0,
+        openedInPeriod: 0,
+        resolvedInPeriod: 0,
+        averageResolutionHours: null,
+      }),
+    ).toBe(0);
   });
 });
 

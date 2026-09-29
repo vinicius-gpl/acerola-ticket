@@ -16,10 +16,33 @@ import { fileNameSchema } from '../domain/file-name.util';
 
 export const attachmentKindSchema = z.enum(ATTACHMENT_KINDS);
 
+/**
+ * DE QUEM É O ARQUIVO — e é isto que decide quem pode apagá-lo.
+ *
+ * São dois conjuntos que convivem no mesmo chamado e não se misturam:
+ *
+ *  - **`requester`**: o que a pessoa mandou ao abrir o chamado. É a PROVA dela, e o TI não
+ *    mexe: apagar o print de alguém e depois dizer "não recebi print nenhum" é uma história
+ *    que o sistema não pode deixar acontecer, nem por engano.
+ *  - **`support`**: o que o TI junta durante o atendimento, na aba de diagnóstico e solução.
+ *    É a devolutiva — a nota fiscal da peça trocada, a foto do antes e do depois.
+ *
+ * O lado é uma COLUNA PRÓPRIA, e não uma leitura de `createdBy` estar nulo. Os dois coincidem
+ * hoje, mas `createdBy` é auditoria: no dia em que alguém carimbar o autor também no envio
+ * público — coisa razoável de se querer — a permissão viraria ao contrário, em silêncio.
+ */
+export const ATTACHMENT_ORIGINS = ['requester', 'support'] as const;
+
+export const attachmentOriginSchema = z.enum(ATTACHMENT_ORIGINS);
+
+export type AttachmentOrigin = z.infer<typeof attachmentOriginSchema>;
+
 export const ticketAttachmentSchema = z.object({
   id: z.number().int(),
   ticketId: z.number().int(),
   kind: attachmentKindSchema,
+  /** De quem é o arquivo — ver `attachmentOriginSchema`. É o que decide quem pode apagá-lo. */
+  origin: attachmentOriginSchema,
   /** O nome que veio do computador de quem enviou. Nunca é o endereço no bucket. */
   fileName: z.string(),
   contentType: z.string(),

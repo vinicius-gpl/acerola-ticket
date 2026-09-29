@@ -197,7 +197,9 @@ export class TicketsService {
        arquivo fora das regras derruba a requisição — e o chamado já gravado fica, sem os
        anexos: perder o pedido de socorro por causa de um PDF grande demais seria o pior dos
        dois males. Quem envia vê o protocolo e o motivo, e anexa o resto pelo painel. */
-    await this.attachments.attach(row.id, attachments, null);
+    /* `requester`: é a prova de quem pediu socorro, e ela é dela — o TI vê e baixa, mas não
+       apaga (ver `attachment-ownership.util`). */
+    await this.attachments.attach(row.id, attachments, null, 'requester');
 
     return this.withScreenshot(row);
   }

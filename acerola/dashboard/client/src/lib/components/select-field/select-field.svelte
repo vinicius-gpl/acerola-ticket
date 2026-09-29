@@ -54,19 +54,33 @@
   }}
   disabled={state?.isDisabled}
 >
+  <!-- `min-w-0` + `max-w-full`: sem os dois, uma opção de nome longo faz o gatilho crescer
+       além do espaço que ele tem e empurra a largura de quem está em volta — dentro de um
+       diálogo, isso vira barra de rolagem horizontal na tela inteira. O nome completo continua
+       acessível pelo `title` e pela lista aberta. -->
   <SelectTrigger
     aria-label={ui?.ariaLabel}
-    class={cn('h-auto rounded-sm py-2 text-sm', ui?.className)}
+    title={selectedLabel || undefined}
+    class={cn('h-auto max-w-full min-w-0 rounded-sm py-2 text-sm', ui?.className)}
   >
     <!-- `data-slot="select-value"` mantém o recorte de uma linha que o gatilho aplica ao
          filho. O tom de "nada escolhido" continua vindo do próprio gatilho, que recebe
          `data-placeholder` do componente baixado. -->
-    <span data-slot="select-value">{selectedLabel || (ui?.placeholder ?? '')}</span>
+    <span data-slot="select-value" class="truncate">
+      {selectedLabel || (ui?.placeholder ?? '')}
+    </span>
   </SelectTrigger>
-  <SelectContent>
+  <!-- A LARGURA DA LISTA É AMARRADA À DO GATILHO, entre um piso e um teto.
+       Sem isso ela se estica até o nome mais comprido da lista: com apelidos como
+       "Paralegal — estação compartilhada do corredor (PARALEGAL-08-…)", a lista nascia mais
+       larga do que o diálogo inteiro e vazava pelos dois lados. `--bits-select-anchor-width`
+       é a largura do gatilho, medida pelo próprio componente. -->
+  <SelectContent
+    class="min-w-(--bits-select-anchor-width) w-auto max-w-[min(26rem,calc(100vw-2rem))]"
+  >
     {#each data.options as option (option.value || EMPTY_VALUE)}
       <SelectItem value={option.value || EMPTY_VALUE} label={option.label}>
-        {option.label}
+        <span class="truncate">{option.label}</span>
       </SelectItem>
     {/each}
   </SelectContent>

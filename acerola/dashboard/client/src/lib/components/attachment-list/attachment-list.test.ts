@@ -8,6 +8,9 @@ const attachment = (over: Record<string, unknown> = {}) => ({
   id: 1,
   ticketId: 7,
   kind: 'pdf' as const,
+  /* O padrão é o do TI: é o lado que a ficha do painel gerencia. O arquivo de quem abriu o
+     chamado é pedido explicitamente nos testes que tratam da regra de dono. */
+  origin: 'support' as const,
   fileName: 'nota-fiscal.pdf',
   contentType: 'application/pdf',
   sizeBytes: 2 * 1024 * 1024,
@@ -37,7 +40,7 @@ describe('AttachmentList', () => {
   it('says the format and the size of each file', () => {
     render(AttachmentList, { props: { data: { attachments: [attachment()] } } });
 
-    expect(screen.getByText('PDF · 2,0 MB')).toBeInTheDocument();
+    expect(screen.getByText(/PDF · 2,0 MB/)).toBeInTheDocument();
   });
 
   it('asks to remove the file that was clicked', async () => {
@@ -58,6 +61,67 @@ describe('AttachmentList', () => {
     render(AttachmentList, { props: { data: { attachments: [attachment()] } } });
 
     expect(screen.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument();
+  });
+
+  /**
+   * O BOTÃO É POR ARQUIVO, e não pela lista.
+   *
+   * Cada lado mexe só no que é dele: o TI apaga o que anexou e NÃO apaga a prova de quem
+   * pediu socorro. Esconder o botão é conveniência — a recusa que vale é a do servidor —,
+   * mas oferecer um botão que o servidor vai recusar é pior do que não oferecer.
+   */
+  it('offers to remove only what belongs to whoever is looking', () => {
+    render(AttachmentList, {
+      props: {
+        data: {
+          attachments: [
+            attachment({ id: 1, origin: 'requester', fileName: 'print-da-pessoa.png' }),
+            attachment({ id: 2, origin: 'support', fileName: 'nota-do-ti.pdf' }),
+          ],
+        },
+        ui: { actor: 'support' },
+        actions: { onRemove: vi.fn() },
+      },
+    });
+
+    /* Dois arquivos na lista, UM botão de excluir: o do TI. */
+    expect(screen.getAllByRole('button', { name: 'Excluir' })).toHaveLength(1);
+  });
+
+  /* A mesma lista, do outro lado: agora é o contrário. */
+  it('flips which one is removable when the requester is the one looking', () => {
+    render(AttachmentList, {
+      props: {
+        data: {
+          attachments: [
+            attachment({ id: 1, origin: 'requester' }),
+            attachment({ id: 2, origin: 'support' }),
+          ],
+        },
+        ui: { actor: 'requester' },
+        actions: { onRemove: vi.fn() },
+      },
+    });
+
+    expect(screen.getAllByRole('button', { name: 'Excluir' })).toHaveLength(1);
+  });
+
+  /* De quem é o arquivo vai ESCRITO: sem isso, a única pista de por que uns têm botão e
+     outros não seria a ausência do botão — e ausência não explica nada. */
+  it('says whose file each one is', () => {
+    render(AttachmentList, {
+      props: {
+        data: {
+          attachments: [
+            attachment({ id: 1, origin: 'requester' }),
+            attachment({ id: 2, origin: 'support' }),
+          ],
+        },
+      },
+    });
+
+    expect(screen.getByText(/enviado por quem abriu/)).toBeInTheDocument();
+    expect(screen.getByText(/anexado pelo TI/)).toBeInTheDocument();
   });
 
   it('says there is nothing instead of showing an empty list', () => {

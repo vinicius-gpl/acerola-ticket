@@ -143,6 +143,7 @@ function toTroublesome(rows: readonly TroubleRow[]): TroublesomeMachine[] {
       ...machineOf(row),
       maintenanceCount: row.maintenanceCount,
       alertCount: row.alertCount,
+      ticketCount: row.ticketCount,
       lastMaintenanceAt: row.lastMaintenanceAt?.toISOString() ?? null,
     }))
     .filter(isTroublesome)

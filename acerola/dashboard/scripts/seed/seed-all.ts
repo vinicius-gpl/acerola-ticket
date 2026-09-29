@@ -27,8 +27,12 @@ async function main(): Promise<void> {
 
   try {
     report('tarefas', await seedTasks(db));
-    report('chamados', await seedTickets(db));
     report('computadores', await seedComputers(db));
+    /* Depois dos computadores: o chamado APONTA para a máquina desde que o vínculo entrou.
+       Esta linha ficou fora de ordem por um tempo e ninguém viu, porque num banco já semeado
+       as máquinas estavam lá da execução anterior — o defeito só aparecia num banco novo, ou
+       quando entrava um chamado apontando para uma máquina nova. */
+    report('chamados', await seedTickets(db));
     /* Depois dos computadores: a manutenção aponta para a máquina. */
     report('manutenções', await seedMaintenances(db));
     /* Depois dos computadores também: a movimentação aponta para a máquina que recebeu. */

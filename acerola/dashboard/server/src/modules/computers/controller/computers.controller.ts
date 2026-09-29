@@ -26,7 +26,8 @@ import { type Response } from 'express';
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
-  ComputerAlertDto,
+  ComputerAlertListQueryDto,
+  ComputerAlertListResponseDto,
   ComputerLiveDto,
   ComputerDto,
   ComputerListQueryDto,
@@ -140,20 +141,21 @@ export class ComputersController {
 
   @Get(':id/alerts')
   @ApiOperation({
-    summary: 'Os alertas da máquina',
+    summary: 'Os alertas da máquina, paginados',
     description:
-      'Cada alerta é um período: abre quando a medida passa do limite e fecha quando ela volta. Alerta sem data de recuperação é um problema acontecendo agora.',
+      'Cada alerta é um período: abre quando a medida passa do limite e fecha quando ela volta. Alerta sem data de recuperação é um problema acontecendo agora. A resposta traz o TOTAL junto com a página, porque uma máquina ruim acumula centenas de episódios e quem lê precisa saber quantos ficaram de fora.',
   })
   @ApiOkResponse({
-    type: [ComputerAlertDto],
-    description: 'Os episódios de alerta, do mais recente para o mais antigo.',
+    type: ComputerAlertListResponseDto,
+    description: 'Uma página de episódios, do mais recente para o mais antigo, com o total.',
   })
   @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
   async alerts(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<ComputerAlertDto[]> {
-    return this.service.alerts(user, id);
+    @Query() query: ComputerAlertListQueryDto,
+  ): Promise<ComputerAlertListResponseDto> {
+    return this.service.alerts(user, id, query);
   }
 
   @Post()

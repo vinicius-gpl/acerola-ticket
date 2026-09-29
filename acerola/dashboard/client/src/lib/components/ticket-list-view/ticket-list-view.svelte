@@ -120,7 +120,10 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
+  import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
+  import RadarChart from '$lib/components/radar-chart/radar-chart.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
@@ -200,35 +203,34 @@
     />
   </StatCardGrid>
 
+  <!-- DOIS FORMATOS, porque são duas perguntas diferentes.
+       "Em que este escritório dá problema" é um PERFIL — todos os tipos de uma vez, e a
+       forma da teia se reconhece de longe. "Qual departamento abriu mais" é uma ORDEM, e
+       ordem se lê em barra, na hora. A rosca não entra em nenhuma das duas: com nove tipos
+       ela vira um anel de fatias finas que só se lê pela legenda ao lado — e quem está lendo
+       a legenda não está olhando o desenho. -->
   <div class="grid gap-4 lg:grid-cols-2">
-    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Problemas por tipo</h2>
-        <span class="text-[11px] text-neutral-400">Distribuição</span>
-      </div>
-      <!-- Altura fixa: o gráfico preenche o espaço que recebe, e sem uma caixa de altura de
-           verdade ele nasce com altura zero e os rótulos vazam por cima do que vem depois. -->
-      <div class="h-64">
-        <ColumnChart
-          data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
-          state={{ isLoading: state.isDashboardLoading }}
-          ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
-        />
-      </div>
-    </section>
-    <section class="bg-card rounded-2xl border border-border p-5 shadow-xs">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-neutral-500">Departamentos com mais chamados</h2>
-        <span class="text-[11px] text-neutral-400">Volume</span>
-      </div>
-      <div class="h-64">
+    <PanelCard
+      data={{ title: 'Problemas por tipo', hint: 'O perfil do que dá trabalho neste escritório' }}
+    >
+      <RadarChart
+        data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
+        state={{ isLoading: state.isDashboardLoading }}
+        ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
+      />
+    </PanelCard>
+
+    <PanelCard
+      data={{ title: 'Departamentos com mais chamados', hint: 'Do que mais pediu para o que menos' }}
+    >
+      <div class="max-h-72 overflow-x-hidden overflow-y-auto">
         <ColumnChart
           data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
           state={{ isLoading: state.isDashboardLoading }}
-          ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
+          ui={{ orientation: 'horizontal', emptyLabel: 'Ainda não há chamados para comparar.' }}
         />
       </div>
-    </section>
+    </PanelCard>
   </div>
 
   <!-- Os filtros ficam juntos e acima da lista, para a pessoa ver de uma vez o que está
@@ -249,12 +251,18 @@
          de baixo — uma fileira só virava uma bagunça de tamanhos diferentes se reordenando
          a cada largura de tela. -->
     <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+      <!-- Situação e urgência são perguntas DIFERENTES ("em que pé está" e "quão urgente é"),
+           e lado a lado os dois grupos de botões viravam uma régua só. O traço separa os dois
+           sem gastar uma linha inteira. No celular ele vira horizontal, porque ali os grupos
+           empilham em vez de ficar lado a lado. -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <OptionPicker
           data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
           actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
         />
+        <Separator orientation="horizontal" class="bg-border sm:hidden" />
+        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
         <OptionPicker
           data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
@@ -263,7 +271,7 @@
           }}
         />
       </div>
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <OptionPicker
           data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
@@ -271,6 +279,8 @@
             onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
           }}
         />
+        <Separator orientation="horizontal" class="bg-border sm:hidden" />
+        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
         <OptionPicker
           data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}

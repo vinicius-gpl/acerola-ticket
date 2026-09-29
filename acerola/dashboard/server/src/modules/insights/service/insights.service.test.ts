@@ -58,6 +58,7 @@ function troubleRow(over: Partial<TroubleRow> = {}): TroubleRow {
     department: 'recepcao',
     maintenanceCount: 0,
     alertCount: 0,
+    ticketCount: 0,
     lastMaintenanceAt: null,
     ...over,
   };
@@ -137,6 +138,36 @@ describe('InsightsService.summary', () => {
     const insights = await service.summary(ana, query());
 
     expect(insights.troublesome.map((row) => row.computerName)).toEqual(['TRABALHOSA-02']);
+  });
+
+  /**
+   * As três contas saem SEPARADAS, e nunca somadas.
+   *
+   * Manutenção, alerta e chamado são coisas de naturezas diferentes — uma é trabalho feito,
+   * outra é a máquina reclamando sozinha, a terceira é uma pessoa reclamando. Somá-las daria
+   * um número que parece preciso e não é; é a leitura das três lado a lado que diz se o
+   * problema é a máquina ou quem a usa.
+   */
+  it('reports maintenance, alerts and tickets side by side, never added up', async () => {
+    const { service } = makeService({
+      trouble: vi.fn().mockResolvedValue([
+        troubleRow({
+          computerId: 2,
+          computerName: 'TRABALHOSA-02',
+          maintenanceCount: 4,
+          alertCount: 2,
+          ticketCount: 7,
+        }),
+      ]),
+    });
+
+    const insights = await service.summary(ana, query());
+
+    expect(insights.troublesome[0]).toMatchObject({
+      maintenanceCount: 4,
+      alertCount: 2,
+      ticketCount: 7,
+    });
   });
 
   // triste
