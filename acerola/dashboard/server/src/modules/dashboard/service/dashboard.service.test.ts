@@ -3,10 +3,7 @@ import { dashboardQuerySchema } from '@template/shared/schemas/dashboard.schema'
 import { describe, expect, it, vi } from 'vitest';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import {
-  type DashboardRepository,
-  type MachineRow,
-} from '../repository/dashboard.repository';
+import { type DashboardRepository, type MachineRow } from '../repository/dashboard.repository';
 import { DashboardService } from './dashboard.service';
 
 const ana: RequestUser = { id: '1', email: 'ana@empresa.com.br', name: 'Ana', role: 'user' };
@@ -49,10 +46,19 @@ function makeService(repository: Partial<DashboardRepository> = {}) {
     partsSummary: vi.fn().mockResolvedValue({ kinds: 0, items: 0, outOfStock: 0 }),
     machinesWithProblems: vi.fn().mockResolvedValue([]),
     lastPreventiveByMachine: vi.fn().mockResolvedValue([]),
+    recurringByPerson: vi.fn().mockResolvedValue([]),
+    recurringByMachine: vi.fn().mockResolvedValue([]),
+    heavyMaintenance: vi.fn().mockResolvedValue([]),
+    peakingMachines: vi.fn().mockResolvedValue([]),
+    maintenanceLog: vi.fn().mockResolvedValue([]),
+    planCandidates: vi.fn().mockResolvedValue([]),
     ...repository,
   };
 
-  return { service: new DashboardService(base as unknown as DashboardRepository), repository: base };
+  return {
+    service: new DashboardService(base as unknown as DashboardRepository),
+    repository: base,
+  };
 }
 
 const query = (overrides: Record<string, unknown> = {}) => dashboardQuerySchema.parse(overrides);
@@ -116,11 +122,13 @@ describe('DashboardService.summary', () => {
 
   it('counts the machines past the preventive deadline', async () => {
     const { service } = makeService({
-      lastPreventiveByMachine: vi.fn().mockResolvedValue([
-        { lastDoneAt: new Date(Date.now() - 20 * DAY) },
-        { lastDoneAt: new Date(Date.now() - 150 * DAY) },
-        { lastDoneAt: null },
-      ]),
+      lastPreventiveByMachine: vi
+        .fn()
+        .mockResolvedValue([
+          { lastDoneAt: new Date(Date.now() - 20 * DAY) },
+          { lastDoneAt: new Date(Date.now() - 150 * DAY) },
+          { lastDoneAt: null },
+        ]),
     });
 
     const summary = await service.summary(ana, query());
@@ -152,5 +160,116 @@ describe('DashboardService.summary', () => {
 
     await expect(service.summary(noRole, query())).rejects.toBeInstanceOf(ForbiddenException);
     expect(repository.healthCounts).not.toHaveBeenCalled();
+  });
+});
+
+describe('DashboardService.summary — os blocos do painel', () => {
+  const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
+  const query = { days: 30 };
+
+  // feliz
+  it('brings what is repeating, by person and by machine', async () => {
+    const { service } = makeService({
+      recurringByPerson: vi
+        .fn()
+        .mockResolvedValue([
+          { requesterName: 'Bia', department: 'recepcao', problemType: 'printer', count: 4 },
+        ]),
+      recurringByMachine: vi
+        .fn()
+        .mockResolvedValue([
+          { computerId: 3, computerName: 'CONTABIL-03', problemType: 'printer', count: 4 },
+        ]),
+    });
+
+    const summary = await service.summary(ana, query);
+
+    expect(summary.panels.recurringByPerson[0]?.count).toBe(4);
+    expect(summary.panels.recurringByMachine[0]?.computerName).toBe('CONTABIL-03');
+  });
+
+  /* O `mode()` do Postgres devolve texto: só as três medidas conhecidas podem passar, senão a
+     tela teria que saber lidar com um valor que ela não desenha. */
+  it('keeps only a metric the screen knows how to draw', async () => {
+    const { service } = makeService({
+      peakingMachines: vi.fn().mockResolvedValue([
+        { computerId: 1, computerName: 'A', today: 2, month: 5, topMetric: 'cpu' },
+        { computerId: 2, computerName: 'B', today: 0, month: 1, topMetric: 'coisa-nova' },
+      ]),
+    });
+
+    const summary = await service.summary(ana, query);
+
+    expect(summary.panels.peaking[0]?.topMetric).toBe('cpu');
+    expect(summary.panels.peaking[1]?.topMetric).toBeNull();
+  });
+
+  /* Uma consulta traz o mês; dia e semana são pedaços dela. É o que permite trocar de recorte
+     na tela sem voltar ao banco. */
+  it('splits the same month into day, week and month', async () => {
+    const now = new Date();
+    const { service } = makeService({
+      maintenanceLog: vi.fn().mockResolvedValue([
+        {
+          id: 1,
+          computerName: 'A',
+          type: 'preventive',
+          description: 'limpeza',
+          performedBy: 'Ana',
+          performedAt: now,
+        },
+        {
+          id: 2,
+          computerName: 'B',
+          type: 'corrective',
+          description: 'troca',
+          performedBy: null,
+          performedAt: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 1),
+        },
+      ]),
+    });
+
+    const summary = await service.summary(ana, query);
+
+    expect(summary.panels.maintenanceLog.month).toHaveLength(2);
+    expect(summary.panels.maintenanceLog.day.length).toBeLessThanOrEqual(2);
+    expect(summary.panels.maintenanceByType.month.map((item) => item.key)).toContain('preventive');
+    expect(summary.panels.doneToday).toBe(true);
+  });
+
+  // triste
+  /* Descrição vazia não pode virar "null" escrito na tela. */
+  it('turns a missing description into empty text', async () => {
+    const { service } = makeService({
+      maintenanceLog: vi.fn().mockResolvedValue([
+        {
+          id: 1,
+          computerName: 'A',
+          type: 'preventive',
+          description: null,
+          performedBy: null,
+          performedAt: new Date(),
+        },
+      ]),
+    });
+
+    const summary = await service.summary(ana, query);
+
+    expect(summary.panels.maintenanceLog.month[0]?.description).toBe('');
+  });
+
+  it('asks for nothing today when every machine is up to date', async () => {
+    const { service } = makeService({
+      planCandidates: vi
+        .fn()
+        .mockResolvedValue([
+          { computerId: 1, computerName: 'A', department: null, lastDoneAt: new Date() },
+        ]),
+    });
+
+    const summary = await service.summary(ana, query);
+
+    expect(summary.panels.plannedToday).toEqual([]);
+    expect(summary.panels.doneToday).toBe(false);
   });
 });

@@ -14,6 +14,50 @@ import { tickets } from '../../../lib/db/schema/tickets.schema';
 
 export type StatusCount = { key: string; count: number };
 
+export type RecurringPersonRow = {
+  requesterName: string;
+  department: string | null;
+  problemType: string;
+  count: number;
+};
+
+export type RecurringMachineRow = {
+  computerId: number;
+  computerName: string;
+  problemType: string;
+  count: number;
+};
+
+export type HeavyMaintenanceRow = {
+  computerId: number;
+  computerName: string;
+  maintenanceCount: number;
+};
+
+export type PeakingRow = {
+  computerId: number;
+  computerName: string;
+  today: number;
+  month: number;
+  topMetric: string | null;
+};
+
+export type MaintenanceLogRow = {
+  id: number;
+  computerName: string;
+  type: string;
+  description: string | null;
+  performedBy: string | null;
+  performedAt: Date;
+};
+
+export type PlanCandidateRow = {
+  computerId: number;
+  computerName: string;
+  department: string | null;
+  lastDoneAt: Date | null;
+};
+
 type TicketCountsRow = {
   open: number;
   inProgress: number;
@@ -225,6 +269,147 @@ export class DashboardRepository {
         .from(computers)
         .where(eq(computers.isArchived, false)),
       'ler as máquinas com problema',
+    );
+  }
+
+  /**
+   * RECORRÊNCIA por pessoa: a mesma pessoa abrindo o mesmo tipo de problema.
+   *
+   * O `having` filtra depois de agrupar, que é a única forma de dizer "só os grupos com três
+   * ou mais". Fazer isso em memória traria todos os chamados do mês para o servidor só para
+   * jogar a maioria fora.
+   */
+  async recurringByPerson(since: Date, threshold: number): Promise<RecurringPersonRow[]> {
+    return runQuery(
+      this.db
+        .select({
+          requesterName: tickets.requesterName,
+          department: tickets.department,
+          problemType: tickets.problemType,
+          count: count(),
+        })
+        .from(tickets)
+        .where(gte(tickets.createdAt, since))
+        .groupBy(tickets.requesterName, tickets.department, tickets.problemType)
+        .having(gte(count(), threshold))
+        .orderBy(desc(count())),
+      'procurar problemas que se repetem',
+    );
+  }
+
+  /** O mesmo, por MÁQUINA — o que o sistema antigo não conseguia ver. */
+  async recurringByMachine(since: Date, threshold: number): Promise<RecurringMachineRow[]> {
+    return runQuery(
+      this.db
+        .select({
+          computerId: computers.id,
+          computerName: sql<string>`coalesce(${computers.displayName}, ${computers.name})`,
+          problemType: tickets.problemType,
+          count: count(),
+        })
+        .from(tickets)
+        .innerJoin(computers, eq(computers.id, tickets.computerId))
+        .where(gte(tickets.createdAt, since))
+        .groupBy(computers.id, computers.displayName, computers.name, tickets.problemType)
+        .having(gte(count(), threshold))
+        .orderBy(desc(count())),
+      'procurar máquinas que repetem problema',
+    );
+  }
+
+  /** Máquinas que já consumiram manutenção demais — candidatas a troca. */
+  async heavyMaintenance(threshold: number): Promise<HeavyMaintenanceRow[]> {
+    return runQuery(
+      this.db
+        .select({
+          computerId: computers.id,
+          computerName: sql<string>`coalesce(${computers.displayName}, ${computers.name})`,
+          maintenanceCount: count(),
+        })
+        .from(maintenances)
+        .innerJoin(computers, eq(computers.id, maintenances.computerId))
+        .groupBy(computers.id, computers.displayName, computers.name)
+        .having(gte(count(), threshold))
+        .orderBy(desc(count())),
+      'procurar máquinas com muita manutenção',
+    );
+  }
+
+  /**
+   * Máquinas batendo no teto: episódios de alerta no mês, e quantos foram hoje.
+   *
+   * As duas contas saem do MESMO agrupamento (`filter`), e não de duas consultas: a tela
+   * alterna entre Hoje e No mês com um clique, e buscar de novo a cada clique seria ida ao
+   * banco para trocar de aba.
+   */
+  async peakingMachines(since: Date): Promise<PeakingRow[]> {
+    return runQuery(
+      this.db
+        .select({
+          computerId: computers.id,
+          computerName: sql<string>`coalesce(${computers.displayName}, ${computers.name})`,
+          month: count(),
+          today: sql<number>`count(*) filter (
+            where ${qualified(computerAlerts.startedAt)} >= date_trunc('day', now())
+          )::int`,
+          topMetric: sql<string | null>`mode() within group (order by ${qualified(computerAlerts.metric)})`,
+        })
+        .from(computerAlerts)
+        .innerJoin(computers, eq(computers.id, computerAlerts.computerId))
+        .where(gte(computerAlerts.startedAt, since))
+        .groupBy(computers.id, computers.displayName, computers.name)
+        .orderBy(desc(count())),
+      'procurar máquinas com picos',
+    );
+  }
+
+  /**
+   * As manutenções do mês, com a máquina — a lista do "o que foi feito".
+   *
+   * Vem o MÊS inteiro, e quem reparte em dia/semana/mês é o serviço: são poucas por mês, e
+   * três consultas para três recortes do mesmo dado seria trabalho repetido.
+   */
+  async maintenanceLog(since: Date): Promise<MaintenanceLogRow[]> {
+    return runQuery(
+      this.db
+        .select({
+          id: maintenances.id,
+          computerName: sql<string>`coalesce(
+            ${computers.displayName}, ${computers.name}, ${maintenances.otherMachine}, 'Sem identificação'
+          )`,
+          type: maintenances.type,
+          description: maintenances.description,
+          performedBy: maintenances.performedBy,
+          performedAt: maintenances.performedAt,
+        })
+        .from(maintenances)
+        .leftJoin(computers, eq(computers.id, maintenances.computerId))
+        .where(gte(maintenances.performedAt, since))
+        .orderBy(desc(maintenances.performedAt)),
+      'listar as manutenções do período',
+    );
+  }
+
+  /** As máquinas em uso e quando cada uma foi aberta pela última vez — a base do plano. */
+  async planCandidates(): Promise<PlanCandidateRow[]> {
+    return runQuery(
+      this.db
+        .select({
+          computerId: computers.id,
+          computerName: sql<string>`coalesce(${computers.displayName}, ${computers.name})`,
+          department: computers.department,
+          lastDoneAt: asDate(
+            sql<Date | null>`max(${maintenances.performedAt}) filter (
+              where ${maintenances.type} in ('preventive', 'corrective')
+            )`,
+            maintenances.performedAt,
+          ),
+        })
+        .from(computers)
+        .leftJoin(maintenances, eq(maintenances.computerId, computers.id))
+        .where(and(eq(computers.isArchived, false), isNull(computers.disposedAt)))
+        .groupBy(computers.id, computers.displayName, computers.name, computers.department),
+      'montar o plano de preventiva',
     );
   }
 
