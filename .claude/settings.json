@@ -27,19 +27,24 @@
       "Bash(git show*)",
       "Bash(git branch*)",
       "Bash(git switch*)",
+      "Bash(git checkout*)",
       "Bash(git add*)",
-      "Bash(git commit -m*)",
-      "Bash(git merge develop*)",
-      "Bash(git merge --abort*)",
+      "Bash(git commit*)",
+      "Bash(git merge*)",
       "Bash(git fetch*)",
-      "Bash(git pull --ff-only*)",
-      "Bash(git switch -c feature/*)",
-      "Bash(git switch -c bugfix/*)"
+      "Bash(git pull*)",
+      "Bash(git rebase*)",
+      "Bash(git tag*)",
+      "Bash(git config project.admin*)",
+      "Bash(git config --local project.admin*)",
+      "Bash(git config --get project.admin*)"
     ],
     "ask": [
-      "Bash(git merge --no-ff*)",
       "Bash(npm run db:reset*)",
       "Bash(git push*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git commit --no-verify*)",
       "Bash(git reset*)",
       "Bash(git clean*)",
       "Bash(git checkout -- *)",
@@ -49,20 +54,10 @@
       "Bash(npm install *)"
     ],
     "deny": [
-      "Bash(git commit --no-verify*)",
-      "Bash(git commit -n *)",
-      "Bash(git push --force*)",
-      "Bash(git push -f*)",
       "Bash(npm install --force*)",
       "Bash(npm install --legacy-peer-deps*)",
       "Read(./acerola/dashboard/server/.env)",
-      "Read(./acerola/dashboard/client/.env)",
-      "Bash(git switch main*)",
-      "Bash(git checkout main*)",
-      "Bash(git push origin main*)",
-      "Bash(git push -u origin main*)",
-      "Bash(git config project.admin*)",
-      "Bash(git config --local project.admin*)"
+      "Read(./acerola/dashboard/client/.env)"
     ]
   },
   "hooks": {

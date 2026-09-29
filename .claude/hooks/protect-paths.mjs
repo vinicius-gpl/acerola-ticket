@@ -98,6 +98,25 @@ function checkCommand(command) {
   );
 }
 
+const RESTRICTED_GIT_PATTERNS = [
+  /\bgit\s+(switch|checkout)\s+(-[a-zA-Z]+\s+)?main\b/,
+  /\bgit\s+push\b.*(\bmain\b|--force\b|-f\b)/,
+  /\bgit\s+commit\b.*(--no-verify\b|-n\b)/,
+  /\bgit\s+merge\b.*(\bmain\b)/,
+  /\bgit\s+rebase\b.*(\bmain\b)/,
+  /\bgit\s+config\b.*project\.admin\s+true\b/,
+];
+
+function checkGitCommand(command) {
+  if (RESTRICTED_GIT_PATTERNS.some((pattern) => pattern.test(command))) {
+    block(
+      'BLOQUEADO: Operações diretas na branch "main", commits com "--no-verify", push forçado ou alteração de permissão ' +
+        'são restritos ao Modo Admin (`git config project.admin true`). ' +
+        'Como o modo admin não está ativo nesta máquina, siga a skill `git-fluxo`.',
+    );
+  }
+}
+
 let raw = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => {
@@ -117,7 +136,10 @@ process.stdin.on('end', () => {
   const filePath = input.file_path ?? input.notebook_path;
 
   if (typeof filePath === 'string') checkFile(filePath);
-  if (typeof input.command === 'string') checkCommand(input.command);
+  if (typeof input.command === 'string') {
+    checkCommand(input.command);
+    checkGitCommand(input.command);
+  }
 
   process.exit(0);
 });
