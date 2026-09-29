@@ -56,6 +56,20 @@
   const chartConfig = $derived(configOf(data.series));
   const formatTick = $derived(ui?.tick === 'hour' ? hourLabel : dayLabel);
   const keys = $derived(data.series.map((item) => item.key));
+
+  /**
+   * FOLGA EM CIMA, e mais folga ainda quando o dado é porcentagem.
+   *
+   * Numa escala travada em 0–100, uma leitura de 100% cai exatamente na borda de cima do
+   * desenho. Com pouca folga, o traço encosta no limite do quadro e o pico sai ACHATADO
+   * contra a borda: quem olha não distingue "bateu no teto" de "o gráfico foi cortado".
+   */
+  const padding = $derived({
+    bottom: 22,
+    left: 4,
+    right: 4,
+    top: ui?.isPercent ? 18 : 10,
+  });
 </script>
 
 {#if chartState?.isLoading}
@@ -84,7 +98,7 @@
           }))}
           axis="x"
           rule={false}
-          padding={{ bottom: 22, left: 4, right: 4, top: 8 }}
+          {padding}
           props={{
             area: { fillOpacity: 0.18, line: { class: 'stroke-2' }, motion: 'tween' },
             grid: { y: true, x: false },

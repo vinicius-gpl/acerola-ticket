@@ -25,7 +25,20 @@
   export type UsageChartProps = {
     data: { points: UsagePoint[] };
     state?: { isLoading?: boolean };
-    ui?: { emptyLabel?: string; className?: string };
+    ui?: {
+      emptyLabel?: string;
+      className?: string;
+      /**
+       * A altura da caixa de desenho.
+       *
+       * O padrão é ALTO de propósito: são vinte e quatro horas de leitura de três medidas
+       * sobrepostas, e num quadro baixo as três viram uma mancha só — a forma da curva, que é
+       * a única coisa que este gráfico existe para mostrar, some.
+       *
+       * @default 'h-72'
+       */
+      heightClass?: string;
+    };
   };
 
   /* O rótulo é texto de tela (português); a chave é do contrato (inglês). */
@@ -67,6 +80,7 @@
   ui={{
     emptyLabel: ui?.emptyLabel ?? 'Sem leituras no período.',
     className: ui?.className,
+    heightClass: ui?.heightClass ?? 'h-72',
     layout: 'overlap',
     tick: 'hour',
     isPercent: true,

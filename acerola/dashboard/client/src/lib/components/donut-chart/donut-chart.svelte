@@ -100,7 +100,11 @@
     <!-- `self-stretch`: sem isso a lista fica `items-center` do pai, que dá a ela só a
          própria altura de conteúdo — e com treze fatias o `overflow-y-auto` nunca entra em
          ação, e a lista extravasa o cartão por baixo. -->
-    <ul class="w-full min-w-0 flex-1 space-y-2.5 self-stretch overflow-y-auto pr-1">
+    <!-- `overflow-x-hidden` é OBRIGATÓRIO ao lado do `overflow-y-auto`, e não enfeite: pelo
+         CSS, pedir rolagem num eixo transforma o outro em `auto` sozinho. Sem ele, qualquer
+         nome um pouco largo demais dava barra de rolagem HORIZONTAL na legenda — e ninguém
+         rola uma legenda para o lado. -->
+    <ul class="w-full min-w-0 flex-1 space-y-2.5 self-stretch overflow-x-hidden overflow-y-auto pr-1">
       {#each data.slices as slice, index (slice.label)}
         {@const color = colors[index]}
         {@const percent = percentOf(slice.value, total)}
@@ -132,17 +136,21 @@
     style="background-color: {color}"
     aria-hidden="true"
   ></span>
-  <!-- `w-32`: "Certificado digital" e "Instalação de programa" não cabiam em `w-20`, e a
-       legenda inteira virava uma coluna de reticências. Largura FIXA, e não automática, para
-       as barrinhas de proporção começarem todas na mesma linha vertical — desalinhadas, elas
-       deixam de ser comparáveis de relance, que é a única razão de existirem. -->
-  <span class="text-muted-foreground w-32 shrink-0 truncate" title={slice.label}>
+  <!-- O nome ENCOLHE (`min-w-0 flex-1`), e não tem largura fixa.
+       Com largura fixa, a soma das partes passava da largura da legenda quando o cartão era
+       estreito, e sobrava só o que a rolagem horizontal resolveria — que é o que não se faz
+       numa legenda. Aqui quem cede espaço é o nome, que continua inteiro no `title`. -->
+  <span class="text-muted-foreground min-w-0 flex-1 truncate" title={slice.label}>
     {slice.label}
   </span>
   <!-- Barrinha de proporção — não é `ProgressBar` (esse componente é pra "quanto já foi
        cumprido de uma obrigação"). Aqui a cor tem que ser a mesma do ponto e da fatia: é a
-       identidade da categoria, não uma leitura de "bom ou ruim". -->
-  <span class="bg-muted h-1.5 min-w-8 flex-1 overflow-hidden rounded-full">
+       identidade da categoria, não uma leitura de "bom ou ruim".
+
+       Largura FIXA e à direita: é o que mantém todas as barrinhas começando na mesma linha
+       vertical. Desalinhadas, elas deixam de ser comparáveis de relance, que é a única razão
+       de existirem. Some no celular, onde não há largura para ela e para o nome. -->
+  <span class="bg-muted hidden h-1.5 w-14 shrink-0 overflow-hidden rounded-full sm:block">
     <span
       class="block h-full rounded-full"
       style="width: {percent}%; background-color: {color}"

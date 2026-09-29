@@ -117,7 +117,6 @@
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
-  import DonutChart from '$lib/components/donut-chart/donut-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
@@ -203,19 +202,21 @@
     />
   </StatCardGrid>
 
-  <!-- Dois gráficos, e de propósito NÃO do mesmo tipo: eles respondem perguntas de formas
-       diferentes. "Que fatia do bolo é impressora" é uma proporção, e proporção se lê em
-       ROSCA; "qual departamento abriu mais" é uma comparação entre nomes, e comparação entre
-       nomes se lê em BARRA deitada — em pé, "Certificado digital" vira um leque ilegível. -->
+  <!-- OS DOIS SÃO BARRA DEITADA, e é isso mesmo.
+       As duas perguntas desta tela são da mesma natureza — "compare estas categorias com
+       nome pelo número de chamados" — e barra deitada é o que responde isso. A rosca
+       responde outra pergunta ("de que o bolo é feito"), e com os nove tipos de problema
+       deste sistema ela vira um anel de fatias finas com uma legenda espremida ao lado.
+       Quem quer a proporção tem o mapa de problemas do Painel, onde ela é o assunto. -->
   <div class="grid gap-4 lg:grid-cols-2">
-    <PanelCard data={{ title: 'Problemas por tipo', hint: 'Como os chamados se dividem' }}>
-      <!-- Altura de verdade: a rosca preenche o espaço que recebe, e sem uma caixa com
-           altura ela nasce com zero e a legenda vaza por cima do que vem depois. -->
-      <div class="h-72 sm:h-64">
-        <DonutChart
+    <PanelCard data={{ title: 'Problemas por tipo', hint: 'Do que mais apareceu para o que menos' }}>
+      <!-- Deitado, o gráfico tem a altura do conteúdo: uma linha por barra. O teto aqui é
+           para uma lista longa rolar dentro do bloco, em vez de esticar a página. -->
+      <div class="max-h-72 overflow-x-hidden overflow-y-auto">
+        <ColumnChart
           data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
           state={{ isLoading: state.isDashboardLoading }}
-          ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
+          ui={{ orientation: 'horizontal', emptyLabel: 'Ainda não há chamados para comparar.' }}
         />
       </div>
     </PanelCard>
