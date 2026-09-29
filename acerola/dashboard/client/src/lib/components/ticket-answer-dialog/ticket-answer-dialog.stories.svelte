@@ -20,6 +20,8 @@
     notifyWhatsapp: true,
     description: 'A impressora da sala não puxa papel e trava no meio da folha.',
     screenshotUrl: null,
+    computerId: null,
+    computerName: null,
     assignee: null,
     solution: null,
     createdAt: '2026-09-15T12:10:00.000Z',
@@ -32,6 +34,8 @@
   const freshFields: Record<TicketAnswerField, FormFieldState> = {
     status: field('open'),
     priority: field('high'),
+    problemType: field('printer'),
+    computerId: field(''),
     assignee: field(''),
     solution: field(''),
   };
@@ -39,6 +43,8 @@
   const answeredFields: Record<TicketAnswerField, FormFieldState> = {
     status: field('resolved'),
     priority: field('high'),
+    problemType: field('printer'),
+    computerId: field(''),
     assignee: field('Suporte TI'),
     solution: field('Retirei uma folha presa no rolete e limpei o tracionador.'),
   };
@@ -63,7 +69,7 @@
 <Story
   name="Default"
   args={{
-    data: { ticket, fields: freshFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
+    data: { ticket, fields: freshFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
     state: { isOpen: true },
     actions,
   }}
@@ -72,7 +78,7 @@
 <Story
   name="Answered"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
     state: { isOpen: true },
     actions,
   }}
@@ -86,6 +92,7 @@
       ticket,
       fields: answeredFields,
       whatsAppLink: 'https://wa.me/5562999990001?text=Seu%20chamado',
+      machines: [],
       attachments: [],
       chosenFiles: [],
     },
@@ -101,6 +108,7 @@
       ticket: { ...ticket, screenshotUrl: 'https://example.invalid/print.png' },
       fields: freshFields,
       whatsAppLink: null,
+      machines: [],
       attachments: [],
       chosenFiles: [],
     },
@@ -112,7 +120,7 @@
 <Story
   name="Submitting"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
     state: { isOpen: true, isSubmitting: true },
     actions,
   }}
@@ -122,7 +130,7 @@
 <Story
   name="ServerRefused"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null, attachments: [], chosenFiles: [] },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
     state: { isOpen: true, error: 'O banco recusou o valor enviado.' },
     actions,
   }}
@@ -143,6 +151,7 @@
       },
       fields: freshFields,
       whatsAppLink: null,
+      machines: [],
       attachments: [],
       chosenFiles: [],
     },

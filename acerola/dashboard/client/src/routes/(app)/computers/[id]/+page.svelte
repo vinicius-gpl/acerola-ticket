@@ -66,6 +66,7 @@
       samples: detail.data.samples,
       alerts: detail.data.alerts,
       live: detail.data.live,
+      tickets: detail.data.tickets,
       maintenances: detail.data.maintenances,
       partMovements: detail.data.partMovements,
       transfers: detail.data.transfers,

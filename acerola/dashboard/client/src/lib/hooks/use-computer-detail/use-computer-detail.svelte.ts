@@ -9,6 +9,7 @@ import {
 } from '@template/shared/schemas/computer.schema';
 import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
 import { type PartMovement } from '@template/shared/schemas/part.schema';
+import { type Ticket } from '@template/shared/schemas/ticket.schema';
 import { type Transfer } from '@template/shared/schemas/transfer.schema';
 import { writable } from 'svelte/store';
 
@@ -16,11 +17,13 @@ import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { maintenancesApi } from '$lib/api/maintenances.api';
 import { partsApi } from '$lib/api/parts.api';
+import { ticketsApi } from '$lib/api/tickets.api';
 import { transfersApi } from '$lib/api/transfers.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { MAINTENANCES_QUERY_KEY } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';
 import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';
+import { TICKETS_QUERY_KEY } from '$lib/hooks/use-ticket-list/use-ticket-list.svelte';
 import { TRANSFERS_QUERY_KEY } from '$lib/hooks/use-transfer-form/use-transfer-form.svelte';
 
 export type ComputerDetailModel = {
@@ -32,6 +35,8 @@ export type ComputerDetailModel = {
     live: ComputerLive | null;
     /** O que já foi feito NESTA máquina — o histórico que sustenta trocar em vez de remendar. */
     maintenances: Maintenance[];
+    /** Os chamados abertos APONTANDO para esta máquina — quem vincula é quem atende. */
+    tickets: Ticket[];
     /** As peças que saíram do depósito para esta máquina. */
     partMovements: PartMovement[];
     /** Por onde esta máquina já andou — a mudança de departamento é um evento, não um campo. */
@@ -48,6 +53,7 @@ export type ComputerDetailModel = {
     isAlertsLoading: boolean;
     isLiveLoading: boolean;
     isMaintenancesLoading: boolean;
+    isTicketsLoading: boolean;
     isPartsLoading: boolean;
     isTransfersLoading: boolean;
     /** A máquina não existe (ou foi apagada por fora): a tela diz isso, não fica em branco. */
@@ -139,6 +145,17 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
     ),
   );
 
+  /* Os chamados moram na feature de Chamados, e a ficha só os LÊ: a chave é a de lá, então
+     vincular um chamado a esta máquina atualiza as duas telas. */
+  const tickets = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...TICKETS_QUERY_KEY, 'list', { computerId: id }],
+        queryFn: () => ticketsApi.list({ computerId: id, page: 1, pageSize: 50 }),
+      }),
+    ),
+  );
+
   /* O histórico de manutenção mora na feature de Manutenção, e a ficha só o LÊ: a chave da
      consulta é a de lá, então registrar um serviço por aqui atualiza as duas telas. */
   const maintenances = mirrorStore(
@@ -213,16 +230,17 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
 
   return {
     get data() {
-      return {
-        computer: computer.current.data ?? null,
-        samples: samples.current.data ?? [],
-        alerts: alerts.current.data ?? [],
-        live: live.current.data ?? null,
-        maintenances: maintenances.current.data?.items ?? [],
-        partMovements: partMovements.current.data?.items ?? [],
-        transfers: transfers.current.data ?? [],
+      return buildDetailData({
+        computer: computer.current.data,
+        samples: samples.current.data,
+        alerts: alerts.current.data,
+        live: live.current.data,
+        maintenances: maintenances.current.data?.items,
+        tickets: tickets.current.data?.items,
+        partMovements: partMovements.current.data?.items,
+        transfers: transfers.current.data,
         newToken: token.current,
-      };
+      });
     },
     get state() {
       return buildDetailState({
@@ -231,6 +249,7 @@ export function useComputerDetailModel(id: number): ComputerDetailModel {
         isAlertsLoading: alerts.current.isPending,
         isLiveLoading: live.current.isPending,
         isMaintenancesLoading: maintenances.current.isPending,
+        isTicketsLoading: tickets.current.isPending,
         isPartsLoading: partMovements.current.isPending,
         isTransfersLoading: transfers.current.isPending,
         isSaving:
@@ -294,6 +313,34 @@ type DetailQueryLike = {
 };
 
 /**
+ * O mesmo motivo do `buildDetailState`: cada `??` conta como decisão, e a ficha lê oito
+ * consultas. Nenhuma delas é decisão de verdade — é só "ainda não chegou" virando vazio.
+ */
+function buildDetailData(input: {
+  computer: Computer | undefined;
+  samples: ComputerSample[] | undefined;
+  alerts: ComputerAlert[] | undefined;
+  live: ComputerLive | null | undefined;
+  maintenances: Maintenance[] | undefined;
+  tickets: Ticket[] | undefined;
+  partMovements: PartMovement[] | undefined;
+  transfers: Transfer[] | undefined;
+  newToken: string | null;
+}): ComputerDetailModel['data'] {
+  return {
+    computer: input.computer ?? null,
+    samples: input.samples ?? [],
+    alerts: input.alerts ?? [],
+    live: input.live ?? null,
+    maintenances: input.maintenances ?? [],
+    tickets: input.tickets ?? [],
+    partMovements: input.partMovements ?? [],
+    transfers: input.transfers ?? [],
+    newToken: input.newToken,
+  };
+}
+
+/**
  * Separado do model porque cada `??` conta como decisão, e o hook passava do teto de
  * complexidade sem ter nenhuma decisão de verdade dentro.
  */
@@ -303,6 +350,7 @@ function buildDetailState(input: {
   isAlertsLoading: boolean;
   isLiveLoading: boolean;
   isMaintenancesLoading: boolean;
+  isTicketsLoading: boolean;
   isPartsLoading: boolean;
   isTransfersLoading: boolean;
   isSaving: boolean;
@@ -316,6 +364,7 @@ function buildDetailState(input: {
     isAlertsLoading: input.isAlertsLoading,
     isLiveLoading: input.isLiveLoading,
     isMaintenancesLoading: input.isMaintenancesLoading,
+    isTicketsLoading: input.isTicketsLoading,
     isPartsLoading: input.isPartsLoading,
     isTransfersLoading: input.isTransfersLoading,
     /* 404 não é falha de sistema: é uma máquina que não existe mais. A tela diz isso com

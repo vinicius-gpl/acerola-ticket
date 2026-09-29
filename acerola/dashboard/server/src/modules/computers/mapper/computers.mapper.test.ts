@@ -11,6 +11,7 @@ import {
   toSample,
   toSnapshotUpdate,
   toComputerLive,
+  toComputerListItem,
 } from './computers.mapper';
 
 const GB = 1024 ** 3;
@@ -370,5 +371,24 @@ describe('toComputerLive', () => {
   it('answers nothing for a stored reading that no longer fits the contract', () => {
     expect(toComputerLive(computerRow({ lastSnapshot: { cpu: 'muito' } }), false)).toBeNull();
     expect(toComputerLive(computerRow({ lastSnapshot: 'nem json de objeto' }), false)).toBeNull();
+  });
+});
+
+describe('toComputerListItem', () => {
+  // feliz
+  /* O número existe só na LISTA: é ele que responde "esta máquina dá trabalho?" de relance,
+     sem abrir a ficha de cada uma. */
+  it('carries how many tickets the machine gave this month', () => {
+    const item = toComputerListItem({ ...computerRow(), ticketsThisMonth: 4 }, true);
+
+    expect(item.ticketsThisMonth).toBe(4);
+    expect(item.isOnline).toBe(true);
+  });
+
+  // triste
+  it('keeps zero as zero, and not as absence', () => {
+    expect(
+      toComputerListItem({ ...computerRow(), ticketsThisMonth: 0 }, false).ticketsThisMonth,
+    ).toBe(0);
   });
 });

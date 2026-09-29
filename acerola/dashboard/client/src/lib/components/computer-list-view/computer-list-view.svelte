@@ -12,7 +12,10 @@
     departmentLabel,
     type Department,
   } from '@template/shared/domain/department.util';
-  import { type Computer } from '@template/shared/schemas/computer.schema';
+  import {
+    type Computer,
+    type ComputerListItem,
+  } from '@template/shared/schemas/computer.schema';
   import { type ReportFormat } from '@template/shared/schemas/report.schema';
 
   export type ComputerListFilter = {
@@ -43,7 +46,7 @@
    */
   export type ComputerListViewProps = {
     data: {
-      computers: Computer[];
+      computers: ComputerListItem[];
       total: number;
       summary: ComputerSummary | null;
       filter: ComputerListFilter;
@@ -256,12 +259,13 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[760px]">
+    <Table class="min-w-[880px]">
       <TableHeader>
         <TableRow>
           <TableHead class="min-w-[240px]">Máquina</TableHead>
           <TableHead class="min-w-[180px]">Responsável</TableHead>
           <TableHead class="min-w-[120px]">Saúde</TableHead>
+          <TableHead class="min-w-[120px]">Chamados no mês</TableHead>
           <TableHead class="min-w-[120px]">Situação</TableHead>
           <TableHead class="min-w-[110px]">Vista</TableHead>
           <TableHead class="min-w-[100px] text-right"><span class="sr-only">Ações</span></TableHead>
@@ -289,6 +293,17 @@
               />
               <span class="block text-xs text-neutral-400 tabular-nums">
                 {computer.healthScore}/100
+              </span>
+            </TableCell>
+            <!-- Quantos problemas esta máquina deu no mês corrente. Zero fica cinza e
+                 discreto: a coluna existe para as que DÃO trabalho saltarem aos olhos. -->
+            <TableCell class="tabular-nums">
+              <span
+                class={computer.ticketsThisMonth > 0
+                  ? 'text-neutral-900 dark:text-neutral-100 font-medium'
+                  : 'text-neutral-400'}
+              >
+                {computer.ticketsThisMonth}
               </span>
             </TableCell>
             <TableCell>

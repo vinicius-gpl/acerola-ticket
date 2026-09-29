@@ -3,6 +3,7 @@ import {
   computerListQuerySchema,
   computerReportQuerySchema,
   computerSampleSchema,
+  computerListItemSchema,
   computerSchema,
   createComputerSchema,
   createdComputerSchema,
@@ -42,7 +43,7 @@ export class DisposeComputerDto extends createZodDto(disposeComputerSchema) {}
 
 export class ComputerListResponseDto extends createZodDto(
   z.object({
-    items: z.array(computerSchema),
+    items: z.array(computerListItemSchema),
     total: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),

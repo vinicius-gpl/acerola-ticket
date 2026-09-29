@@ -3,6 +3,7 @@
   import {
     ticketDepartmentLabel,
     ticketProblemTypeLabel,
+    ticketProblemTypeOptions,
   } from '@template/shared/domain/ticket-catalog.util';
   import {
     TICKET_PRIORITIES,
@@ -15,7 +16,13 @@
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
   import { type FormFieldState } from '$lib/types/form-field.type';
 
-  export type TicketAnswerField = 'status' | 'priority' | 'assignee' | 'solution';
+  export type TicketAnswerField =
+    | 'status'
+    | 'priority'
+    | 'problemType'
+    | 'computerId'
+    | 'assignee'
+    | 'solution';
 
   /**
    * O atendimento de um chamado, num modal.
@@ -36,6 +43,8 @@
       fields: Record<TicketAnswerField, FormFieldState>;
       /** Pronto e já com o texto. Nulo quando a pessoa não pediu para ser avisada. */
       whatsAppLink: string | null;
+      /** As máquinas do inventário, para vincular o chamado a uma delas. */
+      machines: { value: string; label: string }[];
       attachments: TicketAttachment[];
       chosenFiles: File[];
     };
@@ -65,6 +74,8 @@
     label: TICKET_STATUS_LABELS[status],
     tone: ticketStatusTone(status),
   }));
+
+  const PROBLEM_TYPE_OPTIONS = ticketProblemTypeOptions();
 
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
@@ -97,6 +108,7 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
+  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import AttachmentList from '$lib/components/attachment-list/attachment-list.svelte';
   import AttachmentPicker from '$lib/components/attachment-picker/attachment-picker.svelte';
@@ -107,6 +119,10 @@
   import TimelineStep from '$lib/components/timeline-step/timeline-step.svelte';
 
   let { data, state, actions }: TicketAnswerDialogProps = $props();
+
+  /* "Nenhuma" precisa ser uma opção de verdade: é assim que se desfaz um vínculo errado. O
+     valor vazio é o que o view-model traduz de volta para nulo ao salvar. */
+  const machineOptions = $derived([{ value: '', label: 'Nenhuma' }, ...data.machines]);
 
   const ticket = $derived(data.ticket);
   const fields = $derived(data.fields);
@@ -296,6 +312,32 @@
                   ui={{ ariaLabel: 'Urgência', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('priority', value) }}
+                />
+              </div>
+
+              <!-- Quem abre o chamado escolhe o tipo pelo que parece; quem atende descobre o
+                   que era. Sem esta correção, o mapa de "o que mais dá problema" soma o
+                   palpite de quem pediu socorro, e não o diagnóstico. -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Tipo do problema</span>
+                <SelectField
+                  data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
+                  ui={{ ariaLabel: 'Tipo do problema', className: 'min-w-[200px]' }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
+                />
+              </div>
+
+              <!-- A máquina é preenchida AQUI, e não no formulário público: quem pede socorro
+                   não sabe por qual nome o sistema conhece o computador dele. É este vínculo
+                   que faz a ficha da máquina saber quantos problemas ela já deu. -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Máquina</span>
+                <SelectField
+                  data={{ value: fields.computerId.value, options: machineOptions }}
+                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma', className: 'min-w-[220px]' }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
                 />
               </div>
             </div>

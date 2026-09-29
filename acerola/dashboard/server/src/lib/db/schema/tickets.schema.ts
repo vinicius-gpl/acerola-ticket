@@ -9,7 +9,18 @@ import {
   TICKET_STATUSES,
 } from '@template/shared/domain/ticket-status.util';
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
+
+import { computers } from './computers.schema';
 
 /** Monta a lista de valores aceitos para a checagem do banco, a partir da lista do domínio. */
 function valuesFor(values: readonly string[]) {
@@ -54,6 +65,19 @@ export const tickets = pgTable(
     notifyWhatsapp: boolean('notify_whatsapp').notNull().default(false),
     description: text('description').notNull(),
 
+    /**
+     * A MÁQUINA do chamado — preenchida pelo TI durante o atendimento, nunca por quem abre.
+     *
+     * Quem pede socorro descreve o problema; descobrir em qual computador ele aconteceu é
+     * parte de atender. Pedir isso no formulário público devolveria um campo que a maioria
+     * preencheria errado, e um vínculo errado é pior do que vínculo nenhum: é ele que sustenta
+     * "esta máquina deu problema demais, vamos trocar" na hora de decidir compra.
+     *
+     * `set null` ao apagar a máquina: o chamado é o registro de um pedido de gente, e ele não
+     * pode sumir porque o computador saiu do inventário.
+     */
+    computerId: integer('computer_id').references(() => computers.id, { onDelete: 'set null' }),
+
     /* O endereço do print DENTRO do bucket, não uma URL. O link é assinado na leitura e
        expira; guardar URL pronta seria guardar um acesso permanente à imagem. */
     screenshotKey: text('screenshot_key'),
@@ -79,6 +103,8 @@ export const tickets = pgTable(
     index('tickets_problem_type_idx').on(table.problemType),
     index('tickets_priority_idx').on(table.priority),
     index('tickets_created_at_idx').on(table.createdAt),
+    /* "Os chamados desta máquina" é a consulta da ficha do computador. */
+    index('tickets_computer_idx').on(table.computerId),
     /* O `enum` do Drizzle só existe no TypeScript. Estas checagens são o que faz o BANCO
        recusar um valor inventado — inclusive o que chegar por um seed ou pelo Drizzle
        Studio. Elas são geradas das MESMAS listas do domínio que o formulário usa. */

@@ -2,7 +2,10 @@ import { goto } from '$app/navigation';
 import { createQuery } from '@tanstack/svelte-query';
 import { type HealthStatus } from '@template/shared/domain/computer-health.util';
 import { type Department } from '@template/shared/domain/department.util';
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import {
+  type Computer,
+  type ComputerListItem,
+} from '@template/shared/schemas/computer.schema';
 import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { derived, writable } from 'svelte/store';
@@ -32,7 +35,7 @@ export type ComputerSummary = {
 
 export type ComputerListModel = {
   data: {
-    computers: Computer[];
+    computers: ComputerListItem[];
     /** Quantas casaram com o filtro — pode ser mais do que as que vieram na página. */
     total: number;
     /** O resumo do parque INTEIRO, que não acompanha o filtro. */

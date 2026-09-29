@@ -187,7 +187,8 @@
 </script>
 
 <!-- A máquina com problema: é para ela que esta tela existe. -->
-<Story name="Default" args={{ data: { computer: computer(), samples, live: null, alerts, maintenances, partMovements: [], transfers }, actions }} />
+<Story name="Default" args={{ data: { computer: computer(), samples, live: null,
+        tickets: [], alerts, maintenances, partMovements: [], transfers }, actions }} />
 
 <!-- Máquina saudável: nada apontado, e o texto diz isso em vez de ficar em branco. -->
 <Story
@@ -206,6 +207,7 @@
       }),
       samples,
       live: null,
+        tickets: [],
         alerts: [],
       maintenances: [],
       partMovements: [],
@@ -219,6 +221,7 @@
   name="Loading"
   args={{
     data: { computer: computer(), samples: [], live: null,
+        tickets: [],
         alerts: [], maintenances: [], partMovements: [], transfers },
     state: { isSamplesLoading: true, isAlertsLoading: true },
     actions,
@@ -229,6 +232,7 @@
 <Story
   name="Agent never connected"
   args={{ data: { computer: pendingAgent, samples: [], live: null,
+        tickets: [],
         alerts: [], maintenances: [], partMovements: [], transfers }, actions }}
 />
 
@@ -243,6 +247,7 @@
       }),
       samples,
       live: null,
+        tickets: [],
       alerts,
       maintenances,
       partMovements: [],
@@ -255,7 +260,8 @@
 <Story
   name="Archived"
   args={{
-    data: { computer: computer({ isArchived: true, isOnline: false }), samples, live: null, alerts, maintenances, partMovements: [], transfers },
+    data: { computer: computer({ isArchived: true, isOnline: false }), samples, live: null,
+        tickets: [], alerts, maintenances, partMovements: [], transfers },
     actions,
   }}
 />
@@ -264,7 +270,8 @@
 <Story
   name="Action error"
   args={{
-    data: { computer: computer(), samples, live: null, alerts, maintenances, partMovements: [], transfers },
+    data: { computer: computer(), samples, live: null,
+        tickets: [], alerts, maintenances, partMovements: [], transfers },
     state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
     actions,
   }}

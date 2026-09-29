@@ -314,12 +314,13 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[720px]">
+    <Table class="min-w-[880px]">
       <TableHeader>
         <TableRow>
           <TableHead class="min-w-[110px]">Protocolo</TableHead>
           <TableHead class="min-w-[180px]">Quem abriu</TableHead>
           <TableHead class="min-w-[140px]">Tipo</TableHead>
+          <TableHead class="min-w-[160px]">Máquina</TableHead>
           <TableHead class="min-w-[110px]">Urgência</TableHead>
           <TableHead class="min-w-[120px]">Situação</TableHead>
           <TableHead class="min-w-[110px]">Aberto em</TableHead>
@@ -337,6 +338,11 @@
               </span>
             </TableCell>
             <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
+            <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
+                 "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
+            <TableCell class="text-neutral-600 dark:text-neutral-300">
+              {ticket.computerName ?? '—'}
+            </TableCell>
             <TableCell>
               <StatusBadge
                 data={{ label: ticketPriorityLabel(ticket.priority) }}

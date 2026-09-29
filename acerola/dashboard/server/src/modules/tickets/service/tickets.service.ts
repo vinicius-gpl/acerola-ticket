@@ -36,7 +36,10 @@ import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/repo
 import { StorageService } from '../../../lib/storage/storage.service';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
-import { TicketsRepository } from '../repository/tickets.repository';
+import {
+  TicketsRepository,
+  type TicketWithComputer,
+} from '../repository/tickets.repository';
 
 /**
  * As colunas do relatório de chamados, na mesma ordem em que a fila do painel as mostra —
@@ -231,7 +234,7 @@ export class TicketsService {
     return this.withScreenshot(row);
   }
 
-  private async withScreenshot(row: TicketRow): Promise<Ticket> {
+  private async withScreenshot(row: TicketWithComputer): Promise<Ticket> {
     return toTicket(row, await this.screenshotUrl(row));
   }
 

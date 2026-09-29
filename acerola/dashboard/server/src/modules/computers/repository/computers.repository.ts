@@ -9,6 +9,7 @@ import {
   count,
   desc,
   eq,
+  getTableColumns,
   gte,
   ilike,
   isNotNull,
@@ -21,7 +22,9 @@ import {
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { qualified } from '../../../lib/db/sql-column.util';
 import { asTimestamp } from '../../../lib/db/sql-timestamp.util';
+import { tickets } from '../../../lib/db/schema/tickets.schema';
 import {
   computerAlerts,
   type ComputerAlertInsert,
@@ -38,8 +41,11 @@ import {
   type ComputerRow,
 } from '../../../lib/db/schema/computers.schema';
 
+/** A máquina com o número de chamados do mês junto — é o que a lista do inventário mostra. */
+export type ComputerWithTickets = ComputerRow & { ticketsThisMonth: number };
+
 export type ComputerPage = {
-  rows: ComputerRow[];
+  rows: ComputerWithTickets[];
   total: number;
 };
 
@@ -53,6 +59,28 @@ export type ComputerPage = {
  * o que sustenta "esta aqui deu problema demais, vamos trocar" na hora de decidir compra.
  * Amostras e alertas, sim, são apagados por idade — ver `deleteSamplesOlderThan`.
  */
+/**
+ * As colunas da máquina mais QUANTOS CHAMADOS ela deu no mês.
+ *
+ * Subconsulta, e não `join` com `group by`: com o `join`, uma máquina com cinco chamados
+ * apareceria cinco vezes na lista, e agrupar obrigaria a repetir todas as colunas no
+ * `group by`. O número entra como coluna calculada, e a lista continua sendo uma linha por
+ * máquina.
+ *
+ * "No mês" é o mês CORRENTE, do dia 1 até agora — não os últimos trinta dias. É assim que
+ * quem olha a tela conta: "quantos chamados esta máquina deu em setembro".
+ */
+function computerColumns() {
+  return {
+    ...getTableColumns(computers),
+    ticketsThisMonth: sql<number>`(
+      select count(*)::int from ${tickets}
+      where ${qualified(tickets.computerId)} = ${qualified(computers.id)}
+        and ${qualified(tickets.createdAt)} >= date_trunc('month', now())
+    )`,
+  };
+}
+
 @Injectable()
 export class ComputersRepository {
   constructor(@Inject(DB) private readonly db: Database) {}
@@ -64,7 +92,7 @@ export class ComputersRepository {
     const [rows, [counted]] = await Promise.all([
       runQuery(
         this.db
-          .select()
+          .select(computerColumns())
           .from(computers)
           .where(where)
           /* Pior saúde primeiro: a lista serve para achar o que precisa de atenção, e quem

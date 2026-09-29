@@ -1,6 +1,7 @@
 import { type ComputerLiveResponse } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
+  type ComputerListItem,
   type ComputerAlert,
   type ComputerListQuery,
   type DisposeComputerInput,
@@ -23,7 +24,7 @@ import { apiDownload, apiRequest, type Downloaded } from './http-client';
  */
 export const computersApi = {
   list: (query: Partial<ComputerListQuery>) =>
-    apiRequest<Paginated<Computer>>('/computers', {
+    apiRequest<Paginated<ComputerListItem>>('/computers', {
       query: {
         page: query.page,
         pageSize: query.pageSize,
