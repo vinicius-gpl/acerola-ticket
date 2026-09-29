@@ -59,8 +59,27 @@
     ];
 
     const accepted: File[] = [];
+    /* Uma lista, e não um `Set`: a regra de lint do Svelte recusa as coleções nativas em
+       arquivo de componente, e aqui são poucos arquivos — procurar num punhado é instantâneo
+       e se lê melhor do que a estrutura de dados. */
+    const seen: string[] = already.map(identityOf);
 
     for (const file of chosen) {
+      /**
+       * O MESMO ARQUIVO DE NOVO É RECUSADO — e isso já derrubou a tela.
+       *
+       * Escolher a mesma nota duas vezes é um clique a mais, não uma intenção: subiria o
+       * arquivo duplicado, pagaria o dobro de armazenamento e ocuparia duas vagas da cota.
+       * Pior: a lista abaixo é desenhada por `nome + tamanho`, e dois iguais davam CHAVE
+       * REPETIDA — o que não desenha torto, derruba a tela inteira.
+       *
+       * Dois arquivos de mesmo nome vindos de pastas diferentes continuam passando: eles
+       * quase nunca têm o mesmo tamanho e a mesma data de modificação.
+       */
+      if (seen.includes(identityOf(file))) {
+        return { accepted, error: `${file.name} já está na lista.` };
+      }
+
       const refusal = refuseAttachment(
         { contentType: file.type, fileName: file.name, sizeBytes: file.size },
         kinds,
@@ -69,10 +88,25 @@
 
       const kind = attachmentKindOf(file.type, file.name);
       if (kind) kinds.push(kind);
+      seen.push(identityOf(file));
       accepted.push(file);
     }
 
     return { accepted, error: null };
+  }
+
+  /**
+   * O que identifica um arquivo escolhido, sem ler os bytes dele.
+   *
+   * Nome, tamanho e data de modificação: é o mais perto de "é o mesmo arquivo" que dá para
+   * saber sem abrir o conteúdo — e abrir megabytes de vídeo só para comparar seria pagar caro
+   * por uma certeza que ninguém precisa aqui.
+   *
+   * Exportada porque é a MESMA chave que a lista usa para desenhar: se as duas divergirem, a
+   * recusa deixa passar um caso que a lista não sabe desenhar, e a tela cai.
+   */
+  export function identityOf(file: File): string {
+    return `${file.name}::${file.size}::${file.lastModified}`;
   }
 
   function isKind(value: AttachmentKind | null): value is AttachmentKind {
@@ -157,7 +191,10 @@
 
   {#if data.files.length > 0}
     <ul class="divide-y rounded-lg border">
-      {#each data.files as file (file.name + file.size)}
+      <!-- A chave leva a POSIÇÃO junto com a identidade do arquivo. A recusa acima já barra o
+           mesmo arquivo duas vezes, mas chave repetida num `each` derruba a tela inteira — e
+           nenhuma lista de anexos vale uma tela em branco. Cinto e suspensório, de propósito. -->
+      {#each data.files as file, index (`${identityOf(file)}-${index}`)}
         <li class="flex items-center justify-between gap-2 p-2">
           <div class="min-w-0">
             <p class="text-ink-900 truncate text-sm">{file.name}</p>
