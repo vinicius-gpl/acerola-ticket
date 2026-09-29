@@ -110,6 +110,81 @@
   }
 
   /**
+   * O NÚMERO DE AGORA — e o que fazer quando não há "agora".
+   *
+   * Havia um defeito aqui, e ele era do pior tipo: os cartões do alto liam a última AMOSTRA
+   * gravada (um resumo periódico, de minutos atrás) e diziam "agora" em cima dela. O painel
+   * ao vivo, logo abaixo, mostrava a leitura do segundo — e os dois números não batiam.
+   * "Processador agora 100%" com "Processador — 37% no total" um centímetro abaixo.
+   *
+   * Então: a leitura AO VIVO manda, sempre que existe. Sem ela — agente desligado, máquina
+   * fora do ar — sobra a última amostra, e aí o rótulo PARA de dizer "agora": passa a dizer
+   * "na última leitura", porque é isso que é.
+   */
+  export type NowReading = {
+    cpuPercent: number | null;
+    memoryPercent: number | null;
+    diskPercent: number | null;
+    /** Verdadeiro quando o número é do segundo, e não um retrato guardado. */
+    isLive: boolean;
+  };
+
+  export function nowReadingOf(
+    live: ComputerLive | null,
+    lastSample: ComputerSample | null,
+  ): NowReading {
+    if (live) {
+      return {
+        cpuPercent: live.cpu.percentTotal,
+        memoryPercent: live.memory.usedPercent,
+        diskPercent: totalDiskPercentOf(live.disks),
+        isLive: true,
+      };
+    }
+
+    return {
+      cpuPercent: lastSample?.cpuPercent ?? null,
+      memoryPercent: lastSample?.memoryPercent ?? null,
+      diskPercent: lastSample?.diskPercent ?? null,
+      isLive: false,
+    };
+  }
+
+  /**
+   * O disco do PARQUE DA MÁQUINA, somando os volumes — a mesma conta da amostra guardada.
+   *
+   * Somar, e não pegar o pior volume: é assim que o servidor calcula a amostra
+   * (`computers.mapper`), e duas contas diferentes para o mesmo cartão fariam o número pular
+   * ao agente cair, sem nada ter mudado na máquina.
+   */
+  export function totalDiskPercentOf(disks: ComputerLive['disks']): number | null {
+    const total = disks.reduce((sum, disk) => sum + disk.totalBytes, 0);
+    if (total === 0) return null;
+
+    const used = disks.reduce((sum, disk) => sum + disk.usedBytes, 0);
+
+    return (used / total) * 100;
+  }
+
+  /**
+   * OS NÚCLEOS: os físicos e os lógicos, os dois.
+   *
+   * Só o lógico engana na hora de comprar e na hora de culpar a máquina: um i5 de 6 núcleos
+   * com hyper-threading aparece como 12, e quem lê "12 núcleos" acha que a máquina é o dobro
+   * do que é. Físico é quanto de silício existe; lógico é quantas filas o sistema enxerga.
+   *
+   * O agente pode informar um e não o outro (versão antiga, ou máquina virtual que esconde o
+   * físico), e aí a tela diz o que sabe em vez de inventar o que falta.
+   */
+  export function coreCountOf(physical: number | null, logical: number | null): string {
+    if (physical && logical) return `${physical} físicos · ${logical} lógicos`;
+    if (physical) return `${physical} físicos`;
+    if (logical) return `${logical} lógicos`;
+
+    return '—';
+  }
+
+  /**
    * Os fatos de hardware, já em palavras.
    *
    * Exportado e puro para ter teste próprio: é aqui que "ainda não sei" (nulo) precisa virar
@@ -123,10 +198,7 @@
     return [
       { label: 'Sistema', value: hardware.os ?? '—' },
       { label: 'Processador', value: hardware.cpuModel ?? '—' },
-      {
-        label: 'Núcleos',
-        value: hardware.logicalCpus ? `${hardware.logicalCpus} (lógicos)` : '—',
-      },
+      { label: 'Núcleos', value: coreCountOf(hardware.physicalCpus, hardware.logicalCpus) },
       { label: 'Memória', value: formatBytes(hardware.totalMemoryBytes) },
       {
         label: 'Disco',
@@ -201,6 +273,10 @@
   const facts = $derived(hardwareFacts(computer));
   const lastSample = $derived(data.samples.at(-1) ?? null);
   const live = $derived(data.live);
+
+  /* Os cartões do alto leem daqui, e não da última amostra: ver `nowReadingOf`. */
+  const now = $derived(nowReadingOf(live, lastSample));
+  const nowSuffix = $derived(now.isLive ? 'agora' : 'na última leitura');
 
   const points = $derived(
     data.samples.map((sample) => ({
@@ -377,18 +453,21 @@
       data={{ label: 'Nota de saúde', value: `${computer.healthScore}/100` }}
       ui={{ tone: CARD_TONES[computer.healthStatus] }}
     />
+    <!-- O rótulo muda junto com a origem do número: com o agente ligado é "agora"; com ele
+         fora do ar vira "na última leitura", porque é o que o número é. Um cartão que diz
+         "agora" em cima de um retrato de minutos atrás faz decidir errado. -->
     <StatCard
-      data={{ label: 'Processador agora', value: formatPercent(lastSample?.cpuPercent ?? null) }}
+      data={{ label: `Processador ${nowSuffix}`, value: formatPercent(now.cpuPercent) }}
       ui={{ tone: 'info' }}
       state={{ isLoading: viewState?.isSamplesLoading }}
     />
     <StatCard
-      data={{ label: 'Memória agora', value: formatPercent(lastSample?.memoryPercent ?? null) }}
+      data={{ label: `Memória ${nowSuffix}`, value: formatPercent(now.memoryPercent) }}
       ui={{ tone: 'info' }}
       state={{ isLoading: viewState?.isSamplesLoading }}
     />
     <StatCard
-      data={{ label: 'Disco agora', value: formatPercent(lastSample?.diskPercent ?? null) }}
+      data={{ label: `Disco ${nowSuffix}`, value: formatPercent(now.diskPercent) }}
       ui={{ tone: 'brand' }}
       state={{ isLoading: viewState?.isSamplesLoading }}
     />

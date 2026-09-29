@@ -9,7 +9,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import ComputerDetailView, {
   alertDurationLabel,
+  coreCountOf,
   hardwareFacts,
+  nowReadingOf,
+  totalDiskPercentOf,
   transferRouteOf,
 } from './computer-detail-view.svelte';
 
@@ -216,6 +219,13 @@ describe('hardwareFacts', () => {
     expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe('14,0 GB livres de 500,0 GB');
   });
 
+  /* Os dois números de núcleo aparecem na ficha, e não só o lógico. */
+  it('shows the physical cores next to the logical ones', () => {
+    const facts = hardwareFacts(computer());
+
+    expect(facts.find((fact) => fact.label === 'Núcleos')?.value).toMatch(/lógicos/);
+  });
+
   // triste
   /* Nulo é "o agente ainda não mediu". Virar "0 B" diria que a máquina tem disco de tamanho
      zero, que é outra coisa — e leva a decisão de compra diferente. */
@@ -224,7 +234,125 @@ describe('hardwareFacts', () => {
 
     expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe('—');
     expect(facts.find((fact) => fact.label === 'Memória')?.value).toBe('—');
+    expect(facts.find((fact) => fact.label === 'Núcleos')?.value).toBe('—');
     expect(facts.find((fact) => fact.label === 'Versão do agente')?.value).toBe('—');
+  });
+});
+
+describe('coreCountOf', () => {
+  // feliz
+  /**
+   * Só o lógico ENGANA, e o engano tem consequência: um i5 de 6 núcleos com hyper-threading
+   * aparece como 12, e quem lê "12 núcleos" acha que a máquina é o dobro do que é — na hora
+   * de comprar, e na hora de culpar a máquina pela lentidão.
+   */
+  it('says the physical cores and the logical ones, both', () => {
+    expect(coreCountOf(6, 12)).toBe('6 físicos · 12 lógicos');
+  });
+
+  // triste
+  /* Agente antigo, ou máquina virtual que esconde o físico: a tela diz o que sabe em vez de
+     inventar o que falta. */
+  it('says only what it knows when one of the two is missing', () => {
+    expect(coreCountOf(null, 12)).toBe('12 lógicos');
+    expect(coreCountOf(6, null)).toBe('6 físicos');
+  });
+
+  it('says it does not know when neither was reported (edge case)', () => {
+    expect(coreCountOf(null, null)).toBe('—');
+    expect(coreCountOf(0, 0)).toBe('—');
+  });
+});
+
+describe('totalDiskPercentOf', () => {
+  // feliz
+  /* Somar os volumes é a MESMA conta que o servidor usa para a amostra guardada: duas contas
+     diferentes fariam o cartão pular ao agente cair, sem nada ter mudado na máquina. */
+  it('adds the volumes up instead of picking the worst one', () => {
+    const disks = [
+      { mountpoint: 'C:', fstype: 'NTFS', totalBytes: 100, usedBytes: 90, freeBytes: 10, usedPercent: 90 },
+      { mountpoint: 'D:', fstype: 'NTFS', totalBytes: 100, usedBytes: 10, freeBytes: 90, usedPercent: 10 },
+    ];
+
+    expect(totalDiskPercentOf(disks)).toBe(50);
+  });
+
+  // triste
+  /* Sem volume não há proporção: dividir por zero daria `NaN` no cartão. */
+  it('answers nothing when the reading brought no volume (edge case)', () => {
+    expect(totalDiskPercentOf([])).toBeNull();
+  });
+});
+
+describe('nowReadingOf', () => {
+  const live = {
+    computerId: 11,
+    measuredAt: '2026-09-29T14:11:00.000-03:00',
+    receivedAt: '2026-09-29T17:11:00.000Z',
+    isOnline: true,
+    cpu: { percentTotal: 37, percentPerCore: [] },
+    memory: {
+      totalBytes: 16,
+      usedBytes: 13,
+      freeBytes: 3,
+      usedPercent: 85,
+      swapTotalBytes: 0,
+      swapUsedBytes: 0,
+      swapUsedPercent: 0,
+    },
+    disks: [
+      { mountpoint: 'C:', fstype: 'NTFS', totalBytes: 100, usedBytes: 70, freeBytes: 30, usedPercent: 70 },
+    ],
+    diskIo: { readBytesPerSec: 0, writeBytesPerSec: 0 },
+    network: [],
+    processes: [],
+  };
+
+  const stale: ComputerSample = {
+    sampledAt: '2026-09-29T13:40:00.000Z',
+    cpuPercent: 100,
+    memoryPercent: 90,
+    diskPercent: 70,
+    networkBytesPerSec: 0,
+  };
+
+  // feliz
+  /**
+   * O DEFEITO QUE ESTE TESTE TRANCA.
+   *
+   * Os cartões liam a última AMOSTRA gravada — um resumo de minutos atrás — e escreviam
+   * "agora" em cima dela. O painel ao vivo, um centímetro abaixo, mostrava outro número. A
+   * leitura do segundo manda sempre que existe.
+   */
+  it('prefers the live reading over the sample that was stored minutes ago', () => {
+    const reading = nowReadingOf(live, stale);
+
+    expect(reading.cpuPercent).toBe(37);
+    expect(reading.memoryPercent).toBe(85);
+    expect(reading.isLive).toBe(true);
+  });
+
+  // triste
+  /* Agente fora do ar: sobra o retrato guardado — e quem chama precisa saber que é retrato,
+     para parar de escrever "agora" em cima dele. */
+  it('falls back to the stored sample and says it is not live', () => {
+    const reading = nowReadingOf(null, stale);
+
+    expect(reading.cpuPercent).toBe(100);
+    expect(reading.isLive).toBe(false);
+  });
+
+  /* Máquina recém-cadastrada: nada ao vivo e nada guardado. Vazio, e não zero — zero diria
+     que a máquina está ligada e ociosa. */
+  it('answers nothing when there is neither a live reading nor a sample (edge case)', () => {
+    const reading = nowReadingOf(null, null);
+
+    expect(reading).toEqual({
+      cpuPercent: null,
+      memoryPercent: null,
+      diskPercent: null,
+      isLive: false,
+    });
   });
 });
 
