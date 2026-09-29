@@ -98,6 +98,17 @@ export const ticketSchema = z.object({
   notifyWhatsapp: z.boolean(),
   description: z.string(),
   screenshotUrl: z.string().nullable(),
+
+  /**
+   * A MÁQUINA em que o problema aconteceu — quem preenche é o TI, atendendo.
+   *
+   * Nulo é o normal no começo: todo chamado nasce sem máquina, porque quem abre descreve o
+   * problema e não sabe (nem precisa saber) qual computador o sistema conhece por qual nome.
+   * O nome vem junto para a lista não precisar de uma segunda consulta só para mostrá-lo.
+   */
+  computerId: z.number().int().nullable(),
+  computerName: z.string().nullable(),
+
   assignee: z.string().nullable(),
   solution: z.string().nullable(),
   createdAt: z.string().datetime(),
@@ -205,6 +216,14 @@ export type TicketFormValues = z.input<typeof ticketFormSchema>;
 export const updateTicketSchema = z.object({
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
+  /**
+   * O tipo do problema É corrigível pelo painel: quem abre escolhe pelo que parece, e quem
+   * atende descobre o que era. Sem isso, o mapa de "o que mais dá problema" fica torto para
+   * sempre — ele é somado justamente por este campo.
+   */
+  problemType: ticketProblemTypeSchema.optional(),
+  /** A máquina do chamado. Nulo DESVINCULA — é como se corrige um vínculo errado. */
+  computerId: z.number().int().positive().nullable().optional(),
   assignee: assigneeSchema.optional(),
   solution: solutionSchema.optional(),
 });
@@ -215,6 +234,12 @@ export type UpdateTicketInput = z.input<typeof updateTicketSchema>;
 export const ticketAnswerFormSchema = z.object({
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
+  problemType: ticketProblemTypeSchema,
+  /**
+   * No formulário a máquina é TEXTO, como todo campo de `select`: vazio quer dizer "nenhuma".
+   * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
+   */
+  computerId: z.string(),
   assignee: z
     .string()
     .max(
@@ -230,6 +255,8 @@ export type TicketAnswerFormValues = z.input<typeof ticketAnswerFormSchema>;
 
 export const ticketListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
+  /** Os chamados DESTA máquina — é a consulta da ficha do computador. */
+  computerId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
   department: ticketDepartmentSchema.optional(),

@@ -12,6 +12,7 @@ import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.sche
 import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
+  type ComputerListItem,
   type ComputerAlert,
   type ComputerListQuery,
   type ComputerReportQuery,
@@ -34,6 +35,7 @@ import {
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import {
   toComputer,
+  toComputerListItem,
   toComputerAlert,
   toComputerLive,
   toComputerInsert,
@@ -137,7 +139,7 @@ export class ComputersService {
     private readonly watch: LiveWatchService,
   ) {}
 
-  async list(user: RequestUser, query: ComputerListQuery): Promise<Paginated<Computer>> {
+  async list(user: RequestUser, query: ComputerListQuery): Promise<Paginated<ComputerListItem>> {
     assertCanRead(user.role, 'os computadores');
 
     const page = await this.repository.list(query);
@@ -146,7 +148,7 @@ export class ComputersService {
     const online = this.presence.onlineIds();
 
     return {
-      items: page.rows.map((row) => toComputer(row, online.has(row.id))),
+      items: page.rows.map((row) => toComputerListItem(row, online.has(row.id))),
       total: page.total,
       page: query.page,
       pageSize: query.pageSize,

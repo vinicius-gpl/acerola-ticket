@@ -140,6 +140,20 @@ export const computerSchema = z.object({
 export type Computer = z.infer<typeof computerSchema>;
 
 /**
+ * A máquina COMO A LISTA do inventário a mostra: com quantos chamados ela deu no mês.
+ *
+ * O número não entra no `computerSchema` de propósito. Ele é uma conta da LISTA — cadastrar,
+ * bloquear ou descartar uma máquina não sabem esse número, e colocá-lo no contrato de todas
+ * as respostas obrigaria cada uma delas a inventar um zero. Zero e "não contei" são coisas
+ * diferentes, e a tela erraria a leitura.
+ */
+export const computerListItemSchema = computerSchema.extend({
+  ticketsThisMonth: z.number().int().nonnegative(),
+});
+
+export type ComputerListItem = z.infer<typeof computerListItemSchema>;
+
+/**
  * Cadastrar um computador. Só o nome — o resto chega quando o agente conectar pela primeira
  * vez.
  *

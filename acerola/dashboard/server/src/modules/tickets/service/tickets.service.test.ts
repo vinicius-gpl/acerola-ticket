@@ -7,9 +7,12 @@ import { ticketListQuerySchema } from '@template/shared/schemas/ticket.schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
+
 import { type StorageService } from '../../../lib/storage/storage.service';
-import { type TicketsRepository } from '../repository/tickets.repository';
+import {
+  type TicketsRepository,
+  type TicketWithComputer,
+} from '../repository/tickets.repository';
 import { type TicketAttachmentsService } from './ticket-attachments.service';
 import { TicketsService, type UploadedScreenshot } from './tickets.service';
 
@@ -20,13 +23,15 @@ const noRole = { ...ana, role: undefined } as unknown as RequestUser;
 
 const CREATED_AT = new Date('2026-03-01T08:00:00.000Z');
 
-function ticketRow(overrides: Partial<TicketRow> = {}): TicketRow {
+function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithComputer {
   return {
     id: 7,
     status: 'open',
     priority: 'medium',
     requesterName: 'Bia Costa',
     department: 'financeiro',
+    computerId: null,
+    computerName: null,
     problemType: 'printer',
     anydeskId: null,
     contactPhone: '62999999999',

@@ -5,8 +5,10 @@ import {
   type AgentInventory,
 } from '@template/shared/schemas/agent-snapshot.schema';
 import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
+import { type ComputerWithTickets } from '../repository/computers.repository';
 import {
   type Computer,
+  type ComputerListItem,
   type ComputerAlert,
   type CreateComputerInput,
   type ComputerSample,
@@ -24,6 +26,11 @@ import { type ComputerInsert, type ComputerRow } from '../../../lib/db/schema/co
  * `isOnline` entra por PARÂMETRO, e não sai da linha: estar online é ter uma conexão aberta
  * agora, e quem sabe disso é o registro de conexões vivas, não o banco.
  */
+/** A linha da LISTA: a máquina mais a conta de chamados do mês. */
+export function toComputerListItem(row: ComputerWithTickets, isOnline: boolean): ComputerListItem {
+  return { ...toComputer(row, isOnline), ticketsThisMonth: row.ticketsThisMonth };
+}
+
 export function toComputer(row: ComputerRow, isOnline: boolean): Computer {
   return {
     id: row.id,
