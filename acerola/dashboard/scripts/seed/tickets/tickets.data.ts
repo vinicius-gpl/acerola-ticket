@@ -16,6 +16,24 @@ const ATTENDANT = 'suporte@azuos.local';
    e o indicador do painel nunca poderia ser conferido de uma rodada para a outra. */
 const at = (value: string) => new Date(value);
 
+
+/**
+ * Um dia DENTRO DO MÊS CORRENTE, contado a partir do dia 1.
+ *
+ * Aqui as datas NÃO podem ser fixas, ao contrário das de cima. Os blocos de recorrência do
+ * painel perguntam "o que se repetiu NESTE mês": com data fixa, eles apareceriam em setembro
+ * de 2026 e sumiriam em outubro, e quem rodasse o seed no mês seguinte veria a tela vazia sem
+ * saber por quê. A HORA é fixa para o tempo médio de resolução não variar por execução.
+ *
+ * Nunca passa de agora: chamado com data no futuro não existe.
+ */
+function thisMonth(dayOfMonth: number, hour = 10): Date {
+  const now = new Date();
+  const date = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hour, 0, 0);
+
+  return date > now ? now : date;
+}
+
 export const TICKETS_SEED: TicketInsert[] = [
   {
     id: 1,
@@ -219,5 +237,218 @@ export const TICKETS_SEED: TicketInsert[] = [
     resolvedAt: at('2026-09-17T13:15:00.000Z'),
     updatedAt: at('2026-09-17T13:15:00.000Z'),
     updatedBy: ATTENDANT,
+  },
+  /**
+   * RECORRÊNCIA POR PESSOA: a mesma pessoa, o mesmo problema, quatro vezes no mês.
+   *
+   * É o alerta que o painel precisa acender. Quatro chamados de impressora da mesma pessoa
+   * não são quatro problemas — é um problema que ninguém resolveu, e que volta na semana que
+   * vem.
+   */
+  {
+    id: 13,
+    status: 'resolved',
+    priority: 'medium',
+    requesterName: 'Daniela Prado',
+    department: 'contabil',
+    problemType: 'printer',
+    anydeskId: null,
+    contactPhone: '62999990013',
+    notifyWhatsapp: false,
+    description: 'A impressora parou de puxar papel de novo.',
+    assignee: 'Suporte TI',
+    solution: 'Limpei o rolete.',
+    createdAt: thisMonth(4),
+    startedAt: thisMonth(4, 11),
+    resolvedAt: thisMonth(4, 13),
+    updatedAt: thisMonth(4, 13),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 14,
+    status: 'resolved',
+    priority: 'medium',
+    requesterName: 'Daniela Prado',
+    department: 'contabil',
+    problemType: 'printer',
+    anydeskId: null,
+    contactPhone: '62999990013',
+    notifyWhatsapp: false,
+    description: 'A impressora está borrando a folha inteira.',
+    assignee: 'Suporte TI',
+    solution: 'Troquei o toner.',
+    createdAt: thisMonth(11),
+    startedAt: thisMonth(11, 11),
+    resolvedAt: thisMonth(11, 13),
+    updatedAt: thisMonth(11, 13),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 15,
+    status: 'resolved',
+    priority: 'high',
+    requesterName: 'Daniela Prado',
+    department: 'contabil',
+    problemType: 'printer',
+    anydeskId: null,
+    contactPhone: '62999990013',
+    notifyWhatsapp: false,
+    description: 'A impressora sumiu da lista do Windows.',
+    assignee: 'Suporte TI',
+    solution: 'Reinstalei o driver.',
+    createdAt: thisMonth(18),
+    startedAt: thisMonth(18, 11),
+    resolvedAt: thisMonth(18, 13),
+    updatedAt: thisMonth(18, 13),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 16,
+    status: 'open',
+    priority: 'high',
+    requesterName: 'Daniela Prado',
+    department: 'contabil',
+    problemType: 'printer',
+    anydeskId: null,
+    contactPhone: '62999990013',
+    notifyWhatsapp: true,
+    description: 'De novo: travou no meio do fechamento.',
+    assignee: null,
+    solution: null,
+    createdAt: thisMonth(25),
+    startedAt: null,
+    resolvedAt: null,
+    updatedAt: null,
+    updatedBy: null,
+  },
+
+  /**
+   * RECORRÊNCIA POR MÁQUINA: pessoas diferentes, a mesma máquina, o mesmo problema.
+   *
+   * É o que o sistema antigo não conseguia ver — lá o chamado não apontava para computador
+   * nenhum. Aqui a conta aponta para a máquina, e não para quem sentou nela.
+   */
+  {
+    id: 17,
+    status: 'resolved',
+    priority: 'medium',
+    requesterName: 'Carlos Menezes',
+    department: 'financeiro',
+    problemType: 'slow_computer',
+    computerId: 2,
+    anydeskId: null,
+    contactPhone: '62999990017',
+    notifyWhatsapp: false,
+    description: 'Demora cinco minutos para abrir o sistema.',
+    assignee: 'Suporte TI',
+    solution: 'Limpei arquivos temporários.',
+    createdAt: thisMonth(6),
+    startedAt: thisMonth(6, 11),
+    resolvedAt: thisMonth(6, 16),
+    updatedAt: thisMonth(6, 16),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 18,
+    status: 'resolved',
+    priority: 'medium',
+    requesterName: 'Renata Lopes',
+    department: 'financeiro',
+    problemType: 'slow_computer',
+    computerId: 2,
+    anydeskId: null,
+    contactPhone: '62999990018',
+    notifyWhatsapp: false,
+    description: 'Travou de novo ao abrir a planilha.',
+    assignee: 'Suporte TI',
+    solution: 'Fechei programas em segundo plano.',
+    createdAt: thisMonth(14),
+    startedAt: thisMonth(14, 11),
+    resolvedAt: thisMonth(14, 16),
+    updatedAt: thisMonth(14, 16),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 19,
+    status: 'in_progress',
+    priority: 'high',
+    requesterName: 'Carlos Menezes',
+    department: 'financeiro',
+    problemType: 'slow_computer',
+    computerId: 2,
+    anydeskId: null,
+    contactPhone: '62999990017',
+    notifyWhatsapp: false,
+    description: 'Trava a cada dois minutos.',
+    assignee: 'Suporte TI',
+    solution: null,
+    createdAt: thisMonth(22),
+    startedAt: thisMonth(22, 11),
+    resolvedAt: null,
+    updatedAt: thisMonth(22, 16),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 20,
+    status: 'open',
+    priority: 'high',
+    requesterName: 'Renata Lopes',
+    department: 'financeiro',
+    problemType: 'slow_computer',
+    computerId: 2,
+    anydeskId: null,
+    contactPhone: '62999990018',
+    notifyWhatsapp: false,
+    description: 'Nao da mais para trabalhar nesse computador.',
+    assignee: null,
+    solution: null,
+    createdAt: thisMonth(27),
+    startedAt: null,
+    resolvedAt: null,
+    updatedAt: null,
+    updatedBy: null,
+  },
+
+  /* Chamados de OUTRAS máquinas: dão conteúdo à coluna "Chamados no mês" do inventário e à
+     lista "Chamados desta máquina" na ficha, sem inflar a recorrência. */
+  {
+    id: 21,
+    status: 'resolved',
+    priority: 'low',
+    requesterName: 'Bia Costa',
+    department: 'recepcao',
+    problemType: 'software_install',
+    computerId: 1,
+    anydeskId: null,
+    contactPhone: '62999990001',
+    notifyWhatsapp: false,
+    description: 'Preciso do leitor de PDF instalado.',
+    assignee: 'Suporte TI',
+    solution: 'Instalado e testado.',
+    createdAt: thisMonth(9),
+    startedAt: thisMonth(9, 11),
+    resolvedAt: thisMonth(9, 12),
+    updatedAt: thisMonth(9, 12),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 22,
+    status: 'open',
+    priority: 'medium',
+    requesterName: 'Isabela Marques',
+    department: 'paralegal',
+    problemType: 'digital_certificate',
+    computerId: 8,
+    anydeskId: null,
+    contactPhone: '62999990022',
+    notifyWhatsapp: true,
+    description: 'O certificado digital nao e reconhecido pelo site do tribunal.',
+    assignee: null,
+    solution: null,
+    createdAt: thisMonth(28),
+    startedAt: null,
+    resolvedAt: null,
+    updatedAt: null,
+    updatedBy: null,
   },
 ];

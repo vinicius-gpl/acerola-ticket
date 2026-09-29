@@ -47,6 +47,103 @@ function base(id: number, name: string): ComputerInsert {
   };
 }
 
+
+/**
+ * Uma LEITURA COMPLETA gravada na máquina, como o agente a mandaria.
+ *
+ * Sem isto, o bloco "o que está acontecendo agora" da ficha fica vazio em toda máquina do
+ * seed — e quem abre o sistema pela primeira vez conclui que a tela está quebrada, quando na
+ * verdade nunca houve agente nenhum instalado ali.
+ *
+ * A forma é a do `agentSnapshotSchema`: qualquer campo a menos e o mapper recusa a linha na
+ * saída, que é exatamente o comportamento desejado para um dado gravado por versão antiga.
+ */
+function snapshotOf(over: {
+  hostname: string;
+  cpuModel: string;
+  cores: number;
+  memoryGb: number;
+  cpuPercent: number;
+  memoryPercent: number;
+  diskPercent: number;
+  apps: { name: string; instances: number; cpu: number; memoryGb: number }[];
+}) {
+  const totalMemory = over.memoryGb * 1024 ** 3;
+  const usedMemory = Math.round((totalMemory * over.memoryPercent) / 100);
+  const totalDisk = 480 * 1024 ** 3;
+  const usedDisk = Math.round((totalDisk * over.diskPercent) / 100);
+
+  return {
+    timestamp: new Date().toISOString(),
+    host: {
+      hostname: over.hostname,
+      os: 'windows',
+      platform: 'Microsoft Windows 11 Pro',
+      platformVersion: '10.0.22631',
+      kernelVersion: '10.0.22631',
+      arch: 'amd64',
+      cpuModel: over.cpuModel,
+      logicalCpus: over.cores,
+      physicalCpus: Math.max(1, Math.round(over.cores / 2)),
+      totalMemoryBytes: totalMemory,
+      macAddress: '00:11:22:33:44:55',
+      localIp: '192.168.0.31',
+      totalDiskBytes: totalDisk,
+      freeDiskBytes: totalDisk - usedDisk,
+      uptimeSeconds: 3600 * 27,
+      bootTime: new Date(Date.now() - 3600 * 27 * 1000).toISOString(),
+    },
+    cpu: {
+      percentTotal: over.cpuPercent,
+      /* Um valor por núcleo, variando em volta da média: é o que a tela desenha em barras, e
+         com todos iguais o bloco pareceria um gráfico travado. */
+      percentPerCore: Array.from({ length: over.cores }, (_, index) =>
+        Math.min(100, Math.max(0, Math.round(over.cpuPercent + Math.sin(index) * 18))),
+      ),
+    },
+    memory: {
+      totalBytes: totalMemory,
+      usedBytes: usedMemory,
+      freeBytes: totalMemory - usedMemory,
+      usedPercent: over.memoryPercent,
+      swapTotalBytes: 4 * 1024 ** 3,
+      swapUsedBytes: Math.round(4 * 1024 ** 3 * 0.18),
+      swapUsedPercent: 18,
+    },
+    disks: [
+      {
+        mountpoint: 'C:',
+        fstype: 'NTFS',
+        totalBytes: totalDisk,
+        usedBytes: usedDisk,
+        freeBytes: totalDisk - usedDisk,
+        usedPercent: over.diskPercent,
+      },
+      {
+        mountpoint: 'D:',
+        fstype: 'NTFS',
+        totalBytes: 1024 ** 3 * 120,
+        usedBytes: Math.round(1024 ** 3 * 120 * 0.32),
+        freeBytes: Math.round(1024 ** 3 * 120 * 0.68),
+        usedPercent: 32,
+      },
+    ],
+    diskIo: { readBytesPerSec: 1_240_000, writeBytesPerSec: 480_000 },
+    network: [
+      { name: 'Ethernet', bytesSentPerSec: 92_000, bytesRecvPerSec: 410_000 },
+      { name: 'Wi-Fi', bytesSentPerSec: 0, bytesRecvPerSec: 0 },
+    ],
+    processes: over.apps.map((app) => ({
+      name: app.name,
+      instanceCount: app.instances,
+      cpuPercent: app.cpu,
+      memPercent: Math.round((app.memoryGb / over.memoryGb) * 1000) / 10,
+      memBytes: Math.round(app.memoryGb * 1024 ** 3),
+      instances: [],
+    })),
+  };
+}
+
 export const COMPUTERS_SEED: ComputerInsert[] = [
   /* Máquina saudável e recém-vista: o caso comum, e a referência para comparar as outras. */
   {
@@ -74,6 +171,21 @@ export const COMPUTERS_SEED: ComputerInsert[] = [
     warnings: [],
     lastSeenAt: minutesAgo(2),
     agentVersion: '1.0.0',
+    lastSnapshot: snapshotOf({
+      hostname: 'RECEPCAO-01',
+      cpuModel: 'Intel Core i5-12400',
+      cores: 12,
+      memoryGb: 16,
+      cpuPercent: 27,
+      memoryPercent: 54,
+      diskPercent: 56,
+      apps: [
+        { name: 'chrome.exe', instances: 14, cpu: 18.4, memoryGb: 2.6 },
+        { name: 'Teams.exe', instances: 4, cpu: 6.1, memoryGb: 1.1 },
+        { name: 'explorer.exe', instances: 1, cpu: 1.2, memoryGb: 0.2 },
+        { name: 'OneDrive.exe', instances: 2, cpu: 0.8, memoryGb: 0.3 },
+      ],
+    }),
   },
 
   /* Pouca memória: o aviso mais comum do parque antigo, e o que mais gera chamado de lentidão. */
@@ -102,6 +214,20 @@ export const COMPUTERS_SEED: ComputerInsert[] = [
     warnings: [{ severity: 'attention', message: 'Memória RAM abaixo de 8 GB: 4,0 GB' }],
     lastSeenAt: minutesAgo(4),
     agentVersion: '1.0.0',
+    lastSnapshot: snapshotOf({
+      hostname: 'FINANCEIRO-02',
+      cpuModel: 'Intel Core i3-7100',
+      cores: 4,
+      memoryGb: 4,
+      cpuPercent: 88,
+      memoryPercent: 94,
+      diskPercent: 71,
+      apps: [
+        { name: 'chrome.exe', instances: 22, cpu: 61.5, memoryGb: 2.9 },
+        { name: 'EXCEL.EXE', instances: 3, cpu: 24.0, memoryGb: 0.9 },
+        { name: 'antivirus.exe', instances: 1, cpu: 9.2, memoryGb: 0.4 },
+      ],
+    }),
   },
 
   /* Disco quase cheio E ligada há meses: a máquina que a tela precisa colocar no topo. */
@@ -136,6 +262,20 @@ export const COMPUTERS_SEED: ComputerInsert[] = [
     ],
     lastSeenAt: minutesAgo(1),
     agentVersion: '1.0.0',
+    lastSnapshot: snapshotOf({
+      hostname: 'CONTABIL-03',
+      cpuModel: 'Intel Core i5-10400',
+      cores: 12,
+      memoryGb: 16,
+      cpuPercent: 41,
+      memoryPercent: 63,
+      diskPercent: 97,
+      apps: [
+        { name: 'OneDrive.exe', instances: 2, cpu: 12.8, memoryGb: 0.6 },
+        { name: 'chrome.exe', instances: 11, cpu: 9.4, memoryGb: 2.1 },
+        { name: 'backup.exe', instances: 1, cpu: 22.6, memoryGb: 0.3 },
+      ],
+    }),
   },
 
   /* CASO LIMITE: cadastrada e o agente nunca instalado. Tudo nulo, nota cheia e nunca vista —
