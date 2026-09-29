@@ -93,6 +93,7 @@
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
   import MonitorSmartphone from '@lucide/svelte/icons/monitor-smartphone';
+  import Paperclip from '@lucide/svelte/icons/paperclip';
   import Phone from '@lucide/svelte/icons/phone';
   import UserCog from '@lucide/svelte/icons/user-cog';
   import Wrench from '@lucide/svelte/icons/wrench';
@@ -404,10 +405,18 @@
 
               {#if data.chosenFiles.length > 0}
                 <!-- Os arquivos entram num envio à parte do formulário: quem está atendendo
-                     pode juntar a nota fiscal sem ter de salvar a situação do chamado junto. -->
+                     pode juntar a nota fiscal sem ter de salvar a situação do chamado junto.
+
+                     Por isso ele é COLORIDO (`primary`), e não mais um botão de borda: quem
+                     escolheu os arquivos acha que já anexou, e o passo que falta precisa se
+                     parecer com um passo que falta. Em cinza, ele some no meio do bloco e a
+                     pessoa fecha o diálogo achando que mandou. -->
                 <ActionButton
-                  data={{ label: 'Anexar à devolutiva', loadingLabel: 'Anexando…' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
+                  data={{
+                    label: `Anexar ${data.chosenFiles.length} arquivo(s) à devolutiva`,
+                    loadingLabel: 'Anexando…',
+                  }}
+                  ui={{ variant: 'primary', size: 'sm', icon: Paperclip, className: 'w-fit' }}
                   state={{ isLoading: state.isAttaching }}
                   actions={{ onClick: actions.onAttach }}
                 />
