@@ -447,7 +447,7 @@
   </div>
 
   {#if disposed && computer.disposalType}
-    <p class="text-ink-700 bg-muted rounded-lg border px-3 py-2 text-sm">
+    <p class="text-ink-700 bg-muted rounded-box border px-3 py-2 text-sm">
       <span class="font-semibold">
         Fora de uso ({disposalTypeLabel(computer.disposalType)}) desde
         {formatDateTime(computer.disposedAt)}:
@@ -457,7 +457,7 @@
   {/if}
 
   {#if computer.isBlocked && computer.blockReason}
-    <p class="text-ink-700 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm">
+    <p class="text-ink-700 rounded-box border border-red-300 bg-red-50 px-3 py-2 text-sm">
       <span class="font-semibold">Motivo do bloqueio:</span>
       {computer.blockReason}
     </p>
@@ -489,7 +489,7 @@
   </StatCardGrid>
 
   <!-- O que baixou a nota vem antes de tudo: é a razão de alguém abrir esta tela. -->
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-2 text-sm font-semibold">O que precisa de atenção</h2>
     {#if computer.warnings.length === 0}
       <p class="text-ink-500 text-sm">
@@ -510,7 +510,7 @@
     {/if}
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <div class="mb-3 flex items-baseline justify-between gap-3">
       <h2 class="text-ink-900 text-sm font-semibold">O que está acontecendo agora</h2>
       {#if live}
@@ -520,7 +520,7 @@
     <ComputerLivePanel data={{ live }} state={{ isLoading: viewState?.isLiveLoading }} />
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">Aplicativos que mais pesam</h2>
     <ComputerProcessTable
       data={{ processes: live?.processes ?? [] }}
@@ -528,7 +528,7 @@
     />
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">Uso das últimas 24 horas</h2>
     <UsageChart
       data={{ points }}
@@ -537,7 +537,7 @@
     />
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">O que tem dentro</h2>
     <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       {#each facts as fact (fact.label)}
@@ -549,7 +549,7 @@
     </dl>
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">Alertas</h2>
     {#if viewState?.isAlertsLoading}
       <p class="text-ink-500 py-6 text-center text-sm">Carregando os alertas…</p>
@@ -614,7 +614,7 @@
     {/if}
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-ink-900 text-sm font-semibold">Manutenções desta máquina</h2>
       {#if !disposed}
@@ -656,7 +656,7 @@
     {/if}
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">Chamados desta máquina</h2>
 
     {#if viewState?.isTicketsLoading}
@@ -701,7 +701,7 @@
     {/if}
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">Por onde esta máquina andou</h2>
 
     {#if viewState?.isTransfersLoading}
@@ -739,7 +739,7 @@
     {/if}
   </section>
 
-  <section class="bg-card rounded-xl border p-4">
+  <section class="bg-card rounded-surface border p-4">
     <h2 class="text-ink-900 mb-3 text-sm font-semibold">Peças que esta máquina recebeu</h2>
 
     {#if viewState?.isPartsLoading}

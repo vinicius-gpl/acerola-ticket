@@ -143,14 +143,14 @@
     </EmptyState>
   {:else if budget}
     {#if viewState.isCovered}
-      <p class="bg-card flex items-center gap-2 rounded-xl border p-4 text-sm text-emerald-700">
+      <p class="bg-card flex items-center gap-2 rounded-surface border p-4 text-sm text-emerald-700">
         <PartyPopper class="size-4 shrink-0" aria-hidden="true" />
         Não precisa comprar nada: tudo o que o parque pede já está no depósito.
       </p>
     {/if}
 
     {#each budget.needs as need (need.key)}
-      <section class="bg-card rounded-xl border p-4">
+      <section class="bg-card rounded-surface border p-4">
         <div class="flex flex-wrap items-start justify-between gap-2">
           <div class="min-w-0">
             <h2 class="text-ink-900 text-sm font-semibold">{budgetNeedLabel(need.key)}</h2>

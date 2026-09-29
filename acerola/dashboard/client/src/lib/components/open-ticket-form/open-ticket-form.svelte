@@ -224,7 +224,7 @@
   }
 </script>
 
-<section class="bg-card rounded-xl border p-5">
+<section class="bg-card rounded-surface border p-5">
   {#if data.opened}
     <!-- O protocolo ocupa a tela inteira: é o que a pessoa precisa levar daqui. -->
     <div class="flex flex-col items-center gap-3 py-6 text-center">
@@ -236,7 +236,7 @@
 
       {#if data.opened.whatsAppLink}
         <a
-          class="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-semibold"
+          class="bg-primary text-primary-foreground hover:bg-primary/90 control-md rounded-control inline-flex items-center text-sm font-semibold"
           href={data.opened.whatsAppLink}
           target="_blank"
           rel="noopener"
@@ -404,7 +404,7 @@
               <div class="flex items-center gap-2">
                 <label
                   for="screenshot"
-                  class="flex flex-1 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border/80 bg-muted/20 px-3.5 py-3 text-xs text-muted-foreground transition-colors hover:bg-muted/40"
+                  class="control-lg flex flex-1 cursor-pointer items-center gap-2 rounded-control border border-dashed border-border/80 bg-muted/20 text-xs text-muted-foreground transition-colors hover:bg-muted/40"
                 >
                   <PaperclipIcon class="size-3.5 shrink-0" aria-hidden="true" />
                   <span class="truncate">{data.screenshotName ?? 'Escolher um arquivo de imagem'}</span>
@@ -414,7 +414,7 @@
                     type="button"
                     onclick={removeFile}
                     aria-label="Remover o print anexado"
-                    class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/80 transition-colors"
+                    class="text-muted-foreground hover:text-destructive hover:bg-destructive/10 control-icon-lg flex shrink-0 items-center justify-center rounded-control border border-border/80 transition-colors"
                   >
                     <XIcon class="size-4" aria-hidden="true" />
                   </button>
@@ -450,7 +450,7 @@
         {:else}
           <TimelineStep data={{ title: 'Como te avisamos', icon: MessageCircle }} ui={{ isLast: true, tone: 'success' }}>
             <label
-              class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/80 bg-muted/20 px-3.5 py-3 text-sm text-ink-700 transition-colors hover:bg-muted/40"
+              class="flex cursor-pointer items-start gap-2.5 rounded-box border border-border/80 bg-muted/20 px-3.5 py-3 text-sm text-ink-700 transition-colors hover:bg-muted/40"
             >
               <input
                 type="checkbox"

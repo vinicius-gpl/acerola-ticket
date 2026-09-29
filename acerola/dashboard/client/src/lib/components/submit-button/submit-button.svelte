@@ -28,7 +28,11 @@
   disabled={isBusy || state?.isDisabled}
   aria-busy={isBusy}
   class={cn(
-    'inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-4 py-2',
+    /* O degrau `md` da régua de medidas (`lib/theme/tokens.css`) — o mesmo do `ActionButton`,
+       que é quem fica ao lado dele no rodapé do diálogo. Antes a altura vinha só do padding,
+       e dava 4px a mais que o "Cancelar" ao lado. */
+    'control-md rounded-control',
+    'inline-flex w-full sm:w-auto items-center justify-center gap-2',
     'bg-primary text-primary-foreground text-sm font-semibold transition-colors shadow-xs',
     'hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60',
     ui?.className,

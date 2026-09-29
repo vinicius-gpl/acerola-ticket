@@ -21,7 +21,7 @@
 
 <div
   class={cn(
-    'border-ink-300 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-12 text-center',
+    'border-ink-300 flex flex-col items-center justify-center gap-2 rounded-box border border-dashed px-6 py-12 text-center',
     ui?.className
   )}
 >

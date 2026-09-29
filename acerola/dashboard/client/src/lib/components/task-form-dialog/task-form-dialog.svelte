@@ -80,7 +80,7 @@
     <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
       <DialogHeader class="gap-1.5">
         <div class="flex items-center gap-2.5">
-          <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
             <CheckSquare class="size-4" aria-hidden="true" />
           </span>
           <DialogTitle class="text-lg font-semibold tracking-tight">{isEdit ? 'Editar tarefa' : 'Nova tarefa'}</DialogTitle>
@@ -126,14 +126,14 @@
       <!-- Segmented Status Selector em vez de Select dropdown puro -->
       <div class="flex flex-col gap-2">
         <span class="text-ink-700 text-sm font-medium">Situação da tarefa</span>
-        <div class="grid grid-cols-3 gap-2 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 border border-border/60">
+        <div class="grid grid-cols-3 gap-2 p-1 rounded-box bg-neutral-100 dark:bg-neutral-800/60 border border-border/60">
           {#each STATUS_OPTIONS as opt (opt.value)}
             {@const isSelected = fields.status.value === opt.value}
             <button
               type="button"
               disabled={state.isSubmitting}
               class={cn(
-                "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                "control-sm flex items-center justify-center gap-1.5 rounded-chip text-xs font-semibold transition-all cursor-pointer",
                 isSelected
                   ? "bg-card text-foreground shadow-xs font-semibold border border-border/80"
                   : "text-muted-foreground hover:text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50"

@@ -210,7 +210,7 @@
     </EmptyState>
   {:else if insights}
     {#if !hasAnything}
-      <p class="flex items-center gap-2 rounded-xl border bg-card p-4 text-sm text-emerald-700">
+      <p class="flex items-center gap-2 rounded-surface border bg-card p-4 text-sm text-emerald-700">
         <PartyPopper class="size-4" aria-hidden="true" />
         Nada a recomendar nos últimos {insights.days} dias: nenhuma máquina no limite, nenhuma
         pedindo upgrade e nenhuma dando trabalho demais.
@@ -253,7 +253,7 @@
     {/if}
 
     <!-- Sobrecarregadas -->
-    <section class="bg-card rounded-xl border p-4">
+    <section class="bg-card rounded-surface border p-4">
       <h2 class="text-ink-900 text-sm font-semibold">Máquinas sobrecarregadas</h2>
       <p class="text-ink-500 mb-3 text-xs">
         Média de uso nos últimos {insights.days} dias acima de {OVERLOADED_CPU_PERCENT}% de
@@ -290,7 +290,7 @@
     </section>
 
     <!-- Upgrades -->
-    <section class="bg-card rounded-xl border p-4">
+    <section class="bg-card rounded-surface border p-4">
       <h2 class="text-ink-900 text-sm font-semibold">Quem precisa de upgrade</h2>
       <p class="text-ink-500 mb-3 text-xs">
         Menos de {UPGRADE_MEMORY_GB} GB de memória, ou disco quase cheio. Troca de HD por SSD não
@@ -330,7 +330,7 @@
     </section>
 
     <!-- Dão trabalho demais -->
-    <section class="bg-card rounded-xl border p-4">
+    <section class="bg-card rounded-surface border p-4">
       <h2 class="text-ink-900 text-sm font-semibold">Máquinas que dão mais trabalho</h2>
       <p class="text-ink-500 mb-3 text-xs">
         A partir de {TROUBLESOME_MAINTENANCE_COUNT} manutenções registradas. A conta é de
@@ -367,7 +367,7 @@
     </section>
 
     <!-- Reserva -->
-    <section class="bg-card rounded-xl border p-4">
+    <section class="bg-card rounded-surface border p-4">
       <h2 class="text-ink-900 text-sm font-semibold">Máquinas de reserva</h2>
       <p class="text-ink-500 mb-3 text-xs">
         As que estão cadastradas e SEM departamento — é assim que o sistema sabe que elas estão

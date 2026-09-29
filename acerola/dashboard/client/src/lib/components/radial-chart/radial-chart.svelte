@@ -66,7 +66,7 @@
 
 {#if chartState?.isLoading}
   <div
-    class={cn('bg-muted w-full animate-pulse rounded-lg', ui?.heightClass ?? 'h-40', ui?.className)}
+    class={cn('bg-muted w-full animate-pulse rounded-box', ui?.heightClass ?? 'h-40', ui?.className)}
   ></div>
 {:else}
   <div class={cn('flex w-full flex-col items-center', ui?.className)}>

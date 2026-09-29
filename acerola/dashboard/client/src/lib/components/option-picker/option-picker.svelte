@@ -22,10 +22,11 @@
       /** Prefixa uma opção "Todos os X", representando o valor ''. Só faz sentido em filtro. */
       allLabel?: string;
       placeholder?: string;
-      /** Veste o campo de formulário: `h-10` (a mesma altura do `TextField` e do
-       * `DatePicker`) e o combo esticando até a largura do campo ao lado. Numa barra de
-       * filtro isso não vale — lá o botão fica do tamanho do texto, e pastilha e busca não
-       * precisam bater altura com nada — por isso o padrão é `false`. */
+      /** Veste o campo de formulário: o degrau `lg` da régua de medidas
+       * (`lib/theme/tokens.css`), a mesma altura do `TextField`, do `SelectField` e do
+       * `DatePicker`, e o combo esticando até a largura do campo ao lado. Numa barra de
+       * filtro isso não vale — lá o controle usa o degrau `sm`, o mesmo do botão que mora
+       * dentro de uma linha — por isso o padrão é `false`. */
       fullWidth?: boolean;
     };
     state?: { isDisabled?: boolean };
@@ -96,10 +97,11 @@
         disabled={fieldState?.isDisabled}
         onclick={() => select(option.value)}
         class={cn(
-          /* `rounded-xl`: o mesmo raio do `TextField`, do `DatePicker` e do `ActionButton` —
-             pastilha, campo e botão precisam parecer a mesma família de controle. */
-          'inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
-          ui?.fullWidth && 'h-10 px-3',
+          /* A RÉGUA DE MEDIDAS decide altura, respiro e raio (`lib/theme/tokens.css`):
+             `lg` quando a pastilha veste campo de formulário, `sm` na barra de filtro.
+             Pastilha, campo e botão precisam parecer a mesma família de controle. */
+          ui?.fullWidth ? 'control-lg' : 'control-sm',
+          'rounded-control inline-flex cursor-pointer items-center gap-1.5 border text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
           isSelected
             ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
             : 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
@@ -118,8 +120,9 @@
       disabled={fieldState?.isDisabled}
       aria-label={ui?.ariaLabel}
       class={cn(
-        'inline-flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
-        ui?.fullWidth ? 'h-10 sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
+        ui?.fullWidth ? 'control-lg' : 'control-sm',
+        'rounded-control inline-flex w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+        ui?.fullWidth ? 'sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}
     >
@@ -145,7 +148,11 @@
           type="text"
           bind:value={query}
           placeholder="Buscar…"
-          class="w-full rounded-md border border-border/60 bg-muted/30 py-1.5 pr-2 pl-7 text-xs text-foreground outline-none focus:border-primary"
+          class={cn(
+            /* A busca do balão é um controle como os outros: degrau `sm` da régua. */
+            'control-sm rounded-control',
+            'w-full border border-border/60 bg-muted/30 pr-2 pl-7 text-xs text-foreground outline-none focus:border-primary',
+          )}
         />
       </div>
       <!-- `overflow-x-hidden` ao lado do vertical: pelo CSS, pedir rolagem num eixo
@@ -158,7 +165,8 @@
             type="button"
             onclick={() => select(option.value)}
             class={cn(
-              'flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs transition-colors',
+              /* Item de lista dentro de um balão é MIUDEZA, não controle: raio `chip`. */
+              'flex w-full cursor-pointer items-center gap-2 rounded-chip px-2.5 py-1.5 text-left text-xs transition-colors',
               isSelected ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted/60',
             )}
           >

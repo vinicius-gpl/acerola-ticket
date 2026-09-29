@@ -21,7 +21,7 @@
 
 <!-- Caso limite: sobre o fundo da barra lateral, que é de onde a cor do texto vem. -->
 <Story name="OnSidebar">
-  <div class="bg-sidebar rounded-lg p-4">
+  <div class="bg-sidebar rounded-box p-4">
     <BrandMark />
   </div>
 </Story>

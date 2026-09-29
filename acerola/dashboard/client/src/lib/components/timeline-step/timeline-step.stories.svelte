@@ -20,7 +20,7 @@
 {/snippet}
 
 {#snippet inTimeline(args: ComponentProps<typeof TimelineStep>)}
-  <div class="w-96 rounded-2xl border border-border bg-card p-5">
+  <div class="w-96 rounded-surface border border-border bg-card p-5">
     <Timeline><TimelineStep {...args} /></Timeline>
   </div>
 {/snippet}

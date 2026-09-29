@@ -63,6 +63,22 @@ describe('ActionButton', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  /* A RÉGUA DE MEDIDAS: o degrau escolhido tem que chegar na marcação, senão a altura volta
+     a ser a do componente baixado — e o botão desalinha do campo ao lado. */
+  it('wears the height step it was given', () => {
+    render(ActionButton, { props: { data: { label: 'Salvar' }, ui: { size: 'lg' } } });
+
+    expect(screen.getByRole('button', { name: 'Salvar' })).toHaveClass('control-lg');
+  });
+
+  it('wears the square step when only the icon shows', () => {
+    render(ActionButton, {
+      props: { data: { label: 'Excluir' }, ui: { size: 'sm', icon: Trash2, isIconOnly: true } },
+    });
+
+    expect(screen.getByRole('button', { name: 'Excluir' })).toHaveClass('control-icon-sm');
+  });
+
   /* `type="button"` impede que um botão dentro de formulário o envie sem querer. */
   it('never submits a form by accident', () => {
     render(ActionButton, { props: { data: { label: 'Cancelar' } } });

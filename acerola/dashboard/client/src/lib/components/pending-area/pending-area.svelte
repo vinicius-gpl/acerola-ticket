@@ -43,7 +43,7 @@
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-10 sm:px-6">
   <PageHeader data={{ title: data.title, description: data.summary }} />
 
-  <section class="border-ink-300 bg-card rounded-lg border border-dashed p-6">
+  <section class="border-ink-300 bg-card rounded-surface border border-dashed p-6">
     <div class="flex items-start gap-3">
       <Icon class="text-ink-500 mt-0.5 size-5 shrink-0" aria-hidden="true" />
       <div class="min-w-0">

@@ -127,7 +127,7 @@
   {#if state.isLoading}
     <div class="flex flex-col gap-2" aria-busy="true" aria-label="Carregando tarefas">
       {#each SKELETON_ROWS as row (row)}
-        <div class="border-ink-300 bg-card rounded-lg border p-4">
+        <div class="border-ink-300 bg-card rounded-surface border p-4">
           <Skeleton class="h-4 w-2/3" />
           <Skeleton class="mt-2 h-3 w-1/3" />
         </div>
@@ -185,7 +185,7 @@
       <ul class="flex flex-col gap-2">
         {#each data.tasks as task (task.id)}
           {@const isDone = task.status === 'done'}
-          <li class="border-ink-300 bg-card flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start">
+          <li class="border-ink-300 bg-card flex flex-col gap-3 rounded-surface border p-4 sm:flex-row sm:items-start">
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <p class={cn('text-ink-900 font-semibold break-words', isDone && 'text-ink-500 line-through')}>

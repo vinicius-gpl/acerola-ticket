@@ -116,7 +116,7 @@
 </script>
 
 {#if chartState?.isLoading}
-  <div class="bg-muted h-full w-full animate-pulse rounded-lg"></div>
+  <div class="bg-muted h-full w-full animate-pulse rounded-box"></div>
 {:else if data.slices.length === 0}
   <p class="text-muted-foreground flex h-full items-center justify-center text-xs">
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}

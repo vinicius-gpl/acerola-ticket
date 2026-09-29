@@ -2,8 +2,16 @@
   import type { LucideIcon } from '@lucide/svelte';
   import { tv } from 'tailwind-variants';
 
+  /**
+   * A altura e o raio vêm da RÉGUA DE MEDIDAS (`lib/theme/tokens.css`), e não do componente
+   * baixado: ele tem a escala dele (32, 28, 24px), que não é a do projeto. Era esse
+   * desencontro que deixava o "Cancelar" mais baixo que o "Salvar" no rodapé do diálogo.
+   *
+   * O `size` do `Button`, mais abaixo, continua entrando — mas só pelo tamanho do ícone e
+   * pelo espaço entre ícone e texto. A altura é nossa.
+   */
   export const actionButton = tv({
-    base: 'align-middle font-semibold rounded-xl shadow-xs transition-all',
+    base: 'align-middle font-semibold rounded-control shadow-xs transition-all',
     variants: {
       variant: {
         primary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
@@ -11,17 +19,38 @@
         ghost: 'text-foreground/80 hover:bg-accent hover:text-foreground bg-transparent shadow-none border border-transparent',
         danger: 'bg-red-600 text-white hover:bg-red-700',
       },
+      size: {
+        sm: 'control-sm',
+        md: 'control-md',
+        lg: 'control-lg',
+      },
+      /* Botão só de ícone é quadrado: a largura acompanha a altura, e não o ícone dentro. */
+      isIconOnly: { true: '', false: '' },
     },
-    defaultVariants: { variant: 'primary' },
+    compoundVariants: [
+      { size: 'sm', isIconOnly: true, class: 'control-icon-sm' },
+      { size: 'md', isIconOnly: true, class: 'control-icon-md' },
+      { size: 'lg', isIconOnly: true, class: 'control-icon-lg' },
+    ],
+    defaultVariants: { variant: 'primary', size: 'md', isIconOnly: false },
   });
 
   export type ActionButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+
+  export type ActionButtonSize = 'sm' | 'md' | 'lg';
 
   export type ActionButtonProps = {
     data: { label: string; loadingLabel?: string };
     ui?: {
       variant?: ActionButtonVariant;
-      size?: 'sm' | 'md';
+      /**
+       * O degrau da régua de medidas (`lib/theme/tokens.css`).
+       *
+       * `sm` dentro de uma linha de tabela, `md` (o padrão) para a ação da tela e o rodapé
+       * do diálogo, `lg` quando o botão divide fileira com um campo de formulário — ali ele
+       * tem que ter a altura do campo, não a dele.
+       */
+      size?: ActionButtonSize;
       icon?: LucideIcon;
       /** Só o ícone aparece; o rótulo vira `aria-label` e dica. Use com parcimônia. */
       isIconOnly?: boolean;
@@ -47,11 +76,26 @@
     return { Icon, label: text, accessibleName: undefined };
   }
 
-  function buttonSize(ui: ActionButtonProps['ui']): 'sm' | 'default' | 'icon-sm' | 'icon' {
-    const isSmall = ui?.size === 'sm';
-    if (ui?.isIconOnly) return isSmall ? 'icon-sm' : 'icon';
+  /** Do componente baixado sobram o tamanho do ícone e o espaço até o texto. */
+  const BUTTON_SIZES: Record<ActionButtonSize, 'sm' | 'default' | 'lg'> = {
+    sm: 'sm',
+    md: 'default',
+    lg: 'lg',
+  };
 
-    return isSmall ? 'sm' : 'default';
+  const BUTTON_ICON_SIZES: Record<ActionButtonSize, 'icon-sm' | 'icon' | 'icon-lg'> = {
+    sm: 'icon-sm',
+    md: 'icon',
+    lg: 'icon-lg',
+  };
+
+  function buttonSize(
+    ui: ActionButtonProps['ui'],
+  ): 'sm' | 'default' | 'lg' | 'icon-sm' | 'icon' | 'icon-lg' {
+    const size = ui?.size ?? 'md';
+    if (ui?.isIconOnly) return BUTTON_ICON_SIZES[size];
+
+    return BUTTON_SIZES[size];
   }
 </script>
 
@@ -74,7 +118,10 @@
   aria-label={accessibleName}
   title={accessibleName}
   onclick={actions?.onClick}
-  class={cn(actionButton({ variant: ui?.variant }), ui?.className)}
+  class={cn(
+    actionButton({ variant: ui?.variant, size: ui?.size, isIconOnly: ui?.isIconOnly }),
+    ui?.className,
+  )}
 >
   {#if Icon}
     <Icon class={cn(isBusy && 'animate-spin')} aria-hidden="true" />
