@@ -31,6 +31,7 @@ function summary(over: Partial<Dashboard> = {}): Dashboard {
     worstMachines: [],
     byProblemType: [],
     byDepartment: [],
+    daily: [],
     panels: {
       recurringByPerson: [],
       recurringByMachine: [],

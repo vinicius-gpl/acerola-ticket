@@ -18,6 +18,14 @@
     };
   }
 
+  /** Catorze dias de movimento, com um fim de semana parado no meio. */
+  const dailyActivity = [4, 6, 3, 8, 5, 0, 1, 7, 9, 4, 6, 2, 0, 3].map((opened, index) => ({
+    day: `2026-09-${String(10 + index).padStart(2, '0')}`,
+    opened,
+    resolved: Math.max(0, opened - (index % 3)),
+    maintenances: index % 4 === 0 ? 1 : 0,
+  }));
+
   function summary(over: Partial<Dashboard> = {}): Dashboard {
     return {
       days: 30,
@@ -65,6 +73,7 @@
         { key: 'rh', count: 3 },
         { key: 'comercial', count: 2 },
       ],
+      daily: dailyActivity,
       panels: {
         recurringByPerson: [],
         recurringByMachine: [],
@@ -149,6 +158,7 @@
         worstMachines: [],
         byProblemType: [],
         byDepartment: [],
+        daily: [],
       }),
       days: 30,
     },

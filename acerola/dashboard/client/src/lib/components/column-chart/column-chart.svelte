@@ -36,6 +36,24 @@
   const VALUE_KEY = 'value';
 
   /**
+   * A ALTURA DE UMA LINHA do gráfico deitado, e a altura mínima do desenho.
+   *
+   * Deitado, o gráfico não tem altura própria: ele divide a que recebe pelo número de barras.
+   * Com uma barra só numa caixa de 256 px, essa barra vira um BLOCO de 256 px de altura —
+   * um retângulo gigante que não se lê como gráfico nenhum.
+   *
+   * Por isso aqui a altura vem do CONTEÚDO: cada barra ganha uma linha de tamanho fixo, como
+   * numa tabela. Uma barra dá um cartão curto; quinze dão um cartão alto, que quem usa rola.
+   */
+  const ROW_HEIGHT = 38;
+  const MIN_HORIZONTAL_HEIGHT = 96;
+
+  /** A altura que o desenho deitado precisa ter para caber estas barras. */
+  export function horizontalHeightOf(count: number): number {
+    return Math.max(MIN_HORIZONTAL_HEIGHT, count * ROW_HEIGHT);
+  }
+
+  /**
    * Rótulo longo cortado NO EIXO — o nome inteiro continua no balão e na lista.
    *
    * Exportada para ter teste próprio: cortar no lugar errado é como "CONTABIL-01" e
@@ -48,6 +66,18 @@
        reticências que parece erro de digitação. */
     return `${label.slice(0, max - 1).trimEnd()}…`;
   }
+
+  /**
+   * Quanto do nome cabe no eixo, e quanto de espaço ele recebe.
+   *
+   * Os dois andam juntos, e errar o par tem consequência visível: o texto do eixo é pintado
+   * com `overflow: visible`, então um rótulo mais largo do que a folga não é cortado — ele
+   * vaza para fora do desenho, empurra a largura do cartão e a PÁGINA INTEIRA ganha barra de
+   * rolagem horizontal. Deitado sobra largura, mas não é infinita.
+   */
+  const HORIZONTAL_LABEL_MAX = 18;
+  const HORIZONTAL_LABEL_SPACE = 128;
+  const VERTICAL_LABEL_MAX = 14;
 
   /** O contrato de cores e rótulos que a moldura e o balão leem. */
   export function configOf(seriesLabel: string): ChartConfig {
@@ -74,7 +104,14 @@
   /* Deitado, o eixo dos nomes precisa de largura fixa; em pé, de altura para o rótulo virado.
      Sem essa folga o texto do eixo sai cortado pela borda do cartão. */
   const padding = $derived(
-    isHorizontal ? { left: 96, right: 28 } : { bottom: 44, top: 20, left: 8, right: 8 },
+    isHorizontal
+      ? { left: HORIZONTAL_LABEL_SPACE, right: 34 }
+      : { bottom: 44, top: 20, left: 8, right: 8 },
+  );
+
+  /* Deitado a altura vem do conteúdo; em pé, do espaço que o cartão deu. */
+  const boxStyle = $derived(
+    isHorizontal ? `height: ${horizontalHeightOf(data.slices.length)}px` : undefined,
   );
 </script>
 
@@ -85,10 +122,18 @@
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}
   </p>
 {:else}
-  <div class={cn('flex h-full w-full flex-col', ui?.className)}>
+  <div class={cn('flex w-full flex-col', isHorizontal ? 'h-auto' : 'h-full', ui?.className)}>
     <!-- `role="img"` some com o conteúdo para o leitor de tela — é o que se quer de um
          desenho. Por isso a lista abaixo fica FORA desta caixa, e não dentro dela. -->
-    <div class="min-h-0 flex-1" role="img" aria-label={data.seriesLabel}>
+    <!-- `overflow-hidden`: cinto de segurança contra o vazamento descrito em
+         `HORIZONTAL_LABEL_MAX`. Um nome inesperadamente largo fica cortado dentro do cartão
+         em vez de dar barra de rolagem horizontal na tela inteira. -->
+    <div
+      class={isHorizontal ? 'w-full overflow-hidden' : 'min-h-0 flex-1'}
+      style={boxStyle}
+      role="img"
+      aria-label={data.seriesLabel}
+    >
       <ChartFrame data={{ config: chartConfig }} ui={{ className: 'h-full w-full' }}>
         <BarChart
           data={data.slices}
@@ -107,8 +152,14 @@
           onBarClick={(_event, detail) => actions?.onSelect?.((detail.data as ChartSlice).label)}
           props={{
             bars: { radius: 4, rounded: 'edge', strokeWidth: 0 },
-            xAxis: { format: (value: unknown) => (isHorizontal ? String(value) : shorten(String(value))) },
-            yAxis: { format: (value: unknown) => (isHorizontal ? shorten(String(value)) : String(value)) },
+            xAxis: {
+              format: (value: unknown) =>
+                isHorizontal ? String(value) : shorten(String(value), VERTICAL_LABEL_MAX),
+            },
+            yAxis: {
+              format: (value: unknown) =>
+                isHorizontal ? shorten(String(value), HORIZONTAL_LABEL_MAX) : String(value),
+            },
             labels: { class: 'fill-foreground text-[11px] font-semibold' },
             highlight: { area: { fill: 'var(--muted)', fillOpacity: 0.5 } },
           }}

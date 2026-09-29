@@ -69,9 +69,9 @@
     class={cn('bg-muted w-full animate-pulse rounded-lg', ui?.heightClass ?? 'h-40', ui?.className)}
   ></div>
 {:else}
-  <div class={cn('relative w-full', ui?.heightClass ?? 'h-40', ui?.className)}>
+  <div class={cn('flex w-full flex-col items-center', ui?.className)}>
     <div
-      class="h-full w-full"
+      class={cn('relative w-full', ui?.heightClass ?? 'h-40')}
       role="img"
       aria-label="{data.label}: {data.display ?? data.value} de {max}"
     >
@@ -89,18 +89,26 @@
           props={{ arc: { fill: color, track: { class: 'fill-muted' } } }}
         />
       </ChartFrame>
+
+      <!-- No MEIO do anel vai só o que cabe no buraco: o número e o que ele mede.
+           `px-[20%]` é a folga que impede o rótulo de encostar no arco. -->
+      <div
+        class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-[20%] text-center"
+      >
+        <span class="text-foreground text-2xl leading-tight font-bold tabular-nums">
+          {data.display ?? data.value}
+        </span>
+        <span class="text-muted-foreground text-[10px] leading-tight tracking-wide uppercase">
+          {data.label}
+        </span>
+      </div>
     </div>
 
-    <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-      <span class="text-foreground text-2xl leading-tight font-bold tabular-nums">
-        {data.display ?? data.value}
-      </span>
-      <span class="text-muted-foreground max-w-[80%] text-center text-[10px] tracking-wide uppercase">
-        {data.label}
-      </span>
-      {#if data.hint}
-        <span class="text-muted-foreground mt-0.5 text-center text-[10px]">{data.hint}</span>
-      {/if}
-    </div>
+    <!-- A explicação vai FORA do anel, embaixo. Dentro, ela não cabe: o buraco tem pouco mais
+         de cem pixels de largura, e uma frase como "7 manutenções feitas no período" atravessa
+         o arco e fica ilegível por cima dele. -->
+    {#if data.hint}
+      <p class="text-muted-foreground mt-1 text-center text-[11px] leading-tight">{data.hint}</p>
+    {/if}
   </div>
 {/if}
