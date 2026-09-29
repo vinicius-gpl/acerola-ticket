@@ -26,7 +26,9 @@
   let { ui, state, actions }: ReportExportActionsProps = $props();
 </script>
 
-<div class={cn('flex flex-wrap gap-2', ui?.className)}>
+<!-- `items-center` pelo mesmo motivo do `PageHeader`: sem ele os botões esticam até a altura
+     da fileira, e ao lado de um botão maior eles encostam no topo. -->
+<div class={cn('flex flex-wrap items-center gap-2', ui?.className)}>
   {#each FORMATS as format (format.value)}
     <ActionButton
       data={{ label: format.label, loadingLabel: 'Baixando…' }}

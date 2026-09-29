@@ -123,6 +123,7 @@
   import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
+  import RadarChart from '$lib/components/radar-chart/radar-chart.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
@@ -202,23 +203,21 @@
     />
   </StatCardGrid>
 
-  <!-- OS DOIS SÃO BARRA DEITADA, e é isso mesmo.
-       As duas perguntas desta tela são da mesma natureza — "compare estas categorias com
-       nome pelo número de chamados" — e barra deitada é o que responde isso. A rosca
-       responde outra pergunta ("de que o bolo é feito"), e com os nove tipos de problema
-       deste sistema ela vira um anel de fatias finas com uma legenda espremida ao lado.
-       Quem quer a proporção tem o mapa de problemas do Painel, onde ela é o assunto. -->
+  <!-- DOIS FORMATOS, porque são duas perguntas diferentes.
+       "Em que este escritório dá problema" é um PERFIL — todos os tipos de uma vez, e a
+       forma da teia se reconhece de longe. "Qual departamento abriu mais" é uma ORDEM, e
+       ordem se lê em barra, na hora. A rosca não entra em nenhuma das duas: com nove tipos
+       ela vira um anel de fatias finas que só se lê pela legenda ao lado — e quem está lendo
+       a legenda não está olhando o desenho. -->
   <div class="grid gap-4 lg:grid-cols-2">
-    <PanelCard data={{ title: 'Problemas por tipo', hint: 'Do que mais apareceu para o que menos' }}>
-      <!-- Deitado, o gráfico tem a altura do conteúdo: uma linha por barra. O teto aqui é
-           para uma lista longa rolar dentro do bloco, em vez de esticar a página. -->
-      <div class="max-h-72 overflow-x-hidden overflow-y-auto">
-        <ColumnChart
-          data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
-          state={{ isLoading: state.isDashboardLoading }}
-          ui={{ orientation: 'horizontal', emptyLabel: 'Ainda não há chamados para comparar.' }}
-        />
-      </div>
+    <PanelCard
+      data={{ title: 'Problemas por tipo', hint: 'O perfil do que dá trabalho neste escritório' }}
+    >
+      <RadarChart
+        data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
+        state={{ isLoading: state.isDashboardLoading }}
+        ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
+      />
     </PanelCard>
 
     <PanelCard

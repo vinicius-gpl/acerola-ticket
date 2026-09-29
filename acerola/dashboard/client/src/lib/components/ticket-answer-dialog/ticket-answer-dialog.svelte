@@ -343,9 +343,14 @@
                    que faz a ficha da máquina saber quantos problemas ela já deu. -->
               <div class="flex min-w-0 flex-col gap-1.5 sm:flex-1 sm:basis-[240px]">
                 <span class="text-xs font-medium text-muted-foreground">Máquina</span>
-                <SelectField
+                <!-- `OptionPicker`, e não `SelectField`: este é o ÚNICO campo do sistema que
+                     escolhe entre o parque inteiro. Numa lista rolante de cinquenta máquinas,
+                     achar "a da recepção" é rolar e ler linha por linha; aqui a pessoa digita
+                     "recep" e sobra uma. O `OptionPicker` vira busca sozinho quando passa de
+                     seis opções, e continua pastilha onde há poucas. -->
+                <OptionPicker
                   data={{ value: fields.computerId.value, options: machineOptions }}
-                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma' }}
+                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma', fullWidth: true }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
                 />

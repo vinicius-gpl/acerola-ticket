@@ -28,7 +28,11 @@
     {/if}
   </div>
   {#if children}
-    <div class="flex shrink-0 flex-wrap gap-2">
+    <!-- `items-center`: sem ele os itens da fileira esticam (é o padrão do flex), e um grupo
+         de botões pequenos ao lado de um botão maior — os de exportar ao lado de "Cadastrar
+         computador" — encosta no topo em vez de ficar na mesma linha do meio. Com o
+         `flex-wrap`, o mesmo vale para a segunda linha quando a tela é estreita. -->
+    <div class="flex shrink-0 flex-wrap items-center gap-2">
       {@render children()}
     </div>
   {/if}

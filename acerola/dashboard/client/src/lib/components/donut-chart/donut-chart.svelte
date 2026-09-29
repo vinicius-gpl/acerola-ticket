@@ -105,7 +105,9 @@
          nome um pouco largo demais dava barra de rolagem HORIZONTAL na legenda — e ninguém
          rola uma legenda para o lado. -->
     <ul class="w-full min-w-0 flex-1 space-y-2.5 self-stretch overflow-x-hidden overflow-y-auto pr-1">
-      {#each data.slices as slice, index (slice.label)}
+      <!-- A chave leva a POSIÇÃO junto com o rótulo: dois itens podem ter o mesmo nome, e
+           chave repetida num `each` derruba a tela inteira em vez de só desenhar torto. -->
+      {#each data.slices as slice, index (`${slice.label}-${index}`)}
         {@const color = colors[index]}
         {@const percent = percentOf(slice.value, total)}
         <li>

@@ -70,10 +70,17 @@
       {selectedLabel || (ui?.placeholder ?? '')}
     </span>
   </SelectTrigger>
-  <SelectContent>
+  <!-- A LARGURA DA LISTA É AMARRADA À DO GATILHO, entre um piso e um teto.
+       Sem isso ela se estica até o nome mais comprido da lista: com apelidos como
+       "Paralegal — estação compartilhada do corredor (PARALEGAL-08-…)", a lista nascia mais
+       larga do que o diálogo inteiro e vazava pelos dois lados. `--bits-select-anchor-width`
+       é a largura do gatilho, medida pelo próprio componente. -->
+  <SelectContent
+    class="min-w-(--bits-select-anchor-width) w-auto max-w-[min(26rem,calc(100vw-2rem))]"
+  >
     {#each data.options as option (option.value || EMPTY_VALUE)}
       <SelectItem value={option.value || EMPTY_VALUE} label={option.label}>
-        {option.label}
+        <span class="truncate">{option.label}</span>
       </SelectItem>
     {/each}
   </SelectContent>

@@ -175,7 +175,11 @@
          teclado lê os números e chega ao detalhamento. Fica escondido dos olhos porque para
          quem enxerga o gráfico já diz tudo isso. -->
     <ul class="sr-only">
-      {#each data.slices as slice (slice.label)}
+      <!-- A chave leva a POSIÇÃO junto com o rótulo. Dois itens podem ter o mesmo nome — duas
+           máquinas com o mesmo apelido, dois departamentos escritos igual — e chave repetida
+           num `each` não desenha torto: ela DERRUBA a tela inteira. Nenhum gráfico vale uma
+           tela em branco. -->
+      {#each data.slices as slice, index (`${slice.label}-${index}`)}
         <li>
           {#if actions?.onSelect}
             <button

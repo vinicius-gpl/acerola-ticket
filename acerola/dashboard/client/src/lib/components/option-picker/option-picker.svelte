@@ -126,7 +126,16 @@
       <span class="truncate">{selectedOption?.label ?? ui?.placeholder ?? 'Selecione'}</span>
       <ChevronDownIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
     </PopoverTrigger>
-    <PopoverContent class="w-64 p-0" align="start">
+    <!-- A LARGURA DO BALÃO É AMARRADA À DO BOTÃO, entre um piso e um teto.
+         Com largura fixa, ele nascia estreito sob um botão largo (e as opções saíam
+         cortadas) ou largo sob um botão estreito (e o balão parecia solto, fora do lugar).
+         `--bits-popover-anchor-width` é a largura do gatilho, medida pelo próprio componente:
+         daí para baixo ele nunca fica menor que o botão, e o teto impede que uma opção de
+         nome comprido estique o balão pela tela — a opção é cortada, não a tela. -->
+    <PopoverContent
+      class="min-w-(--bits-popover-anchor-width) w-auto max-w-[min(26rem,calc(100vw-2rem))] p-0"
+      align="start"
+    >
       <div class="relative border-b border-border/70 p-2">
         <SearchIcon
           class="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground"
@@ -139,7 +148,10 @@
           class="w-full rounded-md border border-border/60 bg-muted/30 py-1.5 pr-2 pl-7 text-xs text-foreground outline-none focus:border-primary"
         />
       </div>
-      <div class="max-h-64 overflow-y-auto p-1">
+      <!-- `overflow-x-hidden` ao lado do vertical: pelo CSS, pedir rolagem num eixo
+           transforma o outro em `auto` sozinho, e uma opção de nome comprido daria barra de
+           rolagem horizontal dentro do balão. -->
+      <div class="max-h-64 overflow-x-hidden overflow-y-auto p-1">
         {#each filteredOptions as option (option.value || '__all__')}
           {@const isSelected = option.value === data.value}
           <button
