@@ -65,6 +65,16 @@
         { key: 'rh', count: 3 },
         { key: 'comercial', count: 2 },
       ],
+      panels: {
+        recurringByPerson: [],
+        recurringByMachine: [],
+        heavyMaintenance: [],
+        peaking: [],
+        maintenanceLog: { day: [], week: [], month: [] },
+        maintenanceByType: { day: [], week: [], month: [] },
+        plannedToday: [],
+        doneToday: false,
+      },
       ...over,
     };
   }

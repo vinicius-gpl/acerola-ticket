@@ -141,9 +141,15 @@
   open={state.isOpen}
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
-  <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-2xl rounded-2xl border border-border bg-card shadow-2xl p-6">
-    <form novalidate class="flex flex-col gap-5" onsubmit={handleSubmit}>
-      <DialogHeader class="border-b border-border/80 pb-4">
+  <!-- O card NÃO rola inteiro: ele é uma coluna de altura limitada, e só o MIOLO rola. Com o
+       card inteiro rolando, o título e os botões subiam junto e sumiam num chamado com muito
+       conteúdo — e no celular, onde a altura é pouca, sumiam quase sempre. `min-h-0` é o que
+       permite o miolo encolher dentro da coluna; sem ele o flex ignora o limite de altura. -->
+  <DialogContent
+    class="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-2xl sm:max-w-2xl"
+  >
+    <form novalidate class="flex min-h-0 flex-1 flex-col" onsubmit={handleSubmit}>
+      <DialogHeader class="shrink-0 border-b border-border/80 px-6 pt-6 pb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2.5">
             <DialogTitle class="font-mono text-base font-bold text-foreground">Chamado {ticket.protocol}</DialogTitle>
@@ -161,6 +167,7 @@
         </DialogDescription>
       </DialogHeader>
 
+      <div class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
       <!-- O pedido, como a pessoa escreveu. Estilo Approvals Queue / Drawer de Diagnóstico. -->
       <section class="rounded-2xl border border-border/80 bg-neutral-50/60 dark:bg-neutral-900/40 p-4.5 flex flex-col gap-3.5 shadow-xs">
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -294,7 +301,10 @@
               icon: ListChecks,
             }}
           >
-            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+            <!-- `min-w-0` na linha inteira: sem ele, um campo de conteúdo largo (o nome de uma
+                 máquina, por exemplo) empurra a linha para além do diálogo em vez de encolher,
+                 e a tela ganha barra de rolagem horizontal. -->
+            <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
               <div class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-muted-foreground">Situação</span>
                 <OptionPicker
@@ -322,7 +332,7 @@
                 <span class="text-xs font-medium text-muted-foreground">Tipo do problema</span>
                 <SelectField
                   data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
-                  ui={{ ariaLabel: 'Tipo do problema', className: 'min-w-[200px]' }}
+                  ui={{ ariaLabel: 'Tipo do problema', className: 'sm:min-w-[180px]' }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
                 />
@@ -331,11 +341,11 @@
               <!-- A máquina é preenchida AQUI, e não no formulário público: quem pede socorro
                    não sabe por qual nome o sistema conhece o computador dele. É este vínculo
                    que faz a ficha da máquina saber quantos problemas ela já deu. -->
-              <div class="flex flex-col gap-1.5">
+              <div class="flex min-w-0 flex-col gap-1.5 sm:flex-1 sm:basis-[240px]">
                 <span class="text-xs font-medium text-muted-foreground">Máquina</span>
                 <SelectField
                   data={{ value: fields.computerId.value, options: machineOptions }}
-                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma', className: 'min-w-[220px]' }}
+                  ui={{ ariaLabel: 'Máquina', placeholder: 'Nenhuma' }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
                 />
@@ -380,8 +390,9 @@
       {#if state.error}
         <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
       {/if}
+      </div>
 
-      <DialogFooter class="border-t border-border/80 pt-4 mt-2">
+      <DialogFooter class="shrink-0 border-t border-border/80 px-6 py-4">
         <ActionButton
           data={{ label: 'Fechar' }}
           ui={{ variant: 'secondary' }}

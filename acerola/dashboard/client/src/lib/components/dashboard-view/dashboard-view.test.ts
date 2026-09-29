@@ -40,6 +40,16 @@ function summary(over: Partial<Dashboard> = {}): Dashboard {
     worstMachines: [machine()],
     byProblemType: [{ key: 'printer', count: 4 }],
     byDepartment: [{ key: 'financeiro', count: 3 }],
+    panels: {
+      recurringByPerson: [],
+      recurringByMachine: [],
+      heavyMaintenance: [],
+      peaking: [],
+      maintenanceLog: { day: [], week: [], month: [] },
+      maintenanceByType: { day: [], week: [], month: [] },
+      plannedToday: [],
+      doneToday: false,
+    },
     ...over,
   };
 }

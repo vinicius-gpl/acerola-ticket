@@ -120,6 +120,7 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
+  import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
@@ -249,12 +250,18 @@
          de baixo — uma fileira só virava uma bagunça de tamanhos diferentes se reordenando
          a cada largura de tela. -->
     <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+      <!-- Situação e urgência são perguntas DIFERENTES ("em que pé está" e "quão urgente é"),
+           e lado a lado os dois grupos de botões viravam uma régua só. O traço separa os dois
+           sem gastar uma linha inteira. No celular ele vira horizontal, porque ali os grupos
+           empilham em vez de ficar lado a lado. -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <OptionPicker
           data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
           actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
         />
+        <Separator orientation="horizontal" class="bg-border sm:hidden" />
+        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
         <OptionPicker
           data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
@@ -263,7 +270,7 @@
           }}
         />
       </div>
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <OptionPicker
           data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
@@ -271,6 +278,8 @@
             onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
           }}
         />
+        <Separator orientation="horizontal" class="bg-border sm:hidden" />
+        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
         <OptionPicker
           data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
