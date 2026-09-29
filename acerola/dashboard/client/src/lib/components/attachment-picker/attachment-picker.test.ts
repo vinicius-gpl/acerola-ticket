@@ -130,4 +130,28 @@ describe('AttachmentPicker', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('não é aceito');
   });
+
+  /**
+   * O DEFEITO QUE ESTE TESTE TRANCA, e ele quebrava o diálogo inteiro.
+   *
+   * O campo de arquivo é `sr-only`, e `sr-only` é `position: absolute`. Sem um ancestral
+   * POSICIONADO, ele se ancorava no painel do diálogo — a centenas de pixels do rótulo que o
+   * aciona. Quando o seletor de arquivos do sistema fechava, o navegador devolvia o foco ao
+   * campo e o rolava para dentro da vista: quem rolava era o PAINEL. O cabeçalho do chamado
+   * saía por cima, sobrava um vazio embaixo do rodapé, e não havia como desfazer — o painel é
+   * `overflow-hidden`, então não existe barra de rolagem para voltar.
+   */
+  it('keeps the hidden file field anchored to its own block, never to whatever is above', () => {
+    const { container } = render(AttachmentPicker, {
+      props: { data: { files: [] }, actions: { onChange: vi.fn(), onError: vi.fn() } },
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const wrapper = container.firstElementChild;
+
+    expect(input?.className).toContain('sr-only');
+    /* O bloco do seletor precisa ser o ancestral posicionado do campo escondido. */
+    expect(wrapper?.className).toContain('relative');
+    expect(wrapper?.contains(input)).toBe(true);
+  });
 });

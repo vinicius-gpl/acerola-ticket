@@ -393,7 +393,11 @@
               }}
             />
 
-            <div class="flex flex-col gap-1.5">
+            <!-- `relative` pelo mesmo motivo do `AttachmentPicker`: o campo de arquivo abaixo
+                 é `sr-only`, que é `position: absolute`. Sem um ancestral posicionado, ele se
+                 ancora num elemento lá em cima, e quando o seletor do sistema fecha o
+                 navegador rola ESSE elemento para dentro da vista — a página pula sozinha. -->
+            <div class="relative flex flex-col gap-1.5">
               <label class="text-ink-700 text-sm font-medium" for="screenshot">
                 Print do erro (opcional)
               </label>

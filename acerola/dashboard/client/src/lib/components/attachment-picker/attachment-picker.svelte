@@ -112,7 +112,22 @@
   }
 </script>
 
-<div class="flex flex-col gap-2">
+<!--
+  `relative` NÃO É ENFEITE, e foi um defeito de verdade.
+
+  O `<input type="file">` abaixo é `sr-only`, e `sr-only` é `position: absolute`. Sem um
+  ancestral posicionado, ele se ancorava no PAINEL DO DIÁLOGO — ou seja, no canto superior
+  esquerdo da janela inteira, a centenas de pixels do rótulo que o aciona.
+
+  Quando o seletor de arquivos do sistema fechava, o navegador devolvia o foco ao campo e o
+  rolava para dentro da vista. Como ele estava ancorado no painel, quem rolava era o PAINEL:
+  o cabeçalho do chamado saía por cima, sobrava um vazio embaixo do rodapé, e não havia como
+  desfazer — o painel é `overflow-hidden`, então não existe barra de rolagem para voltar.
+
+  Com `relative` aqui, o campo passa a morar onde o rótulo está. Rolá-lo para dentro da vista
+  vira uma operação sem efeito, porque ele já está visível.
+-->
+<div class="relative flex flex-col gap-2">
   <label
     class="border-input hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-sm"
     class:pointer-events-none={isDisabled}

@@ -93,7 +93,10 @@
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}
   </p>
 {:else}
-  <div class={cn('flex w-full flex-col', ui?.className)}>
+  <!-- `relative` pelo mesmo motivo do `ColumnChart`: a lista escondida abaixo é `sr-only`
+       (`position: absolute`) e tem botões focáveis. Sem ancestral posicionado, tabular até
+       eles rola a página para um lugar sem relação nenhuma com o gráfico. -->
+  <div class={cn('relative flex w-full flex-col', ui?.className)}>
     <!-- `role="img"` some com o conteúdo para o leitor de tela — é o que se quer de um
          desenho. Por isso a lista abaixo fica FORA desta caixa, e não dentro dela. -->
     <div class={cn('w-full', ui?.heightClass ?? 'h-72')} role="img" aria-label={data.seriesLabel}>

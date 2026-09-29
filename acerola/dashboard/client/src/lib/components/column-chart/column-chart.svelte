@@ -122,7 +122,13 @@
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}
   </p>
 {:else}
-  <div class={cn('flex w-full flex-col', isHorizontal ? 'h-auto' : 'h-full', ui?.className)}>
+  <!-- `relative`: a lista escondida lá embaixo é `sr-only`, que é `position: absolute`, e ela
+       tem BOTÕES — quem navega por teclado chega neles. Sem um ancestral posicionado, eles se
+       ancoram num elemento distante, e tabular até eles faz a página rolar para um lugar que
+       não tem nada a ver com o gráfico. -->
+  <div
+    class={cn('relative flex w-full flex-col', isHorizontal ? 'h-auto' : 'h-full', ui?.className)}
+  >
     <!-- `role="img"` some com o conteúdo para o leitor de tela — é o que se quer de um
          desenho. Por isso a lista abaixo fica FORA desta caixa, e não dentro dela. -->
     <!-- `overflow-hidden`: cinto de segurança contra o vazamento descrito em
