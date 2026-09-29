@@ -10,6 +10,7 @@ import { computerAlerts } from '../../../lib/db/schema/computer-alerts.schema';
 import { computerSamples } from '../../../lib/db/schema/computer-samples.schema';
 import { computers } from '../../../lib/db/schema/computers.schema';
 import { maintenances } from '../../../lib/db/schema/maintenances.schema';
+import { tickets } from '../../../lib/db/schema/tickets.schema';
 
 /** As colunas que identificam a máquina em toda lista desta tela. */
 const machineColumns = {
@@ -51,6 +52,7 @@ export type TroubleRow = {
   department: string | null;
   maintenanceCount: number;
   alertCount: number;
+  ticketCount: number;
   lastMaintenanceAt: Date | null;
 };
 
@@ -138,6 +140,13 @@ export class InsightsRepository {
             select count(*)::int from ${computerAlerts}
             where ${qualified(computerAlerts.computerId)} = ${qualified(computers.id)}
               and ${qualified(computerAlerts.startedAt)} >= ${asTimestamp(since)}
+          )`,
+          /* Só os chamados COM máquina no chamado: o campo é opcional, e um chamado sem
+             vínculo não pertence a máquina nenhuma. */
+          ticketCount: sql<number>`(
+            select count(*)::int from ${tickets}
+            where ${qualified(tickets.computerId)} = ${qualified(computers.id)}
+              and ${qualified(tickets.createdAt)} >= ${asTimestamp(since)}
           )`,
           lastMaintenanceAt: asDate(
             sql<Date | null>`(

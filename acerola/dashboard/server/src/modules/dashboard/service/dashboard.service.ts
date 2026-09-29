@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { type HealthStatus } from '@template/shared/domain/computer-health.util';
+import { buildDailyActivity } from '@template/shared/domain/daily-activity.util';
 import { bySeverity, isProblem } from '@template/shared/domain/dashboard-severity.util';
 import { type Department } from '@template/shared/domain/department.util';
 import { preventiveStatusOf } from '@template/shared/domain/maintenance.util';
@@ -67,6 +68,9 @@ export class DashboardService {
       peaking,
       maintenanceLog,
       planCandidates,
+      openedByDay,
+      resolvedByDay,
+      maintenancesByDay,
     ] = await Promise.all([
         this.repository.healthCounts(),
         this.repository.neverSeenCount(),
@@ -83,6 +87,9 @@ export class DashboardService {
         this.repository.peakingMachines(monthStart),
         this.repository.maintenanceLog(monthStart),
         this.repository.planCandidates(),
+        this.repository.ticketsOpenedByDay(since),
+        this.repository.ticketsResolvedByDay(since),
+        this.repository.maintenancesByDay(since),
       ]);
 
     const plan = buildMaintenancePlan(
@@ -113,6 +120,7 @@ export class DashboardService {
       worstMachines: toWorstMachines(machines),
       byProblemType,
       byDepartment,
+      daily: buildDailyActivity(since, new Date(), openedByDay, resolvedByDay, maintenancesByDay),
       panels: {
         recurringByPerson,
         recurringByMachine,

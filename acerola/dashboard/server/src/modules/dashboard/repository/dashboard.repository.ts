@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, gte, isNull, sql } from 'drizzle-orm';
+import { type PgColumn, type PgTable } from 'drizzle-orm/pg-core';
 
 import { runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
@@ -13,6 +14,9 @@ import { parts } from '../../../lib/db/schema/parts.schema';
 import { tickets } from '../../../lib/db/schema/tickets.schema';
 
 export type StatusCount = { key: string; count: number };
+
+/** Uma contagem de um dia em que houve movimento. O dia vem como `AAAA-MM-DD`. */
+export type DayCountRow = { day: string; total: number };
 
 export type RecurringPersonRow = {
   requesterName: string;
@@ -208,6 +212,58 @@ export class DashboardRepository {
         .orderBy(desc(count()))
         .limit(limit),
       'contar os departamentos',
+    );
+  }
+
+  /**
+   * O MOVIMENTO DIA A DIA do período, em três consultas — uma por coisa contada.
+   *
+   * Três e não uma: cada contagem se agrupa por uma DATA DIFERENTE (quando o chamado entrou,
+   * quando ele foi resolvido, quando a manutenção foi feita). Juntá-las numa consulta só
+   * exigiria um `full outer join` de três lados sobre colunas calculadas — mais caro de ler e
+   * de manter do que três consultas simples sobre índices que já existem.
+   *
+   * O dia sai como TEXTO `AAAA-MM-DD`, e não como data: é assim que a régua do
+   * `daily-activity.util` compara, e assim ele atravessa o JSON sem fuso horário no meio.
+   */
+  async ticketsOpenedByDay(since: Date): Promise<DayCountRow[]> {
+    return this.countByDay(tickets, tickets.createdAt, since, 'contar os chamados por dia');
+  }
+
+  async ticketsResolvedByDay(since: Date): Promise<DayCountRow[]> {
+    return this.countByDay(
+      tickets,
+      tickets.resolvedAt,
+      since,
+      'contar os chamados resolvidos por dia',
+    );
+  }
+
+  async maintenancesByDay(since: Date): Promise<DayCountRow[]> {
+    return this.countByDay(
+      maintenances,
+      maintenances.performedAt,
+      since,
+      'contar as manutenções por dia',
+    );
+  }
+
+  private async countByDay(
+    table: PgTable,
+    column: PgColumn,
+    since: Date,
+    what: string,
+  ): Promise<DayCountRow[]> {
+    const day = sql<string>`to_char(${column}, 'YYYY-MM-DD')`;
+
+    return runQuery(
+      this.db
+        .select({ day, total: sql<number>`count(*)::int` })
+        .from(table)
+        .where(gte(column, since))
+        .groupBy(day)
+        .orderBy(day),
+      what,
     );
   }
 

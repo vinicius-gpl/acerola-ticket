@@ -52,6 +52,9 @@ function makeService(repository: Partial<DashboardRepository> = {}) {
     peakingMachines: vi.fn().mockResolvedValue([]),
     maintenanceLog: vi.fn().mockResolvedValue([]),
     planCandidates: vi.fn().mockResolvedValue([]),
+    ticketsOpenedByDay: vi.fn().mockResolvedValue([]),
+    ticketsResolvedByDay: vi.fn().mockResolvedValue([]),
+    maintenancesByDay: vi.fn().mockResolvedValue([]),
     ...repository,
   };
 
@@ -166,6 +169,34 @@ describe('DashboardService.summary', () => {
 describe('DashboardService.summary — os blocos do painel', () => {
   const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
   const query = { days: 30 };
+
+  /**
+   * O MOVIMENTO DIA A DIA, com a régua completa.
+   *
+   * O banco só devolve os dias em que alguma coisa aconteceu. Sem a régua, segunda e sexta
+   * virariam vizinhas no gráfico, e a linha diria "o movimento foi constante a semana toda".
+   */
+  it('fills every day of the period, including the ones with nothing', async () => {
+    const today = new Date();
+    const dayKey = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+    const { service } = makeService({
+      ticketsOpenedByDay: vi.fn().mockResolvedValue([{ day: dayKey(today), total: 4 }]),
+    });
+
+    const summary = await service.summary(ana, { days: 7 });
+
+    /* Sete dias de recorte cobrem oito datas: os dois extremos entram na régua. */
+    expect(summary.daily).toHaveLength(8);
+    expect(summary.daily.at(-1)).toEqual({
+      day: dayKey(today),
+      opened: 4,
+      resolved: 0,
+      maintenances: 0,
+    });
+    expect(summary.daily.every((entry) => typeof entry.opened === 'number')).toBe(true);
+  });
 
   // feliz
   it('brings what is repeating, by person and by machine', async () => {
