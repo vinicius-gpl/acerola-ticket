@@ -6,6 +6,7 @@ import Building2 from '@lucide/svelte/icons/building-2';
 import StatCard from './stat-card.svelte';
 
 describe('StatCard', () => {
+  // feliz
   it('mostra o rótulo e o número', () => {
     render(StatCard, { props: { data: { label: 'Clientes', value: 560 } } });
 
@@ -23,6 +24,7 @@ describe('StatCard', () => {
     expect(screen.getByText('Exclui 1.067 arquivados')).toBeInTheDocument();
   });
 
+  // triste
   it('sem ressalva, não desenha linha vazia', () => {
     const { container } = render(StatCard, {
       props: { data: { label: 'Equipe', value: 22 } },
