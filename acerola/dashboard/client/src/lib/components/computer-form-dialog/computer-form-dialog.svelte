@@ -77,7 +77,7 @@
     <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
       <DialogHeader class="gap-1.5">
         <div class="flex items-center gap-2.5">
-          <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
             <Monitor class="size-4" aria-hidden="true" />
           </span>
           <DialogTitle class="text-lg font-semibold tracking-tight">{isEdit ? 'Identificação da máquina' : 'Cadastrar computador'}</DialogTitle>
@@ -92,7 +92,7 @@
       <!-- Identificação do equipamento na rede -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         {#if isEdit}
-          <div class="flex flex-col gap-1 rounded-xl border border-border/70 bg-muted/40 p-3 sm:col-span-2">
+          <div class="flex flex-col gap-1 rounded-box border border-border/70 bg-muted/40 p-3 sm:col-span-2">
             <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome informado pela máquina</span>
             <span class="font-mono text-sm font-medium text-foreground">{fields.name.value}</span>
           </div>

@@ -51,7 +51,7 @@
     <DialogHeader class="gap-1.5">
       <div class="flex items-center gap-2.5">
         <span class={cn(
-          "flex size-7 shrink-0 items-center justify-center rounded-lg",
+          "flex size-7 shrink-0 items-center justify-center rounded-chip",
           isDanger ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
         )}>
           {#if isDanger}

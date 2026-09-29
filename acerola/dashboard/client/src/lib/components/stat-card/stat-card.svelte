@@ -76,14 +76,17 @@
 
 <div
   class={cn(
-    'rounded-xl py-4 pr-4 pl-5 transition-all shadow-xs',
+    /* Cartão é SUPERFÍCIE: o mesmo raio do `Card`, do diálogo e da tabela
+       (`lib/theme/tokens.css`). Vinha com raio de controle e encostava visualmente nos
+       botões em volta. */
+    'rounded-surface py-4 pr-4 pl-5 transition-all shadow-xs',
     TONE_CARD[tone],
     ui?.className,
   )}
 >
   {#if Icon}
     <div class="mb-2 flex items-center gap-2.5">
-      <span class={cn('flex size-8 shrink-0 items-center justify-center rounded-md', TONE_ICON[tone])}>
+      <span class={cn('flex size-8 shrink-0 items-center justify-center rounded-chip', TONE_ICON[tone])}>
         <Icon size={15} aria-hidden="true" />
       </span>
       <p class={cn('text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>

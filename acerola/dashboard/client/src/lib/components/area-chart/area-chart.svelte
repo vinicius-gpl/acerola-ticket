@@ -73,7 +73,7 @@
 </script>
 
 {#if chartState?.isLoading}
-  <div class={cn('bg-muted w-full animate-pulse rounded-lg', ui?.heightClass ?? 'h-48')}></div>
+  <div class={cn('bg-muted w-full animate-pulse rounded-box', ui?.heightClass ?? 'h-48')}></div>
 {:else if rows.length === 0}
   <p class={cn('text-muted-foreground py-12 text-center text-sm', ui?.className)}>
     {ui?.emptyLabel ?? 'Sem leituras no período.'}

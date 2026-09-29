@@ -159,7 +159,7 @@
        conteúdo — e no celular, onde a altura é pouca, sumiam quase sempre. `min-h-0` é o que
        permite o miolo encolher dentro da coluna; sem ele o flex ignora o limite de altura. -->
   <DialogContent
-    class="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-2xl sm:max-w-2xl"
+    class="flex max-h-[92vh] flex-col gap-0 overflow-hidden rounded-surface border border-border bg-card p-0 shadow-2xl sm:max-w-2xl"
   >
     <form novalidate class="flex min-h-0 flex-1 flex-col" onsubmit={handleSubmit}>
       <DialogHeader class="shrink-0 border-b border-border/80 px-6 pt-6 pb-4">
@@ -182,10 +182,10 @@
 
       <div class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
       <!-- O pedido, como a pessoa escreveu. Estilo Approvals Queue / Drawer de Diagnóstico. -->
-      <section class="rounded-2xl border border-border/80 bg-neutral-50/60 dark:bg-neutral-900/40 p-4.5 flex flex-col gap-3.5 shadow-xs">
+      <section class="rounded-surface border border-border/80 bg-neutral-50/60 dark:bg-neutral-900/40 p-4.5 flex flex-col gap-3.5 shadow-xs">
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div class="flex items-start gap-2">
-            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
               <Building2 class="size-3.5" aria-hidden="true" />
             </span>
             <div class="min-w-0">
@@ -195,7 +195,7 @@
           </div>
 
           <div class="flex items-start gap-2">
-            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
               <Wrench class="size-3.5" aria-hidden="true" />
             </span>
             <div class="min-w-0">
@@ -205,7 +205,7 @@
           </div>
 
           <div class="flex items-start gap-2">
-            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
               <MonitorSmartphone class="size-3.5" aria-hidden="true" />
             </span>
             <div class="min-w-0">
@@ -215,7 +215,7 @@
           </div>
 
           <div class="flex items-start gap-2">
-            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
               <Phone class="size-3.5" aria-hidden="true" />
             </span>
             <div class="min-w-0">
@@ -226,14 +226,14 @@
         </div>
 
         <!-- Descrição em bloco de citação diagnóstica -->
-        <div class="rounded-xl border border-border/80 bg-card p-3.5 text-xs leading-relaxed text-foreground shadow-xs">
+        <div class="rounded-box border border-border/80 bg-card p-3.5 text-xs leading-relaxed text-foreground shadow-xs">
           <p class="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Descrição do problema</p>
           <p class="whitespace-pre-line text-sm text-foreground/90">{ticket.description}</p>
         </div>
 
         {#if ticket.screenshotUrl}
           <a
-            class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-xs"
+            class="control-sm inline-flex w-fit items-center gap-1.5 rounded-control border border-border bg-card text-xs font-semibold text-primary hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-xs"
             href={ticket.screenshotUrl}
             target="_blank"
             rel="noopener"
@@ -370,7 +370,7 @@
             <!-- OS ARQUIVOS DA DEVOLUTIVA, aqui dentro e não lá em cima: eles são parte do
                  que foi feito — a nota fiscal da peça trocada, a foto do antes e do depois.
                  Ficam do lado do TI, e só o TI os apaga; quem abriu o chamado vê e baixa. -->
-            <div class="border-border/60 flex flex-col gap-2 rounded-xl border p-3">
+            <div class="border-border/60 flex flex-col gap-2 rounded-box border p-3">
               <p class="text-muted-foreground text-xs font-medium">
                 Arquivos desta devolutiva
                 <span class="text-muted-foreground/70 font-normal">
@@ -425,7 +425,7 @@
 
             {#if data.whatsAppLink}
               <a
-                class="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-600 transition-all hover:bg-emerald-500/20 dark:text-emerald-400"
+                class="control-sm inline-flex w-fit items-center gap-2 rounded-control border border-emerald-500/20 bg-emerald-500/10 text-xs font-semibold text-emerald-600 transition-all hover:bg-emerald-500/20 dark:text-emerald-400"
                 href={data.whatsAppLink}
                 target="_blank"
                 rel="noopener"

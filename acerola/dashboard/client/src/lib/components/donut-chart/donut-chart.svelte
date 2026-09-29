@@ -55,7 +55,7 @@
 </script>
 
 {#if chartState?.isLoading}
-  <div class="bg-muted h-full w-full animate-pulse rounded-lg"></div>
+  <div class="bg-muted h-full w-full animate-pulse rounded-box"></div>
 {:else if data.slices.length === 0}
   <p class="text-muted-foreground flex h-full items-center justify-center text-xs">
     {ui?.emptyLabel ?? 'Sem dados para mostrar'}
@@ -117,12 +117,12 @@
             <button
               type="button"
               onclick={() => actions?.onSelect?.(slice.label)}
-              class="hover:bg-muted flex w-full cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 text-left text-xs"
+              class="hover:bg-muted flex w-full cursor-pointer items-center gap-2 rounded-chip px-1 py-0.5 text-left text-xs"
             >
               {@render row(slice, color, percent)}
             </button>
           {:else}
-            <div class="flex w-full items-center gap-2 rounded-md px-1 py-0.5 text-left text-xs">
+            <div class="flex w-full items-center gap-2 rounded-chip px-1 py-0.5 text-left text-xs">
               {@render row(slice, color, percent)}
             </div>
           {/if}

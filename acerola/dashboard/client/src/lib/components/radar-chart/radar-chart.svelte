@@ -80,7 +80,7 @@
 
 {#if chartState?.isLoading}
   <div
-    class={cn('bg-muted w-full animate-pulse rounded-lg', ui?.heightClass ?? 'h-72', ui?.className)}
+    class={cn('bg-muted w-full animate-pulse rounded-box', ui?.heightClass ?? 'h-72', ui?.className)}
   ></div>
 {:else if data.slices.length === 0}
   <p

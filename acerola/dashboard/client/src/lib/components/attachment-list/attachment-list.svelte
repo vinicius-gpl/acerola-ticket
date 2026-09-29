@@ -85,7 +85,7 @@
 {:else if data.attachments.length === 0}
   <p class="text-ink-500 text-sm">{ui?.emptyLabel ?? 'Nenhum arquivo anexado.'}</p>
 {:else}
-  <ul class="divide-y rounded-lg border">
+  <ul class="divide-y rounded-box border">
     {#each data.attachments as attachment (attachment.id)}
       <li class="flex flex-wrap items-center justify-between gap-2 p-2.5">
         <div class="min-w-0 flex-1">
@@ -107,7 +107,7 @@
             `rel="noreferrer"` porque o endereço assinado não deve viajar como referência.
           -->
           <a
-            class="text-ink-700 hover:bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs"
+            class="text-ink-700 hover:bg-muted inline-flex items-center gap-1 rounded-chip px-2 py-1 text-xs"
             href={attachment.viewUrl}
             target="_blank"
             rel="noopener noreferrer"
@@ -117,7 +117,7 @@
           </a>
 
           <a
-            class="text-ink-700 hover:bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs"
+            class="text-ink-700 hover:bg-muted inline-flex items-center gap-1 rounded-chip px-2 py-1 text-xs"
             href={attachment.downloadUrl}
             download={attachment.fileName}
             rel="noopener noreferrer"

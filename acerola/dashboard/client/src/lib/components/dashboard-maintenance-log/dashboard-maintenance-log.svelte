@@ -101,7 +101,7 @@
        do cartão inteiro, nunca uma tarja colorida de um lado só. -->
   {#if data.plannedToday.length > 0}
     <div
-      class="mb-4 rounded-xl p-3 {data.isDoneToday
+      class="mb-4 rounded-box p-3 {data.isDoneToday
         ? 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100'
         : 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100'}"
     >

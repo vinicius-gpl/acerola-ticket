@@ -59,7 +59,7 @@
   <DialogContent>
     <DialogHeader class="gap-1.5">
       <div class="flex items-center gap-2.5">
-        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
           <KeyRound class="size-4" aria-hidden="true" />
         </span>
         <DialogTitle class="text-lg font-semibold tracking-tight">Token de {data.computerName}</DialogTitle>
@@ -71,7 +71,7 @@
     </DialogHeader>
 
     <div
-      class="rounded-xl border border-border/80 bg-neutral-950 p-4 font-mono text-xs text-neutral-100 shadow-inner break-all select-all flex items-center justify-between gap-3"
+      class="rounded-box border border-border/80 bg-neutral-950 p-4 font-mono text-xs text-neutral-100 shadow-inner break-all select-all flex items-center justify-between gap-3"
       data-testid="agent-token"
     >
       <span class="tracking-wider">{data.token}</span>

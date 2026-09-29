@@ -163,7 +163,7 @@
 -->
 <div class="relative flex flex-col gap-2">
   <label
-    class="border-input hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-sm"
+    class="border-input hover:bg-muted/50 control-lg flex cursor-pointer items-center gap-2 rounded-control border border-dashed text-sm"
     class:pointer-events-none={isDisabled}
     class:opacity-60={isDisabled}
     for="attachments"
@@ -190,7 +190,7 @@
   {/if}
 
   {#if data.files.length > 0}
-    <ul class="divide-y rounded-lg border">
+    <ul class="divide-y rounded-box border">
       <!-- A chave leva a POSIÇÃO junto com a identidade do arquivo. A recusa acima já barra o
            mesmo arquivo duas vezes, mas chave repetida num `each` derruba a tela inteira — e
            nenhuma lista de anexos vale uma tela em branco. Cinto e suspensório, de propósito. -->

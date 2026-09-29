@@ -64,14 +64,16 @@
   const inputType = $derived(isPassword && !isRevealed ? 'password' : isPassword ? 'text' : type);
 
   /**
-   * `h-10` e `rounded-xl`, fixos — os mesmos valores do `DatePicker` e do `ActionButton`
-   * (o botão-raiz de que todo botão da tela deriva). Antes a altura vinha só do padding
-   * (`py-2.5`) e o raio era `rounded-lg`, cada componente com o seu; campo de texto, seletor,
-   * data e botão nunca alinhavam na mesma fileira nem pareciam a mesma família de controle.
+   * O degrau `lg` da RÉGUA DE MEDIDAS (`lib/theme/tokens.css`): 40px de altura e o raio de
+   * controle, os mesmos do `DatePicker`, do `SelectField` e do `OptionPicker` de formulário.
+   * Antes a altura vinha só do padding (`py-2.5`) e o raio era `rounded-box`, cada componente
+   * com o seu; campo de texto, seletor, data e botão nunca alinhavam na mesma fileira nem
+   * pareciam a mesma família de controle.
    */
   const inputClass = $derived(
     cn(
-      'bg-card text-foreground h-10 w-full rounded-xl border px-3 py-2 text-sm transition-colors',
+      'control-lg rounded-control',
+      'bg-card text-foreground w-full border text-sm transition-colors',
       'placeholder:text-ink-500 disabled:cursor-not-allowed disabled:opacity-60',
       isPassword && 'pr-11',
       hasError ? 'border-destructive' : 'border-input',

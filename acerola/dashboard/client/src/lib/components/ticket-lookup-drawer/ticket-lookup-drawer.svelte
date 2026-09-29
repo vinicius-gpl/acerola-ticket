@@ -116,11 +116,11 @@
         <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
       {:else if state.isNotFound}
         <!-- "Não encontrado" é resposta, não falha do site — por isso não vem em vermelho. -->
-        <p class="text-ink-700 bg-muted/40 rounded-lg p-3 text-sm">
+        <p class="text-ink-700 bg-muted/40 rounded-box p-3 text-sm">
           Não encontrei nenhum chamado com esse protocolo. Confira o número que você anotou.
         </p>
       {:else if ticket}
-        <div class="flex flex-col gap-3.5 rounded-2xl border border-border/80 bg-muted/20 p-4.5 shadow-xs">
+        <div class="flex flex-col gap-3.5 rounded-surface border border-border/80 bg-muted/20 p-4.5 shadow-xs">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <span class="font-mono text-base font-bold text-foreground">{ticket.protocol}</span>
             <span class="text-xs text-muted-foreground">{formatDateTime(ticket.createdAt)}</span>
@@ -139,7 +139,7 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div class="flex items-start gap-2">
-              <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                 <Building2 class="size-3.5" aria-hidden="true" />
               </span>
               <div class="min-w-0">
@@ -149,7 +149,7 @@
             </div>
 
             <div class="flex items-start gap-2">
-              <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                 <Wrench class="size-3.5" aria-hidden="true" />
               </span>
               <div class="min-w-0">
@@ -160,7 +160,7 @@
 
             {#if ticket.anydeskId}
               <div class="col-span-2 flex items-start gap-2">
-                <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                   <MonitorSmartphone class="size-3.5" aria-hidden="true" />
                 </span>
                 <div class="min-w-0">
@@ -171,14 +171,14 @@
             {/if}
           </div>
 
-          <div class="rounded-xl border border-border/80 bg-card p-3.5 text-xs leading-relaxed text-foreground shadow-xs">
+          <div class="rounded-box border border-border/80 bg-card p-3.5 text-xs leading-relaxed text-foreground shadow-xs">
             <p class="mb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Aberto por {ticket.requesterName}</p>
             <p class="text-sm whitespace-pre-line text-foreground/90">{ticket.description}</p>
           </div>
 
           {#if ticket.screenshotUrl}
             <a
-              class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-primary shadow-xs transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              class="control-sm inline-flex w-fit items-center gap-1.5 rounded-control border border-border bg-card text-xs font-semibold text-primary shadow-xs transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
               href={ticket.screenshotUrl}
               target="_blank"
               rel="noopener"

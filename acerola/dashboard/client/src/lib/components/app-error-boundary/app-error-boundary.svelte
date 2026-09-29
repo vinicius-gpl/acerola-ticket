@@ -31,17 +31,17 @@
 
   {#snippet failed(error)}
     <div class="bg-ink-100 flex min-h-screen items-center justify-center p-6">
-      <div role="alert" class="w-full max-w-lg rounded-sm border border-red-300 bg-white p-6 shadow-sm">
+      <div role="alert" class="w-full max-w-lg rounded-surface border border-red-300 bg-white p-6 shadow-sm">
         <h1 class="text-lg font-bold text-red-800">A tela não carregou</h1>
         <p class="text-ink-700 mt-2 text-sm">
           O sistema encontrou um erro ao montar esta página. Nada do que você fez foi perdido —
           esta tela simplesmente não chegou a abrir.
         </p>
-        <pre class="bg-ink-100 text-ink-900 mt-4 overflow-x-auto rounded-xs p-3 text-xs">{messageOf(error)}</pre>
+        <pre class="bg-ink-100 text-ink-900 mt-4 overflow-x-auto rounded-box p-3 text-xs">{messageOf(error)}</pre>
         <button
           type="button"
           onclick={() => window.location.reload()}
-          class="bg-primary text-primary-foreground mt-4 rounded-xs px-4 py-2 text-sm font-semibold"
+          class="bg-primary text-primary-foreground control-md rounded-control mt-4 inline-flex items-center text-sm font-semibold"
         >
           Recarregar
         </button>

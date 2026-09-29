@@ -29,7 +29,7 @@
   let { data, ui, tools, children }: PanelCardProps = $props();
 </script>
 
-<section class={cn('bg-card border-border rounded-2xl border p-5 shadow-xs', ui?.className)}>
+<section class={cn('bg-card border-border rounded-surface border p-5 shadow-xs', ui?.className)}>
   <!-- Empilhado no celular: título e controle lado a lado a 360 px espremem os dois. -->
   <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
