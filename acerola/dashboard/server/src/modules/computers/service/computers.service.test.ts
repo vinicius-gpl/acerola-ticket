@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService } from '../presence/live-watch.service';
 import { type ComputersRepository } from '../repository/computers.repository';
 import { hashComputerToken } from '../token/computer-token.util';
 import { ComputersService } from './computers.service';
@@ -49,6 +50,9 @@ function computerRow(over: Partial<ComputerRow> = {}): ComputerRow {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: new Date('2026-09-20T10:00:00.000Z'),
     createdBy: ana.email,
     updatedAt: null,
@@ -57,7 +61,9 @@ function computerRow(over: Partial<ComputerRow> = {}): ComputerRow {
   };
 }
 
-function snapshot(over: { cpu?: number; memory?: number; freeDiskBytes?: number } = {}): AgentSnapshot {
+function snapshot(
+  over: { cpu?: number; memory?: number; freeDiskBytes?: number } = {},
+): AgentSnapshot {
   return {
     timestamp: '2026-09-22T12:00:00.000Z',
     host: {
@@ -92,16 +98,35 @@ function snapshot(over: { cpu?: number; memory?: number; freeDiskBytes?: number 
     diskIo: { readBytesPerSec: 0, writeBytesPerSec: 0 },
     network: [],
     processes: [
-      { name: 'chrome', instanceCount: 9, cpuPercent: 180, memPercent: 12, memBytes: 2 * GB, instances: [] },
-      { name: 'explorer', instanceCount: 1, cpuPercent: 1, memPercent: 1, memBytes: GB, instances: [] },
+      {
+        name: 'chrome',
+        instanceCount: 9,
+        cpuPercent: 180,
+        memPercent: 12,
+        memBytes: 2 * GB,
+        instances: [],
+      },
+      {
+        name: 'explorer',
+        instanceCount: 1,
+        cpuPercent: 1,
+        memPercent: 1,
+        memBytes: GB,
+        instances: [],
+      },
     ],
   };
 }
 
-function makeService(repository: Partial<ComputersRepository>, presence = new AgentPresenceService()) {
+function makeService(
+  repository: Partial<ComputersRepository>,
+  presence = new AgentPresenceService(),
+  watch = new LiveWatchService(),
+) {
   return {
-    service: new ComputersService(repository as ComputersRepository, presence),
+    service: new ComputersService(repository as ComputersRepository, presence, watch),
     presence,
+    watch,
   };
 }
 
@@ -125,7 +150,11 @@ describe('ComputersService.list', () => {
     const presence = new AgentPresenceService();
     presence.connect(7, 'RECEPCAO-01');
     const { service } = makeService(
-      { list: vi.fn().mockResolvedValue({ rows: [computerRow(), computerRow({ id: 8 })], total: 2 }) },
+      {
+        list: vi
+          .fn()
+          .mockResolvedValue({ rows: [computerRow(), computerRow({ id: 8 })], total: 2 }),
+      },
       presence,
     );
 
@@ -142,6 +171,29 @@ describe('ComputersService.list', () => {
 
     await expect(service.list(noRole, query())).rejects.toThrow(ForbiddenException);
     expect(list).not.toHaveBeenCalled();
+  });
+});
+
+describe('ComputersService.exportList', () => {
+  // feliz
+  it('builds the file from every machine that matched, not only a page', async () => {
+    const listAll = vi.fn().mockResolvedValue([computerRow(), computerRow({ id: 8 })]);
+    const { service } = makeService({ listAll });
+
+    const report = await service.exportList(ana, { format: 'pdf', department: 'rh' });
+
+    expect(listAll).toHaveBeenCalledWith({ format: 'pdf', department: 'rh' });
+    expect(report.fileName).toBe('inventario.pdf');
+    expect(report.buffer.length).toBeGreaterThan(0);
+  });
+
+  // triste
+  it('refuses an unidentified request without touching the repository', async () => {
+    const listAll = vi.fn();
+    const { service } = makeService({ listAll });
+
+    await expect(service.exportList(noRole, { format: 'pdf' })).rejects.toThrow(ForbiddenException);
+    expect(listAll).not.toHaveBeenCalled();
   });
 });
 
@@ -378,5 +430,214 @@ describe('ComputersService.samples', () => {
     const { service } = makeService({ findById: vi.fn() });
 
     await expect(service.samples(noRole, 7)).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('ComputersService.live', () => {
+  // feliz
+  it('brings the last full reading, saying whether the machine is connected now', async () => {
+    const presence = new AgentPresenceService();
+    presence.connect(7, 'RECEPCAO-01');
+
+    const { service } = makeService(
+      {
+        findById: vi
+          .fn()
+          .mockResolvedValue(
+            computerRow({ id: 7, lastSnapshot: snapshot(), lastSeenAt: new Date() }),
+          ),
+      },
+      presence,
+    );
+
+    const live = await service.live(ana, 7);
+
+    expect(live?.isOnline).toBe(true);
+    expect(live?.cpu.percentTotal).toBe(30);
+    expect(live?.memory.usedPercent).toBe(50);
+  });
+
+  // triste
+  /* Cadastrada e sem agente instalado: a tela precisa dizer isso, e não mostrar zeros. */
+  it('answers nothing for a machine that never reported', async () => {
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(computerRow()) });
+
+    expect(await service.live(ana, 7)).toBeNull();
+  });
+
+  it('says the machine was not found', async () => {
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(null) });
+
+    await expect(service.live(ana, 99)).rejects.toThrow(NotFoundException);
+  });
+
+  it('refuses an unidentified request', async () => {
+    const { service } = makeService({ findById: vi.fn() });
+
+    await expect(service.live(noRole, 7)).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('ComputersService.dispose', () => {
+  // feliz
+  it('stamps the day the machine left, with the type and the reason', async () => {
+    const update = vi.fn().mockResolvedValue(computerRow({ disposedAt: new Date() }));
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(computerRow()), update });
+
+    await service.dispose(ana, 7, { type: 'defect', reason: '  Placa-mãe queimada  ' });
+
+    expect(update).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ disposalType: 'defect', disposalReason: 'Placa-mãe queimada' }),
+    );
+    expect(vi.mocked(update).mock.calls[0]?.[1].disposedAt).toBeInstanceOf(Date);
+  });
+
+  /* Mudar de "defeito" para "lixo" não é uma saída nova: a máquina saiu quando saiu. */
+  it('keeps the original date when the type changes later', async () => {
+    const left = new Date('2026-06-01T12:00:00.000Z');
+    const update = vi.fn().mockResolvedValue(computerRow({ disposedAt: left }));
+    const { service } = makeService({
+      findById: vi
+        .fn()
+        .mockResolvedValue(
+          computerRow({ disposedAt: left, disposalType: 'defect', disposalReason: 'x' }),
+        ),
+      update,
+    });
+
+    await service.dispose(ana, 7, { type: 'scrap', reason: 'Não liga mais' });
+
+    expect(vi.mocked(update).mock.calls[0]?.[1].disposedAt).toBe(left);
+  });
+
+  // triste
+  it('refuses an unidentified request without writing', async () => {
+    const update = vi.fn();
+    const { service } = makeService({ update });
+
+    await expect(service.dispose(noRole, 7, { type: 'scrap', reason: 'x' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('answers not found, without writing, when the machine is gone', async () => {
+    const update = vi.fn();
+    const { service } = makeService({ findById: vi.fn().mockResolvedValue(null), update });
+
+    await expect(service.dispose(ana, 99, { type: 'scrap', reason: 'x' })).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ComputersService.restore', () => {
+  // feliz
+  /* Voltar ao inventário limpa o descarte INTEIRO: um motivo pendurado numa máquina em uso
+     faria a ficha contar uma história que já não é verdade. */
+  it('clears the whole disposal when the machine comes back', async () => {
+    const update = vi.fn().mockResolvedValue(computerRow());
+    const { service } = makeService({
+      findById: vi
+        .fn()
+        .mockResolvedValue(
+          computerRow({ disposedAt: new Date(), disposalType: 'defect', disposalReason: 'x' }),
+        ),
+      update,
+    });
+
+    await service.restore(ana, 7);
+
+    expect(update).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ disposedAt: null, disposalType: null, disposalReason: null }),
+    );
+  });
+
+  // triste
+  it('refuses an unidentified request without writing', async () => {
+    const update = vi.fn();
+    const { service } = makeService({ update });
+
+    await expect(service.restore(noRole, 7)).rejects.toThrow(ForbiddenException);
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ComputersService.alerts', () => {
+  const alertRow = (id: number) => ({
+    id,
+    computerId: 7,
+    metric: 'disk' as const,
+    peakValue: 97,
+    threshold: 90,
+    status: 'active' as const,
+    startedAt: new Date('2026-09-22T16:00:00.000Z'),
+    recoveredAt: null,
+    causeProcess: 'OneDrive.exe',
+    createdAt: new Date('2026-09-22T16:00:00.000Z'),
+  });
+
+  // feliz
+  /**
+   * A PÁGINA vem do banco, e o TOTAL vem junto.
+   *
+   * Sem o total, a tela não sabe quantas páginas existem — e a lista voltaria a ser cortada
+   * em silêncio, que é o que a trava do CONTRIBUTING §15 proíbe. Uma máquina que dá trabalho
+   * acumula centenas de episódios.
+   */
+  it('answers one page of alerts with the total of the whole list', async () => {
+    const listAlerts = vi.fn().mockResolvedValue([alertRow(1), alertRow(2)]);
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(computerRow()),
+      listAlerts,
+      countAlerts: vi.fn().mockResolvedValue(312),
+    });
+
+    const page = await service.alerts(ana, 7, { page: 3, pageSize: 25 });
+
+    expect(page).toMatchObject({ total: 312, page: 3, pageSize: 25 });
+    expect(page.items).toHaveLength(2);
+    /* O recorte é do BANCO: o service não corta nada depois de receber. */
+    expect(listAlerts).toHaveBeenCalledWith(7, { page: 3, pageSize: 25 });
+  });
+
+  // triste
+  /* Máquina sem episódio nenhum: página vazia com total zero, e não um erro. */
+  it('answers an empty page for a machine that never alerted', async () => {
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(computerRow()),
+      listAlerts: vi.fn().mockResolvedValue([]),
+      countAlerts: vi.fn().mockResolvedValue(0),
+    });
+
+    const page = await service.alerts(ana, 7, { page: 1, pageSize: 25 });
+
+    expect(page).toEqual({ items: [], total: 0, page: 1, pageSize: 25 });
+  });
+
+  it('refuses an unidentified request without touching the database', async () => {
+    const listAlerts = vi.fn();
+    const { service } = makeService({ listAlerts, countAlerts: vi.fn() });
+
+    await expect(service.alerts(noRole, 7, { page: 1, pageSize: 25 })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(listAlerts).not.toHaveBeenCalled();
+  });
+
+  /* Máquina que não existe: 404, e não uma lista vazia que parece "nunca deu problema". */
+  it('says the machine does not exist instead of answering an empty list', async () => {
+    const { service } = makeService({
+      findById: vi.fn().mockResolvedValue(undefined),
+      listAlerts: vi.fn(),
+      countAlerts: vi.fn(),
+    });
+
+    await expect(service.alerts(ana, 999, { page: 1, pageSize: 25 })).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

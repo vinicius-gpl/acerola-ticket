@@ -1,4 +1,5 @@
 import { type MaintenanceInsert } from '../../../server/src/lib/db/schema/maintenances.schema';
+import { GENERATED_MAINTENANCES_SEED } from './maintenances.volume';
 
 /**
  * Os dados de teste do histórico de manutenção. VERSIONADOS: toda máquina que rodar o seed
@@ -27,7 +28,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 const daysAgo = (days: number) => new Date(NOW - days * DAY);
 
-export const MAINTENANCES_SEED: MaintenanceInsert[] = [
+const HANDWRITTEN_MAINTENANCES: MaintenanceInsert[] = [
   /* RECEPCAO-01: preventiva recente — a máquina em dia, a referência das outras. */
   {
     id: 1,
@@ -123,4 +124,64 @@ export const MAINTENANCES_SEED: MaintenanceInsert[] = [
     createdAt: daysAgo(60),
     createdBy: TI,
   },
+  /**
+   * Manutenções RECENTES: hoje, ontem e nesta semana.
+   *
+   * O painel pergunta "o que foi feito hoje / nesta semana / neste mês", e sem nada recente os
+   * três recortes ficariam vazios — a tela pareceria quebrada quando na verdade é o seed que
+   * não tinha o que mostrar. `daysAgo(0)` é hoje, e é ele que apaga o aviso de "falta fazer
+   * a preventiva de hoje".
+   */
+  {
+    id: 9,
+    computerId: 1,
+    type: 'preventive',
+    description: 'Limpeza interna e troca de pasta térmica.',
+    performedBy: 'Suporte TI',
+    performedAt: daysAgo(0),
+    createdAt: daysAgo(0),
+    createdBy: TI,
+  },
+  {
+    id: 10,
+    computerId: 4,
+    type: 'corrective',
+    description: 'Troca do cabo de força que estava com mau contato.',
+    performedBy: 'Suporte TI',
+    performedAt: daysAgo(1),
+    createdAt: daysAgo(1),
+    createdBy: TI,
+  },
+  {
+    id: 11,
+    computerId: 5,
+    type: 'part_replacement',
+    description: 'Troca do SSD de 240 GB por um de 480 GB.',
+    performedBy: 'Suporte TI',
+    performedAt: daysAgo(3),
+    createdAt: daysAgo(3),
+    createdBy: TI,
+  },
+  {
+    id: 12,
+    computerId: 2,
+    type: 'corrective',
+    description: 'Quarta intervenção na mesma máquina: memória reassentada.',
+    performedBy: 'Suporte TI',
+    performedAt: daysAgo(5),
+    createdAt: daysAgo(5),
+    createdBy: TI,
+  },
+];
+
+/**
+ * TODAS as manutenções: as escritas à mão, mais as geradas.
+ *
+ * As escritas à mão vêm primeiro e cobrem a régua da preventiva — a em dia, a vencida, a que
+ * nunca foi aberta, a que só levou limpeza. As geradas dão VOLUME, sem o qual o bloco "o que
+ * foi feito" tem uma linha no recorte do dia e "manutenção pesada" tem uma barra só.
+ */
+export const MAINTENANCES_SEED: MaintenanceInsert[] = [
+  ...HANDWRITTEN_MAINTENANCES,
+  ...GENERATED_MAINTENANCES_SEED,
 ];

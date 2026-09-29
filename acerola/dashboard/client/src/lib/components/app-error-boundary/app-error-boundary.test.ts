@@ -6,6 +6,7 @@ import AppErrorBoundary from './app-error-boundary.svelte';
 
 describe('AppErrorBoundary', () => {
   // feliz
+  // feliz
   it('desenha o conteúdo normalmente quando nada quebra', () => {
     const children = createRawSnippet(() => ({
       render: () => '<div>Conteúdo normal</div>',
@@ -19,6 +20,7 @@ describe('AppErrorBoundary', () => {
   /* Sem a boundary, um erro de render esvazia a página e a tela fica em branco — sem
      mensagem, sem o que relatar. É o pior resultado possível, e é o que este teste prova
      que não acontece mais. */
+  // triste
   it('captura o erro de render e mostra o motivo, em vez de esvaziar a tela', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const children = createRawSnippet(() => ({

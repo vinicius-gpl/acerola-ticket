@@ -64,3 +64,22 @@
     </div>
   {/snippet}
 </Story>
+
+<!-- A RÉGUA DE MEDIDAS, os três degraus lado a lado. O `lg` existe para o botão que divide
+     fileira com um campo de formulário: ali ele tem que ter a altura do campo, não a dele. -->
+<Story name="AllSizes" args={{ data: { label: 'Salvar' } }}>
+  {#snippet template()}
+    <div class="flex flex-wrap items-center gap-2">
+      <ActionButton data={{ label: 'Na linha (sm)' }} ui={{ size: 'sm', variant: 'secondary' }} />
+      <ActionButton data={{ label: 'Da tela (md)' }} ui={{ size: 'md', variant: 'secondary' }} />
+      <ActionButton
+        data={{ label: 'Do formulário (lg)' }}
+        ui={{ size: 'lg', variant: 'secondary' }}
+      />
+      <ActionButton
+        data={{ label: 'Excluir' }}
+        ui={{ size: 'lg', icon: Trash2, isIconOnly: true, variant: 'ghost' }}
+      />
+    </div>
+  {/snippet}
+</Story>

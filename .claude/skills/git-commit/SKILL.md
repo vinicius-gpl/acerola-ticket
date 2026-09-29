@@ -12,8 +12,9 @@ git status
 git branch --show-current
 ```
 
-- Em `main` ou `develop`? **Não commite aí** — o git recusa. Crie a branch antes, pela skill
-  `git-fluxo` (Fase 1): as mudanças não commitadas vão junto para a branch nova.
+- Em `main` ou `develop`?
+  - **Em Modo Admin (`git config project.admin true` ativo):** Commits diretos são totalmente liberados! O admin pode commitar na branch que quiser.
+  - **Em Modo Padrão:** Não commite aí — o git recusa. Crie a branch antes, pela skill `git-fluxo` (Fase 1): as mudanças não commitadas vão junto para a branch nova.
 - Commit na branch de feature é só um **ponto de salvamento**: não precisa do OK da pessoa. O
   OK é para juntar na develop, e isso é a Fase 4 do `git-fluxo`.
 - Nada para commitar? Diga isso e pare.
@@ -86,8 +87,9 @@ Termine a mensagem com as linhas de atribuição que o sistema indicar, se houve
 - **"✋ Estes arquivos são a base e as regras do projeto…"** → não commite esses arquivos;
   skill `suporte`.
 
-**NUNCA** use `--no-verify`. Ele desliga o lint, o formato e a trava de branch de uma vez. Se o
-lint falha num arquivo que você não mexeu, conserte ou avise a pessoa — não pule.
+- **No Modo Padrão, NUNCA use `--no-verify`.** Ele desliga o lint, o formato e a trava de branch. Se o
+  lint falha num arquivo que você não mexeu, conserte ou avise a pessoa — não pule.
+- **Em Modo Admin**, `--no-verify` pode ser usado caso o admin queira explicitamente pular verificações locais para agilizar o trabalho.
 
 ## 5. Depois
 

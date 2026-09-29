@@ -2,6 +2,7 @@
   import {
     MAINTENANCE_TYPES,
     MAINTENANCE_TYPE_LABELS,
+    maintenanceTypeTone,
   } from '@template/shared/domain/maintenance.util';
   import { DESCRIPTION_MAX_LENGTH } from '@template/shared/schemas/maintenance.schema';
 
@@ -50,6 +51,7 @@
   const TYPE_OPTIONS = MAINTENANCE_TYPES.map((type) => ({
     value: type,
     label: MAINTENANCE_TYPE_LABELS[type],
+    tone: maintenanceTypeTone(type),
   }));
 
   /** A opção que libera o campo de texto: equipamento que não está no inventário. */
@@ -68,12 +70,14 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import { DatePicker } from '$lib/components/ui/date-picker';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import Wrench from '@lucide/svelte/icons/wrench';
 
   let { data, state: dialogState, actions }: MaintenanceFormDialogProps = $props();
 
@@ -95,9 +99,14 @@
 >
   <DialogContent>
     <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>{isEdit ? 'Corrigir manutenção' : 'Registrar manutenção'}</DialogTitle>
-        <DialogDescription>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
+            <Wrench class="size-4" aria-hidden="true" />
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">{isEdit ? 'Corrigir manutenção' : 'Registrar manutenção'}</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {isEdit
             ? 'Altere o que ficou errado e salve.'
             : 'O que foi feito, em qual equipamento e quando.'}
@@ -106,9 +115,9 @@
 
       <div class="flex flex-col gap-1.5">
         <span class="text-ink-700 text-sm font-medium">Equipamento</span>
-        <SelectField
+        <OptionPicker
           data={{ value: fields.computerId.value, options: machineOptions }}
-          ui={{ ariaLabel: 'Equipamento' }}
+          ui={{ ariaLabel: 'Equipamento', fullWidth: true }}
           state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}
           actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
         />
@@ -136,9 +145,9 @@
 
       <div class="flex flex-col gap-1.5">
         <span class="text-ink-700 text-sm font-medium">Tipo</span>
-        <SelectField
+        <OptionPicker
           data={{ value: fields.type.value, options: TYPE_OPTIONS }}
-          ui={{ ariaLabel: 'Tipo de manutenção' }}
+          ui={{ ariaLabel: 'Tipo de manutenção', fullWidth: true }}
           state={{ isDisabled: dialogState.isSubmitting }}
           actions={{ onChange: (value: string) => actions.onChange('type', value) }}
         />
@@ -159,31 +168,39 @@
         }}
       />
 
-      <TextField
-        data={{
-          label: 'Quem fez',
-          name: 'performedBy',
-          value: fields.performedBy.value,
-          placeholder: 'Nome de quem fez o serviço',
-        }}
-        state={{ error: fields.performedBy.error, isDisabled: dialogState.isSubmitting }}
-        actions={{
-          onChange: (value: string) => actions.onChange('performedBy', value),
-          onBlur: () => actions.onBlur('performedBy'),
-        }}
-      />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <TextField
+          data={{
+            label: 'Quem fez',
+            name: 'performedBy',
+            value: fields.performedBy.value,
+            placeholder: 'Nome de quem fez o serviço',
+          }}
+          state={{ error: fields.performedBy.error, isDisabled: dialogState.isSubmitting }}
+          actions={{
+            onChange: (value: string) => actions.onChange('performedBy', value),
+            onBlur: () => actions.onBlur('performedBy'),
+          }}
+        />
 
-      <!-- A data do SERVIÇO, não a de hoje: lançar na segunda o que foi feito no sábado é o
-           caso comum, não a exceção. -->
-      <TextField
-        data={{ label: 'Data do serviço', name: 'performedAt', value: fields.performedAt.value }}
-        ui={{ type: 'date' }}
-        state={{ error: fields.performedAt.error, isDisabled: dialogState.isSubmitting }}
-        actions={{
-          onChange: (value: string) => actions.onChange('performedAt', value),
-          onBlur: () => actions.onBlur('performedAt'),
-        }}
-      />
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">Data do serviço</span>
+          <DatePicker
+            name="performedAt"
+            ariaLabel="Data do serviço"
+            value={fields.performedAt.value}
+            disabled={dialogState.isSubmitting}
+            placeholder="Selecione a data"
+            onValueChange={(val) => {
+              actions.onChange('performedAt', val ?? '');
+              actions.onBlur('performedAt');
+            }}
+          />
+          {#if fields.performedAt.error}
+            <span class="text-xs text-destructive">{fields.performedAt.error}</span>
+          {/if}
+        </div>
+      </div>
 
       {#if dialogState.error}
         <ErrorState data={{ message: dialogState.error }} ui={{ variant: 'inline' }} />

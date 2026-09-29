@@ -1,21 +1,17 @@
 <script lang="ts">
-  import { cn } from '$lib/utils/cn';
-  import { Dialog as SheetPrimitive } from 'bits-ui';
-  import type { Snippet } from 'svelte';
+	import { Dialog as SheetPrimitive } from "bits-ui";
+	import { cn } from "$lib/utils/cn.js";
 
-  let {
-    class: className,
-    ref = $bindable(null),
-    children,
-    ...restProps
-  }: SheetPrimitive.DescriptionProps & { children?: Snippet } = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		...restProps
+	}: SheetPrimitive.DescriptionProps = $props();
 </script>
 
 <SheetPrimitive.Description
-  bind:ref
-  data-slot="sheet-description"
-  class={cn("text-sm text-muted-foreground", className)}
-  {...restProps}
->
-  {@render children?.()}
-</SheetPrimitive.Description>
+	bind:ref
+	data-slot="sheet-description"
+	class={cn("text-muted-foreground text-sm", className)}
+	{...restProps}
+/>

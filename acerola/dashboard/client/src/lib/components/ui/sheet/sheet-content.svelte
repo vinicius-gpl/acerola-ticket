@@ -1,53 +1,55 @@
-<script lang="ts">
-  import { cn } from '$lib/utils/cn';
-  import XIcon from '@lucide/svelte/icons/x';
-  import { Dialog as SheetPrimitive } from 'bits-ui';
-  import SheetPortal from './sheet-portal.svelte';
-  import SheetOverlay from './sheet-overlay.svelte';
-  import type { Snippet } from 'svelte';
-
-  let {
-    class: className,
-    side = 'right',
-    showCloseButton = true,
-    ref = $bindable(null),
-    children,
-    ...restProps
-  }: SheetPrimitive.ContentProps & {
-    side?: 'top' | 'right' | 'bottom' | 'left';
-    showCloseButton?: boolean;
-    children?: Snippet;
-  } = $props();
+<script lang="ts" module>
+	export type Side = "top" | "right" | "bottom" | "left";
 </script>
 
-<SheetPortal>
-  <SheetOverlay />
-  <SheetPrimitive.Content
-    bind:ref
-    data-slot="sheet-content"
-    class={cn(
-      "fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
-      side === "right" &&
-        "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
-      side === "left" &&
-        "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-      side === "top" &&
-        "inset-x-0 top-0 h-auto border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-      side === "bottom" &&
-        "inset-x-0 bottom-0 h-auto border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-      className
-    )}
-    {...restProps}
-  >
-    {@render children?.()}
-    {#if showCloseButton}
-      <SheetPrimitive.Close
-        data-slot="sheet-close"
-        class="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary cursor-pointer"
-      >
-        <XIcon class="size-4" />
-        <span class="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    {/if}
-  </SheetPrimitive.Content>
+<script lang="ts">
+	import { Dialog as SheetPrimitive } from "bits-ui";
+	import XIcon from '@lucide/svelte/icons/x';
+	import { Button } from "$lib/components/ui/button/index.js";
+	import { cn, type WithoutChildrenOrChild } from "$lib/utils/cn.js";
+	import SheetOverlay from "./sheet-overlay.svelte";
+	import SheetPortal from "./sheet-portal.svelte";
+	import type { Snippet } from "svelte";
+	import type { ComponentProps } from "svelte";
+
+	let {
+		ref = $bindable(null),
+		class: className,
+		side = "right",
+		showCloseButton = true,
+		portalProps,
+		children,
+		...restProps
+	}: WithoutChildrenOrChild<SheetPrimitive.ContentProps> & {
+		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof SheetPortal>>;
+		side?: Side;
+		showCloseButton?: boolean;
+		children: Snippet;
+	} = $props();
+</script>
+
+<SheetPortal {...portalProps}>
+	<SheetOverlay />
+	<SheetPrimitive.Content
+		bind:ref
+		data-slot="sheet-content"
+		data-side={side}
+		class={cn(
+			"bg-popover text-popover-foreground fixed z-50 flex flex-col gap-4 bg-clip-padding text-sm shadow-lg transition duration-200 ease-in-out data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10 data-closed:animate-out data-closed:fade-out-0 data-[side=bottom]:data-closed:slide-out-to-bottom-10 data-[side=left]:data-closed:slide-out-to-left-10 data-[side=right]:data-closed:slide-out-to-right-10 data-[side=top]:data-closed:slide-out-to-top-10",
+			className
+		)}
+		{...restProps}
+	>
+		{@render children?.()}
+		{#if showCloseButton}
+			<SheetPrimitive.Close data-slot="sheet-close">
+				{#snippet child({ props })}
+					<Button variant="ghost" class="absolute top-3 right-3" size="icon-sm" {...props}>
+						<XIcon  />
+						<span class="sr-only">Close</span>
+					</Button>
+				{/snippet}
+			</SheetPrimitive.Close>
+		{/if}
+	</SheetPrimitive.Content>
 </SheetPortal>

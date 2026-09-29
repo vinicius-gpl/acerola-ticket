@@ -1,5 +1,6 @@
 import { HEALTH_STATUSES } from '@template/shared/domain/computer-health.util';
 import { DEPARTMENTS } from '@template/shared/domain/department.util';
+import { DISPOSAL_TYPES } from '@template/shared/domain/disposal.util';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -99,6 +100,19 @@ export const computers = pgTable(
     isBlocked: boolean('is_blocked').notNull().default(false),
     blockReason: text('block_reason'),
 
+    /**
+     * O DESCARTE: a máquina que saiu de uso de vez.
+     *
+     * `disposed_at` nulo é o que diz "em uso" — não há booleano à parte, porque dois campos
+     * dizendo a mesma coisa acabam discordando no primeiro caminho de escrita esquecido.
+     *
+     * A data é carimbada pelo servidor, e não digitada: uma saída lançada "de ontem" seria um
+     * jeito silencioso de ajustar o passado.
+     */
+    disposedAt: timestamp('disposed_at', { withTimezone: true, mode: 'date' }),
+    disposalType: text('disposal_type', { enum: DISPOSAL_TYPES }),
+    disposalReason: text('disposal_reason'),
+
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
       .notNull()
       .defaultNow(),
@@ -112,6 +126,8 @@ export const computers = pgTable(
     index('computers_last_seen_idx').on(table.lastSeenAt),
     /* O agente chega dizendo só o nome: esta busca acontece em toda conexão. */
     index('computers_name_idx').on(table.name),
+    /* "O que saiu de uso" é a consulta da tela de Descarte, e ela filtra por esta coluna. */
+    index('computers_disposed_idx').on(table.disposedAt),
     check(
       'computers_health_status_valid',
       sql`${table.healthStatus} in (${valuesFor(HEALTH_STATUSES)})`,
@@ -123,6 +139,17 @@ export const computers = pgTable(
     check(
       'computers_health_score_range',
       sql`${table.healthScore} between 0 and 100`,
+    ),
+    /* Máquina descartada sem tipo e sem motivo é uma saída que não explica nada — e o mapa
+       de "o que saiu de uso e por quê" é justamente para isso que existe. */
+    check(
+      'computers_disposal_complete',
+      sql`(${table.disposedAt} is null and ${table.disposalType} is null and ${table.disposalReason} is null)
+        or (${table.disposedAt} is not null and ${table.disposalType} is not null and ${table.disposalReason} is not null)`,
+    ),
+    check(
+      'computers_disposal_type_valid',
+      sql`${table.disposalType} is null or ${table.disposalType} in (${valuesFor(DISPOSAL_TYPES)})`,
     ),
   ],
 );

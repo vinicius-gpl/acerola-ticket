@@ -6,6 +6,7 @@ import Building2 from '@lucide/svelte/icons/building-2';
 import StatCard from './stat-card.svelte';
 
 describe('StatCard', () => {
+  // feliz
   it('mostra o rótulo e o número', () => {
     render(StatCard, { props: { data: { label: 'Clientes', value: 560 } } });
 
@@ -23,6 +24,7 @@ describe('StatCard', () => {
     expect(screen.getByText('Exclui 1.067 arquivados')).toBeInTheDocument();
   });
 
+  // triste
   it('sem ressalva, não desenha linha vazia', () => {
     const { container } = render(StatCard, {
       props: { data: { label: 'Equipe', value: 22 } },
@@ -54,22 +56,39 @@ describe('StatCard', () => {
     expect(screen.getByText('13/13')).toBeInTheDocument();
   });
 
-  /* Ícone e barra são a mesma pista de cor duas vezes — com ícone, a barra some. */
-  it('com ícone, desenha o quadrado no lugar da barra lateral', () => {
+  it('com ícone, desenha o quadrado colorido', () => {
     const { container } = render(StatCard, {
       props: { data: { label: 'Clientes', value: 7 }, ui: { icon: Building2 } },
     });
 
     expect(container.querySelector('svg')).toBeInTheDocument();
-    expect(container.querySelector('.absolute.inset-y-0.left-0')).not.toBeInTheDocument();
   });
 
-  it('sem ícone, continua desenhando a barra lateral', () => {
+  it('sem ícone, não desenha quadrado nenhum', () => {
     const { container } = render(StatCard, {
       props: { data: { label: 'Clientes', value: 7 } },
     });
 
     expect(container.querySelector('svg')).not.toBeInTheDocument();
-    expect(container.querySelector('.absolute.inset-y-0.left-0')).toBeInTheDocument();
+  });
+
+  /* A cor é do CARTÃO inteiro, não de uma borda ou barra fina — é o que faz o olho achar o
+     cartão certo sem precisar ler o rótulo primeiro. */
+  it('pinta o fundo do cartão inteiro com a cor da situação, sem opacidade', () => {
+    const { container } = render(StatCard, {
+      props: { data: { label: 'Vencidos', value: 3 }, ui: { tone: 'danger' } },
+    });
+
+    const card = container.firstElementChild;
+    expect(card?.className).toContain('bg-rose-100');
+    expect(card?.className).not.toMatch(/\/\d/);
+  });
+
+  it('sem tom escolhido, usa o cartão neutro do sistema', () => {
+    const { container } = render(StatCard, {
+      props: { data: { label: 'Total', value: 3 } },
+    });
+
+    expect(container.firstElementChild?.className).toContain('bg-card');
   });
 });

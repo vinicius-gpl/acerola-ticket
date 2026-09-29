@@ -90,7 +90,13 @@ export function useResetPasswordModel(): ResetPasswordModel {
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
-      onBlur: (field) => void form.validateField(field, 'change'),
+      /* `validateField` só marca "tocado" quando existe um `form.Field` montado — este hook
+         chama `setFieldValue`/`validateField` direto, sem montar um. Sem marcar aqui, o erro
+         nunca aparecia ao SAIR do campo (ver `toFieldState`, em form-projection.svelte.ts). */
+      onBlur: (field) => {
+        form.setFieldMeta(field, (prev) => ({ ...prev, isTouched: true }));
+        void form.validateField(field, 'change');
+      },
       onSubmit: () => void form.handleSubmit(),
     },
   };

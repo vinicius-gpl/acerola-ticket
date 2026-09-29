@@ -1,11 +1,14 @@
 import { neonAuthUsers } from './neon-auth-user.table';
 import { computerAlerts } from './schema/computer-alerts.schema';
 import { computerSamples } from './schema/computer-samples.schema';
+import { computerTransfers } from './schema/computer-transfers.schema';
 import { computers } from './schema/computers.schema';
 import { maintenances } from './schema/maintenances.schema';
+import { networkEvents } from './schema/network-events.schema';
 import { partMovements } from './schema/part-movements.schema';
 import { parts } from './schema/parts.schema';
 import { tasks } from './schema/tasks.schema';
+import { ticketAttachments } from './schema/ticket-attachments.schema';
 import { tickets } from './schema/tickets.schema';
 
 /**
@@ -21,12 +24,15 @@ import { tickets } from './schema/tickets.schema';
 export const drizzleSchema = {
   tasks,
   tickets,
+  ticketAttachments,
   computers,
   computerSamples,
   computerAlerts,
+  computerTransfers,
   maintenances,
   parts,
   partMovements,
+  networkEvents,
   /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */
   neonAuthUsers,
 };

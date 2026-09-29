@@ -1,10 +1,31 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type ComputerListQuery } from '@template/shared/schemas/computer.schema';
-import { and, asc, count, desc, eq, gte, ilike, or, sql, type SQL } from 'drizzle-orm';
+import {
+  type ComputerAlertListQuery,
+  type ComputerListQuery,
+  type ComputerReportQuery,
+} from '@template/shared/schemas/computer.schema';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
+import { qualified } from '../../../lib/db/sql-column.util';
+import { asTimestamp } from '../../../lib/db/sql-timestamp.util';
+import { tickets } from '../../../lib/db/schema/tickets.schema';
 import {
   computerAlerts,
   type ComputerAlertInsert,
@@ -21,8 +42,11 @@ import {
   type ComputerRow,
 } from '../../../lib/db/schema/computers.schema';
 
+/** A máquina com o número de chamados do mês junto — é o que a lista do inventário mostra. */
+export type ComputerWithTickets = ComputerRow & { ticketsThisMonth: number };
+
 export type ComputerPage = {
-  rows: ComputerRow[];
+  rows: ComputerWithTickets[];
   total: number;
 };
 
@@ -36,6 +60,28 @@ export type ComputerPage = {
  * o que sustenta "esta aqui deu problema demais, vamos trocar" na hora de decidir compra.
  * Amostras e alertas, sim, são apagados por idade — ver `deleteSamplesOlderThan`.
  */
+/**
+ * As colunas da máquina mais QUANTOS CHAMADOS ela deu no mês.
+ *
+ * Subconsulta, e não `join` com `group by`: com o `join`, uma máquina com cinco chamados
+ * apareceria cinco vezes na lista, e agrupar obrigaria a repetir todas as colunas no
+ * `group by`. O número entra como coluna calculada, e a lista continua sendo uma linha por
+ * máquina.
+ *
+ * "No mês" é o mês CORRENTE, do dia 1 até agora — não os últimos trinta dias. É assim que
+ * quem olha a tela conta: "quantos chamados esta máquina deu em setembro".
+ */
+function computerColumns() {
+  return {
+    ...getTableColumns(computers),
+    ticketsThisMonth: sql<number>`(
+      select count(*)::int from ${tickets}
+      where ${qualified(tickets.computerId)} = ${qualified(computers.id)}
+        and ${qualified(tickets.createdAt)} >= date_trunc('month', now())
+    )`,
+  };
+}
+
 @Injectable()
 export class ComputersRepository {
   constructor(@Inject(DB) private readonly db: Database) {}
@@ -47,7 +93,7 @@ export class ComputersRepository {
     const [rows, [counted]] = await Promise.all([
       runQuery(
         this.db
-          .select()
+          .select(computerColumns())
           .from(computers)
           .where(where)
           /* Pior saúde primeiro: a lista serve para achar o que precisa de atenção, e quem
@@ -66,6 +112,21 @@ export class ComputersRepository {
     ]);
 
     return { rows, total: counted?.total ?? rows.length };
+  }
+
+  /**
+   * TODO o parque que casa com o filtro, sem página — é o que o relatório baixa. Os MESMOS
+   * filtros da tela, por isso reaproveita `buildWhere`.
+   */
+  async listAll(query: ComputerReportQuery): Promise<ComputerRow[]> {
+    return runQuery(
+      this.db
+        .select()
+        .from(computers)
+        .where(buildWhere(query))
+        .orderBy(asc(computers.healthScore), computers.name),
+      'listar computadores para o relatório',
+    );
   }
 
   async findById(id: number): Promise<ComputerRow | null> {
@@ -121,7 +182,9 @@ export class ComputersRepository {
       this.db
         .select()
         .from(computerSamples)
-        .where(and(eq(computerSamples.computerId, computerId), gte(computerSamples.sampledAt, since)))
+        .where(
+          and(eq(computerSamples.computerId, computerId), gte(computerSamples.sampledAt, since)),
+        )
         .orderBy(computerSamples.sampledAt),
       'ler o uso da máquina',
     );
@@ -138,7 +201,7 @@ export class ComputersRepository {
     const deleted = await runQuery(
       this.db
         .delete(computerSamples)
-        .where(sql`${computerSamples.sampledAt} < ${cutoff}`)
+        .where(sql`${computerSamples.sampledAt} < ${asTimestamp(cutoff)}`)
         .returning({ id: computerSamples.id }),
       'limpar amostras antigas',
     );
@@ -180,18 +243,48 @@ export class ComputersRepository {
     );
   }
 
-  async listAlerts(computerId: number, limit: number): Promise<ComputerAlertRow[]> {
+  /**
+   * UMA PÁGINA de alertas, do mais recente para o mais antigo.
+   *
+   * Paginada no BANCO, e não na tela: uma máquina ruim acumula centenas de episódios, e
+   * trazer todos para cortar no navegador gasta o banco, a rede e a memória do navegador
+   * para jogar fora 95% do que veio.
+   */
+  async listAlerts(
+    computerId: number,
+    query: ComputerAlertListQuery,
+  ): Promise<ComputerAlertRow[]> {
     return runQuery(
       this.db
         .select()
         .from(computerAlerts)
         .where(eq(computerAlerts.computerId, computerId))
         .orderBy(desc(computerAlerts.startedAt))
-        .limit(limit),
+        .limit(query.pageSize)
+        .offset((query.page - 1) * query.pageSize),
       'ler alertas da máquina',
     );
   }
+
+  /** Quantos alertas a máquina tem ao todo — é o total que diz quantas páginas existem. */
+  async countAlerts(computerId: number): Promise<number> {
+    const [row] = await runQuery(
+      this.db
+        .select({ total: count() })
+        .from(computerAlerts)
+        .where(eq(computerAlerts.computerId, computerId)),
+      'contar os alertas da máquina',
+    );
+
+    return row?.total ?? 0;
+  }
 }
+
+/** Os filtros que a lista E o relatório têm em comum — nenhum dos dois usa página aqui. */
+type ComputerFilter = Pick<
+  ComputerListQuery,
+  'search' | 'department' | 'healthStatus' | 'includeArchived' | 'onlyDisposed' | 'disposalType'
+>;
 
 /**
  * `ilike` é o `like` que ignora maiúscula e minúscula no Postgres.
@@ -199,10 +292,16 @@ export class ComputersRepository {
  * A máquina arquivada fica de FORA por padrão: ela saiu de uso, e quem abre o inventário está
  * trabalhando com o que está em uso hoje.
  */
-function buildWhere(query: ComputerListQuery): SQL | undefined {
+function buildWhere(query: ComputerFilter): SQL | undefined {
   const filters: (SQL | undefined)[] = [];
 
   if (!query.includeArchived) filters.push(eq(computers.isArchived, false));
+
+  /* A tela de Descarte pede SÓ as descartadas; todas as outras listas as escondem. Sem este
+     par, a máquina que saiu de uso continuaria contando no parque e nos números do painel. */
+  if (query.onlyDisposed) filters.push(isNotNull(computers.disposedAt));
+  if (!query.onlyDisposed) filters.push(isNull(computers.disposedAt));
+  if (query.disposalType) filters.push(eq(computers.disposalType, query.disposalType));
   if (query.department) filters.push(eq(computers.department, query.department));
   if (query.healthStatus) filters.push(eq(computers.healthStatus, query.healthStatus));
 

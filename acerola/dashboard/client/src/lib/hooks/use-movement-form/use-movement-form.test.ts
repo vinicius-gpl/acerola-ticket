@@ -1,4 +1,4 @@
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 import { type Part } from '@template/shared/schemas/part.schema';
 import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,8 +20,9 @@ const { computersApi } = await import('$lib/api/computers.api');
 
 const GB = 1024 ** 3;
 
-function computer(over: Partial<Computer> = {}): Computer {
+function computer(over: Partial<ComputerListItem> = {}): ComputerListItem {
   return {
+    ticketsThisMonth: 0,
     id: 3,
     name: 'CONTABIL-03',
     displayName: 'Contábil — mesa do fechamento',
@@ -53,6 +54,9 @@ function computer(over: Partial<Computer> = {}): Computer {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: '2026-05-01T12:00:00.000Z',
     createdBy: 'suporte@azuos.local',
     updatedAt: null,

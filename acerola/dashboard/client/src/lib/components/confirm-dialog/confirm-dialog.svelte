@@ -34,7 +34,13 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
 
+  import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
+  import HelpCircle from '@lucide/svelte/icons/help-circle';
+  import { cn } from '$lib/utils/cn';
+
   let { data, ui, state, actions }: ConfirmDialogProps = $props();
+
+  const isDanger = $derived(ui?.tone !== 'primary');
 </script>
 
 <Dialog
@@ -42,9 +48,21 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onCancel())}
 >
   <DialogContent showCloseButton={false}>
-    <DialogHeader>
-      <DialogTitle>{data.title}</DialogTitle>
-      <DialogDescription>{data.description}</DialogDescription>
+    <DialogHeader class="gap-1.5">
+      <div class="flex items-center gap-2.5">
+        <span class={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-chip",
+          isDanger ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+        )}>
+          {#if isDanger}
+            <AlertTriangle class="size-4" aria-hidden="true" />
+          {:else}
+            <HelpCircle class="size-4" aria-hidden="true" />
+          {/if}
+        </span>
+        <DialogTitle class="text-lg font-semibold tracking-tight">{data.title}</DialogTitle>
+      </div>
+      <DialogDescription class="text-xs text-muted-foreground">{data.description}</DialogDescription>
     </DialogHeader>
 
     {#if state.error}

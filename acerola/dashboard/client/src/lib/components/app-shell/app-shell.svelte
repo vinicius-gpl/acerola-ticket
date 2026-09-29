@@ -24,14 +24,20 @@
       user?: { name: string; email: string; role: string };
     };
     ui?: { items?: readonly NavItem[] };
-    state?: { isCollapsed?: boolean; activeKey?: string };
+    state?: {
+      isCollapsed?: boolean;
+      activeKey?: string;
+      /** O caminho da rota atual — trocar de valor é o gatilho da animação entre telas. */
+      routeKey?: string;
+    };
     actions?: { onLogout?: () => void };
   };
 </script>
 
 <script lang="ts">
   import LogOut from '@lucide/svelte/icons/log-out';
-import { BrandMark } from '$lib/components/brand-mark/brand-mark';
+  import { BrandMark } from '$lib/components/brand-mark/brand-mark';
+  import { fadeInUp } from '$lib/motion/motion';
   import {
     Sidebar,
     SidebarContent,
@@ -50,14 +56,29 @@ import { BrandMark } from '$lib/components/brand-mark/brand-mark';
   import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/app-shell-nav-entry/app-shell-nav-entry.svelte';
+  import ThemeToggle from '$lib/components/theme-toggle/theme-toggle.svelte';
 
-  let { children, data, ui, state, actions }: AppShellProps = $props();
+  /* `state` (o prop) precisa de outro nome aqui dentro: um binding local chamado `state` faz
+     o compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune — o
+     mesmo problema, e a mesma solução, do `ColumnChart`. */
+  let { children, data, ui, state: shellState, actions }: AppShellProps = $props();
 
   const items = $derived(ui?.items ?? NAV_ITEMS);
   const userName = $derived(data?.user?.name ?? 'Visitante');
+
+  let contentEl: HTMLDivElement | undefined = $state();
+
+  /* A troca de tela nasce com um fade sutil — sem isso, uma rota substitui a outra num corte
+     seco, e o sistema inteiro parece uma sucessão de telas desconectadas em vez de um só
+     lugar. `routeKey` é o caminho da rota: só ele muda a cada navegação, então é nele que o
+     efeito escuta — reagir ao conteúdo (`children`) reanimaria a cada re-render à toa. */
+  $effect(() => {
+    void shellState?.routeKey;
+    fadeInUp(contentEl ?? null);
+  });
 </script>
 
-<SidebarProvider defaultOpen={!state?.isCollapsed}>
+<SidebarProvider open={!shellState?.isCollapsed}>
   <!-- `collapsible="icon"` e não `offcanvas`: recolhida, a barra vira uma faixa de ícones.
        Sumir por inteiro tiraria da tela a única pista de onde estão as outras telas. -->
   <Sidebar collapsible="icon" variant="inset">
@@ -70,12 +91,17 @@ import { BrandMark } from '$lib/components/brand-mark/brand-mark';
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupContent>
-          <SidebarMenu>
+          <!-- `gap-1`: o item marcado e o item sob o cursor ganham fundo, e sem folga entre
+               eles os fundos encostam e viram um bloco só — o menu perde a leitura de quantos
+               itens são. O componente baixado vem com `gap-0`, e `lib/components/ui/` não se
+               edita (CONTRIBUTING §5): a folga entra por aqui, e o `cn` resolve a disputa em
+               favor desta. -->
+          <SidebarMenu class="gap-1">
             {#each items as item (item.key)}
               <AppShellNavEntry
                 {item}
                 badge={data?.badges?.[item.key]}
-                isActive={state?.activeKey === item.key}
+                isActive={shellState?.activeKey === item.key}
               />
             {/each}
           </SidebarMenu>
@@ -84,9 +110,19 @@ import { BrandMark } from '$lib/components/brand-mark/brand-mark';
     </SidebarContent>
 
     <SidebarFooter>
-      <SidebarMenu>
+      <!-- Acima do perfil, de propósito: é a última coisa que a pessoa mexe antes de sair,
+           não uma ação do dia a dia — não compete por atenção com o menu de navegação. -->
+      <div
+        class="text-sidebar-foreground/70 flex items-center justify-between px-2 py-1 group-data-[collapsible=icon]:justify-center"
+      >
+        <span class="text-xs font-medium group-data-[collapsible=icon]:hidden">Tema</span>
+        <ThemeToggle />
+      </div>
+
+      <!-- A mesma folga do menu de cima: aqui são o cartão de quem entrou e o Sair. -->
+      <SidebarMenu class="gap-1">
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" tooltip={userName}>
+          <SidebarMenuButton size="lg" tooltipContent={userName}>
             <PersonAvatar name={userName} ui={{ size: 'md' }} />
             <span class="grid flex-1 text-left leading-tight">
               <span class="truncate text-sm font-semibold">{userName}</span>
@@ -118,7 +154,7 @@ import { BrandMark } from '$lib/components/brand-mark/brand-mark';
       <SidebarTrigger />
     </header>
 
-    <div class="min-w-0 flex-1">
+    <div bind:this={contentEl} class="min-w-0 flex-1">
       {@render children()}
     </div>
   </SidebarInset>

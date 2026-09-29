@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { firstErrorMessage, toFieldState } from './form-projection.svelte';
 
 describe('toFieldState', () => {
+  // feliz
   it('projects the value the field holds', () => {
     expect(toFieldState('ana@empresa.com.br', { isTouched: true }, false).value).toBe(
       'ana@empresa.com.br',
@@ -12,6 +13,7 @@ describe('toFieldState', () => {
   /* O TanStack Form devolve `undefined` para um campo que ainda não montou, e `undefined`
      num `<input value>` faz o React trocar campo controlado por não controlado — o valor
      digitado some na primeira letra. */
+  // triste
   it('never projects a value that is not a string', () => {
     expect(toFieldState(undefined, undefined, false).value).toBe('');
     expect(toFieldState(42, undefined, false).value).toBe('');
@@ -41,6 +43,7 @@ describe('toFieldState', () => {
 });
 
 describe('firstErrorMessage', () => {
+  // feliz
   it('reads a plain string error', () => {
     expect(firstErrorMessage(['Informe a senha'])).toBe('Informe a senha');
   });
@@ -57,6 +60,7 @@ describe('firstErrorMessage', () => {
     expect(firstErrorMessage(['primeiro', 'segundo'])).toBe('primeiro');
   });
 
+  // triste
   it('returns null when there is nothing to show', () => {
     expect(firstErrorMessage(undefined)).toBeNull();
     expect(firstErrorMessage([])).toBeNull();

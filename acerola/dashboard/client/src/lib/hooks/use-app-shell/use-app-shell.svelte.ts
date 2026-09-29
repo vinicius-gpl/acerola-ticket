@@ -11,7 +11,7 @@ export type AppShellModel = {
     badges: Partial<Record<string, number>>;
     user: { name: string; email: string; role: string };
   };
-  state: { activeKey: string | undefined };
+  state: { activeKey: string | undefined; routeKey: string };
   actions: { onLogout: () => void };
 };
 
@@ -46,7 +46,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
        `get` e não valor: o model é montado uma vez, mas `page` muda a cada navegação. Com um
        valor fixo, o item aceso congelaria no primeiro que a pessoa abrisse. */
     get state() {
-      return { activeKey: activeNavKeyOf(page.url.pathname) };
+      return { activeKey: activeNavKeyOf(page.url.pathname), routeKey: page.url.pathname };
     },
     actions: {
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede

@@ -23,6 +23,7 @@ const ticket: PublicTicket = {
   anydeskId: null,
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
+  attachments: [],
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 

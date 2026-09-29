@@ -1,3 +1,4 @@
+import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import { type TicketStatus } from '@template/shared/domain/ticket-status.util';
 import {
@@ -9,6 +10,7 @@ import {
 
 import { mapDefined, setIfDefined } from '../../../lib/db/partial-update.util';
 import { type TicketInsert, type TicketRow } from '../../../lib/db/schema/tickets.schema';
+import { type TicketWithComputer } from '../repository/tickets.repository';
 
 /**
  * A tradução entre a linha do banco e o contrato. Mora aqui, e não espalhada, porque é aqui
@@ -17,7 +19,7 @@ import { type TicketInsert, type TicketRow } from '../../../lib/db/schema/ticket
  * O link do print entra por parâmetro, já assinado: gerar link é ida ao R2, e uma função de
  * tradução que faz chamada de rede não dá para testar sem subir nada.
  */
-export function toTicket(row: TicketRow, screenshotUrl: string | null): Ticket {
+export function toTicket(row: TicketWithComputer, screenshotUrl: string | null): Ticket {
   return {
     id: row.id,
     /* O protocolo vem pronto do servidor: se cada tela formatasse por conta própria, o
@@ -33,6 +35,8 @@ export function toTicket(row: TicketRow, screenshotUrl: string | null): Ticket {
     notifyWhatsapp: row.notifyWhatsapp,
     description: row.description,
     screenshotUrl,
+    computerId: row.computerId,
+    computerName: row.computerName,
     assignee: row.assignee,
     solution: row.solution,
     /* O contrato publica data como texto ISO; o Drizzle devolve `Date`. Converter em cada
@@ -51,7 +55,11 @@ export function toTicket(row: TicketRow, screenshotUrl: string | null): Ticket {
  * Montado a partir de `toTicket` e podado depois: é o que impede um campo novo do painel de
  * aparecer na consulta pública só porque alguém o acrescentou ao contrato e esqueceu daqui.
  */
-export function toPublicTicket(row: TicketRow, screenshotUrl: string | null): PublicTicket {
+export function toPublicTicket(
+  row: TicketWithComputer,
+  screenshotUrl: string | null,
+  attachments: TicketAttachment[] = [],
+): PublicTicket {
   const ticket = toTicket(row, screenshotUrl);
 
   return {
@@ -65,6 +73,7 @@ export function toPublicTicket(row: TicketRow, screenshotUrl: string | null): Pu
     anydeskId: ticket.anydeskId,
     description: ticket.description,
     screenshotUrl: ticket.screenshotUrl,
+    attachments,
     createdAt: ticket.createdAt,
   };
 }
@@ -109,6 +118,11 @@ export function toTicketUpdate(
   setIfDefined(update, 'assignee', normalizeOptional(input.assignee));
   setIfDefined(update, 'solution', normalizeOptional(input.solution));
   setIfDefined(update, 'status', input.status);
+  /* Quem abre escolhe o tipo pelo que parece; quem atende descobre o que era. Sem esta
+     correção, o mapa de "o que mais dá problema" fica torto para sempre. */
+  setIfDefined(update, 'problemType', input.problemType);
+  /* Nulo aqui DESVINCULA a máquina — é como se desfaz um vínculo errado. */
+  setIfDefined(update, 'computerId', input.computerId);
 
   stampTransition(update, input.status, current, now);
 

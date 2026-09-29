@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 
-import UsageChart, { buildLine, hourLabel, type UsagePoint } from './usage-chart.svelte';
+import UsageChart, { toPoints, USAGE_SERIES, type UsagePoint } from './usage-chart.svelte';
 
 function point(over: Partial<UsagePoint> = {}): UsagePoint {
   return {
@@ -13,40 +13,34 @@ function point(over: Partial<UsagePoint> = {}): UsagePoint {
   };
 }
 
-describe('buildLine', () => {
+describe('toPoints', () => {
   // feliz
-  it('draws the first reading on the left and the last one on the right', () => {
-    const line = buildLine([point({ cpuPercent: 0 }), point({ cpuPercent: 100 })], 'cpuPercent');
+  /* Trocar duas medidas de lugar aqui desenha um gráfico bonito que mente, e é por ele que
+     alguém decide trocar uma peça. */
+  it('keeps every measure under its own series', () => {
+    const [converted] = toPoints([point()]);
 
-    /* 0% no rodapé (y = 180) e 100% no topo (y = 0): o SVG conta o Y ao contrário. */
-    expect(line).toBe('M0.0,180.0 L600.0,0.0');
-  });
-
-  it('keeps a single reading visible as a flat line', () => {
-    expect(buildLine([point({ cpuPercent: 50 })], 'cpuPercent')).toBe('M0,90.0 L600,90.0');
+    expect(converted!.at).toBe('2026-09-23T14:00:00.000Z');
+    expect(converted!.values).toEqual({ cpuPercent: 20, memoryPercent: 50, diskPercent: 80 });
   });
 
   // triste
-  it('draws nothing when there is no reading', () => {
-    expect(buildLine([], 'cpuPercent')).toBe('');
-  });
-
-  /* Medida fora da escala é defeito do agente, não motivo para a linha sair do quadro e
-     invadir o resto da tela. */
-  it('keeps a measure above one hundred inside the chart', () => {
-    expect(buildLine([point({ cpuPercent: 140 })], 'cpuPercent')).toBe('M0,0.0 L600,0.0');
+  it('has nothing to convert when there is no reading', () => {
+    expect(toPoints([])).toEqual([]);
   });
 });
 
-describe('hourLabel', () => {
+describe('USAGE_SERIES', () => {
   // feliz
-  it('answers the hour, not the whole date', () => {
-    expect(hourLabel('2026-09-23T14:05:00.000Z')).toMatch(/^\d{2}h$/);
-  });
-
-  // triste
-  it('shows a dash for something that is not a date', () => {
-    expect(hourLabel('ontem')).toBe('—');
+  /* Duas telas montando a lista por conta própria é como "Memória" fica verde numa e azul
+     na outra. */
+  it('names the three measures in Portuguese, each with its own colour', () => {
+    expect(USAGE_SERIES.map((series) => series.label)).toEqual([
+      'Processador',
+      'Memória',
+      'Disco',
+    ]);
+    expect(new Set(USAGE_SERIES.map((series) => series.color)).size).toBe(3);
   });
 });
 
@@ -67,5 +61,12 @@ describe('UsageChart', () => {
     render(UsageChart, { props: { data: { points: [] } } });
 
     expect(screen.getByText('Sem leituras no período.')).toBeInTheDocument();
+  });
+
+  /* Durante o carregamento não se diz "sem leituras": faria a pessoa achar que sumiram. */
+  it('says nothing about emptiness while loading (edge case)', () => {
+    render(UsageChart, { props: { data: { points: [] }, state: { isLoading: true } } });
+
+    expect(screen.queryByText('Sem leituras no período.')).not.toBeInTheDocument();
   });
 });

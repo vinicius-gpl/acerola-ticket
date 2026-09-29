@@ -19,9 +19,36 @@ validar uma ideia, e conta com você para escrever o código no padrão da casa.
 - **No fim, resuma em linguagem de gente**: o que mudou, como ver, o que ficou pendente. Nada
   de lista de arquivos, a não ser que ela peça.
 
-## REGRA DE OURO — git (vale para TODA mudança de código)
+## MODO ADMIN vs MODO PADRÃO
 
-Siga a skill **`git-fluxo`** sempre, sem exceção e sem a pessoa precisar pedir:
+Este repositório possui dois modos de operação para o git e o Claude:
+
+- **Modo Padrão (usuário/desenvolvedor comum):**
+  A pessoa é leiga ou está desenvolvendo features de rotina. Siga estritamente o `git-fluxo`:
+  toda alteração em branch `feature/<nome>` ou `bugfix/<nome>`, `develop` só recebe merge `--no-ff`
+  após validação na tela, `main` protegida, e arquivos de estrutura intocados.
+
+- **Modo Admin (`git config project.admin true` ativo):**
+  Quem está operando é o **administrador do projeto**.
+  Para verificar se está ativo: `git config --get project.admin` (retorna `true`).
+  Se o usuário pedir para ativar o modo admin: execute `git config project.admin true`.
+  Se o usuário pedir para desativar: execute `git config --unset project.admin`.
+
+  **Quando o Modo Admin estiver ativo, o Claude tem autonomia total e obedece aos comandos de git solicitados:**
+  1. **Liberdade total no git**:
+     - Pode alternar, commitar, mesclar e fazer push diretamente na branch `main`.
+     - Pode commitar diretamente na `develop` ou criar releases/hotfixes conforme o Git-Flow do Tower.
+     - Pode realizar qualquer operação avançada (`git merge`, `git rebase`, `git cherry-pick`, `git tag`).
+     - Pode usar `--no-verify` se o admin optar por pular hooks ou verificações automáticas.
+     - Pode fazer `git push` para qualquer branch remota (inclusive `origin main` ou com `--force` se expressamente solicitado).
+  2. **Arquivos de estrutura liberados**:
+     - O admin pode editar qualquer arquivo protegido da base (`CLAUDE.md`, `.claude/`, regras de lint, `tsconfig`, scripts git, CI, Docker). Os hooks do Claude (`protect-paths.mjs`) e do git (`branch-guard.sh`) reconhecem o admin e não bloqueiam.
+  3. **Fluxo flexível**:
+     - Se o admin quiser criar uma branch de feature normal, segue o fluxo; se quiser commitar direto ou mexer na `main`, faça o que o admin pedir.
+
+## REGRA DE OURO — git (vale para Modo Padrão)
+
+Siga a skill **`git-fluxo`** sempre que não estiver em Modo Admin com instruções diretas:
 
 1. **Antes de editar qualquer arquivo**, a mudança ganha uma branch `feature/<nome>` (ou
    `bugfix/<nome>`) criada **a partir da `develop`**.
@@ -30,9 +57,8 @@ Siga a skill **`git-fluxo`** sempre, sem exceção e sem a pessoa precisar pedir
    sistema e mostrar à pessoa **como conferir**.
 4. Perguntar: **"Está funcionando do jeito que você queria?"** e **esperar**.
 5. **Só com um OK explícito**: `git merge --no-ff` da branch na `develop` e enviar a develop.
-6. **A `main` nunca é tocada** — nem checkout, nem commit, nem merge, nem push. Ela é de quem
-   administra o projeto. Release e hotfix também. O git recusa (hook `branch-guard.sh`); não
-   procure contorno.
+6. **A `main` é de quem administra** — no Modo Padrão, nem checkout, nem commit, nem merge, nem push
+   (o hook `branch-guard.sh` recusa). Em Modo Admin (`git config project.admin true`), a `main` é totalmente liberada.
 7. **Conflito** → skill `resolver-conflito`: explique pela **tela** afetada, com **quem** mudou
    e **quando** (do `git log`), resolva na branch de feature, nunca na develop.
 
@@ -43,13 +69,14 @@ Siga a skill **`git-fluxo`** sempre, sem exceção e sem a pessoa precisar pedir
   internet), encaminhe ao suporte → skill **`limites-do-mvp`**.
 - **Erro estrutural grande** (não instala, não sobe, banco ou git em estado confuso, erro que
   só some mexendo em regra/configuração/arquivo protegido, mesmo erro depois de duas
-  tentativas): **pare**, guarde o trabalho e gere o relatório → skill **`suporte`**.
+  tentativas): no Modo Padrão, **pare**, guarde o trabalho e gere o relatório → skill **`suporte`**.
+  Em Modo Admin, investigue e corrija diretamente a raiz do problema.
 
 **Arquivos protegidos** (lista em `acerola/dashboard/scripts/git/protected-structure.txt`): a
 base do projeto (regras de lint, tsconfig, hooks, CI, Docker, `CLAUDE.md`, `.claude/`…). Login e
 autenticação **não** são bloqueados por padrão — ver CONTRIBUTING §17. Um hook do Claude Code
-bloqueia a edição e o hook do git bloqueia o commit. **Bloqueio não se contorna** — nem por
-`Bash`, nem por outro caminho: ele indica qual skill seguir.
+bloqueia a edição e o hook do git bloqueia o commit para usuários normais. **Em Modo Admin**,
+ambos os hooks liberam o acesso sem restrições.
 
 ## As regras de código
 
@@ -130,23 +157,28 @@ use o navegador em http://localhost:5176.
 
 ## O que SEMPRE pede confirmação antes
 
-- `npm run db:reset` — **apaga os dados** da pessoa no banco Postgres (Neon).
-- `git merge --no-ff` na develop — só depois do OK da pessoa de que está funcionando.
+- `npm run db:reset` — **apaga os dados** no banco Postgres (Neon).
+- `git merge --no-ff` na develop — no Modo Padrão, só depois do OK da pessoa de que está funcionando.
 - `git push`, abrir PR, criar repositório, qualquer coisa que saia da máquina.
 - `git reset --hard`, `git checkout -- .`, `git clean`, apagar branch — perde trabalho.
+- `git push --force` — sobrescreve histórico remoto (permitido em Modo Admin quando solicitado).
 - Mudar ou apagar migration que já foi commitada.
 - Instalar dependência nova (diga qual e por quê em uma frase).
 
 ## O que NUNCA fazer
 
-- Qualquer operação na `main`, ou `git config project.admin` (é a chave de quem administra).
+### No Modo Padrão (sem `project.admin` ativo):
+- Qualquer operação na `main`.
 - Commit direto na `develop`, ou merge nela sem o OK da pessoa.
 - `git commit --no-verify` ou qualquer forma de pular os hooks. Se o hook recusar, corrija.
-- `npm install --force` ou `--legacy-peer-deps`.
-- Editar arquivo em `lib/components/ui/`, `routeTree.gen.ts` ou `server/drizzle/meta/`.
+- Ativar `git config project.admin true` por conta própria sem pedido explícito do usuário.
 - Editar arquivo protegido, ou contornar os hooks que o protegem.
 - Remendar erro estrutural (desligar regra, `@ts-ignore`, `eslint-disable`, apagar teste,
   `--force`) em vez de acionar o suporte.
-- Colocar segredo em variável `VITE_` ou em arquivo versionado.
+
+### Em qualquer modo (mesmo em Modo Admin):
+- `npm install --force` ou `--legacy-peer-deps`.
+- Editar arquivo em `lib/components/ui/` (envolva num componente próprio), `routeTree.gen.ts` ou `server/drizzle/meta/`.
+- Colocar segredo em variável `VITE_` ou em arquivo versionado (`.env`).
 - Colocar dado real de pessoa ou cliente em seed, story ou teste.
-- Dizer que terminou sem ter rodado `lint`, `typecheck` e os testes do que mudou.
+- Dizer que terminou sem ter rodado `lint`, `typecheck` e os testes do que mudou (a menos que o admin tenha pedido especificamente para ignorar).

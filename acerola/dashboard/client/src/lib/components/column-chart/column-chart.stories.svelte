@@ -73,3 +73,20 @@
   args={{ data: { slices: [{ label: 'Ana', value: 1 }], seriesLabel: 'Tarefas' } }}
   template={inBox}
 />
+
+<!-- Deitado: é assim que nome de gente e de máquina cabem, na tela grande e no celular. -->
+<Story
+  name="Horizontal"
+  args={{
+    data: {
+      slices: [
+        { label: 'CONTABIL-03', value: 4 },
+        { label: 'FISCAL-01', value: 3 },
+        { label: 'RECEPCAO-02', value: 2 },
+      ],
+      seriesLabel: 'Chamados',
+    },
+    ui: { orientation: 'horizontal' },
+  }}
+  template={inBox}
+/>

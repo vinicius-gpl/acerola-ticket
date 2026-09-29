@@ -30,6 +30,8 @@
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
 
+  import ShieldAlert from '@lucide/svelte/icons/shield-alert';
+
   /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
   let { data, state: dialogState, actions }: ComputerBlockDialogProps = $props();
@@ -43,9 +45,14 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onCancel())}
 >
   <DialogContent showCloseButton={false}>
-    <DialogHeader>
-      <DialogTitle>Bloquear esta máquina?</DialogTitle>
-      <DialogDescription>
+    <DialogHeader class="gap-1.5">
+      <div class="flex items-center gap-2.5">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-destructive/10 text-destructive">
+          <ShieldAlert class="size-4" aria-hidden="true" />
+        </span>
+        <DialogTitle class="text-lg font-semibold tracking-tight">Bloquear esta máquina?</DialogTitle>
+      </div>
+      <DialogDescription class="text-xs text-muted-foreground">
         O agente de {data.computerName} passa a ser recusado, mesmo com o token certo. Ela para de
         enviar leituras e continua no inventário, com todo o histórico.
       </DialogDescription>

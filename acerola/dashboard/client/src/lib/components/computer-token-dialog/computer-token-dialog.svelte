@@ -30,6 +30,8 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
 
+  import KeyRound from '@lucide/svelte/icons/key-round';
+
   /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
   let { data, state: dialogState, actions }: ComputerTokenDialogProps = $props();
@@ -55,20 +57,25 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
   <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Token de {data.computerName}</DialogTitle>
-      <DialogDescription>
+    <DialogHeader class="gap-1.5">
+      <div class="flex items-center gap-2.5">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
+          <KeyRound class="size-4" aria-hidden="true" />
+        </span>
+        <DialogTitle class="text-lg font-semibold tracking-tight">Token de {data.computerName}</DialogTitle>
+      </div>
+      <DialogDescription class="text-xs text-muted-foreground">
         Guarde agora: por segurança, este código não pode ser mostrado de novo. Se perder, gere
         outro pela ficha da máquina.
       </DialogDescription>
     </DialogHeader>
 
-    <p
-      class="bg-muted text-ink-900 rounded-lg px-3 py-3 font-mono text-sm break-all select-all"
+    <div
+      class="rounded-box border border-border/80 bg-neutral-950 p-4 font-mono text-xs text-neutral-100 shadow-inner break-all select-all flex items-center justify-between gap-3"
       data-testid="agent-token"
     >
-      {data.token}
-    </p>
+      <span class="tracking-wider">{data.token}</span>
+    </div>
 
     <p class="text-ink-500 text-sm">
       Instale o agente no computador e informe este código quando ele pedir. A partir daí a

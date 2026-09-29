@@ -16,7 +16,14 @@ vi.mock('$lib/api/computers.api', () => ({
   },
 }));
 
+/* Os chamados da máquina vêm da feature de Chamados — a ficha só os LÊ, mas a consulta
+   acontece, e o teste precisa vê-la para provar que a página vai ao servidor. */
+vi.mock('$lib/api/tickets.api', () => ({
+  ticketsApi: { list: vi.fn() },
+}));
+
 const { computersApi } = await import('$lib/api/computers.api');
+const { ticketsApi } = await import('$lib/api/tickets.api');
 
 const GB = 1024 ** 3;
 
@@ -53,6 +60,9 @@ function computer(over: Partial<Computer> = {}): Computer {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: '2026-05-01T12:00:00.000Z',
     createdBy: 'suporte@azuos.local',
     updatedAt: null,
@@ -79,7 +89,13 @@ describe('useComputerDetailModel', () => {
   beforeEach(() => {
     vi.mocked(computersApi.findById).mockResolvedValue(computer());
     vi.mocked(computersApi.samples).mockResolvedValue([]);
-    vi.mocked(computersApi.alerts).mockResolvedValue([]);
+    vi.mocked(ticketsApi.list).mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 25 });
+    vi.mocked(computersApi.alerts).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 25,
+    });
     vi.mocked(computersApi.update).mockResolvedValue(computer({ isArchived: true }));
     vi.mocked(computersApi.regenerateToken).mockResolvedValue({
       computer: computer(),
@@ -88,12 +104,42 @@ describe('useComputerDetailModel', () => {
   });
 
   // feliz
-  it('brings the machine, its usage and its alerts', async () => {
+  it('brings the machine, its usage and the first page of its alerts', async () => {
     const model = await mountLoadedModel();
 
     expect(model.data.computer?.name).toBe('CONTABIL-03');
     expect(computersApi.samples).toHaveBeenCalledWith(3);
-    expect(computersApi.alerts).toHaveBeenCalledWith(3);
+    /* Os alertas vêm PAGINADOS do servidor: uma máquina ruim acumula centenas de episódios. */
+    expect(computersApi.alerts).toHaveBeenCalledWith(3, { page: 1, pageSize: 25 });
+  });
+
+  /**
+   * Trocar de página vai BUSCAR no servidor.
+   *
+   * É o que este teste tranca: se a paginação voltasse a ser da tela, a consulta seria feita
+   * uma vez só e a lista inteira viria para ser cortada aqui — gastando banco, rede e memória
+   * do navegador para jogar fora quase tudo.
+   */
+  it('goes to the server for the next page of alerts', async () => {
+    const model = await mountLoadedModel();
+
+    model.actions.onAlertPageChange(3);
+
+    await waitFor(() =>
+      expect(computersApi.alerts).toHaveBeenCalledWith(3, { page: 3, pageSize: 25 }),
+    );
+    expect(model.data.alertPaging.page).toBe(3);
+  });
+
+  it('goes to the server for the next page of tickets', async () => {
+    const model = await mountLoadedModel();
+
+    model.actions.onTicketPageChange(2);
+
+    await waitFor(() =>
+      expect(ticketsApi.list).toHaveBeenCalledWith({ computerId: 3, page: 2, pageSize: 25 }),
+    );
+    expect(model.data.ticketPaging.page).toBe(2);
   });
 
   it('archives the machine instead of deleting it', async () => {

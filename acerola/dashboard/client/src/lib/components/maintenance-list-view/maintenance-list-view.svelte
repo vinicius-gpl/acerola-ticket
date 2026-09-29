@@ -61,10 +61,11 @@
     };
   };
 
-  const TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os tipos' },
-    ...MAINTENANCE_TYPES.map((type) => ({ value: type, label: MAINTENANCE_TYPE_LABELS[type] })),
-  ];
+  const TYPE_FILTER_OPTIONS = MAINTENANCE_TYPES.map((type) => ({
+    value: type,
+    label: MAINTENANCE_TYPE_LABELS[type],
+    tone: maintenanceTypeTone(type),
+  }));
 
   /**
    * De quem é este serviço, em uma linha.
@@ -92,10 +93,19 @@
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import PreventiveBoard from '$lib/components/preventive-board/preventive-board.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableActions,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
@@ -138,10 +148,10 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2">
-      <SelectField
+    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+      <OptionPicker
         data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo' }}
+        ui={{ ariaLabel: 'Filtrar por tipo', allLabel: 'Todos os tipos' }}
         actions={{ onChange: (value: string) => actions.onTypeChange(value as MaintenanceType | '') }}
       />
     </div>
@@ -186,50 +196,50 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[720px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Data</th>
-            <th scope="col" class="py-2 pr-3">Equipamento</th>
-            <th scope="col" class="py-2 pr-3">Tipo</th>
-            <th scope="col" class="py-2 pr-3">O que foi feito</th>
-            <th scope="col" class="py-2 pr-3">Quem fez</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.maintenances as maintenance (maintenance.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0 align-top">
-              <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                {formatDate(maintenance.performedAt)}
-              </td>
-              <td class="max-w-[220px] py-2 pr-3">
-                <span class="text-ink-900 font-semibold break-words">
-                  {machineLabelOf(maintenance)}
-                </span>
-                <span class="text-ink-500 block text-xs break-words">
-                  {#if maintenance.computerId}
-                    {maintenance.computerName}
-                    {#if maintenance.computerDepartment}
-                      · {departmentLabel(maintenance.computerDepartment)}
-                    {/if}
-                  {:else}
-                    Fora do inventário
+    <Table class="min-w-[840px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead class="min-w-[110px]">Data</TableHead>
+          <TableHead class="min-w-[240px]">Equipamento</TableHead>
+          <TableHead class="min-w-[120px]">Tipo</TableHead>
+          <TableHead class="min-w-[260px]">O que foi feito</TableHead>
+          <TableHead class="min-w-[130px]">Quem fez</TableHead>
+          <TableHead class="min-w-[130px] text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.maintenances as maintenance (maintenance.id)}
+          <TableRow class="align-top">
+            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              {formatDate(maintenance.performedAt)}
+            </TableCell>
+            <TableCell class="max-w-[280px]">
+              <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+                {machineLabelOf(maintenance)}
+              </span>
+              <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">
+                {#if maintenance.computerId}
+                  {maintenance.computerName}
+                  {#if maintenance.computerDepartment}
+                    · {departmentLabel(maintenance.computerDepartment)}
                   {/if}
-                </span>
-              </td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: maintenanceTypeLabel(maintenance.type) }}
-                  ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
-                />
-              </td>
-              <td class="text-ink-700 max-w-[320px] py-2 pr-3 break-words">
-                {maintenance.description ?? '—'}
-              </td>
-              <td class="text-ink-500 py-2 pr-3 break-words">{maintenance.performedBy ?? '—'}</td>
-              <td class="py-2 text-right whitespace-nowrap">
+                {:else}
+                  Fora do inventário
+                {/if}
+              </span>
+            </TableCell>
+            <TableCell class="whitespace-nowrap">
+              <StatusBadge
+                data={{ label: maintenanceTypeLabel(maintenance.type) }}
+                ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+              />
+            </TableCell>
+            <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+              {maintenance.description ?? '—'}
+            </TableCell>
+            <TableCell class="text-neutral-500 max-w-[140px] break-words whitespace-normal text-xs">{maintenance.performedBy ?? '—'}</TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <TableActions>
                 <ActionButton
                   data={{ label: 'Corrigir' }}
                   ui={{ variant: 'secondary', size: 'sm' }}
@@ -237,15 +247,25 @@
                 />
                 <ActionButton
                   data={{ label: 'Excluir' }}
-                  ui={{ variant: 'ghost', size: 'sm', icon: Trash2, isIconOnly: true }}
+                  ui={{
+                    variant: 'ghost',
+                    size: 'sm',
+                    icon: Trash2,
+                    isIconOnly: true,
+                    className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                  }}
                   actions={{ onClick: () => actions.onAskRemove(maintenance) }}
                 />
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+              </TableActions>
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Histórico de manutenções preventivas e corretivas</span>
+        <span>{data.maintenances.length} registro(s)</span>
+      {/snippet}
+    </Table>
 
     <!-- Truncar calado é mentir sobre o tamanho do histórico. -->
     {#if viewState.isTruncated}

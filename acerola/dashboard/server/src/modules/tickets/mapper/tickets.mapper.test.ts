@@ -1,19 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
+import { type TicketWithComputer } from '../repository/tickets.repository';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from './tickets.mapper';
 
 const CREATED_AT = new Date('2026-03-01T08:00:00.000Z');
 const NOW = new Date('2026-03-01T10:00:00.000Z');
 const ANA = 'ana@azuos.com.br';
 
-function row(over: Partial<TicketRow> = {}): TicketRow {
+function row(over: Partial<TicketWithComputer> = {}): TicketWithComputer {
   return {
     id: 7,
     status: 'open',
     priority: 'medium',
     requesterName: 'Bia Costa',
     department: 'financeiro',
+    computerId: null,
+    computerName: null,
     problemType: 'printer',
     anydeskId: null,
     contactPhone: '62999999999',
@@ -188,5 +190,56 @@ describe('toTicketUpdate', () => {
 
   it('touches nothing but the stamps when the change is empty', () => {
     expect(toTicketUpdate({}, ANA, row(), NOW)).toEqual({ updatedAt: NOW, updatedBy: ANA });
+  });
+});
+
+describe('toTicket com máquina', () => {
+  // feliz
+  it('carries the machine the ticket was linked to, with the name the screen shows', () => {
+    const ticket = toTicket(row({ computerId: 11, computerName: 'Recepção — balcão' }), null);
+
+    expect(ticket.computerId).toBe(11);
+    expect(ticket.computerName).toBe('Recepção — balcão');
+  });
+
+  // triste
+  /* A maioria dos chamados NÃO tem máquina: quem abre descreve o problema, e vincular é
+     trabalho de quem atende. Nulo é o estado normal, não a exceção. */
+  it('says nothing instead of inventing a machine', () => {
+    const ticket = toTicket(row(), null);
+
+    expect(ticket.computerId).toBeNull();
+    expect(ticket.computerName).toBeNull();
+  });
+});
+
+describe('toTicketUpdate com máquina e tipo', () => {
+  // feliz
+  it('links the machine and corrects the problem type', () => {
+    const update = toTicketUpdate(
+      { computerId: 11, problemType: 'slow_computer' },
+      ANA,
+      row(),
+      NOW,
+    );
+
+    expect(update.computerId).toBe(11);
+    expect(update.problemType).toBe('slow_computer');
+  });
+
+  /* Nulo DESVINCULA: é assim que se desfaz um vínculo errado, e por isso o mapper precisa
+     distinguir "não mandou o campo" de "mandou vazio". */
+  it('unlinks the machine when the field comes empty', () => {
+    expect(
+      toTicketUpdate({ computerId: null }, ANA, row({ computerId: 11 }), NOW).computerId,
+    ).toBeNull();
+  });
+
+  // triste
+  it('leaves the link alone when the field was not sent', () => {
+    const update = toTicketUpdate({ status: 'resolved' }, ANA, row({ computerId: 11 }), NOW);
+
+    expect(update).not.toHaveProperty('computerId');
+    expect(update).not.toHaveProperty('problemType');
   });
 });

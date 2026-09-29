@@ -53,9 +53,10 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import Monitor from '@lucide/svelte/icons/monitor';
 
   let { data, state, actions }: ComputerFormDialogProps = $props();
 
@@ -74,81 +75,91 @@
 >
   <DialogContent>
     <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>{isEdit ? 'Identificação da máquina' : 'Cadastrar computador'}</DialogTitle>
-        <DialogDescription>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
+            <Monitor class="size-4" aria-hidden="true" />
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">{isEdit ? 'Identificação da máquina' : 'Cadastrar computador'}</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {isEdit
             ? 'Apelido, responsável e departamento. O resto a própria máquina informa.'
             : 'Só o nome é obrigatório. Ao salvar, você recebe o token para instalar o agente nela.'}
         </DialogDescription>
       </DialogHeader>
 
-      <!-- No cadastro o nome é digitado; depois ele é só contexto, e vem do agente. -->
-      {#if isEdit}
-        <p class="bg-muted/50 text-ink-700 rounded-lg px-3 py-2 text-sm break-words">
-          <span class="text-ink-500 block text-xs">Nome informado pela máquina</span>
-          {fields.name.value}
-        </p>
-      {:else}
+      <!-- Identificação do equipamento na rede -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {#if isEdit}
+          <div class="flex flex-col gap-1 rounded-box border border-border/70 bg-muted/40 p-3 sm:col-span-2">
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome informado pela máquina</span>
+            <span class="font-mono text-sm font-medium text-foreground">{fields.name.value}</span>
+          </div>
+        {:else}
+          <TextField
+            data={{
+              label: 'Nome da máquina',
+              name: 'name',
+              value: fields.name.value,
+              placeholder: 'Ex: RECEPCAO-01',
+            }}
+            state={{
+              error: fields.name.error,
+              isDisabled: state.isSubmitting,
+              isAutoFocused: true,
+            }}
+            actions={{
+              onChange: (value: string) => actions.onChange('name', value),
+              onBlur: () => actions.onBlur('name'),
+            }}
+          />
+        {/if}
+
         <TextField
           data={{
-            label: 'Nome da máquina',
-            name: 'name',
-            value: fields.name.value,
-            placeholder: 'Como ela aparece na rede, por exemplo RECEPCAO-01',
+            label: 'Apelido',
+            name: 'displayName',
+            value: fields.displayName.value,
+            placeholder: 'Como o pessoal chama essa máquina',
           }}
           state={{
-            error: fields.name.error,
+            error: fields.displayName.error,
             isDisabled: state.isSubmitting,
-            isAutoFocused: true,
+            isAutoFocused: isEdit,
           }}
           actions={{
-            onChange: (value: string) => actions.onChange('name', value),
-            onBlur: () => actions.onBlur('name'),
+            onChange: (value: string) => actions.onChange('displayName', value),
+            onBlur: () => actions.onBlur('displayName'),
           }}
         />
-      {/if}
+      </div>
 
-      <TextField
-        data={{
-          label: 'Apelido',
-          name: 'displayName',
-          value: fields.displayName.value,
-          placeholder: 'Como o pessoal chama essa máquina',
-        }}
-        state={{
-          error: fields.displayName.error,
-          isDisabled: state.isSubmitting,
-          isAutoFocused: isEdit,
-        }}
-        actions={{
-          onChange: (value: string) => actions.onChange('displayName', value),
-          onBlur: () => actions.onBlur('displayName'),
-        }}
-      />
-
-      <TextField
-        data={{
-          label: 'Responsável',
-          name: 'responsibleName',
-          value: fields.responsibleName.value,
-          placeholder: 'Quem usa a máquina no dia a dia',
-        }}
-        state={{ error: fields.responsibleName.error, isDisabled: state.isSubmitting }}
-        actions={{
-          onChange: (value: string) => actions.onChange('responsibleName', value),
-          onBlur: () => actions.onBlur('responsibleName'),
-        }}
-      />
-
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">Departamento</span>
-        <SelectField
-          data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
-          ui={{ ariaLabel: 'Departamento' }}
-          state={{ isDisabled: state.isSubmitting }}
-          actions={{ onChange: (value: string) => actions.onChange('department', value) }}
+      <!-- Atribuição e departamento -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <TextField
+          data={{
+            label: 'Responsável',
+            name: 'responsibleName',
+            value: fields.responsibleName.value,
+            placeholder: 'Quem usa a máquina no dia a dia',
+          }}
+          state={{ error: fields.responsibleName.error, isDisabled: state.isSubmitting }}
+          actions={{
+            onChange: (value: string) => actions.onChange('responsibleName', value),
+            onBlur: () => actions.onBlur('responsibleName'),
+          }}
         />
+
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">Departamento</span>
+          <OptionPicker
+            data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
+            ui={{ ariaLabel: 'Departamento', fullWidth: true }}
+            state={{ isDisabled: state.isSubmitting }}
+            actions={{ onChange: (value: string) => actions.onChange('department', value) }}
+          />
+        </div>
       </div>
 
       {#if state.error}

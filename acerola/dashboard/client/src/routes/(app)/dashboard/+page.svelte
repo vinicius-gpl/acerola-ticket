@@ -1,30 +1,18 @@
 <script lang="ts">
-  import Monitor from '@lucide/svelte/icons/monitor';
-
-  import PendingArea from '$lib/components/pending-area/pending-area.svelte';
+  import DashboardView from '$lib/components/dashboard-view/dashboard-view.svelte';
+  import { useDashboardModel } from '$lib/hooks/use-dashboard/use-dashboard.svelte';
 
   /**
-   * A rota só compõe (CONTRIBUTING §3).
+   * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
-   * Esta área ainda não foi construída: a tela diz o que vai viver aqui, lido dos requisitos
-   * do sistema antigo. Quando ela for feita, este arquivo passa a compor o view-model e a
-   * view de verdade, e o `PendingArea` sai.
+   * Não há estado nenhum aqui — o painel só lê, e o período que a pessoa escolhe mora no
+   * view-model, junto da consulta que ele refaz.
    */
-  const AREA = {
-    title: 'Painel',
-    summary: 'A saúde do parque num lugar só: o que está pegando fogo hoje.',
-    features: [
-      'Mapa dos maiores problemas do parque, do mais grave para o menos.',
-      'Alertas do mês, juntando chamados e máquinas com problema.',
-      'Manutenções feitas no período, para saber onde o tempo foi gasto.',
-      'Problemas por tipo e departamentos que mais pedem socorro.',
-    ],
-    dependsOn: 'o Inventário e a Manutenção',
-  };
+  const dashboard = useDashboardModel();
 </script>
 
 <svelte:head>
   <title>Painel</title>
 </svelte:head>
 
-<PendingArea data={AREA} ui={{ icon: Monitor }} />
+<DashboardView data={dashboard.data} state={dashboard.state} actions={dashboard.actions} />

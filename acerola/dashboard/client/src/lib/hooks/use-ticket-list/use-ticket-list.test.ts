@@ -3,12 +3,15 @@ import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
+import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 import Harness from './use-ticket-list-harness.test.svelte';
 import { type TicketListModel } from './use-ticket-list.svelte';
 
 vi.mock('$lib/api/tickets.api', () => ({
-  ticketsApi: { list: vi.fn(), dashboard: vi.fn(), update: vi.fn() },
+  ticketsApi: { list: vi.fn(), dashboard: vi.fn(), update: vi.fn(), exportReport: vi.fn() },
 }));
+
+vi.mock('$lib/utils/download-file.util', () => ({ triggerBrowserDownload: vi.fn() }));
 
 const { ticketsApi } = await import('$lib/api/tickets.api');
 
@@ -26,6 +29,8 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     notifyWhatsapp: false,
     description: 'A impressora não puxa papel.',
     screenshotUrl: null,
+    computerId: null,
+    computerName: null,
     assignee: null,
     solution: null,
     createdAt: '2026-09-15T12:10:00.000Z',
@@ -158,5 +163,42 @@ describe('useTicketListModel', () => {
     await waitFor(() => expect(model.data.filter.status).toBe('resolved'));
 
     expect(ticketsApi.dashboard).toHaveBeenCalledOnce();
+  });
+
+  describe('onExportReport', () => {
+    // feliz
+    it('downloads the file with the same filters as the queue', async () => {
+      vi.mocked(ticketsApi.exportReport).mockResolvedValue({
+        blob: new Blob(['x']),
+        fileName: 'chamados.xlsx',
+      });
+      const model = await mountLoadedModel();
+      model.actions.onDepartmentChange('rh');
+      await waitFor(() => expect(model.data.filter.department).toBe('rh'));
+
+      model.actions.onExportReport('xlsx');
+      await waitFor(() => expect(model.state.exportingFormat).toBeNull());
+
+      expect(ticketsApi.exportReport).toHaveBeenCalledWith(
+        expect.objectContaining({ department: 'rh' }),
+        'xlsx',
+      );
+      expect(triggerBrowserDownload).toHaveBeenCalledWith(expect.any(Blob), 'chamados.xlsx');
+    });
+
+    // triste
+    it('shows the reason instead of a silently missing download', async () => {
+      vi.mocked(ticketsApi.exportReport).mockRejectedValue(
+        new ApiError(403, 'Seu perfil não permite consultar os chamados.'),
+      );
+      const model = await mountLoadedModel();
+
+      model.actions.onExportReport('pdf');
+
+      await waitFor(() => {
+        expect(model.state.exportError).toBe('Seu perfil não permite consultar os chamados.');
+        expect(model.state.exportingFormat).toBeNull();
+      });
+    });
   });
 });

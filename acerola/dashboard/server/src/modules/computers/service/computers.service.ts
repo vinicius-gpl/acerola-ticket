@@ -5,11 +5,19 @@ import {
   decideAlerts,
   describeAlert,
 } from '@template/shared/domain/computer-alert.util';
+import { healthStatusLabel, healthStatusTone } from '@template/shared/domain/computer-health.util';
+import { departmentLabel } from '@template/shared/domain/department.util';
+import { disposalTypeLabel } from '@template/shared/domain/disposal.util';
 import { type AgentSnapshot } from '@template/shared/schemas/agent-snapshot.schema';
+import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
+  type ComputerListItem,
   type ComputerAlert,
+  type ComputerAlertListQuery,
   type ComputerListQuery,
+  type ComputerReportQuery,
+  type DisposeComputerInput,
   type ComputerSample,
   type CreateComputerInput,
   type CreatedComputer,
@@ -21,8 +29,16 @@ import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanCreate, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
 import {
+  type BuiltReport,
+  type ReportColumn,
+  type ReportTone,
+} from '../../../lib/report/report.types';
+import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
+import {
   toComputer,
+  toComputerListItem,
   toComputerAlert,
+  toComputerLive,
   toComputerInsert,
   toComputerSample,
   toComputerUpdate,
@@ -30,13 +46,64 @@ import {
   toSnapshotUpdate,
 } from '../mapper/computers.mapper';
 import { AgentPresenceService } from '../presence/agent-presence.service';
+import { LiveWatchService, WATCHED_CADENCE_SECONDS } from '../presence/live-watch.service';
 import { ComputersRepository } from '../repository/computers.repository';
 import { createComputerToken, hashComputerToken } from '../token/computer-token.util';
 
-const NOT_FOUND = 'Computador não encontrado. Ele pode ter sido arquivado — recarregue a lista.';
+const BYTES_PER_GB = 1024 ** 3;
 
-/** Quantos alertas a tela de detalhe mostra. Mais que isso vira rolagem que ninguém lê. */
-const ALERT_PAGE_SIZE = 50;
+/** A memória em GB, como texto de relatório — "Não informado" em vez de um traço solto. */
+function formatMemoryReport(bytes: number | null): string {
+  if (bytes === null) return 'Não informado';
+
+  return `${(bytes / BYTES_PER_GB).toFixed(1).replace('.', ',')} GB`;
+}
+
+/**
+ * As colunas do relatório do inventário, na mesma ordem em que a lista do painel as mostra —
+ * quem baixa o arquivo está levando o MESMO parque, não uma versão nova para decorar.
+ */
+/** A mesma leitura que a lista faz na tela para escolher o selo de "Arquivada/Bloqueada/Em uso". */
+function situationOf(row: ComputerRow): string {
+  if (row.isArchived) return 'Arquivada';
+  if (row.isBlocked) return 'Bloqueada';
+
+  return 'Em uso';
+}
+
+function situationTone(row: ComputerRow): ReportTone {
+  if (row.isArchived) return 'neutral';
+  if (row.isBlocked) return 'danger';
+
+  return 'success';
+}
+
+const COMPUTER_REPORT_COLUMNS: ReportColumn<ComputerRow>[] = [
+  { header: 'Máquina', value: (row) => row.displayName?.trim() || row.name, isTitle: true },
+  { header: 'Nome técnico', value: (row) => row.name },
+  {
+    header: 'Departamento',
+    value: (row) => (row.department ? departmentLabel(row.department) : 'Sem departamento'),
+  },
+  { header: 'Responsável', value: (row) => row.responsibleName ?? '—' },
+  {
+    header: 'Saúde',
+    value: (row) => healthStatusLabel(row.healthStatus),
+    tone: (row) => healthStatusTone(row.healthStatus),
+  },
+  { header: 'Nota de saúde', value: (row) => `${row.healthScore}/100` },
+  { header: 'Situação', value: situationOf, tone: situationTone },
+  { header: 'Sistema operacional', value: (row) => row.os ?? 'Não informado' },
+  { header: 'Memória', value: (row) => formatMemoryReport(row.totalMemoryBytes) },
+  { header: 'Visto pela última vez', value: (row) => formatReportDate(row.lastSeenAt) },
+  {
+    header: 'Descarte',
+    value: (row) => (row.disposalType ? disposalTypeLabel(row.disposalType) : '—'),
+  },
+  { header: 'Cadastrado em', value: (row) => formatReportDate(row.createdAt) },
+];
+
+const NOT_FOUND = 'Computador não encontrado. Ele pode ter sido arquivado — recarregue a lista.';
 
 /** O recorte padrão do gráfico de uso: as últimas 24 horas, como no sistema antigo. */
 const DEFAULT_SAMPLE_HOURS = 24;
@@ -47,8 +114,7 @@ const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 export type AgentRejection = 'invalid-token' | 'blocked';
 
 export type AgentAuthResult =
-  | { ok: true; computer: ComputerRow }
-  | { ok: false; reason: AgentRejection };
+  { ok: true; computer: ComputerRow } | { ok: false; reason: AgentRejection };
 
 /**
  * O ÚNICO caminho de escrita de computador.
@@ -68,9 +134,10 @@ export class ComputersService {
   constructor(
     private readonly repository: ComputersRepository,
     private readonly presence: AgentPresenceService,
+    private readonly watch: LiveWatchService,
   ) {}
 
-  async list(user: RequestUser, query: ComputerListQuery): Promise<Paginated<Computer>> {
+  async list(user: RequestUser, query: ComputerListQuery): Promise<Paginated<ComputerListItem>> {
     assertCanRead(user.role, 'os computadores');
 
     const page = await this.repository.list(query);
@@ -79,11 +146,30 @@ export class ComputersService {
     const online = this.presence.onlineIds();
 
     return {
-      items: page.rows.map((row) => toComputer(row, online.has(row.id))),
+      items: page.rows.map((row) => toComputerListItem(row, online.has(row.id))),
       total: page.total,
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  /**
+   * Baixar o relatório: os MESMOS filtros da lista, mas sem página — o arquivo leva todo o
+   * parque que casou, no formato escolhido.
+   */
+  async exportList(user: RequestUser, query: ComputerReportQuery): Promise<BuiltReport> {
+    assertCanRead(user.role, 'os computadores');
+
+    const rows = await this.repository.listAll(query);
+
+    return buildReport({
+      format: query.format,
+      title: 'Inventário',
+      subtitle: reportSubtitle(rows.length, 'computador', 'computadores'),
+      fileName: 'inventario',
+      columns: COMPUTER_REPORT_COLUMNS,
+      rows,
+    });
   }
 
   async findById(user: RequestUser, id: number): Promise<Computer> {
@@ -140,8 +226,57 @@ export class ComputersService {
     return { computer: toComputer(row, this.presence.isOnline(row.id)), token };
   }
 
+  /**
+   * Descarta a máquina: ela sai das listas do dia a dia, com tipo e motivo.
+   *
+   * NADA é apagado — manutenções, alertas e peças continuam ligados a ela. É esse histórico
+   * que sustenta "trocar saiu mais barato do que consertar" na conversa do ano que vem.
+   *
+   * A data é carimbada AQUI, e não vem do corpo: uma saída lançada "de ontem" seria um jeito
+   * silencioso de ajustar o passado.
+   *
+   * Descartar de novo uma máquina já descartada é como se muda o tipo (de defeito para lixo),
+   * e por isso não é recusado: a data original é preservada, porque foi quando ela saiu.
+   */
+  async dispose(user: RequestUser, id: number, input: DisposeComputerInput): Promise<Computer> {
+    assertCanCreate(user.role, 'computadores');
+
+    const current = await this.requireComputer(id);
+
+    const row = await this.repository.update(id, {
+      disposedAt: current.disposedAt ?? new Date(),
+      disposalType: input.type,
+      disposalReason: input.reason.trim(),
+      updatedAt: new Date(),
+      updatedBy: user.email,
+    });
+
+    return toComputer(row, false);
+  }
+
+  /** Devolve a máquina ao inventário, limpando o descarte inteiro. */
+  async restore(user: RequestUser, id: number): Promise<Computer> {
+    assertCanCreate(user.role, 'computadores');
+
+    await this.requireComputer(id);
+
+    const row = await this.repository.update(id, {
+      disposedAt: null,
+      disposalType: null,
+      disposalReason: null,
+      updatedAt: new Date(),
+      updatedBy: user.email,
+    });
+
+    return toComputer(row, this.presence.isOnline(row.id));
+  }
+
   /** As amostras de uso das últimas horas, para o gráfico da tela de detalhe. */
-  async samples(user: RequestUser, id: number, hours = DEFAULT_SAMPLE_HOURS): Promise<ComputerSample[]> {
+  async samples(
+    user: RequestUser,
+    id: number,
+    hours = DEFAULT_SAMPLE_HOURS,
+  ): Promise<ComputerSample[]> {
     assertCanRead(user.role, 'os computadores');
 
     await this.requireComputer(id);
@@ -150,12 +285,54 @@ export class ComputersService {
     return (await this.repository.listSamplesSince(id, since)).map(toComputerSample);
   }
 
-  async alerts(user: RequestUser, id: number): Promise<ComputerAlert[]> {
+  /**
+   * O que está acontecendo NESTA máquina agora: processos, volumes, rede, núcleos.
+   *
+   * Devolve nulo quando a máquina nunca enviou nada — a tela precisa distinguir "ociosa" de
+   * "o agente ainda não foi instalado aqui", e um objeto zerado confundiria as duas.
+   */
+  async live(user: RequestUser, id: number): Promise<ComputerLive | null> {
+    assertCanRead(user.role, 'os computadores');
+
+    const row = await this.requireComputer(id);
+
+    /* Pedir a leitura É dizer que alguém está olhando. Isto faz o agente daquela máquina
+       acelerar, e é o que torna a ficha um retrato ao vivo em vez de um de meio em meio
+       minuto. Parar de pedir devolve a máquina ao ritmo dela sozinho. */
+    this.watch.touch(row.id, WATCHED_CADENCE_SECONDS);
+
+    return toComputerLive(row, this.presence.isOnline(row.id));
+  }
+
+  /**
+   * Uma PÁGINA de alertas, com o total.
+   *
+   * O total vem junto porque sem ele a tela não sabe quantas páginas existem — e a lista
+   * voltaria a ser cortada em silêncio, que é o que a trava do CONTRIBUTING §15 proíbe.
+   *
+   * As duas consultas saem juntas: são independentes, e enfileirá-las dobraria a espera de
+   * uma lista que a pessoa vai paginar clique a clique.
+   */
+  async alerts(
+    user: RequestUser,
+    id: number,
+    query: ComputerAlertListQuery,
+  ): Promise<Paginated<ComputerAlert>> {
     assertCanRead(user.role, 'os computadores');
 
     await this.requireComputer(id);
 
-    return (await this.repository.listAlerts(id, ALERT_PAGE_SIZE)).map(toComputerAlert);
+    const [rows, total] = await Promise.all([
+      this.repository.listAlerts(id, query),
+      this.repository.countAlerts(id),
+    ]);
+
+    return {
+      items: rows.map(toComputerAlert),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
   /**
@@ -184,17 +361,25 @@ export class ComputersService {
    * é histórico e pode esperar; os alertas por último, porque dependem da leitura já estar
    * registrada para o episódio ter começo coerente.
    */
-  async ingest(computer: ComputerRow, snapshot: AgentSnapshot, agentVersion: string): Promise<void> {
+  async ingest(
+    computer: ComputerRow,
+    snapshot: AgentSnapshot,
+    agentVersion: string,
+  ): Promise<void> {
     await this.repository.update(computer.id, toSnapshotUpdate(snapshot, agentVersion));
 
     const sample = toSample(computer.id, snapshot);
     await this.repository.insertSample(sample);
 
-    await this.applyAlerts(computer.id, {
-      cpu: sample.cpuPercent,
-      memory: sample.memoryPercent,
-      disk: sample.diskPercent,
-    }, snapshot);
+    await this.applyAlerts(
+      computer.id,
+      {
+        cpu: sample.cpuPercent,
+        memory: sample.memoryPercent,
+        disk: sample.diskPercent,
+      },
+      snapshot,
+    );
   }
 
   /**

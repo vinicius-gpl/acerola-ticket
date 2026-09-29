@@ -2,6 +2,7 @@ import {
   createTicketSchema,
   publicTicketSchema,
   ticketListQuerySchema,
+  ticketReportQuerySchema,
   ticketSchema,
   updateTicketSchema,
 } from '@template/shared/schemas/ticket.schema';
@@ -14,6 +15,7 @@ import { z } from 'zod';
  * manda um campo que o servidor ignora em silêncio.
  */
 export class TicketListQueryDto extends createZodDto(ticketListQuerySchema) {}
+export class TicketReportQueryDto extends createZodDto(ticketReportQuerySchema) {}
 export class CreateTicketDto extends createZodDto(createTicketSchema) {}
 export class UpdateTicketDto extends createZodDto(updateTicketSchema) {}
 export class TicketDto extends createZodDto(ticketSchema) {}

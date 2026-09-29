@@ -1,6 +1,8 @@
 import { createForm } from '@tanstack/svelte-form';
-import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+import { writable } from 'svelte/store';
+import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { buildWhatsAppLink } from '@template/shared/domain/ticket-whatsapp.util';
+import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { ticketStatusLabel } from '@template/shared/domain/ticket-status.util';
 import {
   type Ticket,
@@ -9,13 +11,24 @@ import {
 } from '@template/shared/schemas/ticket.schema';
 
 import { readError } from '$lib/api/http-client';
+import { computersApi } from '$lib/api/computers.api';
 import { ticketsApi } from '$lib/api/tickets.api';
 import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { TICKETS_QUERY_KEY } from '$lib/hooks/use-ticket-list/use-ticket-list.svelte';
+
+/** Uma página grande o bastante para caber o parque inteiro num campo de escolha. */
+const MACHINE_OPTIONS_PAGE_SIZE = 200;
 import { type FormFieldState } from '$lib/types/form-field.type';
 
-export type TicketAnswerField = 'status' | 'priority' | 'assignee' | 'solution';
+export type TicketAnswerField =
+  | 'status'
+  | 'priority'
+  | 'problemType'
+  | 'computerId'
+  | 'assignee'
+  | 'solution';
 
 export type TicketAnswerModel = {
   data: {
@@ -23,12 +36,31 @@ export type TicketAnswerModel = {
     fields: Record<TicketAnswerField, FormFieldState>;
     /** O link de aviso, pronto. Nulo quando não há como (ou não se deve) avisar. */
     whatsAppLink: string | null;
+    /** As máquinas do inventário, para vincular o chamado a uma delas. */
+    machines: { value: string; label: string }[];
+    /** Os arquivos já anexados ao chamado. */
+    attachments: TicketAttachment[];
+    /** Os escolhidos agora, ainda não enviados. */
+    chosenFiles: File[];
   };
-  state: { isSubmitting: boolean; error: string | null };
+  state: {
+    isSubmitting: boolean;
+    error: string | null;
+    isAttachmentsLoading: boolean;
+    isAttaching: boolean;
+    /** Qual anexo está sendo excluído — trava a linha dele, não a lista. */
+    removingAttachmentId: number | null;
+    /** A recusa da escolha ou da gravação de anexo, separada da falha do formulário. */
+    attachmentError: string | null;
+  };
   actions: {
     onChange: (field: TicketAnswerField, value: string) => void;
     onBlur: (field: TicketAnswerField) => void;
     onSubmit: () => void;
+    onChosenFilesChange: (files: File[]) => void;
+    onAttachmentError: (message: string | null) => void;
+    onAttach: () => void;
+    onRemoveAttachment: (attachment: TicketAttachment) => void;
   };
 };
 
@@ -51,9 +83,56 @@ export function useTicketAnswerModel({
 }): TicketAnswerModel {
   const queryClient = useQueryClient();
 
+  /** A chave da consulta de anexos DESTE chamado: anexar e excluir a refazem. */
+  const attachmentsKey = [...TICKETS_QUERY_KEY, 'attachments', ticket.id];
+
+  /* A MESMA chave do formulário de manutenção: as duas telas pedem a lista de máquinas para
+     um campo de escolha, e uma chave só faz a segunda aproveitar o que a primeira buscou. */
+  const machines = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...COMPUTERS_QUERY_KEY, 'options'],
+        queryFn: () => computersApi.list({ page: 1, pageSize: MACHINE_OPTIONS_PAGE_SIZE }),
+      }),
+    ),
+  );
+
+  const attachments = mirrorStore(
+    createQuery(
+      writable({ queryKey: attachmentsKey, queryFn: () => ticketsApi.attachments(ticket.id) }),
+    ),
+  );
+
+  /* Os escolhidos vivem só aqui, até alguém mandar guardar: antes disso eles não são do
+     chamado, são da tela. */
+  let chosenFiles = $state<File[]>([]);
+  let attachmentError = $state<string | null>(null);
+  let removingAttachmentId = $state<number | null>(null);
+
+  const attach = mirrorStore(
+    createMutation({
+      mutationFn: (files: readonly File[]) => ticketsApi.attach(ticket.id, files),
+      onSuccess: async () => {
+        chosenFiles = [];
+        attachmentError = null;
+        await queryClient.invalidateQueries({ queryKey: attachmentsKey });
+      },
+    }),
+  );
+
+  const removeAttachment = mirrorStore(
+    createMutation({
+      mutationFn: (attachmentId: number) => ticketsApi.removeAttachment(ticket.id, attachmentId),
+      onSettled: async () => {
+        removingAttachmentId = null;
+        await queryClient.invalidateQueries({ queryKey: attachmentsKey });
+      },
+    }),
+  );
+
   const save = mirrorStore(
     createMutation({
-      mutationFn: (values: TicketAnswerFormValues) => ticketsApi.update(ticket.id, values),
+      mutationFn: (values: TicketAnswerFormValues) => ticketsApi.update(ticket.id, toUpdateInput(values)),
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
         onSaved();
@@ -87,20 +166,64 @@ export function useTicketAnswerModel({
         ticket,
         fields: {
           status: toFieldState(current.status, fieldMeta.current.status, isSubmitted.current),
+          problemType: toFieldState(
+            current.problemType,
+            fieldMeta.current.problemType,
+            isSubmitted.current,
+          ),
+          computerId: toFieldState(
+            current.computerId,
+            fieldMeta.current.computerId,
+            isSubmitted.current,
+          ),
           priority: toFieldState(current.priority, fieldMeta.current.priority, isSubmitted.current),
           assignee: toFieldState(current.assignee, fieldMeta.current.assignee, isSubmitted.current),
           solution: toFieldState(current.solution, fieldMeta.current.solution, isSubmitted.current),
         },
         whatsAppLink: buildNotice(ticket, current.status),
+        machines: toMachineOptions(machines.current.data?.items ?? []),
+        attachments: attachments.current.data ?? [],
+        chosenFiles,
       };
     },
     get state() {
-      return { isSubmitting: save.current.isPending, error: readError(save.current.error) };
+      return {
+        isSubmitting: save.current.isPending,
+        error: readError(save.current.error),
+        isAttachmentsLoading: attachments.current.isPending,
+        isAttaching: attach.current.isPending,
+        removingAttachmentId,
+        /* A recusa da ESCOLHA (o arquivo não cabe) e a da GRAVAÇÃO (a rede caiu) aparecem no
+           mesmo lugar: para quem está olhando, as duas respondem "por que meu arquivo não
+           entrou?". */
+        attachmentError:
+          attachmentError ??
+          readError(attach.current.error) ??
+          readError(removeAttachment.current.error),
+      };
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
-      onBlur: (field) => void form.validateField(field, 'change'),
+      /* `validateField` só marca "tocado" quando existe um `form.Field` montado — este hook
+         chama `setFieldValue`/`validateField` direto, sem montar um. Sem marcar aqui, o erro
+         nunca aparecia ao SAIR do campo (ver `toFieldState`, em form-projection.svelte.ts). */
+      onBlur: (field) => {
+        form.setFieldMeta(field, (prev) => ({ ...prev, isTouched: true }));
+        void form.validateField(field, 'change');
+      },
       onSubmit: () => void form.handleSubmit(),
+      onChosenFilesChange: (files) => (chosenFiles = files),
+      onAttachmentError: (message) => (attachmentError = message),
+      onAttach: () => {
+        if (chosenFiles.length === 0) return;
+
+        attachmentError = null;
+        attach.current.mutate(chosenFiles);
+      },
+      onRemoveAttachment: (attachment) => {
+        removingAttachmentId = attachment.id;
+        removeAttachment.current.mutate(attachment.id);
+      },
     },
   };
 }
@@ -119,7 +242,7 @@ function buildNotice(ticket: Ticket, status: string): string | null {
 
   return buildWhatsAppLink(
     ticket.contactPhone,
-    `Olá! Seu chamado ${ticket.protocol} no Grupo Azuos está: ${label}.`,
+    `Olá! Seu chamado ${ticket.protocol} está: ${label}.`,
   );
 }
 
@@ -127,7 +250,35 @@ function toFormValues(ticket: Ticket): TicketAnswerFormValues {
   return {
     status: ticket.status,
     priority: ticket.priority,
+    problemType: ticket.problemType,
+    /* Vazio é "nenhuma máquina": no formulário tudo é texto, e é o view-model que traduz. */
+    computerId: ticket.computerId === null ? '' : String(ticket.computerId),
     assignee: ticket.assignee ?? '',
     solution: ticket.solution ?? '',
   };
+}
+
+/**
+ * O que vai para a API. A máquina volta a ser número — ou NULO, que desvincula.
+ *
+ * `null` e "não mandar o campo" são coisas diferentes no contrato: um desfaz o vínculo, o
+ * outro não mexe nele. Aqui sempre se manda, porque o formulário sempre tem uma resposta.
+ */
+function toUpdateInput(values: TicketAnswerFormValues) {
+  return {
+    status: values.status,
+    priority: values.priority,
+    problemType: values.problemType,
+    computerId: values.computerId === '' ? null : Number(values.computerId),
+    assignee: values.assignee,
+    solution: values.solution,
+  };
+}
+
+/** As máquinas do inventário, no formato do campo de escolha. */
+function toMachineOptions(computers: readonly { id: number; name: string; displayName: string | null }[]) {
+  return computers.map((computer) => ({
+    value: String(computer.id),
+    label: computer.displayName?.trim() ? `${computer.displayName} (${computer.name})` : computer.name,
+  }));
 }

@@ -15,7 +15,8 @@
   bind:this={ref}
   data-slot="table-cell"
   class={cn(
-    "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+    "px-6 py-3.5 align-middle text-sm [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+    "[&:has(button)]:whitespace-nowrap [&_button]:align-middle",
     className
   )}
   {...restProps}

@@ -21,6 +21,7 @@
     type TicketPriority,
     type TicketStatus,
   } from '@template/shared/domain/ticket-status.util';
+  import { type ReportFormat } from '@template/shared/schemas/report.schema';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
   import { type TicketDashboard } from '$lib/api/tickets.api';
@@ -58,6 +59,8 @@
       isTruncated: boolean;
       isDashboardLoading?: boolean;
       error: string | null;
+      exportingFormat?: ReportFormat | null;
+      exportError?: string | null;
     };
     actions: {
       onSearchChange: (search: string) => void;
@@ -68,37 +71,31 @@
       onClearFilters: () => void;
       onRetry: () => void;
       onAnswer: (ticket: Ticket) => void;
+      onExportReport: (format: ReportFormat) => void;
     };
   };
 
-  const STATUS_FILTER_OPTIONS = [
-    { value: '', label: 'Todas as situações' },
-    ...TICKET_STATUSES.map((status) => ({ value: status, label: TICKET_STATUS_LABELS[status] })),
-  ];
+  const STATUS_FILTER_OPTIONS = TICKET_STATUSES.map((status) => ({
+    value: status,
+    label: TICKET_STATUS_LABELS[status],
+    tone: ticketStatusTone(status),
+  }));
 
-  const PRIORITY_FILTER_OPTIONS = [
-    { value: '', label: 'Todas as urgências' },
-    ...TICKET_PRIORITIES.map((priority) => ({
-      value: priority,
-      label: TICKET_PRIORITY_LABELS[priority],
-    })),
-  ];
+  const PRIORITY_FILTER_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
+    value: priority,
+    label: TICKET_PRIORITY_LABELS[priority],
+    tone: ticketPriorityTone(priority),
+  }));
 
-  const DEPARTMENT_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os departamentos' },
-    ...TICKET_DEPARTMENTS.map((department) => ({
-      value: department,
-      label: TICKET_DEPARTMENT_LABELS[department],
-    })),
-  ];
+  const DEPARTMENT_FILTER_OPTIONS = TICKET_DEPARTMENTS.map((department) => ({
+    value: department,
+    label: TICKET_DEPARTMENT_LABELS[department],
+  }));
 
-  const PROBLEM_TYPE_FILTER_OPTIONS = [
-    { value: '', label: 'Todos os tipos' },
-    ...TICKET_PROBLEM_TYPES.map((type) => ({
-      value: type,
-      label: TICKET_PROBLEM_TYPE_LABELS[type],
-    })),
-  ];
+  const PROBLEM_TYPE_FILTER_OPTIONS = TICKET_PROBLEM_TYPES.map((type) => ({
+    value: type,
+    label: TICKET_PROBLEM_TYPE_LABELS[type],
+  }));
 
   /**
    * O tempo médio em palavras.
@@ -122,11 +119,24 @@
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
+  import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
+  import RadarChart from '$lib/components/radar-chart/radar-chart.svelte';
+  import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import {
+    Table,
+    TableActions,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
 
   let { data, state, actions }: TicketListViewProps = $props();
@@ -155,7 +165,16 @@
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
   <PageHeader
     data={{ title: 'Chamados', description: 'O que o pessoal pediu, e em que pé está.' }}
-  />
+  >
+    <ReportExportActions
+      state={{ exportingFormat: state.exportingFormat ?? null }}
+      actions={{ onExport: actions.onExportReport }}
+    />
+  </PageHeader>
+
+  {#if state.exportError}
+    <ErrorState data={{ message: state.exportError }} ui={{ variant: 'inline' }} />
+  {/if}
 
   <StatCardGrid>
     <StatCard
@@ -184,23 +203,34 @@
     />
   </StatCardGrid>
 
+  <!-- DOIS FORMATOS, porque são duas perguntas diferentes.
+       "Em que este escritório dá problema" é um PERFIL — todos os tipos de uma vez, e a
+       forma da teia se reconhece de longe. "Qual departamento abriu mais" é uma ORDEM, e
+       ordem se lê em barra, na hora. A rosca não entra em nenhuma das duas: com nove tipos
+       ela vira um anel de fatias finas que só se lê pela legenda ao lado — e quem está lendo
+       a legenda não está olhando o desenho. -->
   <div class="grid gap-4 lg:grid-cols-2">
-    <section class="bg-card rounded-xl border p-4">
-      <h2 class="text-ink-900 mb-2 text-sm font-semibold">Problemas por tipo</h2>
-      <ColumnChart
+    <PanelCard
+      data={{ title: 'Problemas por tipo', hint: 'O perfil do que dá trabalho neste escritório' }}
+    >
+      <RadarChart
         data={{ slices: problemSlices, seriesLabel: 'Chamados' }}
         state={{ isLoading: state.isDashboardLoading }}
         ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
       />
-    </section>
-    <section class="bg-card rounded-xl border p-4">
-      <h2 class="text-ink-900 mb-2 text-sm font-semibold">Departamentos com mais chamados</h2>
-      <ColumnChart
-        data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
-        state={{ isLoading: state.isDashboardLoading }}
-        ui={{ emptyLabel: 'Ainda não há chamados para comparar.' }}
-      />
-    </section>
+    </PanelCard>
+
+    <PanelCard
+      data={{ title: 'Departamentos com mais chamados', hint: 'Do que mais pediu para o que menos' }}
+    >
+      <div class="max-h-72 overflow-x-hidden overflow-y-auto">
+        <ColumnChart
+          data={{ slices: departmentSlices, seriesLabel: 'Chamados' }}
+          state={{ isLoading: state.isDashboardLoading }}
+          ui={{ orientation: 'horizontal', emptyLabel: 'Ainda não há chamados para comparar.' }}
+        />
+      </div>
+    </PanelCard>
   </div>
 
   <!-- Os filtros ficam juntos e acima da lista, para a pessoa ver de uma vez o que está
@@ -216,33 +246,49 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      <SelectField
-        data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por situação' }}
-        actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
-      />
-      <SelectField
-        data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por urgência' }}
-        actions={{
-          onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
-        }}
-      />
-      <SelectField
-        data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por departamento' }}
-        actions={{
-          onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
-        }}
-      />
-      <SelectField
-        data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo de problema' }}
-        actions={{
-          onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
-        }}
-      />
+    <!-- Duas fileiras fixas, e não uma só que quebra sozinha: situação/urgência (poucas
+         opções, pastilha) numa linha, departamento/tipo (muitas opções, busca em balão) na
+         de baixo — uma fileira só virava uma bagunça de tamanhos diferentes se reordenando
+         a cada largura de tela. -->
+    <div class="flex flex-col gap-3">
+      <!-- Situação e urgência são perguntas DIFERENTES ("em que pé está" e "quão urgente é"),
+           e lado a lado os dois grupos de botões viravam uma régua só. O traço separa os dois
+           sem gastar uma linha inteira. No celular ele vira horizontal, porque ali os grupos
+           empilham em vez de ficar lado a lado. -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <OptionPicker
+          data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
+          actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
+        />
+        <Separator orientation="horizontal" class="bg-border sm:hidden" />
+        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
+        <OptionPicker
+          data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
+          actions={{
+            onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
+          }}
+        />
+      </div>
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <OptionPicker
+          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+          actions={{
+            onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
+          }}
+        />
+        <Separator orientation="horizontal" class="bg-border sm:hidden" />
+        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
+        <OptionPicker
+          data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
+          actions={{
+            onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
+          }}
+        />
+      </div>
     </div>
   </div>
 
@@ -278,57 +324,67 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[720px] text-left text-sm">
-        <thead class="text-ink-500 border-b text-xs uppercase">
-          <tr>
-            <th scope="col" class="py-2 pr-3">Protocolo</th>
-            <th scope="col" class="py-2 pr-3">Quem abriu</th>
-            <th scope="col" class="py-2 pr-3">Tipo</th>
-            <th scope="col" class="py-2 pr-3">Urgência</th>
-            <th scope="col" class="py-2 pr-3">Situação</th>
-            <th scope="col" class="py-2 pr-3">Aberto em</th>
-            <th scope="col" class="py-2"><span class="sr-only">Ações</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each data.tickets as ticket (ticket.id)}
-            <tr class="hover:bg-muted/40 border-b last:border-0">
-              <td class="text-ink-900 py-2 pr-3 font-semibold">{ticket.protocol}</td>
-              <td class="py-2 pr-3">
-                <span class="text-ink-900">{ticket.requesterName}</span>
-                <span class="text-ink-500 block text-xs">
-                  {ticketDepartmentLabel(ticket.department)}
-                </span>
-              </td>
-              <td class="text-ink-700 py-2 pr-3">{ticketProblemTypeLabel(ticket.problemType)}</td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: ticketPriorityLabel(ticket.priority) }}
-                  ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
-                />
-              </td>
-              <td class="py-2 pr-3">
-                <StatusBadge
-                  data={{ label: ticketStatusLabel(ticket.status) }}
-                  ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
-                />
-              </td>
-              <td class="text-ink-500 py-2 pr-3 whitespace-nowrap">
-                {formatDate(ticket.createdAt)}
-              </td>
-              <td class="py-2 text-right">
+    <Table class="min-w-[880px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead class="min-w-[110px]">Protocolo</TableHead>
+          <TableHead class="min-w-[180px]">Quem abriu</TableHead>
+          <TableHead class="min-w-[140px]">Tipo</TableHead>
+          <TableHead class="min-w-[160px]">Máquina</TableHead>
+          <TableHead class="min-w-[110px]">Urgência</TableHead>
+          <TableHead class="min-w-[120px]">Situação</TableHead>
+          <TableHead class="min-w-[110px]">Aberto em</TableHead>
+          <TableHead class="min-w-[90px] text-right"><span class="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#each data.tickets as ticket (ticket.id)}
+          <TableRow>
+            <TableCell class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">{ticket.protocol}</TableCell>
+            <TableCell>
+              <span class="font-medium text-neutral-900 dark:text-neutral-100">{ticket.requesterName}</span>
+              <span class="block text-xs text-neutral-400">
+                {ticketDepartmentLabel(ticket.department)}
+              </span>
+            </TableCell>
+            <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
+            <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
+                 "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
+            <TableCell class="text-neutral-600 dark:text-neutral-300">
+              {ticket.computerName ?? '—'}
+            </TableCell>
+            <TableCell>
+              <StatusBadge
+                data={{ label: ticketPriorityLabel(ticket.priority) }}
+                ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
+              />
+            </TableCell>
+            <TableCell>
+              <StatusBadge
+                data={{ label: ticketStatusLabel(ticket.status) }}
+                ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+              />
+            </TableCell>
+            <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
+              {formatDate(ticket.createdAt)}
+            </TableCell>
+            <TableCell class="text-right whitespace-nowrap">
+              <TableActions>
                 <ActionButton
                   data={{ label: 'Atender' }}
                   ui={{ variant: 'secondary', size: 'sm' }}
                   actions={{ onClick: () => actions.onAnswer(ticket) }}
                 />
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+              </TableActions>
+            </TableCell>
+          </TableRow>
+        {/each}
+      </TableBody>
+      {#snippet footer()}
+        <span>Fila de chamados sincronizada em tempo real</span>
+        <span>{data.tickets.length} chamado(s) listado(s)</span>
+      {/snippet}
+    </Table>
 
     <!-- Truncar calado é mentir sobre o tamanho da fila. -->
     {#if state.isTruncated}

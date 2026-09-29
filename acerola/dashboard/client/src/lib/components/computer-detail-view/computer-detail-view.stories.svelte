@@ -51,6 +51,9 @@
       isArchived: false,
       isBlocked: false,
       blockReason: null,
+      disposedAt: null,
+      disposalType: null,
+      disposalReason: null,
       createdAt: '2026-05-01T12:00:00.000Z',
       createdBy: 'suporte@azuos.local',
       updatedAt: null,
@@ -151,14 +154,37 @@
     },
   ];
 
+  const transfers = [
+    {
+      id: 1,
+      computerId: 2,
+      fromDepartment: 'recepcao' as const,
+      toDepartment: 'financeiro' as const,
+      responsible: 'Coordenação financeira',
+      note: 'Passou para o financeiro quando a recepção recebeu a máquina nova.',
+      peripheralsLeftBehind: 1,
+      createdAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+      createdBy: 'suporte@azuos.local',
+    },
+  ];
+
   const actions = {
     onEdit: () => {},
     onRegisterMaintenance: () => {},
+    onTransfer: () => {},
     onArchivedChange: () => {},
     onBlockedChange: () => {},
     onRegenerateToken: () => {},
+    onDispose: () => {},
+    onRestore: () => {},
     onBack: () => {},
+    onAlertPageChange: () => {},
+    onTicketPageChange: () => {},
   };
+
+  /** Uma página de 25, com o total que o servidor devolveria. */
+  const paging = { page: 1, pageSize: 25, total: alerts.length };
+  const noPaging = { page: 1, pageSize: 25, total: 0 };
 
   const { Story } = defineMeta({
     title: 'Components/ComputerDetailView',
@@ -167,7 +193,8 @@
 </script>
 
 <!-- A máquina com problema: é para ela que esta tela existe. -->
-<Story name="Default" args={{ data: { computer: computer(), samples, alerts, maintenances, partMovements: [] }, actions }} />
+<Story name="Default" args={{ data: { computer: computer(), samples, live: null,
+        tickets: [], alerts, alertPaging: paging, ticketPaging: noPaging, maintenances, partMovements: [], transfers }, actions }} />
 
 <!-- Máquina saudável: nada apontado, e o texto diz isso em vez de ficar em branco. -->
 <Story
@@ -185,9 +212,12 @@
         warnings: [],
       }),
       samples,
-      alerts: [],
+      live: null,
+        tickets: [],
+        alerts: [], alertPaging: noPaging, ticketPaging: noPaging,
       maintenances: [],
       partMovements: [],
+      transfers: [],
     },
     actions,
   }}
@@ -196,7 +226,9 @@
 <Story
   name="Loading"
   args={{
-    data: { computer: computer(), samples: [], alerts: [], maintenances: [], partMovements: [] },
+    data: { computer: computer(), samples: [], live: null,
+        tickets: [],
+        alerts: [], alertPaging: noPaging, ticketPaging: noPaging, maintenances: [], partMovements: [], transfers },
     state: { isSamplesLoading: true, isAlertsLoading: true },
     actions,
   }}
@@ -205,7 +237,9 @@
 <!-- CASO LIMITE: cadastrada e nunca vista. A ficha diz "ainda não sei", e não zeros. -->
 <Story
   name="Agent never connected"
-  args={{ data: { computer: pendingAgent, samples: [], alerts: [], maintenances: [], partMovements: [] }, actions }}
+  args={{ data: { computer: pendingAgent, samples: [], live: null,
+        tickets: [],
+        alerts: [], alertPaging: noPaging, ticketPaging: noPaging, maintenances: [], partMovements: [], transfers }, actions }}
 />
 
 <Story
@@ -218,9 +252,12 @@
         blockReason: 'Máquina emprestada devolvida ao fornecedor; parou de ser monitorada.',
       }),
       samples,
-      alerts,
+      live: null,
+        tickets: [],
+      alerts, alertPaging: paging, ticketPaging: noPaging,
       maintenances,
       partMovements: [],
+      transfers: [],
     },
     actions,
   }}
@@ -229,7 +266,8 @@
 <Story
   name="Archived"
   args={{
-    data: { computer: computer({ isArchived: true, isOnline: false }), samples, alerts, maintenances, partMovements: [] },
+    data: { computer: computer({ isArchived: true, isOnline: false }), samples, live: null,
+        tickets: [], alerts, alertPaging: paging, ticketPaging: noPaging, maintenances, partMovements: [], transfers },
     actions,
   }}
 />
@@ -238,7 +276,8 @@
 <Story
   name="Action error"
   args={{
-    data: { computer: computer(), samples, alerts, maintenances, partMovements: [] },
+    data: { computer: computer(), samples, live: null,
+        tickets: [], alerts, alertPaging: paging, ticketPaging: noPaging, maintenances, partMovements: [], transfers },
     state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
     actions,
   }}

@@ -1,4 +1,6 @@
+import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import {
   type PublicTicket,
   type Ticket,
@@ -7,7 +9,7 @@ import {
   type UpdateTicketInput,
 } from '@template/shared/schemas/ticket.schema';
 
-import { apiRequest } from './http-client';
+import { apiDownload, apiRequest, type Downloaded } from './http-client';
 
 /** Os indicadores do painel, como a API os devolve. */
 export type TicketDashboard = {
@@ -41,6 +43,19 @@ export const ticketsApi = {
 
   dashboard: () => apiRequest<TicketDashboard>('/tickets/dashboard'),
 
+  /** Baixa o relatório com os MESMOS filtros da fila — sem página, é a lista inteira. */
+  exportReport: (query: Partial<TicketListQuery>, format: ReportFormat): Promise<Downloaded> =>
+    apiDownload('/tickets/export', {
+      query: {
+        format,
+        search: query.search,
+        status: query.status,
+        priority: query.priority,
+        department: query.department,
+        problemType: query.problemType,
+      },
+    }),
+
   findById: (id: number) => apiRequest<Ticket>(`/tickets/${id}`),
 
   update: (id: number, body: UpdateTicketInput) =>
@@ -53,15 +68,45 @@ export const ticketsApi = {
    * chamado COM a imagem, ou não existe chamado nenhum. Com dois envios, uma falha no meio
    * deixaria um chamado apontando para uma imagem que nunca subiu.
    */
-  create: (values: TicketFormValues, screenshot: File | null) =>
-    apiRequest<Ticket>('/tickets', { method: 'POST', body: toTicketFormData(values, screenshot) }),
+  create: (values: TicketFormValues, screenshot: File | null, attachments: readonly File[] = []) =>
+    apiRequest<Ticket>('/tickets', {
+      method: 'POST',
+      body: toTicketFormData(values, screenshot, attachments),
+    }),
+
+  /** Os arquivos de um chamado, pelo painel. */
+  attachments: (ticketId: number) =>
+    apiRequest<TicketAttachment[]>(`/tickets/${ticketId}/attachments`),
+
+  /**
+   * Junta arquivos a um chamado já aberto.
+   *
+   * Um envio só com todos: a API confere a leva inteira antes de guardar qualquer um, e
+   * mandar de um em um deixaria o chamado num meio-termo quando o terceiro fosse recusado.
+   */
+  attach: (ticketId: number, files: readonly File[]) => {
+    const form = new FormData();
+    for (const file of files) form.append('attachments', file);
+
+    return apiRequest<TicketAttachment[]>(`/tickets/${ticketId}/attachments`, {
+      method: 'POST',
+      body: form,
+    });
+  },
+
+  removeAttachment: (ticketId: number, attachmentId: number) =>
+    apiRequest<void>(`/tickets/${ticketId}/attachments/${attachmentId}`, { method: 'DELETE' }),
 
   /** Consulta pública pelo protocolo. Devolve menos campos que o painel, de propósito. */
   findByProtocol: (protocol: string) =>
     apiRequest<PublicTicket>(`/tickets/protocol/${encodeURIComponent(protocol)}`),
 };
 
-function toTicketFormData(values: TicketFormValues, screenshot: File | null): FormData {
+function toTicketFormData(
+  values: TicketFormValues,
+  screenshot: File | null,
+  attachments: readonly File[],
+): FormData {
   const form = new FormData();
 
   form.set('requesterName', values.requesterName);
@@ -75,6 +120,8 @@ function toTicketFormData(values: TicketFormValues, screenshot: File | null): Fo
 
   if (values.anydeskId) form.set('anydeskId', values.anydeskId);
   if (screenshot) form.set('screenshot', screenshot);
+  /* `append`, e não `set`: são vários no mesmo campo, e `set` deixaria só o último. */
+  for (const attachment of attachments) form.append('attachments', attachment);
 
   return form;
 }

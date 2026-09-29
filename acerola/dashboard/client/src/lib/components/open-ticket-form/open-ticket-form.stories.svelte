@@ -31,6 +31,8 @@
     onBlur: () => {},
     onNotifyChange: () => {},
     onScreenshotChange: () => {},
+    onAttachmentsChange: () => {},
+    onAttachmentError: () => {},
     onSubmit: () => {},
     onOpenAnother: () => {},
   };
@@ -44,7 +46,8 @@
 <Story
   name="Default"
   args={{
-    data: { fields: emptyFields, notifyWhatsapp: false, screenshotName: null, opened: null },
+    data: { fields: emptyFields, notifyWhatsapp: false, screenshotName: null,
+    attachments: [], opened: null },
     state: {},
     actions,
   }}
@@ -53,7 +56,8 @@
 <Story
   name="Filled"
   args={{
-    data: { fields: filledFields, notifyWhatsapp: true, screenshotName: null, opened: null },
+    data: { fields: filledFields, notifyWhatsapp: true, screenshotName: null,
+    attachments: [], opened: null },
     state: {},
     actions,
   }}
@@ -72,6 +76,7 @@
       },
       notifyWhatsapp: false,
       screenshotName: null,
+    attachments: [],
       opened: null,
     },
     state: {},
@@ -82,7 +87,8 @@
 <Story
   name="Submitting"
   args={{
-    data: { fields: filledFields, notifyWhatsapp: true, screenshotName: null, opened: null },
+    data: { fields: filledFields, notifyWhatsapp: true, screenshotName: null,
+    attachments: [], opened: null },
     state: { isSubmitting: true },
     actions,
   }}
@@ -95,6 +101,7 @@
       fields: filledFields,
       notifyWhatsapp: false,
       screenshotName: 'erro-da-impressora.png',
+      attachments: [],
       opened: null,
     },
     state: {},
@@ -105,7 +112,8 @@
 <Story
   name="ServerRefused"
   args={{
-    data: { fields: filledFields, notifyWhatsapp: false, screenshotName: null, opened: null },
+    data: { fields: filledFields, notifyWhatsapp: false, screenshotName: null,
+    attachments: [], opened: null },
     state: { error: 'O print precisa ser uma imagem (PNG, JPG ou WEBP).' },
     actions,
   }}
@@ -119,6 +127,7 @@
       fields: emptyFields,
       notifyWhatsapp: false,
       screenshotName: null,
+    attachments: [],
       opened: { protocol: 'CH-0013', whatsAppLink: null },
     },
     state: {},
@@ -133,6 +142,7 @@
       fields: emptyFields,
       notifyWhatsapp: true,
       screenshotName: null,
+    attachments: [],
       opened: { protocol: 'CH-0013', whatsAppLink: 'https://wa.me/5562999999999?text=Protocolo' },
     },
     state: {},

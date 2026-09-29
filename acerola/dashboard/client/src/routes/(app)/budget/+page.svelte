@@ -1,28 +1,18 @@
 <script lang="ts">
-  import Wallet from '@lucide/svelte/icons/wallet';
-
-  import PendingArea from '$lib/components/pending-area/pending-area.svelte';
+  import BudgetView from '$lib/components/budget-view/budget-view.svelte';
+  import { useBudgetModel } from '$lib/hooks/use-budget/use-budget.svelte';
 
   /**
-   * A rota só compõe (CONTRIBUTING §3).
+   * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
-   * Esta área ainda não foi construída: a tela diz o que vai viver aqui, lido dos requisitos
-   * do sistema antigo. Quando ela for feita, este arquivo passa a compor o view-model e a
-   * view de verdade, e o `PendingArea` sai.
+   * Não há estado de tela aqui — não há filtro nenhum nesta tela: a pergunta que ela responde
+   * ("o que eu preciso pedir?") é sempre sobre o parque inteiro, hoje.
    */
-  const AREA = {
-    title: 'Orçamento',
-    summary: 'O que precisa ser comprado, e quanto isso custa.',
-    features: [
-      'O que comprar, cruzando a necessidade do parque com o que já existe no depósito.',
-      'Referência de preços e onde comprar, para não começar a pesquisa do zero toda vez.',
-    ],
-    dependsOn: 'o Inventário e o Depósito',
-  };
+  const budget = useBudgetModel();
 </script>
 
 <svelte:head>
   <title>Orçamento</title>
 </svelte:head>
 
-<PendingArea data={AREA} ui={{ icon: Wallet }} />
+<BudgetView data={budget.data} state={budget.state} actions={budget.actions} />

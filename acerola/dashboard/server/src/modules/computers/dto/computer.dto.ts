@@ -1,12 +1,18 @@
 import {
+  computerAlertListQuerySchema,
   computerAlertSchema,
   computerListQuerySchema,
+  paginatedComputerAlertSchema,
+  computerReportQuerySchema,
   computerSampleSchema,
+  computerListItemSchema,
   computerSchema,
   createComputerSchema,
   createdComputerSchema,
+  disposeComputerSchema,
   updateComputerSchema,
 } from '@template/shared/schemas/computer.schema';
+import { computerLiveResponseSchema } from '@template/shared/schemas/computer-live.schema';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -15,6 +21,7 @@ import { z } from 'zod';
  * em runtime e o contrato publicado no Swagger não possam divergir.
  */
 export class ComputerListQueryDto extends createZodDto(computerListQuerySchema) {}
+export class ComputerReportQueryDto extends createZodDto(computerReportQuerySchema) {}
 export class CreateComputerDto extends createZodDto(createComputerSchema) {}
 export class UpdateComputerDto extends createZodDto(updateComputerSchema) {}
 export class ComputerDto extends createZodDto(computerSchema) {}
@@ -26,9 +33,29 @@ export class ComputerSampleDto extends createZodDto(computerSampleSchema) {}
 
 export class ComputerAlertDto extends createZodDto(computerAlertSchema) {}
 
+export class ComputerAlertListQueryDto extends createZodDto(computerAlertListQuerySchema) {}
+
+/**
+ * A página de alertas vem COM O TOTAL.
+ *
+ * Sem ele, quem lê a API não sabe quantas páginas existem — e a tela voltaria a cortar a
+ * lista em silêncio, que é o que a trava do CONTRIBUTING §15 proíbe.
+ */
+export class ComputerAlertListResponseDto extends createZodDto(paginatedComputerAlertSchema) {}
+
+/**
+ * A leitura ao vivo vai DENTRO de um objeto, e não solta: a resposta precisa poder dizer
+ * "não há nenhuma" (`live: null`), e um corpo `null` puro não tem onde documentar isso no
+ * Swagger nem como crescer depois sem quebrar quem já lê.
+ */
+export class ComputerLiveDto extends createZodDto(computerLiveResponseSchema) {}
+
+/** O descarte: tipo e motivo. A data é do servidor, e por isso não entra no corpo. */
+export class DisposeComputerDto extends createZodDto(disposeComputerSchema) {}
+
 export class ComputerListResponseDto extends createZodDto(
   z.object({
-    items: z.array(computerSchema),
+    items: z.array(computerListItemSchema),
     total: z.number().int(),
     page: z.number().int(),
     pageSize: z.number().int(),

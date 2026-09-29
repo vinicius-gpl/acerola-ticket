@@ -47,45 +47,47 @@
    ========================================================================== */
 :root {
   /* Tons de fundo, do mais fundo ao mais alto. `surface` é o que sobe acima do fundo. */
-  --crust: #dce0e8;
-  --mantle: #e6e9ef;
-  --base: #eff1f5;
-  --surface: #ccd0da;
+  --crust: #e2e8f0;
+  --mantle: #f1f5f9;
+  --base: #f8fafc;
+  --surface: #e2e8f0;
 
-  /* Texto um degrau abaixo do principal: o corpo de texto longo, que cansa menos. */
-  --subtext: #5c5f77;
+  /* O agente não tem um terceiro tom de texto: só `foreground` e `muted-foreground`. Em vez
+     de inventar um degrau que não existe na fonte, `subtext` aponta pro mesmo valor de
+     `muted-foreground` — é a cópia fiel, não uma aproximação. */
+  --subtext: #64748b;
 
   --radius: 0.625rem;
 
   /* ---- Semântica da PÁGINA ---- */
-  --background: #eff1f5;
-  --foreground: #4c4f69;
-  --card: #ccd0da;
-  --card-foreground: #4c4f69;
-  --popover: #e6e9ef;
-  --popover-foreground: #4c4f69;
-  --primary: #8839ef;
-  --primary-foreground: #eff1f5;
-  --secondary: #bcc0cc;
-  --secondary-foreground: #4c4f69;
-  --muted: #bcc0cc;
-  --muted-foreground: #6c6f85;
-  --accent: #bcc0cc;
-  --accent-foreground: #4c4f69;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
   --accent-hero: #ea76cb;
   --accent-hero-foreground: var(--primary-foreground);
-  --destructive: #d20f39;
+  --destructive: #e11d48;
   --destructive-foreground: var(--primary-foreground);
-  --border: #acb0be;
-  --input: #acb0be;
-  --ring: #8839ef;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #7c3aed;
 
   /* As cores de categoria dos gráficos. Ver utils/chart-slice.ts. */
-  --chart-1: #d20f39;
-  --chart-2: #fe640b;
-  --chart-3: #df8e1d;
-  --chart-4: #40a02b;
-  --chart-5: #209fb5;
+  --chart-1: #e11d48;
+  --chart-2: #f97316;
+  --chart-3: #eab308;
+  --chart-4: #10b981;
+  --chart-5: #0ea5e9;
 
   /**
    * ---- Semântica da BARRA LATERAL ----
@@ -94,14 +96,14 @@
    * identidade; a identidade agora vem da paleta inteira, e uma barra que ignora o tema
    * seria a única parte da tela a ignorá-lo.
    */
-  --sidebar: #e6e9ef;
-  --sidebar-foreground: #4c4f69;
-  --sidebar-primary: #8839ef;
-  --sidebar-primary-foreground: #eff1f5;
-  --sidebar-accent: #ccd0da;
-  --sidebar-accent-foreground: #4c4f69;
-  --sidebar-border: #acb0be;
-  --sidebar-ring: #8839ef;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #7c3aed;
 
   /**
    * ---- Apelidos da paleta antiga ----
@@ -127,31 +129,31 @@
  * existe cor que só valha no escuro — que é como uma tela nasce ilegível em um dos dois.
  */
 :root[data-theme='dark'] {
-  --crust: #11111b;
-  --mantle: #181825;
-  --base: #1e1e2e;
-  --surface: #313244;
+  --crust: #0e0e15;
+  --mantle: #13131c;
+  --base: #181824;
+  --surface: #222332;
 
-  --subtext: #bac2de;
+  --subtext: #94a3b8;
 
-  --background: #1e1e2e;
-  --foreground: #cdd6f4;
-  --card: #313244;
-  --card-foreground: #cdd6f4;
-  --popover: #313244;
-  --popover-foreground: #cdd6f4;
+  --background: #11111a;
+  --foreground: #f1f5f9;
+  --card: #181824;
+  --card-foreground: #f1f5f9;
+  --popover: #181824;
+  --popover-foreground: #f1f5f9;
   --primary: #cba6f7;
-  --primary-foreground: #1e1e2e;
-  --secondary: #45475a;
-  --secondary-foreground: #cdd6f4;
-  --muted: #45475a;
-  --muted-foreground: #a6adc8;
-  --accent: #45475a;
-  --accent-foreground: #cdd6f4;
+  --primary-foreground: #11111a;
+  --secondary: #222332;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e1e2d;
+  --muted-foreground: #94a3b8;
+  --accent: #222332;
+  --accent-foreground: #f1f5f9;
   --accent-hero: #f5c2e7;
   --destructive: #f38ba8;
-  --border: #585b70;
-  --input: #45475a;
+  --border: #2b2c3d;
+  --input: #222332;
   --ring: #cba6f7;
 
   --chart-1: #f38ba8;
@@ -160,13 +162,13 @@
   --chart-4: #a6e3a1;
   --chart-5: #74c7ec;
 
-  --sidebar: #181825;
-  --sidebar-foreground: #cdd6f4;
+  --sidebar: #13131c;
+  --sidebar-foreground: #f1f5f9;
   --sidebar-primary: #cba6f7;
-  --sidebar-primary-foreground: #1e1e2e;
-  --sidebar-accent: #313244;
-  --sidebar-accent-foreground: #cdd6f4;
-  --sidebar-border: #585b70;
+  --sidebar-primary-foreground: #11111a;
+  --sidebar-accent: #222332;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: #2b2c3d;
   --sidebar-ring: #cba6f7;
 
   color-scheme: dark;
@@ -231,8 +233,95 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* ---- O ARREDONDAMENTO POR PAPEL ----
+
+     Os quatro acima são a escala do Tailwind, por TAMANHO: quem escreve escolhe `lg` ou
+     `xl` no olho, e o mesmo papel acaba com raios diferentes em telas diferentes — o cartão
+     de indicador estava com raio de botão, e o seletor com um raio só dele.
+
+     Estes quatro são a escala por PAPEL: `rounded-surface` num cartão, `rounded-control` num
+     campo. O valor de cada um é o que os componentes baixados já usavam (`ui/card`,
+     `ui/dialog` e `ui/table` em 2xl; `ui/popover` em lg) — eles não se editam, então a régua
+     é a deles, e o que estava fora é que veio para cá. */
+
+  /** O que pousa sobre o fundo: cartão, diálogo, tabela. */
+  --radius-surface: calc(var(--radius) + 6px);
+  /** O que se clica ou se digita: campo, botão, pastilha, combobox. */
+  --radius-control: calc(var(--radius) + 4px);
+  /** Bloco dentro de um cartão, aviso, balão. */
+  --radius-box: var(--radius);
+  /** Miudeza dentro de um bloco: item de lista de balão, quadradinho de ícone. */
+  --radius-chip: calc(var(--radius) - 2px);
+
   /* A mesma do agente: nenhuma fonte baixada, a do sistema. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ==========================================================================
+   A RÉGUA DE ALTURA DOS CONTROLES.
+
+   Três degraus, e cada um com um trabalho. Antes eram cinco alturas soltas — 28, 32, 36 e
+   40px, mais um campo que não tinha altura nenhuma e crescia pelo padding —, e o efeito
+   aparecia no rodapé de todo diálogo: o "Cancelar" 4px mais baixo que o "Salvar" ao lado.
+
+   | classe       | altura | onde                                                          |
+   |--------------|--------|---------------------------------------------------------------|
+   | `control-sm` | 32px   | dentro de outra coisa: linha de tabela, pastilha e busca de filtro |
+   | `control-md` | 36px   | a ação da tela: cabeçalho e rodapé de diálogo, botão de enviar |
+   | `control-lg` | 40px   | campo de formulário: texto, data, seletor, combobox            |
+
+   A regra que decide: **o que divide fileira tem que ter a mesma altura**. Um botão ao lado
+   de um campo é `control-lg`; o mesmo botão sozinho num cabeçalho é `control-md`.
+
+   O `control-icon-*` é o irmão quadrado, para o botão que só tem ícone: a largura acompanha
+   a altura, e não o ícone dentro — senão a lixeira fica mais estreita que o lápis ao lado,
+   numa fileira que deveria ser uma régua só.
+
+   O RAIO NÃO ENTRA aqui, de propósito: ele é `rounded-control`, uma classe à parte. Junto,
+   um controle que precisasse de outro raio (uma pastilha redonda, por exemplo) ficaria com
+   dois arredondamentos na marcação e quem venceria seria a ordem do CSS gerado — o mesmo
+   problema que o `cn` existe para resolver (ver `lib/utils/cn.ts`).
+
+   As três medidas ficam em `:root` para aparecerem UMA vez: mudar o degrau é mudar aqui, e
+   não caçar `h-9` por trinta arquivos.
+   ========================================================================== */
+:root {
+  --control-sm: 2rem;
+  --control-md: 2.25rem;
+  --control-lg: 2.5rem;
+}
+
+@utility control-sm {
+  height: var(--control-sm);
+  padding-inline: 0.625rem;
+}
+
+@utility control-md {
+  height: var(--control-md);
+  padding-inline: 0.75rem;
+}
+
+@utility control-lg {
+  height: var(--control-lg);
+  padding-inline: 0.75rem;
+}
+
+@utility control-icon-sm {
+  height: var(--control-sm);
+  width: var(--control-sm);
+  padding-inline: 0;
+}
+
+@utility control-icon-md {
+  height: var(--control-md);
+  width: var(--control-md);
+  padding-inline: 0;
+}
+
+@utility control-icon-lg {
+  height: var(--control-lg);
+  width: var(--control-lg);
+  padding-inline: 0;
 }
 
 @layer base {

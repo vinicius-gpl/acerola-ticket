@@ -1,24 +1,42 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
+import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
-  ComputerAlertDto,
+  ComputerAlertListQueryDto,
+  ComputerAlertListResponseDto,
+  ComputerLiveDto,
   ComputerDto,
   ComputerListQueryDto,
   ComputerListResponseDto,
+  ComputerReportQueryDto,
   ComputerSampleDto,
   CreateComputerDto,
   CreatedComputerDto,
+  DisposeComputerDto,
   UpdateComputerDto,
 } from '../dto/computer.dto';
 import { ComputersService } from '../service/computers.service';
@@ -52,6 +70,34 @@ export class ComputersController {
     return this.service.list(user, query);
   }
 
+  /* Vem ANTES de `:id`: declarada depois, o Nest leria "export" como se fosse um número. */
+  @Get('export')
+  @ApiOperation({
+    summary: 'Baixa o relatório do inventário',
+    description:
+      'Os MESMOS filtros da lista, sem página — o arquivo leva todo o parque que casou, no formato escolhido (Excel, Word ou PDF).',
+  })
+  @ApiProduces(
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/pdf',
+  )
+  @ApiOkResponse({ description: 'O arquivo do relatório, pronto para baixar.' })
+  async exportReport(
+    @CurrentUser() user: RequestUser,
+    @Query() query: ComputerReportQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const report = await this.service.exportList(user, query);
+
+    res.set({
+      'Content-Type': report.contentType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+    });
+
+    return new StreamableFile(report.buffer);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Abre a ficha de um computador' })
   @ApiOkResponse({ type: ComputerDto })
@@ -78,22 +124,38 @@ export class ComputersController {
     return this.service.samples(user, id);
   }
 
+  @Get(':id/live')
+  @ApiOperation({
+    summary: 'O que está acontecendo na máquina agora',
+    description:
+      'A última leitura completa do agente: aplicativos que mais pesam, uso por núcleo, volumes e interfaces de rede. Vem nulo enquanto o agente nunca tiver conectado nesta máquina.',
+  })
+  @ApiOkResponse({ type: ComputerLiveDto })
+  @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
+  async live(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ComputerLiveDto> {
+    return { live: await this.service.live(user, id) };
+  }
+
   @Get(':id/alerts')
   @ApiOperation({
-    summary: 'Os alertas da máquina',
+    summary: 'Os alertas da máquina, paginados',
     description:
-      'Cada alerta é um período: abre quando a medida passa do limite e fecha quando ela volta. Alerta sem data de recuperação é um problema acontecendo agora.',
+      'Cada alerta é um período: abre quando a medida passa do limite e fecha quando ela volta. Alerta sem data de recuperação é um problema acontecendo agora. A resposta traz o TOTAL junto com a página, porque uma máquina ruim acumula centenas de episódios e quem lê precisa saber quantos ficaram de fora.',
   })
   @ApiOkResponse({
-    type: [ComputerAlertDto],
-    description: 'Os episódios de alerta, do mais recente para o mais antigo.',
+    type: ComputerAlertListResponseDto,
+    description: 'Uma página de episódios, do mais recente para o mais antigo, com o total.',
   })
   @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
   async alerts(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<ComputerAlertDto[]> {
-    return this.service.alerts(user, id);
+    @Query() query: ComputerAlertListQueryDto,
+  ): Promise<ComputerAlertListResponseDto> {
+    return this.service.alerts(user, id, query);
   }
 
   @Post()
@@ -126,6 +188,37 @@ export class ComputersController {
     @Body() body: UpdateComputerDto,
   ): Promise<ComputerDto> {
     return this.service.update(user, id, body);
+  }
+
+  @Post(':id/disposal')
+  @ApiOperation({
+    summary: 'Descarta um computador',
+    description:
+      'A máquina sai das listas do dia a dia, com tipo (defeito ou lixo), motivo e a data de hoje. Nada é apagado: manutenções, alertas e peças continuam ligados a ela. Descartar de novo troca o tipo e preserva a data original.',
+  })
+  @ApiCreatedResponse({ type: ComputerDto })
+  @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
+  @ApiUnprocessableEntityResponse({ description: 'Falta o tipo ou o motivo do descarte.' })
+  async dispose(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: DisposeComputerDto,
+  ): Promise<ComputerDto> {
+    return this.service.dispose(user, id, body);
+  }
+
+  @Delete(':id/disposal')
+  @ApiOperation({
+    summary: 'Devolve um computador descartado ao inventário',
+    description: 'Limpa o descarte inteiro — tipo, motivo e data — e a máquina volta às listas.',
+  })
+  @ApiOkResponse({ type: ComputerDto })
+  @ApiNotFoundResponse({ description: 'Computador não encontrado.' })
+  async restore(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ComputerDto> {
+    return this.service.restore(user, id);
   }
 
   @Post(':id/token')

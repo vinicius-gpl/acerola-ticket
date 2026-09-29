@@ -1,11 +1,19 @@
-import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ticketListQuerySchema } from '@template/shared/schemas/ticket.schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
+
 import { type StorageService } from '../../../lib/storage/storage.service';
-import { type TicketsRepository } from '../repository/tickets.repository';
+import {
+  type TicketsRepository,
+  type TicketWithComputer,
+} from '../repository/tickets.repository';
+import { type TicketAttachmentsService } from './ticket-attachments.service';
 import { TicketsService, type UploadedScreenshot } from './tickets.service';
 
 const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
@@ -15,13 +23,15 @@ const noRole = { ...ana, role: undefined } as unknown as RequestUser;
 
 const CREATED_AT = new Date('2026-03-01T08:00:00.000Z');
 
-function ticketRow(overrides: Partial<TicketRow> = {}): TicketRow {
+function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithComputer {
   return {
     id: 7,
     status: 'open',
     priority: 'medium',
     requesterName: 'Bia Costa',
     department: 'financeiro',
+    computerId: null,
+    computerName: null,
     problemType: 'printer',
     anydeskId: null,
     contactPhone: '62999999999',
@@ -44,11 +54,23 @@ const storageStub = {
   createDownloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed'),
 };
 
+/* Os anexos têm serviço próprio, com testes próprios: aqui só se confere que o chamado o
+   chama. Um duplo que não faz nada é o suficiente — e mantém este teste sobre chamados. */
+const attachmentsStub = {
+  attach: vi.fn().mockResolvedValue([]),
+  list: vi.fn().mockResolvedValue([]),
+};
+
 function makeService(
   repository: Partial<TicketsRepository>,
   storage: Partial<StorageService> = storageStub,
+  attachments: Partial<TicketAttachmentsService> = attachmentsStub,
 ) {
-  return new TicketsService(repository as TicketsRepository, storage as StorageService);
+  return new TicketsService(
+    repository as TicketsRepository,
+    storage as StorageService,
+    attachments as TicketAttachmentsService,
+  );
 }
 
 const query = (overrides: Record<string, unknown> = {}) => ticketListQuerySchema.parse(overrides);
@@ -274,8 +296,35 @@ describe('TicketsService.update', () => {
     const update = vi.fn();
     const service = makeService({ findById: vi.fn().mockResolvedValue(null), update });
 
-    await expect(service.update(ana, 99, { status: 'resolved' })).rejects.toThrow(NotFoundException);
+    await expect(service.update(ana, 99, { status: 'resolved' })).rejects.toThrow(
+      NotFoundException,
+    );
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('TicketsService.exportList', () => {
+  // feliz
+  it('builds the file from every ticket that matched, not only a page', async () => {
+    const listAll = vi.fn().mockResolvedValue([ticketRow(), ticketRow({ id: 8 })]);
+    const service = makeService({ listAll });
+
+    const report = await service.exportList(ana, { format: 'xlsx', status: 'open' });
+
+    expect(listAll).toHaveBeenCalledWith({ format: 'xlsx', status: 'open' });
+    expect(report.fileName).toBe('chamados.xlsx');
+    expect(report.buffer.length).toBeGreaterThan(0);
+  });
+
+  // triste
+  it('refuses an unidentified request without touching the repository', async () => {
+    const listAll = vi.fn();
+    const service = makeService({ listAll });
+
+    await expect(service.exportList(noRole, { format: 'xlsx' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(listAll).not.toHaveBeenCalled();
   });
 });
 

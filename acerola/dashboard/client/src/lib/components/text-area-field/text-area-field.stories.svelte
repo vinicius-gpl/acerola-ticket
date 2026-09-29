@@ -67,6 +67,15 @@
   template={inBox}
 />
 
+<!-- O `*` vem de CSS (`data.isRequired`), nunca digitado dentro do rótulo. -->
+<Story
+  name="Required"
+  args={{
+    data: { label: 'Descrição do problema', name: 'description', value: '', isRequired: true },
+  }}
+  template={inBox}
+/>
+
 <!-- Caso limite: erro longo numa coluna estreita. -->
 <Story
   name="LongErrorInNarrowColumn"

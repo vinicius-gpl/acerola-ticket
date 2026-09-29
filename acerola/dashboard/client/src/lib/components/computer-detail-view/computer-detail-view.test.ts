@@ -7,7 +7,26 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import ComputerDetailView, { alertDurationLabel, hardwareFacts } from './computer-detail-view.svelte';
+import ComputerDetailView, {
+  alertDurationLabel,
+  coreCountOf,
+  hardwareFacts,
+  nowReadingOf,
+  totalDiskPercentOf,
+  transferRouteOf,
+} from './computer-detail-view.svelte';
+
+const transfer = {
+  id: 1,
+  computerId: 3,
+  fromDepartment: 'recepcao' as const,
+  toDepartment: 'contabil' as const,
+  responsible: 'Coordenação contábil',
+  note: 'A recepção recebeu a máquina nova.',
+  peripheralsLeftBehind: 2,
+  createdAt: '2026-06-01T12:00:00.000Z',
+  createdBy: 'suporte@azuos.local',
+};
 
 const GB = 1024 ** 3;
 
@@ -44,6 +63,9 @@ function computer(over: Partial<Computer> = {}): Computer {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: '2026-05-01T12:00:00.000Z',
     createdBy: 'suporte@azuos.local',
     updatedAt: null,
@@ -115,26 +137,102 @@ const actions = {
   onArchivedChange: vi.fn(),
   onBlockedChange: vi.fn(),
   onRegenerateToken: vi.fn(),
+  onDispose: vi.fn(),
+  onRestore: vi.fn(),
   onBack: vi.fn(),
+  onTransfer: vi.fn(),
+  onAlertPageChange: vi.fn(),
+  onTicketPageChange: vi.fn(),
 };
+
+/** As duas listas paginadas: uma página de 25, e o total que o servidor devolveu. */
+const paging = { page: 1, pageSize: 25, total: 1 };
 
 function renderDetail(over: Partial<Computer> = {}) {
   return render(ComputerDetailView, {
     props: {
-      data: { computer: computer(over), samples, alerts: [alert()], maintenances: [], partMovements: [] },
+      data: {
+        computer: computer(over),
+        samples,
+        live: null,
+        tickets: [],
+        alerts: [alert()],
+        alertPaging: paging,
+        ticketPaging: { ...paging, total: 0 },
+        maintenances: [],
+        partMovements: [],
+        transfers: [],
+      },
       actions,
     },
   });
 }
+
+describe('transferRouteOf', () => {
+  // feliz
+  it('reads the move in one line', () => {
+    expect(transferRouteOf(transfer)).toBe('RECEPÇÃO → CONTÁBIL');
+  });
+
+  // triste
+  /* "Saiu do nada para o fiscal" não é frase que alguém entenda: a prateleira tem nome. */
+  it('gives the shelf a name on both sides', () => {
+    expect(transferRouteOf({ ...transfer, fromDepartment: null })).toBe(
+      'Sem departamento → CONTÁBIL',
+    );
+    expect(transferRouteOf({ ...transfer, toDepartment: null })).toBe(
+      'RECEPÇÃO → Sem departamento',
+    );
+  });
+});
+
+describe('o histórico de transferências', () => {
+  // feliz
+  it('shows where the machine came from and what stayed behind', () => {
+    render(ComputerDetailView, {
+      props: {
+        data: {
+          computer: computer(),
+          samples: [],
+          live: null,
+          tickets: [],
+          alerts: [],
+          alertPaging: { ...paging, total: 0 },
+          ticketPaging: { ...paging, total: 0 },
+          maintenances: [],
+          partMovements: [],
+          transfers: [transfer],
+        },
+        actions,
+      },
+    });
+
+    expect(screen.getByText('RECEPÇÃO → CONTÁBIL')).toBeInTheDocument();
+    expect(screen.getByText('2 peça(s) ficaram')).toBeInTheDocument();
+  });
+
+  // triste
+  /* Sem histórico a tela diz por onde começar, em vez de ficar em branco. */
+  it('tells where the history comes from when there is none', () => {
+    renderDetail();
+
+    expect(screen.getByText(/Nenhuma transferência registrada/)).toBeInTheDocument();
+  });
+});
 
 describe('hardwareFacts', () => {
   // feliz
   it('reads the disk as free space out of the total', () => {
     const facts = hardwareFacts(computer());
 
-    expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe(
-      '14,0 GB livres de 500,0 GB',
-    );
+    expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe('14,0 GB livres de 500,0 GB');
+  });
+
+  /* Os dois números de núcleo aparecem na ficha, e não só o lógico. */
+  it('shows the physical cores next to the logical ones', () => {
+    const facts = hardwareFacts(computer());
+
+    expect(facts.find((fact) => fact.label === 'Núcleos')?.value).toMatch(/lógicos/);
   });
 
   // triste
@@ -145,7 +243,125 @@ describe('hardwareFacts', () => {
 
     expect(facts.find((fact) => fact.label === 'Disco')?.value).toBe('—');
     expect(facts.find((fact) => fact.label === 'Memória')?.value).toBe('—');
+    expect(facts.find((fact) => fact.label === 'Núcleos')?.value).toBe('—');
     expect(facts.find((fact) => fact.label === 'Versão do agente')?.value).toBe('—');
+  });
+});
+
+describe('coreCountOf', () => {
+  // feliz
+  /**
+   * Só o lógico ENGANA, e o engano tem consequência: um i5 de 6 núcleos com hyper-threading
+   * aparece como 12, e quem lê "12 núcleos" acha que a máquina é o dobro do que é — na hora
+   * de comprar, e na hora de culpar a máquina pela lentidão.
+   */
+  it('says the physical cores and the logical ones, both', () => {
+    expect(coreCountOf(6, 12)).toBe('6 físicos · 12 lógicos');
+  });
+
+  // triste
+  /* Agente antigo, ou máquina virtual que esconde o físico: a tela diz o que sabe em vez de
+     inventar o que falta. */
+  it('says only what it knows when one of the two is missing', () => {
+    expect(coreCountOf(null, 12)).toBe('12 lógicos');
+    expect(coreCountOf(6, null)).toBe('6 físicos');
+  });
+
+  it('says it does not know when neither was reported (edge case)', () => {
+    expect(coreCountOf(null, null)).toBe('—');
+    expect(coreCountOf(0, 0)).toBe('—');
+  });
+});
+
+describe('totalDiskPercentOf', () => {
+  // feliz
+  /* Somar os volumes é a MESMA conta que o servidor usa para a amostra guardada: duas contas
+     diferentes fariam o cartão pular ao agente cair, sem nada ter mudado na máquina. */
+  it('adds the volumes up instead of picking the worst one', () => {
+    const disks = [
+      { mountpoint: 'C:', fstype: 'NTFS', totalBytes: 100, usedBytes: 90, freeBytes: 10, usedPercent: 90 },
+      { mountpoint: 'D:', fstype: 'NTFS', totalBytes: 100, usedBytes: 10, freeBytes: 90, usedPercent: 10 },
+    ];
+
+    expect(totalDiskPercentOf(disks)).toBe(50);
+  });
+
+  // triste
+  /* Sem volume não há proporção: dividir por zero daria `NaN` no cartão. */
+  it('answers nothing when the reading brought no volume (edge case)', () => {
+    expect(totalDiskPercentOf([])).toBeNull();
+  });
+});
+
+describe('nowReadingOf', () => {
+  const live = {
+    computerId: 11,
+    measuredAt: '2026-09-29T14:11:00.000-03:00',
+    receivedAt: '2026-09-29T17:11:00.000Z',
+    isOnline: true,
+    cpu: { percentTotal: 37, percentPerCore: [] },
+    memory: {
+      totalBytes: 16,
+      usedBytes: 13,
+      freeBytes: 3,
+      usedPercent: 85,
+      swapTotalBytes: 0,
+      swapUsedBytes: 0,
+      swapUsedPercent: 0,
+    },
+    disks: [
+      { mountpoint: 'C:', fstype: 'NTFS', totalBytes: 100, usedBytes: 70, freeBytes: 30, usedPercent: 70 },
+    ],
+    diskIo: { readBytesPerSec: 0, writeBytesPerSec: 0 },
+    network: [],
+    processes: [],
+  };
+
+  const stale: ComputerSample = {
+    sampledAt: '2026-09-29T13:40:00.000Z',
+    cpuPercent: 100,
+    memoryPercent: 90,
+    diskPercent: 70,
+    networkBytesPerSec: 0,
+  };
+
+  // feliz
+  /**
+   * O DEFEITO QUE ESTE TESTE TRANCA.
+   *
+   * Os cartões liam a última AMOSTRA gravada — um resumo de minutos atrás — e escreviam
+   * "agora" em cima dela. O painel ao vivo, um centímetro abaixo, mostrava outro número. A
+   * leitura do segundo manda sempre que existe.
+   */
+  it('prefers the live reading over the sample that was stored minutes ago', () => {
+    const reading = nowReadingOf(live, stale);
+
+    expect(reading.cpuPercent).toBe(37);
+    expect(reading.memoryPercent).toBe(85);
+    expect(reading.isLive).toBe(true);
+  });
+
+  // triste
+  /* Agente fora do ar: sobra o retrato guardado — e quem chama precisa saber que é retrato,
+     para parar de escrever "agora" em cima dele. */
+  it('falls back to the stored sample and says it is not live', () => {
+    const reading = nowReadingOf(null, stale);
+
+    expect(reading.cpuPercent).toBe(100);
+    expect(reading.isLive).toBe(false);
+  });
+
+  /* Máquina recém-cadastrada: nada ao vivo e nada guardado. Vazio, e não zero — zero diria
+     que a máquina está ligada e ociosa. */
+  it('answers nothing when there is neither a live reading nor a sample (edge case)', () => {
+    const reading = nowReadingOf(null, null);
+
+    expect(reading).toEqual({
+      cpuPercent: null,
+      memoryPercent: null,
+      diskPercent: null,
+      isLive: false,
+    });
   });
 });
 
@@ -199,7 +415,18 @@ describe('ComputerDetailView', () => {
   it('shows a dash for the current usage of a machine that never reported', () => {
     render(ComputerDetailView, {
       props: {
-        data: { computer: neverSeen(), samples: [], alerts: [], maintenances: [], partMovements: [] },
+        data: {
+          computer: neverSeen(),
+          samples: [],
+          live: null,
+          tickets: [],
+          alerts: [],
+          alertPaging: { ...paging, total: 0 },
+          ticketPaging: { ...paging, total: 0 },
+          maintenances: [],
+          partMovements: [],
+          transfers: [],
+        },
         actions,
       },
     });
@@ -215,9 +442,14 @@ describe('ComputerDetailView', () => {
         data: {
           computer: computer(),
           samples,
+          live: null,
+          tickets: [],
           alerts: [],
+          alertPaging: { ...paging, total: 0 },
+          ticketPaging: { ...paging, total: 0 },
           maintenances: [],
           partMovements: [],
+          transfers: [],
         },
         state: { actionError: 'Você não tem permissão para alterar o cadastro.' },
         actions,

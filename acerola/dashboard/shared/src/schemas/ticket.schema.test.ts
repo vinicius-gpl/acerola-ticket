@@ -5,6 +5,7 @@ import {
   publicTicketSchema,
   ticketFormSchema,
   ticketListQuerySchema,
+  ticketReportQuerySchema,
   updateTicketSchema,
 } from './ticket.schema';
 
@@ -68,8 +69,19 @@ describe('createTicketSchema', () => {
   });
 
   it('accepts a phone typed with no punctuation at all', () => {
-    expect(createTicketSchema.safeParse({ ...validInput, contactPhone: '62999999999' }).success).toBe(
-      true,
+    expect(
+      createTicketSchema.safeParse({ ...validInput, contactPhone: '62999999999' }).success,
+    ).toBe(true);
+  });
+
+  /* Contar dígitos com `\D` some com letra no meio: "62abc9999999" tinha dígitos de sobra e
+     passava, mesmo não sendo um telefone de verdade. */
+  it('refuses a phone with a letter in it, even with enough digits', () => {
+    const result = createTicketSchema.safeParse({ ...validInput, contactPhone: '62abc9999999' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(
+      'O WhatsApp só pode ter números, espaço, parênteses e traço',
     );
   });
 
@@ -156,6 +168,7 @@ describe('publicTicketSchema', () => {
     resolvedAt: null,
     updatedAt: null,
     updatedBy: null,
+    attachments: [],
   };
 
   // feliz
@@ -173,6 +186,43 @@ describe('publicTicketSchema', () => {
     expect(parsed).not.toHaveProperty('contactPhone');
     expect(parsed).not.toHaveProperty('assignee');
     expect(parsed).not.toHaveProperty('solution');
+  });
+
+  /**
+   * Os arquivos SAEM na consulta pública, OS DOIS LADOS.
+   *
+   * O que a pessoa mandou, para ela conferir que a nota fiscal chegou; e o que o TI anexou na
+   * devolutiva, porque é parte da resposta que ela veio buscar. Mexer neles é outra história:
+   * cada lado só apaga o que é dele (ver `attachment-ownership.util`).
+   */
+  it('keeps both sides of the files, so the person sees what arrived and what came back', () => {
+    const file = (over: Record<string, unknown>) => ({
+      id: 1,
+      ticketId: 7,
+      kind: 'pdf' as const,
+      origin: 'requester' as const,
+      fileName: 'nota.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      viewUrl: 'https://r2.example/abrir',
+      downloadUrl: 'https://r2.example/baixar',
+      createdAt: '2026-03-01T08:00:00.000Z',
+      createdBy: null,
+      ...over,
+    });
+
+    const withFiles = publicTicketSchema.parse({
+      ...stored,
+      attachments: [
+        file({ id: 1, origin: 'requester' }),
+        file({ id: 2, origin: 'support', fileName: 'laudo-do-ti.pdf', createdBy: 'ti@azuos.local' }),
+      ],
+    });
+
+    expect(withFiles.attachments[0]?.origin).toBe('requester');
+    expect(withFiles.attachments[1]?.origin).toBe('support');
+    expect(withFiles.attachments[0]?.viewUrl).toBeTruthy();
+    expect(withFiles.attachments[1]?.downloadUrl).toBeTruthy();
   });
 });
 
@@ -230,5 +280,20 @@ describe('ticketListQuerySchema', () => {
   // triste
   it('refuses a page size above the ceiling, which would hang the screen and the database', () => {
     expect(ticketListQuerySchema.safeParse({ pageSize: 5000 }).success).toBe(false);
+  });
+});
+
+describe('ticketReportQuerySchema', () => {
+  // feliz
+  it('accepts the same filters as the list, plus the file format', () => {
+    const parsed = ticketReportQuerySchema.parse({ status: 'open', format: 'xlsx' });
+
+    expect(parsed.status).toBe('open');
+    expect(parsed.format).toBe('xlsx');
+  });
+
+  // triste
+  it('refuses a report with no format chosen', () => {
+    expect(ticketReportQuerySchema.safeParse({ status: 'open' }).success).toBe(false);
   });
 });

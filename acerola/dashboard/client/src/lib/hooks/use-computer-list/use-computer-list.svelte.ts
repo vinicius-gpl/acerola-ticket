@@ -2,13 +2,18 @@ import { goto } from '$app/navigation';
 import { createQuery } from '@tanstack/svelte-query';
 import { type HealthStatus } from '@template/shared/domain/computer-health.util';
 import { type Department } from '@template/shared/domain/department.util';
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import {
+  type Computer,
+  type ComputerListItem,
+} from '@template/shared/schemas/computer.schema';
 import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
+import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { derived, writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
 export type ComputerListFilter = {
   search: string;
@@ -30,7 +35,7 @@ export type ComputerSummary = {
 
 export type ComputerListModel = {
   data: {
-    computers: Computer[];
+    computers: ComputerListItem[];
     /** Quantas casaram com o filtro — pode ser mais do que as que vieram na página. */
     total: number;
     /** O resumo do parque INTEIRO, que não acompanha o filtro. */
@@ -47,6 +52,9 @@ export type ComputerListModel = {
     isTruncated: boolean;
     isSummaryLoading: boolean;
     error: string | null;
+    /** Qual formato está sendo baixado agora — nulo quando nenhum. */
+    exportingFormat: ReportFormat | null;
+    exportError: string | null;
   };
   actions: {
     onSearchChange: (search: string) => void;
@@ -56,6 +64,7 @@ export type ComputerListModel = {
     onClearFilters: () => void;
     onRetry: () => void;
     onOpen: (computer: Computer) => void;
+    onExportReport: (format: ReportFormat) => void;
   };
 };
 
@@ -108,6 +117,9 @@ export function useComputerListModel(): ComputerListModel {
   const filterStore = writable<ComputerListFilter>({ ...EMPTY_FILTER });
   const filter = mirrorStore(filterStore);
 
+  let exportingFormat = $state<ReportFormat | null>(null);
+  let exportError = $state<string | null>(null);
+
   const list = mirrorStore(
     createQuery(
       derived(filterStore, (current) => ({
@@ -144,6 +156,8 @@ export function useComputerListModel(): ComputerListModel {
       return {
         ...buildListState(list.current, filter.current),
         isSummaryLoading: summary.current.isPending,
+        exportingFormat,
+        exportError,
       };
     },
     actions: {
@@ -161,6 +175,20 @@ export function useComputerListModel(): ComputerListModel {
       },
       /* A navegação mora no view-model: componente de UI não navega (CONTRIBUTING §3). */
       onOpen: (computer) => void goto(`/computers/${computer.id}`),
+      onExportReport: (format) => {
+        exportError = null;
+        exportingFormat = format;
+
+        computersApi
+          .exportReport(scopeOf(filter.current), format)
+          .then(({ blob, fileName }) => triggerBrowserDownload(blob, fileName))
+          .catch((error: unknown) => {
+            exportError = readError(error) ?? 'Não consegui gerar o relatório.';
+          })
+          .finally(() => {
+            exportingFormat = null;
+          });
+      },
     },
   };
 }
@@ -184,7 +212,7 @@ function hasAnyFilter(filter: ComputerListFilter): boolean {
 function buildListState(
   list: ListQueryLike,
   filter: ComputerListFilter,
-): Omit<ComputerListModel['state'], 'isSummaryLoading'> {
+): Omit<ComputerListModel['state'], 'isSummaryLoading' | 'exportingFormat' | 'exportError'> {
   const count = list.data?.items.length ?? 0;
   /* Vazio só é vazio DEPOIS que a consulta terminou. Mostrar "nenhuma máquina" durante o
      carregamento faz a pessoa achar que o inventário sumiu — e recarregar. */

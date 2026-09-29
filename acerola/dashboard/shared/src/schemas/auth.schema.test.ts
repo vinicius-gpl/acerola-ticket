@@ -19,9 +19,9 @@ describe('loginRequestSchema', () => {
   });
 
   it('refuses an empty password', () => {
-    expect(loginRequestSchema.safeParse({ email: 'ana@empresa.com.br', password: '' }).success).toBe(
-      false,
-    );
+    expect(
+      loginRequestSchema.safeParse({ email: 'ana@empresa.com.br', password: '' }).success,
+    ).toBe(false);
   });
 });
 
@@ -61,7 +61,10 @@ describe('resetPasswordSchema', () => {
   });
 
   it('refuses a password shorter than the minimum, saying the size', () => {
-    const result = resetPasswordSchema.safeParse({ password: 'curta', passwordConfirmation: 'curta' });
+    const result = resetPasswordSchema.safeParse({
+      password: 'curta',
+      passwordConfirmation: 'curta',
+    });
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toContain('8 caracteres');

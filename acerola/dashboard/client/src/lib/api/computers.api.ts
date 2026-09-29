@@ -1,15 +1,20 @@
+import { type ComputerLiveResponse } from '@template/shared/schemas/computer-live.schema';
 import {
   type Computer,
-  type ComputerAlert,
+  type ComputerListItem,
+  type ComputerAlertListQuery,
   type ComputerListQuery,
+  type PaginatedComputerAlerts,
+  type DisposeComputerInput,
   type ComputerSample,
   type CreateComputerInput,
   type CreatedComputer,
   type UpdateComputerInput,
 } from '@template/shared/schemas/computer.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type ReportFormat } from '@template/shared/schemas/report.schema';
 
-import { apiRequest } from './http-client';
+import { apiDownload, apiRequest, type Downloaded } from './http-client';
 
 /**
  * Chamadas da API de computadores. Nada aqui decide nada — é a tradução de uma intenção em
@@ -20,7 +25,7 @@ import { apiRequest } from './http-client';
  */
 export const computersApi = {
   list: (query: Partial<ComputerListQuery>) =>
-    apiRequest<Paginated<Computer>>('/computers', {
+    apiRequest<Paginated<ComputerListItem>>('/computers', {
       query: {
         page: query.page,
         pageSize: query.pageSize,
@@ -28,6 +33,22 @@ export const computersApi = {
         department: query.department,
         healthStatus: query.healthStatus,
         includeArchived: query.includeArchived,
+        onlyDisposed: query.onlyDisposed,
+        disposalType: query.disposalType,
+      },
+    }),
+
+  /** Baixa o relatório com os MESMOS filtros da lista — sem página, é o parque inteiro. */
+  exportReport: (query: Partial<ComputerListQuery>, format: ReportFormat): Promise<Downloaded> =>
+    apiDownload('/computers/export', {
+      query: {
+        format,
+        search: query.search,
+        department: query.department,
+        healthStatus: query.healthStatus,
+        includeArchived: query.includeArchived,
+        onlyDisposed: query.onlyDisposed,
+        disposalType: query.disposalType,
       },
     }),
 
@@ -36,8 +57,25 @@ export const computersApi = {
   /** A série de uso das últimas horas, da mais antiga para a mais nova. */
   samples: (id: number) => apiRequest<ComputerSample[]>(`/computers/${id}/samples`),
 
-  /** Os episódios de alerta, do mais recente para o mais antigo. */
-  alerts: (id: number) => apiRequest<ComputerAlert[]>(`/computers/${id}/alerts`),
+  /**
+   * UMA PÁGINA de episódios de alerta, do mais recente para o mais antigo.
+   *
+   * Paginado no servidor: uma máquina ruim acumula centenas de episódios, e trazer todos para
+   * cortar aqui gastaria banco, rede e memória do navegador para jogar fora quase tudo.
+   */
+  alerts: (id: number, query: ComputerAlertListQuery) =>
+    apiRequest<PaginatedComputerAlerts>(`/computers/${id}/alerts`, {
+      query: { page: query.page, pageSize: query.pageSize },
+    }),
+
+  /**
+   * O que está acontecendo na máquina AGORA: aplicativos, núcleos, volumes, rede.
+   *
+   * Vem embrulhado (`{ live }`) porque a resposta precisa poder dizer "esta máquina nunca
+   * enviou nada" — que é diferente de uma máquina ociosa, e leva a outra frase na tela.
+   */
+  live: (id: number) =>
+    apiRequest<ComputerLiveResponse>(`/computers/${id}/live`).then((response) => response.live),
 
   /**
    * Cadastra a máquina e recebe o token do agente.
@@ -50,6 +88,13 @@ export const computersApi = {
 
   update: (id: number, body: UpdateComputerInput) =>
     apiRequest<Computer>(`/computers/${id}`, { method: 'PATCH', body }),
+
+  /** Descarta a máquina: ela sai das listas, com tipo, motivo e a data de hoje. */
+  dispose: (id: number, body: DisposeComputerInput) =>
+    apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'POST', body }),
+
+  /** Devolve a máquina descartada ao inventário, limpando o descarte inteiro. */
+  restore: (id: number) => apiRequest<Computer>(`/computers/${id}/disposal`, { method: 'DELETE' }),
 
   /** Gera um token novo e invalida o anterior — token perdido ou token vazado. */
   regenerateToken: (id: number) =>

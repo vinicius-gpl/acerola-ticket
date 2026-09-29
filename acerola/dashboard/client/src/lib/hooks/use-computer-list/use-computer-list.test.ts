@@ -1,24 +1,34 @@
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
+import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 import Harness from './use-computer-list-harness.test.svelte';
 import { summarizeComputers, type ComputerListModel } from './use-computer-list.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 vi.mock('$lib/api/computers.api', () => ({
-  computersApi: { list: vi.fn(), findById: vi.fn(), create: vi.fn(), update: vi.fn() },
+  computersApi: {
+    list: vi.fn(),
+    findById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    exportReport: vi.fn(),
+  },
 }));
+
+vi.mock('$lib/utils/download-file.util', () => ({ triggerBrowserDownload: vi.fn() }));
 
 const { computersApi } = await import('$lib/api/computers.api');
 const { goto } = await import('$app/navigation');
 
 const GB = 1024 ** 3;
 
-function computer(over: Partial<Computer> = {}): Computer {
+function computer(over: Partial<ComputerListItem> = {}): ComputerListItem {
   return {
+    ticketsThisMonth: 0,
     id: 1,
     name: 'RECEPCAO-01',
     displayName: 'Recepção — balcão',
@@ -50,6 +60,9 @@ function computer(over: Partial<Computer> = {}): Computer {
     isArchived: false,
     isBlocked: false,
     blockReason: null,
+    disposedAt: null,
+    disposalType: null,
+    disposalReason: null,
     createdAt: '2026-05-01T12:00:00.000Z',
     createdBy: 'suporte@azuos.local',
     updatedAt: null,
@@ -58,7 +71,7 @@ function computer(over: Partial<Computer> = {}): Computer {
   };
 }
 
-function page(items: Computer[], total = items.length) {
+function page(items: ComputerListItem[], total = items.length) {
   return { items, total, page: 1, pageSize: 200 };
 }
 
@@ -191,5 +204,42 @@ describe('useComputerListModel', () => {
     const model = await mountLoadedModel();
 
     expect(model.state.isTruncated).toBe(true);
+  });
+
+  describe('onExportReport', () => {
+    // feliz
+    it('downloads the file with the same filters as the inventory', async () => {
+      vi.mocked(computersApi.exportReport).mockResolvedValue({
+        blob: new Blob(['x']),
+        fileName: 'inventario.docx',
+      });
+      const model = await mountLoadedModel();
+      model.actions.onDepartmentChange('rh');
+      await waitFor(() => expect(model.data.filter.department).toBe('rh'));
+
+      model.actions.onExportReport('docx');
+      await waitFor(() => expect(model.state.exportingFormat).toBeNull());
+
+      expect(computersApi.exportReport).toHaveBeenCalledWith(
+        expect.objectContaining({ department: 'rh' }),
+        'docx',
+      );
+      expect(triggerBrowserDownload).toHaveBeenCalledWith(expect.any(Blob), 'inventario.docx');
+    });
+
+    // triste
+    it('shows the reason instead of a silently missing download', async () => {
+      vi.mocked(computersApi.exportReport).mockRejectedValue(
+        new ApiError(403, 'Seu perfil não permite consultar os computadores.'),
+      );
+      const model = await mountLoadedModel();
+
+      model.actions.onExportReport('pdf');
+
+      await waitFor(() => {
+        expect(model.state.exportError).toBe('Seu perfil não permite consultar os computadores.');
+        expect(model.state.exportingFormat).toBeNull();
+      });
+    });
   });
 });

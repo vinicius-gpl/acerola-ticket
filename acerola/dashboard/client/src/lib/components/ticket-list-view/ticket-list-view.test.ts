@@ -1,5 +1,5 @@
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -20,6 +20,8 @@ function ticket(over: Partial<Ticket> = {}): Ticket {
     notifyWhatsapp: true,
     description: 'A impressora não puxa papel.',
     screenshotUrl: null,
+    computerId: null,
+    computerName: null,
     assignee: null,
     solution: null,
     createdAt: '2026-09-15T12:10:00.000Z',
@@ -59,6 +61,7 @@ const actions = {
   onClearFilters: vi.fn(),
   onRetry: vi.fn(),
   onAnswer: vi.fn(),
+  onExportReport: vi.fn(),
 };
 
 const settled = {
@@ -103,9 +106,13 @@ describe('TicketListView', () => {
   it('lists the ticket with its protocol and situation', () => {
     setup();
 
-    expect(screen.getByText('CH-0001')).toBeInTheDocument();
-    expect(screen.getByText('Bia Costa')).toBeInTheDocument();
-    expect(screen.getByText('Aberto')).toBeInTheDocument();
+    const table = screen.getByRole('table');
+
+    expect(within(table).getByText('CH-0001')).toBeInTheDocument();
+    expect(within(table).getByText('Bia Costa')).toBeInTheDocument();
+    /* "Aberto" também é o rótulo da pastilha de filtro, fora da tabela — daí restringir a
+       busca à tabela, em vez de pegar o primeiro "Aberto" da tela inteira. */
+    expect(within(table).getByText('Aberto')).toBeInTheDocument();
   });
 
   it('asks to attend the ticket that was clicked', async () => {

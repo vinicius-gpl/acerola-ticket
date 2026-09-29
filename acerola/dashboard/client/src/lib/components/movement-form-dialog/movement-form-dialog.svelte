@@ -58,10 +58,13 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
+  import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+  import { cn } from '$lib/utils/cn';
 
   let { data, state: dialogState, actions }: MovementFormDialogProps = $props();
 
@@ -80,51 +83,65 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
   <DialogContent>
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>{movementTypeLabel(data.type)} de peça</DialogTitle>
-        <DialogDescription>
+    <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class={cn(
+            "flex size-7 shrink-0 items-center justify-center rounded-chip",
+            isOut ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          )}>
+            {#if isOut}
+              <ArrowUpRight class="size-4" aria-hidden="true" />
+            {:else}
+              <ArrowDownLeft class="size-4" aria-hidden="true" />
+            {/if}
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">{movementTypeLabel(data.type)} de peça</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {data.part.name} · {partConditionLabel(data.part.condition)} · hoje há
           <strong>{data.part.balance}</strong>
           na prateleira
         </DialogDescription>
       </DialogHeader>
 
-      <TextField
-        data={{
-          label: 'Quantidade',
-          name: 'quantity',
-          value: fields.quantity.value,
-          placeholder: '1',
-        }}
-        state={{
-          error: fields.quantity.error,
-          isDisabled: dialogState.isSubmitting,
-          isAutoFocused: true,
-        }}
-        actions={{
-          onChange: (value: string) => actions.onChange('quantity', value),
-          onBlur: () => actions.onBlur('quantity'),
-        }}
-      />
-
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">
-          {isOut ? 'Para qual máquina' : 'De qual máquina'}
-        </span>
-        <SelectField
-          data={{ value: fields.computerId.value, options: machineOptions }}
-          ui={{ ariaLabel: isOut ? 'Para qual máquina' : 'De qual máquina' }}
-          state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}
-          actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <TextField
+          data={{
+            label: 'Quantidade',
+            name: 'quantity',
+            value: fields.quantity.value,
+            placeholder: '1',
+          }}
+          state={{
+            error: fields.quantity.error,
+            isDisabled: dialogState.isSubmitting,
+            isAutoFocused: true,
+          }}
+          actions={{
+            onChange: (value: string) => actions.onChange('quantity', value),
+            onBlur: () => actions.onBlur('quantity'),
+          }}
         />
-        <span class="text-ink-500 text-xs">
-          {#if dialogState.isMachinesLoading}
-            Carregando as máquinas do inventário…
-          {:else}
-            Opcional. Ligando à máquina, a peça aparece na ficha dela.
-          {/if}
-        </span>
+
+        <div class="flex flex-col gap-1.5">
+          <span class="text-ink-700 text-sm font-medium">
+            {isOut ? 'Para qual máquina' : 'De qual máquina'}
+          </span>
+          <OptionPicker
+            data={{ value: fields.computerId.value, options: machineOptions }}
+            ui={{ ariaLabel: isOut ? 'Para qual máquina' : 'De qual máquina', fullWidth: true }}
+            state={{ isDisabled: dialogState.isSubmitting || dialogState.isMachinesLoading }}
+            actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
+          />
+          <span class="text-ink-500 text-xs">
+            {#if dialogState.isMachinesLoading}
+              Carregando as máquinas do inventário…
+            {:else}
+              Opcional. Ligando à máquina, a peça aparece na ficha dela.
+            {/if}
+          </span>
+        </div>
       </div>
 
       <TextField

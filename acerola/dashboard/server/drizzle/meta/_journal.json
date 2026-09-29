@@ -57,6 +57,48 @@
       "when": 1790169451169,
       "tag": "0007_luxuriant_turbo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790347912938,
+      "tag": "0008_fine_magdalene",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790352232232,
+      "tag": "0009_soft_penance",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790358359548,
+      "tag": "0010_supreme_scrambler",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790607005913,
+      "tag": "0011_normal_stephen_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790678752329,
+      "tag": "0012_minor_gideon",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790700659428,
+      "tag": "0013_gigantic_selene",
+      "breakpoints": true
     }
   ]
 }

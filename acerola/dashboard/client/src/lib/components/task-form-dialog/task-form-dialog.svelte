@@ -51,10 +51,15 @@
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import { cn } from '$lib/utils/cn';
+
+  import CheckSquare from '@lucide/svelte/icons/check-square';
+  import Clock from '@lucide/svelte/icons/clock';
+  import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
+  import CircleDashed from '@lucide/svelte/icons/circle-dashed';
 
   let { data, state, actions }: TaskFormDialogProps = $props();
 
@@ -72,10 +77,15 @@
   onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
 >
   <DialogContent>
-    <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-      <DialogHeader>
-        <DialogTitle>{isEdit ? 'Editar tarefa' : 'Nova tarefa'}</DialogTitle>
-        <DialogDescription>
+    <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
+      <DialogHeader class="gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
+            <CheckSquare class="size-4" aria-hidden="true" />
+          </span>
+          <DialogTitle class="text-lg font-semibold tracking-tight">{isEdit ? 'Editar tarefa' : 'Nova tarefa'}</DialogTitle>
+        </div>
+        <DialogDescription class="text-xs text-muted-foreground">
           {isEdit ? 'Altere o que precisar e salve.' : 'Só o título é obrigatório.'}
         </DialogDescription>
       </DialogHeader>
@@ -113,14 +123,34 @@
         }}
       />
 
-      <div class="flex flex-col gap-1.5">
-        <span class="text-ink-700 text-sm font-medium">Situação</span>
-        <SelectField
-          data={{ value: fields.status.value, options: STATUS_OPTIONS }}
-          ui={{ ariaLabel: 'Situação' }}
-          state={{ isDisabled: state.isSubmitting }}
-          actions={{ onChange: (value: string) => actions.onChange('status', value) }}
-        />
+      <!-- Segmented Status Selector em vez de Select dropdown puro -->
+      <div class="flex flex-col gap-2">
+        <span class="text-ink-700 text-sm font-medium">Situação da tarefa</span>
+        <div class="grid grid-cols-3 gap-2 p-1 rounded-box bg-neutral-100 dark:bg-neutral-800/60 border border-border/60">
+          {#each STATUS_OPTIONS as opt (opt.value)}
+            {@const isSelected = fields.status.value === opt.value}
+            <button
+              type="button"
+              disabled={state.isSubmitting}
+              class={cn(
+                "control-sm flex items-center justify-center gap-1.5 rounded-chip text-xs font-semibold transition-all cursor-pointer",
+                isSelected
+                  ? "bg-card text-foreground shadow-xs font-semibold border border-border/80"
+                  : "text-muted-foreground hover:text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50"
+              )}
+              onclick={() => actions.onChange('status', opt.value)}
+            >
+              {#if opt.value === 'todo'}
+                <CircleDashed class="size-3.5 text-neutral-400" />
+              {:else if opt.value === 'doing'}
+                <Clock class="size-3.5 text-amber-500" />
+              {:else}
+                <CheckCircle2 class="size-3.5 text-emerald-500" />
+              {/if}
+              <span class="truncate">{opt.label}</span>
+            </button>
+          {/each}
+        </div>
       </div>
 
       {#if state.error}

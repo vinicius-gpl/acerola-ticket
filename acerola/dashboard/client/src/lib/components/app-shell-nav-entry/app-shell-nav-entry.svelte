@@ -29,7 +29,7 @@
 </script>
 
 <SidebarMenuItem>
-  <!-- `tooltip` é o que salva a barra recolhida: o ícone sozinho nem sempre diz o que é. O
+  <!-- `tooltipContent` é o que salva a barra recolhida: o ícone sozinho nem sempre diz o que é. O
        componente só o mostra quando está em modo ícone. -->
   <!-- Recolhida, o botão vira um quadrado de 32px e o ícone tem 20: com o padding de 8 que
        vem do componente, ele não cabe e é cortado, parecendo empurrado para a esquerda.
@@ -40,7 +40,7 @@
        #eff1f5 — quase branco sobre a barra clara, ou seja, invisível. -->
   <SidebarMenuButton
     {isActive}
-    tooltip={item.label}
+    tooltipContent={item.label}
     size="lg"
     class="text-[1rem] [&_svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
   >
@@ -52,7 +52,7 @@
         <!-- Recolhida, a barra é só ícone: o rótulo SOME, não encolhe. Sem isto ele fica
              truncado em "T…" dentro dos 32px do botão, espremendo o ícone junto — a barra
              perde a leitura de relance e não ganha espaço nenhum. Quem diz o nome ali é o
-             `tooltip` do SidebarMenuButton, logo acima. -->
+             `tooltipContent` do SidebarMenuButton, logo acima. -->
         <span class="group-data-[collapsible=icon]:hidden">{item.label}</span>
       </a>
     {/snippet}

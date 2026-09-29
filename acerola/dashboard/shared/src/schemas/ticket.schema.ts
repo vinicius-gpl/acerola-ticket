@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { anydeskFormSchema, anydeskSchema } from '../domain/anydesk.util';
+import { contactPhoneSchema } from '../domain/phone.util';
 import { TICKET_DEPARTMENTS, TICKET_PROBLEM_TYPES } from '../domain/ticket-catalog.util';
 import {
   DEFAULT_TICKET_PRIORITY,
@@ -7,6 +9,8 @@ import {
   TICKET_STATUSES,
 } from '../domain/ticket-status.util';
 import { paginationQuerySchema } from './pagination.schema';
+import { reportFormatSchema } from './report.schema';
+import { ticketAttachmentSchema } from './ticket-attachment.schema';
 
 /**
  * O CONTRATO do chamado. Um schema, duas pontas: a API o usa como DTO e Swagger (via
@@ -17,13 +21,11 @@ import { paginationQuerySchema } from './pagination.schema';
  */
 export const REQUESTER_NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 5000;
-export const ANYDESK_MAX_LENGTH = 60;
-export const CONTACT_PHONE_MAX_LENGTH = 40;
 export const ASSIGNEE_MAX_LENGTH = 200;
 export const SOLUTION_MAX_LENGTH = 5000;
 
-/** Menos que isto não é telefone com DDD — é engano de digitação. */
-const MIN_PHONE_DIGITS = 10;
+export { CONTACT_PHONE_MAX_LENGTH } from '../domain/phone.util';
+export { ANYDESK_MIN_DIGITS, ANYDESK_MAX_DIGITS } from '../domain/anydesk.util';
 
 /**
  * A mensagem de lista fechada, em português.
@@ -55,20 +57,6 @@ const descriptionSchema = z
   .min(1, 'Descreva o problema')
   .max(DESCRIPTION_MAX_LENGTH, `A descrição pode ter até ${DESCRIPTION_MAX_LENGTH} caracteres`);
 
-/**
- * O telefone é exigido porque é como o TI retorna quando o chamado precisa de conversa. A
- * contagem ignora parênteses, traço e espaço — senão quem digita bonito seria recusado e
- * quem digita tudo junto passaria.
- */
-const contactPhoneSchema = z
-  .string({ required_error: 'Informe seu WhatsApp com DDD' })
-  .trim()
-  .max(CONTACT_PHONE_MAX_LENGTH, 'Esse telefone é longo demais')
-  .refine(
-    (value) => value.replace(/\D/g, '').length >= MIN_PHONE_DIGITS,
-    'Informe o WhatsApp com DDD',
-  );
-
 /** Texto opcional: vazio vira nulo, para a busca não tratar "" e nulo como coisas diferentes. */
 const optionalText = (max: number, tooLong: string) =>
   z
@@ -77,11 +65,6 @@ const optionalText = (max: number, tooLong: string) =>
     .max(max, tooLong)
     .transform((value) => (value === '' ? null : value))
     .nullable();
-
-const anydeskSchema = optionalText(
-  ANYDESK_MAX_LENGTH,
-  `O número do AnyDesk pode ter até ${ANYDESK_MAX_LENGTH} caracteres`,
-);
 
 const assigneeSchema = optionalText(
   ASSIGNEE_MAX_LENGTH,
@@ -115,6 +98,17 @@ export const ticketSchema = z.object({
   notifyWhatsapp: z.boolean(),
   description: z.string(),
   screenshotUrl: z.string().nullable(),
+
+  /**
+   * A MÁQUINA em que o problema aconteceu — quem preenche é o TI, atendendo.
+   *
+   * Nulo é o normal no começo: todo chamado nasce sem máquina, porque quem abre descreve o
+   * problema e não sabe (nem precisa saber) qual computador o sistema conhece por qual nome.
+   * O nome vem junto para a lista não precisar de uma segunda consulta só para mostrá-lo.
+   */
+  computerId: z.number().int().nullable(),
+  computerName: z.string().nullable(),
+
   assignee: z.string().nullable(),
   solution: z.string().nullable(),
   createdAt: z.string().datetime(),
@@ -133,19 +127,30 @@ export type Ticket = z.infer<typeof ticketSchema>;
  * contato, o responsável e o que foi feito NÃO saem daqui. Quem consulta confere a situação
  * do que pediu; não vira uma porta para ler o cadastro dos outros.
  */
-export const publicTicketSchema = ticketSchema.pick({
-  id: true,
-  protocol: true,
-  status: true,
-  priority: true,
-  requesterName: true,
-  department: true,
-  problemType: true,
-  anydeskId: true,
-  description: true,
-  screenshotUrl: true,
-  createdAt: true,
-});
+export const publicTicketSchema = ticketSchema
+  .pick({
+    id: true,
+    protocol: true,
+    status: true,
+    priority: true,
+    requesterName: true,
+    department: true,
+    problemType: true,
+    anydeskId: true,
+    description: true,
+    screenshotUrl: true,
+    createdAt: true,
+  })
+  .extend({
+    /**
+     * Os arquivos que ACOMPANHARAM o chamado.
+     *
+     * Saem na consulta pública porque são de quem abriu: ela precisa conferir que a nota
+     * fiscal chegou, e rever o vídeo que mandou. Mexer neles é outra história — excluir só
+     * pelo painel, com identidade (ver o controller de anexos).
+     */
+    attachments: z.array(ticketAttachmentSchema),
+  });
 
 export type PublicTicket = z.infer<typeof publicTicketSchema>;
 
@@ -189,9 +194,7 @@ export const ticketFormSchema = z.object({
   requesterName: requesterNameSchema,
   department: ticketDepartmentSchema,
   problemType: ticketProblemTypeSchema,
-  anydeskId: z
-    .string()
-    .max(ANYDESK_MAX_LENGTH, `O número do AnyDesk pode ter até ${ANYDESK_MAX_LENGTH} caracteres`),
+  anydeskId: anydeskFormSchema,
   priority: ticketPrioritySchema,
   contactPhone: contactPhoneSchema,
   notifyWhatsapp: z.boolean(),
@@ -213,6 +216,14 @@ export type TicketFormValues = z.input<typeof ticketFormSchema>;
 export const updateTicketSchema = z.object({
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
+  /**
+   * O tipo do problema É corrigível pelo painel: quem abre escolhe pelo que parece, e quem
+   * atende descobre o que era. Sem isso, o mapa de "o que mais dá problema" fica torto para
+   * sempre — ele é somado justamente por este campo.
+   */
+  problemType: ticketProblemTypeSchema.optional(),
+  /** A máquina do chamado. Nulo DESVINCULA — é como se corrige um vínculo errado. */
+  computerId: z.number().int().positive().nullable().optional(),
   assignee: assigneeSchema.optional(),
   solution: solutionSchema.optional(),
 });
@@ -223,6 +234,12 @@ export type UpdateTicketInput = z.input<typeof updateTicketSchema>;
 export const ticketAnswerFormSchema = z.object({
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
+  problemType: ticketProblemTypeSchema,
+  /**
+   * No formulário a máquina é TEXTO, como todo campo de `select`: vazio quer dizer "nenhuma".
+   * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
+   */
+  computerId: z.string(),
   assignee: z
     .string()
     .max(
@@ -238,6 +255,8 @@ export type TicketAnswerFormValues = z.input<typeof ticketAnswerFormSchema>;
 
 export const ticketListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
+  /** Os chamados DESTA máquina — é a consulta da ficha do computador. */
+  computerId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
   department: ticketDepartmentSchema.optional(),
@@ -245,3 +264,13 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
 });
 
 export type TicketListQuery = z.infer<typeof ticketListQuerySchema>;
+
+/**
+ * Baixar o relatório: os MESMOS filtros da lista, sem página — o arquivo sai com tudo que
+ * casou, não só a página aberta na tela.
+ */
+export const ticketReportQuerySchema = ticketListQuerySchema
+  .omit({ page: true, pageSize: true })
+  .extend({ format: reportFormatSchema });
+
+export type TicketReportQuery = z.infer<typeof ticketReportQuerySchema>;

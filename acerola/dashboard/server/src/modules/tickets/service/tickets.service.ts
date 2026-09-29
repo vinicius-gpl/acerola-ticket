@@ -1,25 +1,70 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { parseTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
+import {
+  ticketDepartmentLabel,
+  ticketProblemTypeLabel,
+} from '@template/shared/domain/ticket-catalog.util';
+import {
+  parseTicketProtocol,
+  formatTicketProtocol,
+} from '@template/shared/domain/ticket-protocol.util';
 import {
   countByField,
   summarizeTickets,
   type TicketSummary,
 } from '@template/shared/domain/ticket-metrics.util';
+import {
+  ticketPriorityLabel,
+  ticketPriorityTone,
+  ticketStatusLabel,
+  ticketStatusTone,
+} from '@template/shared/domain/ticket-status.util';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import {
   type CreateTicketInput,
   type PublicTicket,
   type Ticket,
   type TicketListQuery,
+  type TicketReportQuery,
   type UpdateTicketInput,
 } from '@template/shared/schemas/ticket.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
+import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
+import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
-import { TicketsRepository } from '../repository/tickets.repository';
+import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
+import {
+  TicketsRepository,
+  type TicketWithComputer,
+} from '../repository/tickets.repository';
+
+/**
+ * As colunas do relatório de chamados, na mesma ordem em que a fila do painel as mostra —
+ * quem baixa o arquivo está levando a MESMA lista, não uma versão nova para decorar.
+ */
+const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
+  { header: 'Protocolo', value: (row) => formatTicketProtocol(row.id), isTitle: true },
+  { header: 'Quem abriu', value: (row) => row.requesterName },
+  { header: 'Departamento', value: (row) => ticketDepartmentLabel(row.department) },
+  { header: 'Tipo de problema', value: (row) => ticketProblemTypeLabel(row.problemType) },
+  {
+    header: 'Urgência',
+    value: (row) => ticketPriorityLabel(row.priority),
+    tone: (row) => ticketPriorityTone(row.priority),
+  },
+  {
+    header: 'Situação',
+    value: (row) => ticketStatusLabel(row.status),
+    tone: (row) => ticketStatusTone(row.status),
+  },
+  { header: 'Responsável', value: (row) => row.assignee ?? '—' },
+  { header: 'O que foi feito', value: (row) => row.solution ?? '—' },
+  { header: 'Aberto em', value: (row) => formatReportDate(row.createdAt) },
+  { header: 'Resolvido em', value: (row) => formatReportDate(row.resolvedAt) },
+];
 
 const NOT_FOUND = 'Chamado não encontrado. Confira o número do protocolo.';
 
@@ -75,6 +120,7 @@ export class TicketsService {
   constructor(
     private readonly repository: TicketsRepository,
     private readonly storage: StorageService,
+    private readonly attachments: TicketAttachmentsService,
   ) {}
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
@@ -93,6 +139,25 @@ export class TicketsService {
     if (!row) throw new NotFoundException(NOT_FOUND);
 
     return this.withScreenshot(row);
+  }
+
+  /**
+   * Baixar o relatório: os MESMOS filtros da fila, mas sem página — o arquivo leva tudo que
+   * casou, no formato escolhido.
+   */
+  async exportList(user: RequestUser, query: TicketReportQuery): Promise<BuiltReport> {
+    assertCanRead(user.role, 'os chamados');
+
+    const rows = await this.repository.listAll(query);
+
+    return buildReport({
+      format: query.format,
+      title: 'Chamados',
+      subtitle: reportSubtitle(rows.length, 'chamado', 'chamados'),
+      fileName: 'chamados',
+      columns: TICKET_REPORT_COLUMNS,
+      rows,
+    });
   }
 
   /** Os indicadores do painel, sobre TODOS os chamados — não só sobre a página aberta. */
@@ -120,9 +185,21 @@ export class TicketsService {
    * sobra um arquivo órfão no bucket — o contrário (chamado apontando para um arquivo que
    * não subiu) mostraria uma imagem quebrada para o TI, e essa é a falha pior.
    */
-  async create(input: CreateTicketInput, screenshot?: UploadedScreenshot): Promise<Ticket> {
+  async create(
+    input: CreateTicketInput,
+    screenshot?: UploadedScreenshot,
+    attachments: readonly UploadedAttachment[] = [],
+  ): Promise<Ticket> {
     const screenshotKey = await this.storeScreenshot(screenshot);
     const row = await this.repository.insert(toTicketInsert(input, screenshotKey));
+
+    /* Os arquivos entram DEPOIS do chamado existir, porque é a ele que eles pertencem. Um
+       arquivo fora das regras derruba a requisição — e o chamado já gravado fica, sem os
+       anexos: perder o pedido de socorro por causa de um PDF grande demais seria o pior dos
+       dois males. Quem envia vê o protocolo e o motivo, e anexa o resto pelo painel. */
+    /* `requester`: é a prova de quem pediu socorro, e ela é dela — o TI vê e baixa, mas não
+       apaga (ver `attachment-ownership.util`). */
+    await this.attachments.attach(row.id, attachments, null, 'requester');
 
     return this.withScreenshot(row);
   }
@@ -140,7 +217,12 @@ export class TicketsService {
     const row = await this.repository.findById(id);
     if (!row) throw new NotFoundException(NOT_FOUND);
 
-    return toPublicTicket(row, await this.screenshotUrl(row));
+    const [screenshotUrl, attachments] = await Promise.all([
+      this.screenshotUrl(row),
+      this.attachments.list(row.id),
+    ]);
+
+    return toPublicTicket(row, screenshotUrl, attachments);
   }
 
   async update(user: RequestUser, id: number, input: UpdateTicketInput): Promise<Ticket> {
@@ -154,7 +236,7 @@ export class TicketsService {
     return this.withScreenshot(row);
   }
 
-  private async withScreenshot(row: TicketRow): Promise<Ticket> {
+  private async withScreenshot(row: TicketWithComputer): Promise<Ticket> {
     return toTicket(row, await this.screenshotUrl(row));
   }
 

@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ComputersController } from './controller/computers.controller';
 import { AgentGateway } from './gateway/agent.gateway';
 import { AgentPresenceService } from './presence/agent-presence.service';
+import { LiveWatchService } from './presence/live-watch.service';
 import { ComputersRepository } from './repository/computers.repository';
 import { ComputersService } from './service/computers.service';
 
@@ -15,7 +16,13 @@ import { ComputersService } from './service/computers.service';
  */
 @Module({
   controllers: [ComputersController],
-  providers: [ComputersService, ComputersRepository, AgentPresenceService, AgentGateway],
+  providers: [
+    ComputersService,
+    ComputersRepository,
+    AgentPresenceService,
+    LiveWatchService,
+    AgentGateway,
+  ],
   exports: [ComputersService, AgentPresenceService],
 })
 export class ComputersModule {}

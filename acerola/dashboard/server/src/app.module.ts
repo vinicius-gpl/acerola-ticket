@@ -10,11 +10,16 @@ import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
+import { BudgetModule } from './modules/budget/budget.module';
 import { ComputersModule } from './modules/computers/computers.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
+import { InsightsModule } from './modules/insights/insights.module';
+import { NetworkModule } from './modules/network/network.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { TransfersModule } from './modules/transfers/transfers.module';
 
 /**
  * Serve o build do client — sem Nginx, sem container à parte. Atrás do Traefik, esta
@@ -50,6 +55,11 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     ComputersModule,
     MaintenancesModule,
     PartsModule,
+    DashboardModule,
+    NetworkModule,
+    InsightsModule,
+    BudgetModule,
+    TransfersModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })

@@ -11,7 +11,7 @@
    */
   /* `date` entra aqui, e não num componente separado, porque só o `type` do `input` muda —
      rótulo, erro e acessibilidade são exatamente os mesmos. */
-  export type TextFieldType = 'text' | 'email' | 'password' | 'date';
+  export type TextFieldType = 'text' | 'email' | 'password' | 'date' | 'tel';
 
   export type TextFieldProps = {
     data: {
@@ -20,6 +20,9 @@
       value: string;
       placeholder?: string;
       autoComplete?: HTMLInputAttributes['autocomplete'];
+      /** Pinta um `*` vermelho depois do rótulo. O texto do rótulo continua limpo, sem
+       * caractere solto — só CSS, não string. */
+      isRequired?: boolean;
     };
     ui?: {
       type?: TextFieldType;
@@ -60,9 +63,17 @@
    */
   const inputType = $derived(isPassword && !isRevealed ? 'password' : isPassword ? 'text' : type);
 
+  /**
+   * O degrau `lg` da RÉGUA DE MEDIDAS (`lib/theme/tokens.css`): 40px de altura e o raio de
+   * controle, os mesmos do `DatePicker`, do `SelectField` e do `OptionPicker` de formulário.
+   * Antes a altura vinha só do padding (`py-2.5`) e o raio era `rounded-box`, cada componente
+   * com o seu; campo de texto, seletor, data e botão nunca alinhavam na mesma fileira nem
+   * pareciam a mesma família de controle.
+   */
   const inputClass = $derived(
     cn(
-      'bg-card text-foreground w-full rounded-lg border px-3 py-2.5 text-sm transition-colors',
+      'control-lg rounded-control',
+      'bg-card text-foreground w-full border text-sm transition-colors',
       'placeholder:text-ink-500 disabled:cursor-not-allowed disabled:opacity-60',
       isPassword && 'pr-11',
       hasError ? 'border-destructive' : 'border-input',
@@ -73,22 +84,36 @@
 <div class={cn('flex flex-col gap-1.5', ui?.className)}>
   <label for={inputId} class="text-ink-700 text-sm font-medium">
     {data.label}
+    {#if data.isRequired}
+      <span class="text-destructive" aria-hidden="true">*</span>
+    {/if}
   </label>
 
   <div class="relative">
+    <!-- O foco automático sozinho deixa o cursor no fim do texto: um valor mais comprido que
+         a caixa nasce rolado, escondendo a primeira letra. Selecionar tudo (`onfocus`) mostra
+         o valor inteiro e já deixa pronto para a pessoa digitar por cima. -->
+    <!-- `bind:value` com getter/setter, e não `value={...}` + `oninput`: quando uma tecla
+         rejeitada (o telefone barrando letra, por exemplo) resulta no MESMO valor de antes, a
+         prop não muda — e um `value={data.value}` só reflete a prop de volta no elemento
+         quando ELA muda. O `<input>` já tinha aceitado a letra por conta própria antes do
+         evento chegar aqui, e sem nada de novo pra propagar, ela ficava visível no campo
+         mesmo com o estado da aplicação correto por baixo. `bind:value` compara contra o
+         valor VIVO do elemento a cada ciclo, então corrige mesmo nesse empate. -->
     <input
       id={inputId}
       name={data.name}
       type={inputType}
-      value={data.value}
+      bind:value={() => data.value, (value) => actions?.onChange?.(value)}
       placeholder={data.placeholder}
       autocomplete={data.autoComplete}
       autofocus={fieldState?.isAutoFocused}
       disabled={fieldState?.isDisabled}
+      required={data.isRequired}
       aria-invalid={hasError}
       aria-describedby={hasError ? errorId : undefined}
-      oninput={(event) => actions?.onChange?.((event.target as HTMLInputElement).value)}
       onblur={() => actions?.onBlur?.()}
+      onfocus={(event) => fieldState?.isAutoFocused && event.currentTarget.select()}
       class={inputClass}
     />
 

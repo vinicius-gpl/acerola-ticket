@@ -21,6 +21,8 @@ const ticket: Ticket = {
   notifyWhatsapp: true,
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
+  computerId: null,
+  computerName: null,
   assignee: null,
   solution: null,
   createdAt: '2026-09-15T12:10:00.000Z',
@@ -33,16 +35,27 @@ const ticket: Ticket = {
 const fields: Record<TicketAnswerField, FormFieldState> = {
   status: field('open'),
   priority: field('high'),
+  problemType: field('printer'),
+  computerId: field(''),
   assignee: field(''),
   solution: field(''),
 };
 
-const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn(), onClose: vi.fn() };
+const actions = {
+  onChange: vi.fn(),
+  onBlur: vi.fn(),
+  onSubmit: vi.fn(),
+  onClose: vi.fn(),
+  onChosenFilesChange: vi.fn(),
+  onAttachmentError: vi.fn(),
+  onAttach: vi.fn(),
+  onRemoveAttachment: vi.fn(),
+};
 
 function setup(props: Record<string, unknown> = {}) {
   return render(TicketAnswerDialog, {
     props: {
-      data: { ticket, fields, whatsAppLink: null },
+      data: { ticket, fields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
       state: { isOpen: true },
       actions,
       ...props,
@@ -78,7 +91,17 @@ describe('TicketAnswerDialog', () => {
 
   it('offers the notice link when the person asked to be warned', () => {
     setup({
-      data: { ticket, fields, whatsAppLink: 'https://wa.me/5562999990001?text=oi' },
+      data: {
+        ticket,
+        fields,
+        whatsAppLink: 'https://wa.me/5562999990001?text=oi',
+        machines: [],
+        attachments: [],
+        chosenFiles: [],
+      },
+      machines: [],
+      attachments: [],
+      chosenFiles: [],
     });
 
     expect(screen.getByRole('link', { name: /avisar no whatsapp/i })).toHaveAttribute(
@@ -93,6 +116,9 @@ describe('TicketAnswerDialog', () => {
         ticket: { ...ticket, screenshotUrl: 'https://x.invalid/print.png' },
         fields,
         whatsAppLink: null,
+        machines: [],
+        attachments: [],
+        chosenFiles: [],
       },
     });
 
@@ -117,7 +143,14 @@ describe('TicketAnswerDialog', () => {
 
   it('shows the server refusal without closing, so nothing typed is lost', () => {
     setup({
-      data: { ticket, fields: { ...fields, solution: field('Troquei o rolete.') }, whatsAppLink: null },
+      data: {
+        ticket,
+        fields: { ...fields, solution: field('Troquei o rolete.') },
+        whatsAppLink: null,
+        machines: [],
+        attachments: [],
+        chosenFiles: [],
+      },
       state: { isOpen: true, error: 'O banco recusou o valor enviado.' },
     });
 
@@ -132,10 +165,19 @@ describe('TicketAnswerDialog', () => {
   });
 
   it('says the AnyDesk was not informed instead of leaving a blank gap', () => {
-    setup({ data: { ticket: { ...ticket, anydeskId: null }, fields, whatsAppLink: null } });
+    setup({
+      data: {
+        ticket: { ...ticket, anydeskId: null },
+        fields,
+        whatsAppLink: null,
+        machines: [],
+        attachments: [],
+        chosenFiles: [],
+      },
+    });
 
     /* O rótulo e o valor são elementos diferentes, então a conferência é sobre o texto
        renderizado — é o que a pessoa lê, independentemente de como foi marcado. */
-    expect(document.body.textContent).toMatch(/AnyDesk:\s*Não informado/);
+    expect(document.body.textContent).toMatch(/AnyDesk\s*Não informado/);
   });
 });

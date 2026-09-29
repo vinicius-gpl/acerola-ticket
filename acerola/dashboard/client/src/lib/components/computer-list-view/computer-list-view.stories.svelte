@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
-  import { type Computer } from '@template/shared/schemas/computer.schema';
+  import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 
   import ComputerListView, {
     type ComputerListFilter,
@@ -9,9 +9,10 @@
 
   const GB = 1024 ** 3;
 
-  function computer(over: Partial<Computer> = {}): Computer {
+  function computer(over: Partial<ComputerListItem> = {}): ComputerListItem {
     return {
       id: 1,
+      ticketsThisMonth: 0,
       name: 'RECEPCAO-01',
       displayName: 'Recepção — balcão',
       responsibleName: 'Bia Costa',
@@ -42,6 +43,9 @@
       isArchived: false,
       isBlocked: false,
       blockReason: null,
+      disposedAt: null,
+      disposalType: null,
+      disposalReason: null,
       createdAt: '2026-05-01T12:00:00.000Z',
       createdBy: 'suporte@azuos.local',
       updatedAt: null,
@@ -50,7 +54,7 @@
     };
   }
 
-  const computers: Computer[] = [
+  const computers: ComputerListItem[] = [
     computer({
       id: 3,
       name: 'CONTABIL-03',
@@ -128,6 +132,7 @@
     onRetry: () => {},
     onOpen: () => {},
     onRegister: () => {},
+    onExportReport: () => {},
   };
 
   const settled = {
@@ -207,6 +212,26 @@
   args={{
     data: { computers, total: 240, summary, filter: emptyFilter },
     state: { ...settled, isTruncated: true },
+    actions,
+  }}
+/>
+
+<!-- O PDF está sendo gerado: só o botão dele gira, os outros ficam desabilitados. -->
+<Story
+  name="ExportingReport"
+  args={{
+    data: { computers, total: computers.length, summary, filter: emptyFilter },
+    state: { ...settled, exportingFormat: 'pdf' },
+    actions,
+  }}
+/>
+
+<!-- O relatório falhou: o inventário continua normal, só o aviso aparece acima dele. -->
+<Story
+  name="ExportError"
+  args={{
+    data: { computers, total: computers.length, summary, filter: emptyFilter },
+    state: { ...settled, exportError: 'Não consegui gerar o relatório.' },
     actions,
   }}
 />
