@@ -29,6 +29,8 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     notifyWhatsapp: false,
     description: 'A impressora não puxa papel.',
     screenshotUrl: null,
+    computerId: null,
+    computerName: null,
     assignee: null,
     solution: null,
     createdAt: '2026-09-15T12:10:00.000Z',

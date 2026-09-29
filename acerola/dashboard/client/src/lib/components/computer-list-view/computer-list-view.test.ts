@@ -1,4 +1,4 @@
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,9 +9,10 @@ import ComputerListView, {
   type ComputerSummary,
 } from './computer-list-view.svelte';
 
-function computer(over: Partial<Computer> = {}): Computer {
+function computer(over: Partial<ComputerListItem> = {}): ComputerListItem {
   return {
     id: 1,
+    ticketsThisMonth: 0,
     name: 'RECEPCAO-01',
     displayName: 'Recepção — balcão',
     responsibleName: 'Bia Costa',

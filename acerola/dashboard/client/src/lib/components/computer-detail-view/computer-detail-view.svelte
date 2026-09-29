@@ -52,6 +52,8 @@
       live: ComputerLive | null;
       /** O que já foi feito nesta máquina. Vem da feature de Manutenção; a ficha só lê. */
       maintenances: Maintenance[];
+      /** Os chamados que apontam para esta máquina. A ficha só lê; quem vincula é quem atende. */
+      tickets: Ticket[];
       /** As peças que saíram do depósito para esta máquina. A ficha também só lê. */
       partMovements: PartMovement[];
       /** Por onde a máquina já andou. A transferência é escrita pelo diálogo, não por aqui. */
@@ -62,6 +64,7 @@
       isAlertsLoading?: boolean;
       isLiveLoading?: boolean;
       isMaintenancesLoading?: boolean;
+      isTicketsLoading?: boolean;
       isPartsLoading?: boolean;
       isTransfersLoading?: boolean;
       isSaving?: boolean;
@@ -83,6 +86,12 @@
   };
 
   import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
+  import { type Ticket } from '@template/shared/schemas/ticket.schema';
+  import { ticketProblemTypeLabel } from '@template/shared/domain/ticket-catalog.util';
+  import {
+    ticketStatusLabel,
+    ticketStatusTone,
+  } from '@template/shared/domain/ticket-status.util';
 
   export type HardwareFact = { label: string; value: string };
 
@@ -533,6 +542,40 @@
             <StatusBadge
               data={{ label: maintenanceTypeLabel(maintenance.type) }}
               ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+            />
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </section>
+
+  <section class="bg-card rounded-xl border p-4">
+    <h2 class="text-ink-900 mb-3 text-sm font-semibold">Chamados desta máquina</h2>
+
+    {#if viewState?.isTicketsLoading}
+      <p class="text-ink-500 text-sm">Carregando os chamados…</p>
+    {:else if data.tickets.length === 0}
+      <p class="text-ink-500 text-sm">
+        Nenhum chamado aponta para esta máquina. Quem atende é que faz esse vínculo, na tela de
+        Chamados.
+      </p>
+    {:else}
+      <ul class="divide-y">
+        {#each data.tickets as ticket (ticket.id)}
+          <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+            <div class="min-w-0">
+              <p class="text-ink-900 text-sm">
+                <span class="font-mono text-xs">{ticket.protocol}</span>
+                · {ticketProblemTypeLabel(ticket.problemType)}
+              </p>
+              <p class="text-ink-500 text-xs">
+                {ticket.requesterName} · {formatDateTime(ticket.createdAt)}
+              </p>
+            </div>
+
+            <StatusBadge
+              data={{ label: ticketStatusLabel(ticket.status) }}
+              ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
             />
           </li>
         {/each}

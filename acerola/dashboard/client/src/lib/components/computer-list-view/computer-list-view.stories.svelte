@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
-  import { type Computer } from '@template/shared/schemas/computer.schema';
+  import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 
   import ComputerListView, {
     type ComputerListFilter,
@@ -9,9 +9,10 @@
 
   const GB = 1024 ** 3;
 
-  function computer(over: Partial<Computer> = {}): Computer {
+  function computer(over: Partial<ComputerListItem> = {}): ComputerListItem {
     return {
       id: 1,
+      ticketsThisMonth: 0,
       name: 'RECEPCAO-01',
       displayName: 'Recepção — balcão',
       responsibleName: 'Bia Costa',
@@ -53,7 +54,7 @@
     };
   }
 
-  const computers: Computer[] = [
+  const computers: ComputerListItem[] = [
     computer({
       id: 3,
       name: 'CONTABIL-03',

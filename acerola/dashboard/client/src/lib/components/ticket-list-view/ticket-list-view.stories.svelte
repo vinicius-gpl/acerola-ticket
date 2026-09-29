@@ -19,6 +19,8 @@
       notifyWhatsapp: true,
       description: 'A impressora da sala não puxa papel.',
       screenshotUrl: null,
+      computerId: null,
+      computerName: null,
       assignee: null,
       solution: null,
       createdAt: '2026-09-15T12:10:00.000Z',

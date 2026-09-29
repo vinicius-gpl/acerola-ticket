@@ -1,4 +1,4 @@
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,8 +26,9 @@ const { goto } = await import('$app/navigation');
 
 const GB = 1024 ** 3;
 
-function computer(over: Partial<Computer> = {}): Computer {
+function computer(over: Partial<ComputerListItem> = {}): ComputerListItem {
   return {
+    ticketsThisMonth: 0,
     id: 1,
     name: 'RECEPCAO-01',
     displayName: 'Recepção — balcão',
@@ -70,7 +71,7 @@ function computer(over: Partial<Computer> = {}): Computer {
   };
 }
 
-function page(items: Computer[], total = items.length) {
+function page(items: ComputerListItem[], total = items.length) {
   return { items, total, page: 1, pageSize: 200 };
 }
 

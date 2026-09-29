@@ -21,6 +21,8 @@ const ticket: Ticket = {
   notifyWhatsapp: true,
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
+  computerId: null,
+  computerName: null,
   assignee: null,
   solution: null,
   createdAt: '2026-09-15T12:10:00.000Z',
@@ -33,6 +35,8 @@ const ticket: Ticket = {
 const fields: Record<TicketAnswerField, FormFieldState> = {
   status: field('open'),
   priority: field('high'),
+  problemType: field('printer'),
+  computerId: field(''),
   assignee: field(''),
   solution: field(''),
 };
@@ -51,7 +55,7 @@ const actions = {
 function setup(props: Record<string, unknown> = {}) {
   return render(TicketAnswerDialog, {
     props: {
-      data: { ticket, fields, whatsAppLink: null, attachments: [], chosenFiles: [] },
+      data: { ticket, fields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
       state: { isOpen: true },
       actions,
       ...props,
@@ -91,9 +95,11 @@ describe('TicketAnswerDialog', () => {
         ticket,
         fields,
         whatsAppLink: 'https://wa.me/5562999990001?text=oi',
+        machines: [],
         attachments: [],
         chosenFiles: [],
       },
+      machines: [],
       attachments: [],
       chosenFiles: [],
     });
@@ -110,6 +116,7 @@ describe('TicketAnswerDialog', () => {
         ticket: { ...ticket, screenshotUrl: 'https://x.invalid/print.png' },
         fields,
         whatsAppLink: null,
+        machines: [],
         attachments: [],
         chosenFiles: [],
       },
@@ -140,6 +147,7 @@ describe('TicketAnswerDialog', () => {
         ticket,
         fields: { ...fields, solution: field('Troquei o rolete.') },
         whatsAppLink: null,
+        machines: [],
         attachments: [],
         chosenFiles: [],
       },
@@ -162,6 +170,7 @@ describe('TicketAnswerDialog', () => {
         ticket: { ...ticket, anydeskId: null },
         fields,
         whatsAppLink: null,
+        machines: [],
         attachments: [],
         chosenFiles: [],
       },

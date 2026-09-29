@@ -1,4 +1,4 @@
-import { type Computer } from '@template/shared/schemas/computer.schema';
+import { type ComputerListItem } from '@template/shared/schemas/computer.schema';
 import { render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,9 +20,9 @@ const computer = {
   name: 'FINANCEIRO-02',
   displayName: 'Financeiro — mesa 2',
   department: 'financeiro',
-} as Computer;
+} as ComputerListItem;
 
-const other = { id: 3, name: 'CONTABIL-03', displayName: null } as Computer;
+const other = { id: 3, name: 'CONTABIL-03', displayName: null } as ComputerListItem;
 
 function mountModel(onSaved = vi.fn()): TransferFormModel {
   let model!: TransferFormModel;
