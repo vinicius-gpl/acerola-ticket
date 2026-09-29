@@ -110,6 +110,8 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import SelectField from '$lib/components/select-field/select-field.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import { onlyFrom } from '@template/shared/domain/attachment-ownership.util';
+
   import AttachmentList from '$lib/components/attachment-list/attachment-list.svelte';
   import AttachmentPicker from '$lib/components/attachment-picker/attachment-picker.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
@@ -126,6 +128,16 @@
 
   const ticket = $derived(data.ticket);
   const fields = $derived(data.fields);
+
+  /**
+   * OS DOIS CONJUNTOS DE ARQUIVO, separados na tela como são no contrato.
+   *
+   * A prova de quem pediu socorro fica junto do pedido dela, lá em cima, só de leitura. A
+   * devolutiva do TI fica dentro do passo de diagnóstico, que é onde ela é produzida — e é
+   * ali que o botão de anexar e o de excluir existem.
+   */
+  const requesterFiles = $derived(onlyFrom(data.attachments, 'requester'));
+  const supportFiles = $derived(onlyFrom(data.attachments, 'support'));
 
   function handleSubmit(event: SubmitEvent): void {
     event.preventDefault();
@@ -231,45 +243,22 @@
         {/if}
       </section>
 
+      <!-- O QUE A PESSOA MANDOU — só de leitura, e fica JUNTO do pedido dela, em cima.
+           Não há botão de excluir aqui, e não é esquecimento: é a prova de quem pediu
+           socorro. Apagar o print de alguém e depois dizer "não recebi print nenhum" é uma
+           história que o sistema não deixa acontecer (ver `attachment-ownership.util`). -->
       <section class="flex flex-col gap-2">
         <div class="border-b border-border/80 pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Arquivos do chamado
+          <h3 class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            O que a pessoa enviou
           </h3>
         </div>
 
         <AttachmentList
-          data={{ attachments: data.attachments }}
-          ui={{ emptyLabel: 'Nenhum arquivo neste chamado.' }}
-          state={{
-            isLoading: state.isAttachmentsLoading,
-            removingId: state.removingAttachmentId,
-          }}
-          actions={{ onRemove: actions.onRemoveAttachment }}
+          data={{ attachments: requesterFiles }}
+          ui={{ emptyLabel: 'Quem abriu o chamado não anexou nenhum arquivo.', actor: 'support' }}
+          state={{ isLoading: state.isAttachmentsLoading }}
         />
-
-        <AttachmentPicker
-          data={{
-            files: data.chosenFiles,
-            existingKinds: data.attachments.map((attachment) => attachment.kind),
-          }}
-          state={{ isDisabled: state.isAttaching, error: state.attachmentError }}
-          actions={{
-            onChange: actions.onChosenFilesChange,
-            onError: actions.onAttachmentError,
-          }}
-        />
-
-        {#if data.chosenFiles.length > 0}
-          <!-- Os arquivos entram num envio à parte do formulário: quem está atendendo pode
-               juntar a nota fiscal sem ter de salvar a situação do chamado junto. -->
-          <ActionButton
-            data={{ label: 'Anexar ao chamado', loadingLabel: 'Anexando…' }}
-            ui={{ variant: 'secondary', size: 'sm' }}
-            state={{ isLoading: state.isAttaching }}
-            actions={{ onClick: actions.onAttach }}
-          />
-        {/if}
       </section>
 
       <div class="flex flex-col gap-1">
@@ -376,6 +365,54 @@
                 onBlur: () => actions.onBlur('solution'),
               }}
             />
+
+            <!-- OS ARQUIVOS DA DEVOLUTIVA, aqui dentro e não lá em cima: eles são parte do
+                 que foi feito — a nota fiscal da peça trocada, a foto do antes e do depois.
+                 Ficam do lado do TI, e só o TI os apaga; quem abriu o chamado vê e baixa. -->
+            <div class="border-border/60 flex flex-col gap-2 rounded-xl border p-3">
+              <p class="text-muted-foreground text-xs font-medium">
+                Arquivos desta devolutiva
+                <span class="text-muted-foreground/70 font-normal">
+                  — quem abriu o chamado vê e baixa, mas não apaga
+                </span>
+              </p>
+
+              <AttachmentList
+                data={{ attachments: supportFiles }}
+                ui={{ emptyLabel: 'Você ainda não anexou nada a esta devolutiva.', actor: 'support' }}
+                state={{
+                  isLoading: state.isAttachmentsLoading,
+                  removingId: state.removingAttachmentId,
+                  error: state.attachmentError,
+                }}
+                actions={{ onRemove: actions.onRemoveAttachment }}
+              />
+
+              <!-- A cota é POR LADO: o que a pessoa mandou não ocupa o espaço do TI. Por isso
+                   só os arquivos do TI entram na conta do que ainda cabe. -->
+              <AttachmentPicker
+                data={{
+                  files: data.chosenFiles,
+                  existingKinds: supportFiles.map((attachment) => attachment.kind),
+                }}
+                state={{ isDisabled: state.isAttaching, error: state.attachmentError }}
+                actions={{
+                  onChange: actions.onChosenFilesChange,
+                  onError: actions.onAttachmentError,
+                }}
+              />
+
+              {#if data.chosenFiles.length > 0}
+                <!-- Os arquivos entram num envio à parte do formulário: quem está atendendo
+                     pode juntar a nota fiscal sem ter de salvar a situação do chamado junto. -->
+                <ActionButton
+                  data={{ label: 'Anexar à devolutiva', loadingLabel: 'Anexando…' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  state={{ isLoading: state.isAttaching }}
+                  actions={{ onClick: actions.onAttach }}
+                />
+              {/if}
+            </div>
 
             {#if data.whatsAppLink}
               <a

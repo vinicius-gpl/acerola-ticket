@@ -9,6 +9,7 @@
     id: 1,
     ticketId: 7,
     kind: 'pdf' as const,
+    origin: 'support' as const,
     fileName: 'nota-fiscal.pdf',
     contentType: 'application/pdf',
     sizeBytes: 2 * 1024 * 1024,
@@ -67,6 +68,39 @@
         }),
       ],
     },
+    actions,
+  }}
+/>
+
+<!-- OS DOIS LADOS na mesma lista: o botão de excluir aparece POR ARQUIVO.
+     Quem está olhando é o TI, então ele apaga o que anexou e não apaga o que a pessoa
+     mandou — e a linha diz de quem é cada um, para a ausência do botão ter explicação. -->
+<Story
+  name="Dois lados, visto pelo TI"
+  args={{
+    data: {
+      attachments: [
+        file({ id: 1, origin: 'requester', fileName: 'print-do-erro.png', kind: 'image' }),
+        file({ id: 2, origin: 'requester', fileName: 'planilha-que-trava.xlsx', kind: 'excel' }),
+        file({ id: 3, origin: 'support', fileName: 'nota-da-peca.pdf' }),
+      ],
+    },
+    ui: { actor: 'support' },
+    actions,
+  }}
+/>
+
+<!-- A mesma lista vista por quem ABRIU o chamado: agora é o contrário. -->
+<Story
+  name="Dois lados, visto por quem abriu"
+  args={{
+    data: {
+      attachments: [
+        file({ id: 1, origin: 'requester', fileName: 'print-do-erro.png', kind: 'image' }),
+        file({ id: 3, origin: 'support', fileName: 'nota-da-peca.pdf' }),
+      ],
+    },
+    ui: { actor: 'requester' },
     actions,
   }}
 />
