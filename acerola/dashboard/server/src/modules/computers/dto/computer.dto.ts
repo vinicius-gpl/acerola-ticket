@@ -1,6 +1,8 @@
 import {
+  computerAlertListQuerySchema,
   computerAlertSchema,
   computerListQuerySchema,
+  paginatedComputerAlertSchema,
   computerReportQuerySchema,
   computerSampleSchema,
   computerListItemSchema,
@@ -30,6 +32,16 @@ export class CreatedComputerDto extends createZodDto(createdComputerSchema) {}
 export class ComputerSampleDto extends createZodDto(computerSampleSchema) {}
 
 export class ComputerAlertDto extends createZodDto(computerAlertSchema) {}
+
+export class ComputerAlertListQueryDto extends createZodDto(computerAlertListQuerySchema) {}
+
+/**
+ * A página de alertas vem COM O TOTAL.
+ *
+ * Sem ele, quem lê a API não sabe quantas páginas existem — e a tela voltaria a cortar a
+ * lista em silêncio, que é o que a trava do CONTRIBUTING §15 proíbe.
+ */
+export class ComputerAlertListResponseDto extends createZodDto(paginatedComputerAlertSchema) {}
 
 /**
  * A leitura ao vivo vai DENTRO de um objeto, e não solta: a resposta precisa poder dizer

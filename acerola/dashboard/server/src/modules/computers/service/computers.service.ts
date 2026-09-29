@@ -14,6 +14,7 @@ import {
   type Computer,
   type ComputerListItem,
   type ComputerAlert,
+  type ComputerAlertListQuery,
   type ComputerListQuery,
   type ComputerReportQuery,
   type DisposeComputerInput,
@@ -103,9 +104,6 @@ const COMPUTER_REPORT_COLUMNS: ReportColumn<ComputerRow>[] = [
 ];
 
 const NOT_FOUND = 'Computador não encontrado. Ele pode ter sido arquivado — recarregue a lista.';
-
-/** Quantos alertas a tela de detalhe mostra. Mais que isso vira rolagem que ninguém lê. */
-const ALERT_PAGE_SIZE = 50;
 
 /** O recorte padrão do gráfico de uso: as últimas 24 horas, como no sistema antigo. */
 const DEFAULT_SAMPLE_HOURS = 24;
@@ -306,12 +304,35 @@ export class ComputersService {
     return toComputerLive(row, this.presence.isOnline(row.id));
   }
 
-  async alerts(user: RequestUser, id: number): Promise<ComputerAlert[]> {
+  /**
+   * Uma PÁGINA de alertas, com o total.
+   *
+   * O total vem junto porque sem ele a tela não sabe quantas páginas existem — e a lista
+   * voltaria a ser cortada em silêncio, que é o que a trava do CONTRIBUTING §15 proíbe.
+   *
+   * As duas consultas saem juntas: são independentes, e enfileirá-las dobraria a espera de
+   * uma lista que a pessoa vai paginar clique a clique.
+   */
+  async alerts(
+    user: RequestUser,
+    id: number,
+    query: ComputerAlertListQuery,
+  ): Promise<Paginated<ComputerAlert>> {
     assertCanRead(user.role, 'os computadores');
 
     await this.requireComputer(id);
 
-    return (await this.repository.listAlerts(id, ALERT_PAGE_SIZE)).map(toComputerAlert);
+    const [rows, total] = await Promise.all([
+      this.repository.listAlerts(id, query),
+      this.repository.countAlerts(id),
+    ]);
+
+    return {
+      items: rows.map(toComputerAlert),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
   /**

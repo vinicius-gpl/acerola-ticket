@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  type ComputerAlertListQuery,
   type ComputerListQuery,
   type ComputerReportQuery,
 } from '@template/shared/schemas/computer.schema';
@@ -242,16 +243,40 @@ export class ComputersRepository {
     );
   }
 
-  async listAlerts(computerId: number, limit: number): Promise<ComputerAlertRow[]> {
+  /**
+   * UMA PÁGINA de alertas, do mais recente para o mais antigo.
+   *
+   * Paginada no BANCO, e não na tela: uma máquina ruim acumula centenas de episódios, e
+   * trazer todos para cortar no navegador gasta o banco, a rede e a memória do navegador
+   * para jogar fora 95% do que veio.
+   */
+  async listAlerts(
+    computerId: number,
+    query: ComputerAlertListQuery,
+  ): Promise<ComputerAlertRow[]> {
     return runQuery(
       this.db
         .select()
         .from(computerAlerts)
         .where(eq(computerAlerts.computerId, computerId))
         .orderBy(desc(computerAlerts.startedAt))
-        .limit(limit),
+        .limit(query.pageSize)
+        .offset((query.page - 1) * query.pageSize),
       'ler alertas da máquina',
     );
+  }
+
+  /** Quantos alertas a máquina tem ao todo — é o total que diz quantas páginas existem. */
+  async countAlerts(computerId: number): Promise<number> {
+    const [row] = await runQuery(
+      this.db
+        .select({ total: count() })
+        .from(computerAlerts)
+        .where(eq(computerAlerts.computerId, computerId)),
+      'contar os alertas da máquina',
+    );
+
+    return row?.total ?? 0;
   }
 }
 

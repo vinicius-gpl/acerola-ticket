@@ -4,7 +4,7 @@ import { ALERT_METRICS } from '../domain/computer-alert.util';
 import { DISPOSAL_TYPES } from '../domain/disposal.util';
 import { DEPARTMENTS } from '../domain/department.util';
 import { HEALTH_STATUSES } from '../domain/computer-health.util';
-import { paginationQuerySchema } from './pagination.schema';
+import { MAX_PAGE_SIZE, paginatedSchema, paginationQuerySchema } from './pagination.schema';
 import { reportFormatSchema } from './report.schema';
 
 /**
@@ -313,3 +313,28 @@ export const computerAlertSchema = z.object({
 });
 
 export type ComputerAlert = z.infer<typeof computerAlertSchema>;
+
+/**
+ * Quantos alertas por página na ficha da máquina.
+ *
+ * Vinte e cinco, e não os cinquenta do resto do sistema: uma máquina ruim acumula centenas de
+ * episódios, e a lista fica ENTRE o painel ao vivo e os chamados. Página grande demais aqui
+ * empurra o resto da ficha para fora da tela.
+ */
+export const ALERT_PAGE_SIZE = 25;
+
+export const computerAlertListQuerySchema = paginationQuerySchema.extend({
+  pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(ALERT_PAGE_SIZE),
+});
+
+export type ComputerAlertListQuery = z.infer<typeof computerAlertListQuerySchema>;
+
+/**
+ * A página de alertas, COM O TOTAL.
+ *
+ * O total não é enfeite: sem ele a tela não sabe quantas páginas existem, e a lista voltaria
+ * a ser truncada em silêncio — exatamente o que a trava do CONTRIBUTING §15 proíbe.
+ */
+export const paginatedComputerAlertSchema = paginatedSchema(computerAlertSchema);
+
+export type PaginatedComputerAlerts = z.infer<typeof paginatedComputerAlertSchema>;
