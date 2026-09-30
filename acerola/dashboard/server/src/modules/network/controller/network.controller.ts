@@ -5,12 +5,14 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
+import { WebhookThrottle } from '../../../lib/security/webhook-throttle.decorator';
 import {
   CreateNetworkEventDto,
   NetworkEventDto,
@@ -90,6 +92,9 @@ export class NetworkController {
   }
 
   @Public()
+  /* A trava apertada, e não a folgada do resto da API: esta porta não tem login, e um
+     controlador de verdade manda um alerta por queda — não trezentos por minuto. */
+  @WebhookThrottle()
   @Post('webhook')
   @ApiOperation({
     summary: 'A porta do UniFi: recebe um alerta de rede',
@@ -98,6 +103,9 @@ export class NetworkController {
   })
   @ApiCreatedResponse({ type: NetworkEventDto })
   @ApiUnauthorizedResponse({ description: 'Token do webhook inválido ou não configurado.' })
+  @ApiTooManyRequestsResponse({
+    description: 'Limite de chamadas do webhook estourado (ver `API_WEBHOOK_RATE_LIMIT`).',
+  })
   async webhook(
     @Query('token') token: string | undefined,
     @Body() body: NetworkWebhookDto,

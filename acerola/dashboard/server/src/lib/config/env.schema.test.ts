@@ -21,8 +21,26 @@ describe('parseEnv', () => {
       API_PORT: 3005,
       API_CORS_ORIGIN: 'http://localhost:5005',
       API_LOG_LEVEL: 'log',
+      API_RATE_LIMIT_TTL_SECONDS: 60,
+      API_RATE_LIMIT: 300,
+      API_WEBHOOK_RATE_LIMIT: 12,
+      API_TRUST_PROXY_HOPS: 0,
       R2_SIGNED_URL_TTL_SECONDS: 300,
     });
+  });
+
+  /* A trava de requisição precisa nascer LIGADA: um padrão ausente faria a API subir sem
+     freio em quem nunca ouviu falar da variável. */
+  it('starts with the request limit already on, and the webhook tighter than the rest', () => {
+    const env = parseEnv(secrets);
+
+    expect(env.API_RATE_LIMIT).toBeGreaterThan(0);
+    expect(env.API_WEBHOOK_RATE_LIMIT).toBeLessThan(env.API_RATE_LIMIT);
+  });
+
+  /* Confiar em proxy é o que decide QUEM a trava conta; o padrão precisa ser não confiar. */
+  it('trusts no proxy by default, so a forged address cannot dodge the limit', () => {
+    expect(parseEnv(secrets).API_TRUST_PROXY_HOPS).toBe(0);
   });
 
   /* Endereço errado do Neon Auth não falha na partida: falha no primeiro login, parecendo
