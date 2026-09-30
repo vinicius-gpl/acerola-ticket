@@ -79,7 +79,7 @@ export function constraintNameOf(error: PostgresErrorShape): string {
 const CONFLICT_MESSAGES: Record<string, string> = {
   /* O nome vem da própria máquina e é a chave pela qual o agente se encontra: duas linhas com
      o mesmo nome fariam a telemetria de uma cair na ficha da outra. */
-  'computers.name':
+  computers_name_unique:
     'Já existe um computador com esse nome. Abra o cadastro existente em vez de criar outro.',
   /* Peça nova e peça usada são linhas diferentes de propósito; duas linhas IGUAIS fariam o
      estoque da mesma peça aparecer dividido em dois lugares. */
