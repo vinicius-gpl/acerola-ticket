@@ -1,4 +1,5 @@
 import { type INestApplication } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -42,6 +43,11 @@ describe.skipIf(!testDatabaseUrl)('API hardening (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication({ logger: ['error'] });
     setupApp(app, parseEnv(process.env));
+    /* O ADAPTADOR DE WEBSOCKET, igual ao `main.ts`. Não é opcional: a API tem um gateway (o
+       canal dos agentes em `/agent`), e o Nest recusa subir um gateway sem adaptador — ele
+       tenta carregar o Socket.IO, não acha, e MATA o processo. Não é o adaptador que está
+       sendo testado; é a aplicação inteira que não sobe sem ele. */
+    app.useWebSocketAdapter(new WsAdapter(app));
     await app.init();
   });
 

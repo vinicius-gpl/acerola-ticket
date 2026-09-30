@@ -1,4 +1,5 @@
 import { type INestApplication } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 import { type SessionUser } from '@template/shared/schemas/user.schema';
 import { sql } from 'drizzle-orm';
@@ -67,6 +68,11 @@ describe.skipIf(!testDatabaseUrl)('Tasks API (e2e)', () => {
       .compile();
     app = moduleRef.createNestApplication({ logger: ['error'] });
     setupApp(app, parseEnv(process.env));
+    /* O ADAPTADOR DE WEBSOCKET, igual ao `main.ts`. Não é opcional: a API tem um gateway (o
+       canal dos agentes em `/agent`), e o Nest recusa subir um gateway sem adaptador — ele
+       tenta carregar o Socket.IO, não acha, e MATA o processo. Não é o adaptador que está
+       sendo testado; é a aplicação inteira que não sobe sem ele. */
+    app.useWebSocketAdapter(new WsAdapter(app));
     await app.init();
 
     /* Estado conhecido antes do primeiro teste. `RESTART IDENTITY` zera o contador de `id`
