@@ -7,9 +7,12 @@ on:
     branches: [main, develop]
   pull_request:
 
+# A pasta do projeto, e nao a de cima: o `package.json` e o `package-lock.json` moram em
+# `acerola/dashboard`. Aponta para `acerola` e o `npm ci` falha em 14 segundos dizendo que nao
+# existe lockfile — e nada depois dele chega a rodar.
 defaults:
   run:
-    working-directory: acerola
+    working-directory: acerola/dashboard
 
 jobs:
   verify:
