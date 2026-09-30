@@ -1,26 +1,25 @@
 import { type INestApplication } from '@nestjs/common';
-import { WsAdapter } from '@nestjs/platform-ws';
-import { Test } from '@nestjs/testing';
-import { type SessionUser } from '@template/shared/schemas/user.schema';
-import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
-import { setupApp } from '../src/app.setup';
-import { IdentityProvider } from '../src/lib/auth/identity.provider';
-import { parseEnv } from '../src/lib/config/env.schema';
-import { DB } from '../src/lib/db/db.token';
-import { type Database } from '../src/lib/db/db.type';
+import {
+  asAna,
+  asBia,
+  asCaio,
+  CAIO,
+  createE2eApp,
+  type E2eApp,
+} from './support/e2e-app.util';
 
 /**
  * A API inteira, de ponta a ponta, contra um Postgres de verdade: migration, validação do
  * Zod, policy, restrição do banco e filtro de erro. É o que teste de unidade com repository
  * fingido não prova.
  *
- * O banco vem da `TEST_DATABASE_URL`, e precisa ser OUTRO — na Neon, uma branch do banco só
- * para teste. Estes testes esvaziam as tabelas antes de rodar; apontar para o banco de
- * trabalho apagaria os dados de quem estivesse usando o sistema.
+ * O banco vem da `TEST_DATABASE_URL`, e precisa ser um banco SÓ DELE — um Postgres
+ * descartável na máquina ou uma branch do banco na Neon (ver `server/.env.example`). Estes
+ * testes esvaziam as tabelas antes de rodar; apontar para o banco de trabalho apagaria os
+ * dados de quem estivesse usando o sistema.
  *
  * Sem `TEST_DATABASE_URL` a suíte é pulada, em vez de falhar: quem só mexeu na tela não
  * precisa de um banco na nuvem para rodar os testes.
@@ -34,51 +33,18 @@ import { type Database } from '../src/lib/db/db.type';
  */
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
-const ANA: SessionUser = { id: '1', email: 'ana@empresa.com.br', name: 'Ana', role: 'user' };
-const BIA: SessionUser = { id: '2', email: 'bia@empresa.com.br', name: 'Bia', role: 'user' };
-const CAIO: SessionUser = { id: '3', email: 'caio@empresa.com.br', name: 'Caio', role: 'manager' };
-
-/** Cada token de mentira vale por uma pessoa. O que não está aqui não é ninguém. */
-const PEOPLE_BY_TOKEN: Record<string, SessionUser> = {
-  'token-ana': ANA,
-  'token-bia': BIA,
-  'token-caio': CAIO,
-};
-
-class FakeIdentityProvider {
-  resolve(token: string): Promise<SessionUser | null> {
-    return Promise.resolve(PEOPLE_BY_TOKEN[token] ?? null);
-  }
-}
-
 describe.skipIf(!testDatabaseUrl)('Tasks API (e2e)', () => {
+  let started: E2eApp;
   let app: INestApplication;
 
-  const asAna = () => ({ Authorization: 'Bearer token-ana' });
-  const asBia = () => ({ Authorization: 'Bearer token-bia' });
-  const asCaio = () => ({ Authorization: 'Bearer token-caio' });
-
   beforeAll(async () => {
-    process.env.DATABASE_URL = testDatabaseUrl;
-    process.env.API_LOG_LEVEL = 'error';
-
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(IdentityProvider)
-      .useClass(FakeIdentityProvider)
-      .compile();
-    app = moduleRef.createNestApplication({ logger: ['error'] });
-    setupApp(app, parseEnv(process.env));
-    /* O ADAPTADOR DE WEBSOCKET, igual ao `main.ts`. Não é opcional: a API tem um gateway (o
-       canal dos agentes em `/agent`), e o Nest recusa subir um gateway sem adaptador — ele
-       tenta carregar o Socket.IO, não acha, e MATA o processo. Não é o adaptador que está
-       sendo testado; é a aplicação inteira que não sobe sem ele. */
-    app.useWebSocketAdapter(new WsAdapter(app));
-    await app.init();
+    started = await createE2eApp(testDatabaseUrl!);
+    app = started.app;
 
     /* Estado conhecido antes do primeiro teste. `RESTART IDENTITY` zera o contador de `id`
        junto: sem isso, os ids cresceriam a cada execução e qualquer asserção sobre eles só
        passaria na primeira vez. */
-    await app.get<Database>(DB).execute(sql`truncate table tasks restart identity cascade`);
+    await started.truncate('tasks');
   });
 
   afterAll(async () => {
