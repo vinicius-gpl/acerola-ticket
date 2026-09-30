@@ -8,11 +8,13 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './lib/auth/auth.module';
 import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
+import { SecurityModule } from './lib/security/security.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
 import { BudgetModule } from './modules/budget/budget.module';
 import { ComputersModule } from './modules/computers/computers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HealthModule } from './modules/health/health.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { NetworkModule } from './modules/network/network.module';
@@ -48,8 +50,13 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     DbModule,
     /* Mesma razão do DbModule: `@Global` só passa a valer depois de registrado aqui. */
     StorageModule,
+    /* Cabeçalhos do navegador e trava de requisição por IP. Entra ANTES do AuthModule porque
+       o pedido abusivo precisa ser recusado antes de custar uma ida ao banco para descobrir
+       quem está pedindo. */
+    SecurityModule,
     AuthModule,
     AuthApiModule,
+    HealthModule,
     TasksModule,
     TicketsModule,
     ComputersModule,
