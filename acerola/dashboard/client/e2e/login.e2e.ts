@@ -8,6 +8,10 @@ test.skip(!process.env.TEST_DATABASE_URL, 'Precisa de TEST_DATABASE_URL no serve
 test('sends an unauthenticated visitor to /login instead of /tasks', async ({ page }) => {
   await page.goto('/tasks');
 
+  /* Espera a TELA antes do endereço: o SvelteKit desenha o login primeiro e sincroniza a barra
+     de endereço depois, então olhar só a URL testa a parte que chega por último — e falha sem
+     que nada esteja errado. O que a pessoa precisa é ver o formulário de entrada. */
+  await expect(page.getByRole('heading', { name: 'Bem-vindo de volta' })).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });
 
