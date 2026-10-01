@@ -5,8 +5,10 @@ import {
   canAttendTicket,
   canCreate,
   canManageAnyRecord,
+  canManageInContext,
   canModifyRecord,
   canRead,
+  getRoleInContext,
   isAdmin,
   isOwnRecord,
 } from './access.policy';
@@ -134,5 +136,33 @@ describe('assertCanAttendTicket', () => {
   it('refuses a request with no identity, saying what was being attempted', () => {
     expect(() => assertCanAttendTicket(null)).toThrow(ForbiddenException);
     expect(() => assertCanAttendTicket(null)).toThrow(/atender chamados/i);
+  });
+});
+
+describe('getRoleInContext & canManageInContext', () => {
+  const user = {
+    role: 'admin' as const,
+    roles: {
+      infra: 'user' as const,
+      sistema: 'admin' as const,
+      manutencao: 'manager' as const,
+    },
+  };
+
+  // feliz
+  it('resolves different roles for different contexts (user in infra, admin in sistema, manager in manutencao)', () => {
+    expect(getRoleInContext(user, 'infra')).toBe('user');
+    expect(getRoleInContext(user, 'sistema')).toBe('admin');
+    expect(getRoleInContext(user, 'manutencao')).toBe('manager');
+
+    expect(canManageInContext(user, 'infra')).toBe(false);
+    expect(canManageInContext(user, 'sistema')).toBe(true);
+    expect(canManageInContext(user, 'manutencao')).toBe(true);
+  });
+
+  // triste
+  it('falls back to default user role when user is null or undefined', () => {
+    expect(getRoleInContext(null, 'infra')).toBe('user');
+    expect(canManageInContext(null, 'manutencao')).toBe(false);
   });
 });
