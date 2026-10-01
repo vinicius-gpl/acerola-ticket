@@ -18,6 +18,38 @@ export const envSchema = z.object({
   API_LOG_LEVEL: z.enum(['debug', 'log', 'warn', 'error']).default('log'),
 
   /**
+   * A TRAVA DE REQUISIÇÃO: quantas chamadas um mesmo IP pode fazer dentro da janela.
+   *
+   * O padrão é folgado de propósito — a tela faz várias chamadas por clique (lista, resumo,
+   * contadores), e um limite apertado transformaria uso normal em erro. Quem estiver sob
+   * ataque aperta pela variável, sem mexer no código.
+   */
+  API_RATE_LIMIT_TTL_SECONDS: z.coerce.number().int().min(1).max(3600).default(60),
+  API_RATE_LIMIT: z.coerce.number().int().min(1).max(100_000).default(300),
+
+  /**
+   * O limite do webhook do UniFi, bem mais apertado que o resto.
+   *
+   * A porta é pública (o controlador da rede não tem login) e o corpo é guardado como veio:
+   * é o endereço mais interessante da API para quem quiser enchê-la de lixo. Um controlador
+   * de verdade manda um alerta por queda, não trezentos por minuto.
+   */
+  API_WEBHOOK_RATE_LIMIT: z.coerce.number().int().min(1).max(10_000).default(12),
+
+  /**
+   * Quantos proxies existem entre a internet e este processo.
+   *
+   * Isto decide QUEM a trava de requisição conta. Atrás do Traefik (Coolify), todo mundo
+   * chega pelo mesmo endereço de rede: sem este valor em `1`, o mundo inteiro dividiria um
+   * único balde e uma pessoa ocupada deixaria os outros de fora. Em desenvolvimento é `0`,
+   * porque o navegador fala direto com a API.
+   *
+   * Não é para aumentar "por segurança": cada salto a mais é um salto em que o endereço
+   * passa a ser o que o cliente DISSE ser, e aí a trava deixa de valer.
+   */
+  API_TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+
+  /**
    * A string de conexão do Postgres (Neon), no formato
    * `postgresql://usuario:senha@host/banco?sslmode=require`.
    *
@@ -59,16 +91,6 @@ export const envSchema = z.object({
   R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
 
   /**
-   * O endereço do Neon Auth — quem faz o login das pessoas.
-   *
-   * É a MESMA URL do `VITE_NEON_AUTH_URL` do client, sem o prefixo `VITE_`: a tela manda
-   * e-mail e senha para lá, e o servidor usa o mesmo endereço para buscar a chave pública
-   * (`/.well-known/jwks.json`) e conferir a assinatura do token que a tela apresenta.
-   *
-   * Sem padrão de propósito: cada projeto da Neon tem o seu, e um endereço errado aqui não
-   * falharia na partida — falharia no primeiro login, parecendo senha errada.
-   */
-  /**
    * O segredo do webhook do UniFi.
    *
    * O controlador da rede não tem login: ele prova quem é apresentando este valor na URL do
@@ -80,6 +102,16 @@ export const envSchema = z.object({
    */
   UNIFI_WEBHOOK_TOKEN: z.string().trim().min(16, 'O segredo do webhook precisa ser longo').optional(),
 
+  /**
+   * O endereço do Neon Auth — quem faz o login das pessoas.
+   *
+   * É a MESMA URL do `VITE_NEON_AUTH_URL` do client, sem o prefixo `VITE_`: a tela manda
+   * e-mail e senha para lá, e o servidor usa o mesmo endereço para buscar a chave pública
+   * (`/.well-known/jwks.json`) e conferir a assinatura do token que a tela apresenta.
+   *
+   * Sem padrão de propósito: cada projeto da Neon tem o seu, e um endereço errado aqui não
+   * falharia na partida — falharia no primeiro login, parecendo senha errada.
+   */
   NEON_AUTH_URL: z
     .string()
     .trim()

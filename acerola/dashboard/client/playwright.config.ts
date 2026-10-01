@@ -45,6 +45,18 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
+  /**
+   * Quinze segundos, e não os cinco do padrão.
+   *
+   * Em desenvolvimento o Vite compila os módulos de cada rota NA PRIMEIRA VEZ que alguém a
+   * abre. A primeira navegação de uma execução leva alguns segundos antes de a tela reagir, e
+   * com cinco segundos a asserção estourava ali — parecendo defeito da guarda de sessão, que
+   * está certa (ela redireciona ao receber 401 de `/api/auth/me`).
+   *
+   * Aumentar o teto não deixa teste ruim passar: quem falha de verdade falha igual, só demora
+   * mais para desistir.
+   */
+  expect: { timeout: 15_000 },
   use: {
     baseURL: 'http://localhost:5005',
     locale: 'pt-BR',
@@ -54,9 +66,20 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     cwd: '..',
-    url: 'http://localhost:5005',
+    /**
+     * ESPERA A API, não a tela.
+     *
+     * A tela do Vite sobe em segundos; a API compila o TypeScript inteiro antes de escutar, e
+     * leva mais de um minuto numa partida fria. Esperando só a tela, o teste começa enquanto a
+     * API ainda compila e TODA requisição volta 502 — o sintoma parece defeito da tela.
+     *
+     * A rota de saúde é o sinal certo porque ela só responde 200 depois de a API falar com o
+     * banco. E esperar pela API já implica a tela: ela subiu muito antes.
+     */
+    url: `http://localhost:${readServerEnv('API_PORT') ?? '3005'}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    /* Generoso porque a conta é a compilação fria do server, não a partida dele. */
+    timeout: 240_000,
     env: testDatabaseUrl ? { DATABASE_URL: testDatabaseUrl } : {},
   },
 });

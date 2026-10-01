@@ -16,3 +16,23 @@ services:
         required: false
     ports:
       - '3005:3005'
+    # SAÚDE DE VERDADE, não "o processo está de pé".
+    #
+    # `/api/health` só responde 200 depois de conseguir falar com o banco. Sem isto, uma
+    # partida que falhou na conexão parecia uma partida boa: o container ficava no ar
+    # respondendo erro a todo mundo, e o Traefik continuava mandando gente para ele.
+    #
+    # O teste é feito com o `node` que já está na imagem — nada de instalar `curl` só pra isso.
+    # `start_period` dá tempo às migrations, que o server aplica sozinho ao subir.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:' + (process.env.API_PORT || 3005) + '/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

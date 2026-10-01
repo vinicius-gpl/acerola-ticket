@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "prepare": "svelte-kit sync",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -18,7 +19,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "precheck": "svelte-kit sync",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "pretypecheck": "svelte-kit sync",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "api:client": "openapi-typescript http://localhost:3005/docs-json -o src/lib/api/generated/schema.ts"
