@@ -6,7 +6,7 @@ import Harness from './use-role-form-harness.test.svelte';
 import { type RoleFormModel } from './use-role-form.svelte';
 
 vi.mock('$lib/api/roles.api', () => ({
-  rolesApi: { assign: vi.fn() },
+  rolesApi: { assign: vi.fn(), listUsers: vi.fn().mockResolvedValue([]) },
 }));
 
 const { rolesApi } = await import('$lib/api/roles.api');
@@ -49,6 +49,23 @@ describe('useRoleFormModel', () => {
     expect(model.data.fields.userId.value).toBe('');
     expect(model.data.fields.context.value).toBe('sistema');
     expect(model.data.fields.role.value).toBe('user');
+  });
+
+  it('selects and clears user with dedicated actions', () => {
+    const model = mountModel(null);
+
+    model.actions.onSelectUser({
+      id: 'usr_sel',
+      name: 'Pessoa Selecionada',
+      email: 'sel@empresa.com.br',
+    });
+
+    expect(model.data.fields.userId.value).toBe('usr_sel');
+    expect(model.data.fields.userEmail.value).toBe('sel@empresa.com.br');
+
+    model.actions.onClearUser();
+    expect(model.data.fields.userId.value).toBe('');
+    expect(model.data.fields.userEmail.value).toBe('');
   });
 
   it('starts in edit mode populated with role data', () => {

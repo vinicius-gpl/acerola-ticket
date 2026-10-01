@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AuthModule } from '../../lib/auth/auth.module';
 import { RolesController } from './controller/roles.controller';
 import { RolesRepository } from './repository/roles.repository';
 import { RolesService } from './service/roles.service';
@@ -9,6 +10,7 @@ import { RolesService } from './service/roles.service';
  * Permite que administradores gerenciem papéis/cargos desacoplados do mecanismo de autenticação.
  */
 @Module({
+  imports: [AuthModule],
   controllers: [RolesController],
   providers: [RolesService, RolesRepository],
   exports: [RolesService, RolesRepository],

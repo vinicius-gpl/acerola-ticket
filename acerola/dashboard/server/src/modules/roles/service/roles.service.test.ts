@@ -48,6 +48,7 @@ const ROW: InternalRoleRow = {
 
 describe('RolesService', () => {
   let repository: RolesRepository;
+  let userDirectory: { listUsers: ReturnType<typeof vi.fn>; getUserById: ReturnType<typeof vi.fn> };
   let service: RolesService;
 
   beforeEach(() => {
@@ -59,7 +60,26 @@ describe('RolesService', () => {
       delete: vi.fn().mockResolvedValue(undefined),
     } as unknown as RolesRepository;
 
-    service = new RolesService(repository);
+    userDirectory = {
+      listUsers: vi.fn().mockResolvedValue([
+        {
+          id: 'user_1',
+          name: 'Usuario Comum',
+          email: 'user@empresa.com.br',
+          image: null,
+          role: 'user',
+          banned: false,
+          createdAt: '2026-10-01T12:00:00.000Z',
+        },
+      ]),
+      getUserById: vi.fn().mockResolvedValue({
+        id: 'user_1',
+        name: 'Usuario Comum',
+        email: 'user@empresa.com.br',
+      }),
+    };
+
+    service = new RolesService(repository, userDirectory as never);
   });
 
   describe('list', () => {
@@ -172,6 +192,22 @@ describe('RolesService', () => {
       vi.mocked(repository.findById).mockResolvedValue(null);
 
       await expect(service.delete(SUPERADMIN, 999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('listUsers', () => {
+    it('allows superadmin and admin to list directory users', async () => {
+      const usersSuper = await service.listUsers(SUPERADMIN);
+      expect(usersSuper).toHaveLength(1);
+      expect(usersSuper[0]!.name).toBe('Usuario Comum');
+
+      const usersAdmin = await service.listUsers(ADMIN);
+      expect(usersAdmin).toHaveLength(1);
+    });
+
+    it('refuses non-admin users from listing directory users', async () => {
+      await expect(service.listUsers(MANAGER)).rejects.toThrow(ForbiddenException);
+      await expect(service.listUsers(USER)).rejects.toThrow(ForbiddenException);
     });
   });
 });

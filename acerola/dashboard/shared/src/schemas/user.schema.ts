@@ -91,8 +91,25 @@ export const sessionUserSchema = z.object({
   id: z.string().min(1),
   email: z.string().email(),
   name: z.string().min(1),
+  image: z.string().nullable().optional(),
   role: userRoleSchema,
   roles: contextRolesSchema.optional(),
 });
 
 export type SessionUser = z.infer<typeof sessionUserSchema>;
+
+/**
+ * Usuário retornado pelo diretório de autenticação (Neon Auth ou auth-forward).
+ * Usado em listagens de pessoas e seleção em formulários de atribuição de cargos.
+ */
+export const directoryUserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().email(),
+  image: z.string().nullable().optional(),
+  role: z.string().nullable().optional(),
+  banned: z.boolean().nullable().optional(),
+  createdAt: z.string().datetime().nullable().optional(),
+});
+
+export type DirectoryUser = z.infer<typeof directoryUserSchema>;

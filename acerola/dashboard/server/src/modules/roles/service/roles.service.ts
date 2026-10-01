@@ -1,10 +1,13 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   type AssignRoleInput,
   type InternalRole,
 } from '@template/shared/schemas/internal-role.schema';
+import { type DirectoryUser } from '@template/shared/schemas/user.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
+import { type UserDirectoryProvider } from '../../../lib/auth/user-directory/user-directory.interface';
+import { USER_DIRECTORY_PROVIDER } from '../../../lib/auth/user-directory/user-directory.token';
 import { assertIsAdmin, assertIsSuperAdmin } from '../../../lib/policy/policy-assert.util';
 import { toInternalRole, toInternalRoleInsert } from '../mapper/roles.mapper';
 import { RolesRepository } from '../repository/roles.repository';
@@ -17,13 +20,22 @@ import { RolesRepository } from '../repository/roles.repository';
  */
 @Injectable()
 export class RolesService {
-  constructor(private readonly repository: RolesRepository) {}
+  constructor(
+    private readonly repository: RolesRepository,
+    @Inject(USER_DIRECTORY_PROVIDER) private readonly userDirectory: UserDirectoryProvider,
+  ) {}
 
   async list(actor: RequestUser): Promise<InternalRole[]> {
     assertIsAdmin(actor.role, 'Consultar cargos internos');
 
     const rows = await this.repository.list();
     return rows.map(toInternalRole);
+  }
+
+  async listUsers(actor: RequestUser): Promise<DirectoryUser[]> {
+    assertIsAdmin(actor.role, 'Consultar pessoas do diretório');
+
+    return this.userDirectory.listUsers();
   }
 
   async listByUser(actor: RequestUser, identifier: string): Promise<InternalRole[]> {

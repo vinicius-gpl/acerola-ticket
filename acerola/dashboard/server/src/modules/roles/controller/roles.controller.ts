@@ -23,7 +23,13 @@ import {
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { Roles } from '../../../lib/auth/roles.decorator';
-import { AssignRoleDto, InternalRoleDto, InternalRoleListDto } from '../dto/roles.dto';
+import {
+  AssignRoleDto,
+  DirectoryUserDto,
+  DirectoryUserListDto,
+  InternalRoleDto,
+  InternalRoleListDto,
+} from '../dto/roles.dto';
 import { RolesService } from '../service/roles.service';
 
 /**
@@ -46,6 +52,18 @@ export class RolesController {
   @ApiForbiddenResponse({ description: 'Esta ação é de Administrador.' })
   async list(@CurrentUser() user: RequestUser): Promise<InternalRoleDto[]> {
     return this.service.list(user);
+  }
+
+  @Get('users')
+  @ApiOperation({
+    summary: 'Listar pessoas do diretório',
+    description: 'Retorna pessoas do diretório de autenticação (Neon Auth/auth-forward) para seleção em cargos.',
+  })
+  @ApiOkResponse({ type: DirectoryUserListDto })
+  @ApiUnauthorizedResponse({ description: 'Sem token válido.' })
+  @ApiForbiddenResponse({ description: 'Esta ação é de Administrador.' })
+  async listUsers(@CurrentUser() user: RequestUser): Promise<DirectoryUserDto[]> {
+    return this.service.listUsers(user);
   }
 
   @Get('user/:identifier')

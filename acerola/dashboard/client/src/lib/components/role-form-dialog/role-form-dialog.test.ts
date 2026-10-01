@@ -69,4 +69,50 @@ describe('RoleFormDialog', () => {
 
     expect(screen.getByText('Falha de comunicação com o servidor')).toBeInTheDocument();
   });
+
+  it('lists directory users and allows picking a user', async () => {
+    const mockUsers = [
+      {
+        id: 'usr_carlos',
+        name: 'Carlos Oliveira',
+        email: 'carlos@empresa.com.br',
+        role: 'manager',
+      },
+    ];
+
+    const actions = renderDialog({
+      data: { mode: 'create', users: mockUsers, fields },
+    });
+
+    expect(screen.getByText('Carlos Oliveira')).toBeInTheDocument();
+    expect(screen.getByText('carlos@empresa.com.br')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('option', { name: /Carlos Oliveira/i }));
+    expect(actions.onChange).toHaveBeenCalledWith('userId', 'usr_carlos');
+    expect(actions.onChange).toHaveBeenCalledWith('userEmail', 'carlos@empresa.com.br');
+  });
+
+  it('renders selected user card and allows changing person', async () => {
+    const selectedFields = {
+      ...fields,
+      userId: { value: 'usr_carlos', error: null },
+      userEmail: { value: 'carlos@empresa.com.br', error: null },
+    };
+
+    const actions = renderDialog({
+      data: {
+        mode: 'create',
+        fields: selectedFields,
+        users: [{ id: 'usr_carlos', name: 'Carlos Oliveira', email: 'carlos@empresa.com.br' }],
+      },
+    });
+
+    expect(screen.getByText('Carlos Oliveira')).toBeInTheDocument();
+    expect(screen.getByText('Selecionada')).toBeInTheDocument();
+
+    const changeBtn = screen.getByRole('button', { name: 'Trocar pessoa' });
+    await userEvent.click(changeBtn);
+    expect(actions.onChange).toHaveBeenCalledWith('userId', '');
+    expect(actions.onChange).toHaveBeenCalledWith('userEmail', '');
+  });
 });

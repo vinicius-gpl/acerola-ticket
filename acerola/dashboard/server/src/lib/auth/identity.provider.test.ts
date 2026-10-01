@@ -88,6 +88,7 @@ describe('IdentityProvider.resolve', () => {
       id: 'neon-user-1',
       email: 'ana@empresa.com.br',
       name: 'Ana Maria',
+      image: null,
       role: 'admin',
       roles: {
         infra: 'user',
