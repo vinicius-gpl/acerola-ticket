@@ -17,6 +17,17 @@ defaults:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Valores de mentira, só para o server conseguir SUBIR durante o teste E2E — sem
+    # TEST_DATABASE_URL (que não é segredo nenhum, e continua sem valor aqui de propósito),
+    # a suíte E2E é pulada antes de usar qualquer um destes. Nenhuma chamada de verdade ao
+    # Postgres, ao R2 ou ao Neon Auth acontece com eles.
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost/ci_placeholder
+      R2_ACCOUNT_ID: ci-placeholder
+      R2_ACCESS_KEY_ID: ci-placeholder
+      R2_SECRET_ACCESS_KEY: ci-placeholder
+      R2_BUCKET: ci-placeholder
+      NEON_AUTH_URL: https://ci-placeholder.invalid/auth
     steps:
       - uses: actions/checkout@v4
 
