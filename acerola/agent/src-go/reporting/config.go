@@ -62,12 +62,12 @@ type Config struct {
 // fileConfig é o formato do config.json, em inglês como todo identificador
 // do projeto. Quem escreve este arquivo é a própria tela do agente.
 //
-// O token mora aqui CIFRADO (ver src-go/secret) e nunca em texto puro: este
-// arquivo fica na pasta do usuário, vai junto num backup e aparece inteiro
-// para quem tiver acesso ao disco.
+// O token NÃO mora mais aqui — vive no cofre do sistema (ver src-go/secret).
+// TokenCipher continua existindo só para LER o que uma instalação anterior
+// a este cofre gravou; Save nunca mais escreve nele (ver migrateLegacyToken).
 type fileConfig struct {
 	ServerURL       string `json:"serverUrl"`
-	TokenCipher     string `json:"tokenCipher"`
+	TokenCipher     string `json:"tokenCipher,omitempty"`
 	IntervalSeconds int    `json:"intervalSeconds"`
 }
 
@@ -133,21 +133,65 @@ func readFile(configPath string) (rawConfig, error) {
 	}
 
 	raw := rawConfig{ServerURL: stored.ServerURL, IntervalSeconds: stored.IntervalSeconds}
-	if stored.TokenCipher == "" {
+
+	/* Máquina vinda de uma versão anterior a este cofre: o token ainda está
+	   cifrado no arquivo. Migra para o cofre AGORA, na primeira leitura, e só
+	   então apaga do arquivo — sem isto, atualizar o agente desconectaria o
+	   parque inteiro até alguém reconfigurar cada máquina à mão. */
+	if stored.TokenCipher != "" {
+		token, migrateError := migrateLegacyToken(configPath, stored)
+		if migrateError != nil {
+			return rawConfig{}, migrateError
+		}
+
+		raw.Token = token
+
 		return raw, nil
 	}
 
-	token, unprotectError := unprotect(stored.TokenCipher)
-	if unprotectError != nil {
-		/* O segredo existe mas não abre: foi cifrado por outro usuário, veio de
-		   outra máquina, ou o arquivo foi mexido. Dizer isso é melhor do que
-		   fingir que a máquina nunca foi configurada. */
-		return rawConfig{}, fmt.Errorf("reporting: the saved key cannot be read on this machine: %w", unprotectError)
+	token, loadError := loadSecret()
+	if loadError != nil {
+		if errors.Is(loadError, secret.ErrNotFound) {
+			return raw, nil
+		}
+
+		return rawConfig{}, fmt.Errorf("reporting: cannot read the saved key: %w", loadError)
 	}
 
 	raw.Token = token
 
 	return raw, nil
+}
+
+// migrateLegacyToken desfaz a cifra antiga, grava o resultado no cofre do
+// sistema e só então reescreve o arquivo sem o campo. Se qualquer passo
+// falhar antes da reescrita, o arquivo fica como estava e a próxima partida
+// tenta de novo — a migração é segura de repetir.
+func migrateLegacyToken(configPath string, stored fileConfig) (string, error) {
+	token, unprotectError := legacyUnprotect(stored.TokenCipher)
+	if unprotectError != nil {
+		/* O segredo existe mas não abre: foi cifrado por outro usuário, veio de
+		   outra máquina, ou o arquivo foi mexido. Dizer isso é melhor do que
+		   fingir que a máquina nunca foi configurada. */
+		return "", fmt.Errorf("reporting: the saved key cannot be read on this machine: %w", unprotectError)
+	}
+
+	if saveError := saveSecret(token); saveError != nil {
+		return "", fmt.Errorf("reporting: cannot move the saved key to the system vault: %w", saveError)
+	}
+
+	stored.TokenCipher = ""
+
+	content, marshalError := json.MarshalIndent(stored, "", "  ")
+	if marshalError != nil {
+		return "", marshalError
+	}
+
+	if writeError := os.WriteFile(configPath, content, 0o600); writeError != nil {
+		return "", fmt.Errorf("reporting: cannot update %s after moving the key: %w", configPath, writeError)
+	}
+
+	return token, nil
 }
 
 func readStored(configPath string) (fileConfig, error) {
@@ -245,20 +289,22 @@ func normalizeInterval(seconds int) time.Duration {
 }
 
 /*
-A cifra do token, em variável para o teste conseguir simular a máquina em
+O cofre do sistema e a cifra antiga, em variável para o teste conseguir
 
-	que o segredo NÃO abre — o caso de um arquivo copiado de outro computador.
+	simular o cofre indisponível e o arquivo de uma instalação anterior que
+	não abre mais — veio de outra máquina, ou foi cifrado por outro usuário.
 */
 var (
-	protect   = secret.Protect
-	unprotect = secret.Unprotect
+	saveSecret      = secret.Save
+	loadSecret      = secret.Load
+	legacyUnprotect = secret.LegacyUnprotect
 )
 
 // Settings é o que a TELA do agente mostra e grava.
 //
 // O token só entra, nunca sai: a tela informa se existe um salvo (`HasToken`),
 // e não o valor. Devolvê-lo ao frontend recolocaria em texto puro, na memória
-// do navegador embutido, o segredo que acabamos de cifrar em disco.
+// do navegador embutido, o segredo que acabamos de guardar no cofre.
 type Settings struct {
 	ServerURL       string `json:"serverUrl"`
 	HasToken        bool   `json:"hasToken"`
@@ -277,14 +323,21 @@ func Current(configPath string) Settings {
 		seconds = int(DefaultInterval.Seconds())
 	}
 
+	/* O token pode estar no arquivo (instalação antiga, ainda não migrada,
+	   ver migrateLegacyToken) ou no cofre — Current só informa SE existe,
+	   nunca o valor, então não importa onde. */
+	_, loadError := loadSecret()
+	hasToken := stored.TokenCipher != "" || loadError == nil
+
 	return Settings{
 		ServerURL:       stored.ServerURL,
-		HasToken:        stored.TokenCipher != "",
+		HasToken:        hasToken,
 		IntervalSeconds: seconds,
 	}
 }
 
-// Save grava o endereço e o token desta máquina, com o token cifrado.
+// Save grava o endereço desta máquina no arquivo e o token no cofre do
+// sistema — nunca os dois juntos no mesmo lugar.
 //
 // A configuração é VALIDADA antes de ir para o disco: um endereço impossível
 // ou um token vazio param aqui, com o motivo, em vez de virarem um agente que
@@ -299,14 +352,12 @@ func Save(configPath string, serverURL string, token string, intervalSeconds int
 		return Config{}, validationError
 	}
 
-	cipher, protectError := protect(config.Token)
-	if protectError != nil {
-		return Config{}, fmt.Errorf("reporting: cannot protect the key: %w", protectError)
+	if saveError := saveSecret(config.Token); saveError != nil {
+		return Config{}, fmt.Errorf("reporting: cannot protect the key: %w", saveError)
 	}
 
 	content, marshalError := json.MarshalIndent(fileConfig{
 		ServerURL:       config.ServerURL,
-		TokenCipher:     cipher,
 		IntervalSeconds: int(config.Interval.Seconds()),
 	}, "", "  ")
 	if marshalError != nil {
@@ -317,9 +368,9 @@ func Save(configPath string, serverURL string, token string, intervalSeconds int
 		return Config{}, fmt.Errorf("reporting: cannot create %s: %w", filepath.Dir(configPath), directoryError)
 	}
 
-	/* 0600: só o dono lê. No Windows a permissão POSIX não é o que protege —
-	   quem protege é a cifra —, mas o mesmo código roda igual em qualquer
-	   sistema e não custa nada estar certo nos dois. */
+	/* 0600: só o dono lê. O arquivo não guarda mais segredo nenhum — quem
+	   protege o token agora é o cofre do sistema —, mas o endereço do
+	   servidor continua sendo só desta máquina, e não custa manter o hábito. */
 	if writeError := os.WriteFile(configPath, content, 0o600); writeError != nil {
 		return Config{}, fmt.Errorf("reporting: cannot write %s: %w", configPath, writeError)
 	}
