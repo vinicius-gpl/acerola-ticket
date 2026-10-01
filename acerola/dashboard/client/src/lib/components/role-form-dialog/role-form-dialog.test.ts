@@ -44,6 +44,23 @@ describe('RoleFormDialog', () => {
     expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeInTheDocument();
   });
 
+  it('allows selecting context and role via interactive cards', async () => {
+    const actions = renderDialog();
+
+    await userEvent.click(screen.getByRole('button', { name: /Infraestrutura/i }));
+    expect(actions.onChange).toHaveBeenCalledWith('context', 'infra');
+
+    await userEvent.click(screen.getByRole('button', { name: /Administrador/i }));
+    expect(actions.onChange).toHaveBeenCalledWith('role', 'admin');
+  });
+
+  it('disables context selection in edit mode', () => {
+    renderDialog({ data: { mode: 'edit', fields } });
+
+    const infraBtn = screen.getByRole('button', { name: /Infraestrutura/i });
+    expect(infraBtn).toBeDisabled();
+  });
+
   // triste
   it('shows error state when provided', () => {
     renderDialog({

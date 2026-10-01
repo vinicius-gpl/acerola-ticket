@@ -3,9 +3,9 @@ import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 import {
   assignRoleSchema,
   type AssignRoleInput,
+  type AssignableUserRole,
   type InternalRole,
 } from '@template/shared/schemas/internal-role.schema';
-import { type RoleContext, type UserRole } from '@template/shared/schemas/user.schema';
 
 import { readError } from '$lib/api/http-client';
 import { rolesApi } from '$lib/api/roles.api';
@@ -91,10 +91,21 @@ export function useRoleFormModel({
 }
 
 function toFormValues(role: InternalRole | null): AssignRoleInput {
+  if (!role) {
+    return {
+      userId: '',
+      userEmail: '',
+      context: 'sistema',
+      role: 'user',
+    };
+  }
+
+  const roleValue: AssignableUserRole = role.role === 'superadmin' ? 'admin' : role.role;
+
   return {
-    userId: role?.userId ?? '',
-    userEmail: role?.userEmail ?? '',
-    context: (role?.context ?? 'sistema') as RoleContext,
-    role: (role?.role ?? 'user') as UserRole,
+    userId: role.userId,
+    userEmail: role.userEmail || '',
+    context: role.context,
+    role: roleValue,
   };
 }

@@ -111,6 +111,19 @@ describe('IdentityProvider.resolve', () => {
     });
   });
 
+  it('recognizes superadmin from neon_auth.user and grants admin across all contexts by default', async () => {
+    const { provider } = makeProvider([userRow({ role: 'superadmin' })], []);
+
+    await expect(provider.resolve('token')).resolves.toMatchObject({
+      role: 'superadmin',
+      roles: {
+        infra: 'admin',
+        sistema: 'admin',
+        manutencao: 'admin',
+      },
+    });
+  });
+
   // triste
   /* Pessoa nova sem cargo atribuído em lugar nenhum cai no papel mais restrito (user) */
   it('falls back to the most restricted role (user) when there is no role anywhere', async () => {

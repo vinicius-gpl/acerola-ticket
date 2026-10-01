@@ -32,9 +32,9 @@ import {
  * passo separado que alguém possa pular.
  */
 
-const ROLES: UserRole[] = ['user', 'manager', 'admin'];
+const ROLES: UserRole[] = ['user', 'manager', 'admin', 'superadmin'];
 
-/** Quem está identificado enxerga o cadastro inteiro — os três papéis leem tudo. */
+/** Quem está identificado enxerga o cadastro inteiro — os quatro papéis leem tudo. */
 export function canRead(role: UserRole | null | undefined): boolean {
   if (!role) return false;
 
@@ -46,8 +46,12 @@ export function canCreate(role: UserRole | null | undefined): boolean {
   return canRead(role);
 }
 
+export function isSuperAdmin(role: UserRole | null | undefined): boolean {
+  return role === 'superadmin';
+}
+
 export function isAdmin(role: UserRole | null | undefined): boolean {
-  return role === 'admin';
+  return role === 'admin' || role === 'superadmin';
 }
 
 /**

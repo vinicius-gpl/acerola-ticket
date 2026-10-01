@@ -11,12 +11,14 @@ import {
   getRoleInContext,
   isAdmin,
   isOwnRecord,
+  isSuperAdmin,
 } from './access.policy';
 import {
   assertCanAttendTicket,
   assertCanCreate,
   assertCanModifyRecord,
   assertIsAdmin,
+  assertIsSuperAdmin,
 } from './policy-assert.util';
 
 const ANA = 'ana@empresa.com.br';
@@ -25,7 +27,7 @@ const BIA = 'bia@empresa.com.br';
 describe('access.policy', () => {
   // feliz
   it('lets every role read and create', () => {
-    for (const role of ['user', 'manager', 'admin'] as const) {
+    for (const role of ['user', 'manager', 'admin', 'superadmin'] as const) {
       expect(canRead(role)).toBe(true);
       expect(canCreate(role)).toBe(true);
     }
@@ -34,12 +36,16 @@ describe('access.policy', () => {
   it('keeps other people records for manager and admin only', () => {
     expect(canManageAnyRecord('manager')).toBe(true);
     expect(canManageAnyRecord('admin')).toBe(true);
+    expect(canManageAnyRecord('superadmin')).toBe(true);
     expect(canManageAnyRecord('user')).toBe(false);
   });
 
-  it('knows who is an admin', () => {
+  it('knows who is an admin or superadmin', () => {
     expect(isAdmin('admin')).toBe(true);
+    expect(isAdmin('superadmin')).toBe(true);
     expect(isAdmin('manager')).toBe(false);
+    expect(isSuperAdmin('superadmin')).toBe(true);
+    expect(isSuperAdmin('admin')).toBe(false);
   });
 
   // triste
@@ -95,6 +101,8 @@ describe('policy-assert', () => {
     expect(() => assertCanCreate('user', 'tarefas')).not.toThrow();
     expect(() => assertCanModifyRecord('user', ANA, ANA, 'Esta tarefa')).not.toThrow();
     expect(() => assertIsAdmin('admin', 'Gerenciar pessoas')).not.toThrow();
+    expect(() => assertIsAdmin('superadmin', 'Gerenciar pessoas')).not.toThrow();
+    expect(() => assertIsSuperAdmin('superadmin', 'Atribuir cargos')).not.toThrow();
   });
 
   // triste
@@ -108,6 +116,12 @@ describe('policy-assert', () => {
 
   it('refuses an admin action for a manager', () => {
     expect(() => assertIsAdmin('manager', 'Gerenciar pessoas')).toThrow(ForbiddenException);
+  });
+
+  it('refuses a superadmin action for an admin or manager', () => {
+    expect(() => assertIsSuperAdmin('admin', 'Atribuir cargos')).toThrow(ForbiddenException);
+    expect(() => assertIsSuperAdmin('manager', 'Atribuir cargos')).toThrow(ForbiddenException);
+    expect(() => assertIsSuperAdmin('user', 'Atribuir cargos')).toThrow(ForbiddenException);
   });
 });
 

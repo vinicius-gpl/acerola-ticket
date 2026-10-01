@@ -9,7 +9,6 @@ import Trash2 from '@lucide/svelte/icons/trash-2';
 import Wallet from '@lucide/svelte/icons/wallet';
 import Wifi from '@lucide/svelte/icons/wifi';
 import Wrench from '@lucide/svelte/icons/wrench';
-import ShieldCheck from '@lucide/svelte/icons/shield-check';
 
 /**
  * O MENU LATERAL, num lugar só.
@@ -45,7 +44,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'network', label: 'Rede', to: '/network', icon: Wifi },
   { key: 'insights', label: 'Inteligência', to: '/insights', icon: Lightbulb },
   { key: 'budget', label: 'Orçamento', to: '/budget', icon: Wallet },
-  { key: 'roles', label: 'Cargos', to: '/roles', icon: ShieldCheck },
   /* A feature de exemplo do template. Sai quando não servir mais de molde (skill
      `remover-exemplo`) — ela não faz parte do sistema de TI. */
   { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks },

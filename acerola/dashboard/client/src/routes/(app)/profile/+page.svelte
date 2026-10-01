@@ -5,7 +5,7 @@
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import RoleListView from '$lib/components/role-list-view/role-list-view.svelte';
   import { useRolesModel } from '$lib/hooks/use-roles/use-roles.svelte';
-  import RoleFormSlot from './role-form-slot.svelte';
+  import RoleFormSlot from '../roles/role-form-slot.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -13,12 +13,11 @@
   const list = useRolesModel();
 
   type FormTarget = { role: InternalRole | null } | null;
-
   let formTarget = $state<FormTarget>(null);
 </script>
 
 <svelte:head>
-  <title>Cargos Internos</title>
+  <title>Meu Perfil e Cargos</title>
 </svelte:head>
 
 <RoleListView

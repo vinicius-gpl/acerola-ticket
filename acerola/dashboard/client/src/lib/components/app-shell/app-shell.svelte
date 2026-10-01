@@ -49,7 +49,6 @@
 <script lang="ts">
   import LogOut from '@lucide/svelte/icons/log-out';
   import { BrandMark } from '$lib/components/brand-mark/brand-mark';
-  import UserProfileDialog from '$lib/components/user-profile-dialog/user-profile-dialog.svelte';
   import { fadeInUp } from '$lib/motion/motion';
   import {
     Sidebar,
@@ -177,15 +176,3 @@
     </div>
   </SidebarInset>
 </SidebarProvider>
-
-{#if shellState?.isProfileOpen}
-  <UserProfileDialog
-    data={{ user: data?.user }}
-    state={{ isOpen: true }}
-    actions={{
-      onClose: () => actions?.onCloseProfile?.(),
-      onViewRoles: () => actions?.onViewRoles?.(),
-      onLogout: () => actions?.onLogout?.(),
-    }}
-  />
-{/if}

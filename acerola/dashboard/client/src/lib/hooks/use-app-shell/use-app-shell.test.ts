@@ -42,28 +42,16 @@ describe('useAppShellModel', () => {
     expect(model.data.user).toEqual({
       name: 'Ana Souza',
       email: 'ana@empresa.com.br',
-      role: 'Gerente',
+      role: 'Gestor',
       roles: { sistema: 'admin', infra: 'user', manutencao: 'manager' },
     });
   });
 
-  it('manages profile dialog state and navigation to roles', async () => {
+  it('navigates to /profile on onOpenProfile', async () => {
     const model = mountModel();
 
-    expect(model.state.isProfileOpen).toBe(false);
-
     model.actions.onOpenProfile();
-    expect(model.state.isProfileOpen).toBe(true);
-
-    model.actions.onCloseProfile();
-    expect(model.state.isProfileOpen).toBe(false);
-
-    model.actions.onOpenProfile();
-    expect(model.state.isProfileOpen).toBe(true);
-
-    model.actions.onViewRoles();
-    expect(model.state.isProfileOpen).toBe(false);
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/roles'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/profile'));
   });
 
   it('logs out at Neon Auth and navigates to /login', async () => {
