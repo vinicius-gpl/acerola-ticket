@@ -141,4 +141,43 @@ describe('RoleListView', () => {
 
     expect(screen.getByText('Erro ao carregar cargos da equipe')).toBeInTheDocument();
   });
+
+  it('renders both mobile cards and desktop table for responsive design', () => {
+    const { container } = render(RoleListView, {
+      props: {
+        data: {
+          roles: mockRoles,
+          total: 2,
+          filter: { search: '', context: '' },
+          users: [
+            {
+              id: 'usr_1',
+              name: 'Vinícius Gabriel',
+              email: 'vinicius@empresa.com.br',
+              role: 'superadmin',
+            },
+          ],
+        },
+        state: { isLoading: false, isEmpty: false, isFilteredOut: false, error: null },
+        actions: {
+          onCreate: vi.fn(),
+          onEdit: vi.fn(),
+          onAskDelete: vi.fn(),
+          onSearchChange: vi.fn(),
+          onContextChange: vi.fn(),
+          onClearFilters: vi.fn(),
+          onRetry: vi.fn(),
+        },
+      },
+    });
+
+    const mobileCards = container.querySelector('[data-slot="role-cards-mobile"]');
+    const desktopTable = container.querySelector('[data-slot="role-table-desktop"]');
+
+    expect(mobileCards).toBeInTheDocument();
+    expect(desktopTable).toBeInTheDocument();
+    expect(mobileCards?.classList.contains('md:hidden')).toBe(true);
+    expect(desktopTable?.classList.contains('hidden')).toBe(true);
+    expect(desktopTable?.classList.contains('md:block')).toBe(true);
+  });
 });

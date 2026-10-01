@@ -149,6 +149,7 @@ function toSessionUser(
     id: row.id,
     email,
     name: row.name,
+    image: row.image,
     role: primaryRole,
     roles: contextRoles,
   });

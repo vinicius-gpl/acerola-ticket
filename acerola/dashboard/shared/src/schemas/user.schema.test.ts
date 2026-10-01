@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_USER_ROLE,
+  directoryUserSchema,
   roleInContext,
   sessionUserSchema,
   USER_ROLE_LABELS,
@@ -81,5 +82,25 @@ describe('roleInContext', () => {
   it('falls back to role or default when context is not defined or user is null', () => {
     expect(roleInContext(null, 'infra')).toBe('user');
     expect(roleInContext({ role: 'manager' }, 'infra')).toBe('manager');
+  });
+});
+
+describe('directoryUserSchema', () => {
+  it('validates a complete directory user', () => {
+    const parsed = directoryUserSchema.parse({
+      id: 'usr_1',
+      name: 'Maria Silva',
+      email: 'maria@empresa.com.br',
+      image: 'https://example.com/avatar.jpg',
+      role: 'admin',
+      banned: false,
+      createdAt: '2026-10-01T12:00:00.000Z',
+    });
+    expect(parsed.id).toBe('usr_1');
+    expect(parsed.name).toBe('Maria Silva');
+  });
+
+  it('rejects an invalid email or missing name', () => {
+    expect(directoryUserSchema.safeParse({ id: 'usr_1', email: 'invalido' }).success).toBe(false);
   });
 });

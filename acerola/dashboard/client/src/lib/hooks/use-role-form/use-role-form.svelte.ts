@@ -1,11 +1,12 @@
 import { createForm } from '@tanstack/svelte-form';
-import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import {
   assignRoleSchema,
   type AssignRoleInput,
   type AssignableUserRole,
   type InternalRole,
 } from '@template/shared/schemas/internal-role.schema';
+import { type DirectoryUser } from '@template/shared/schemas/user.schema';
 
 import { readError } from '$lib/api/http-client';
 import { rolesApi } from '$lib/api/roles.api';
@@ -19,12 +20,15 @@ export type RoleFormField = 'userId' | 'userEmail' | 'context' | 'role';
 export type RoleFormModel = {
   data: {
     mode: 'create' | 'edit';
+    users: DirectoryUser[];
     fields: Record<RoleFormField, FormFieldState>;
   };
-  state: { isSubmitting: boolean; error: string | null };
+  state: { isSubmitting: boolean; isLoadingUsers: boolean; error: string | null };
   actions: {
     onChange: (field: RoleFormField, value: string) => void;
     onBlur: (field: RoleFormField) => void;
+    onSelectUser: (user: DirectoryUser) => void;
+    onClearUser: () => void;
     onSubmit: () => void;
   };
 };
@@ -48,6 +52,13 @@ export function useRoleFormModel({
     }),
   );
 
+  const usersQuery = mirrorStore(
+    createQuery({
+      queryKey: [...ROLES_QUERY_KEY, 'users'],
+      queryFn: () => rolesApi.listUsers(),
+    }),
+  );
+
   const form = createForm(() => ({
     defaultValues: toFormValues(role ?? null),
     validators: { onChange: assignRoleSchema },
@@ -64,6 +75,7 @@ export function useRoleFormModel({
     get data() {
       return {
         mode: role ? ('edit' as const) : ('create' as const),
+        users: usersQuery.current.data ?? [],
         fields: {
           userId: toFieldState(values.current.userId, fieldMeta.current.userId, isSubmitted.current),
           userEmail: toFieldState(
@@ -77,13 +89,27 @@ export function useRoleFormModel({
       };
     },
     get state() {
-      return { isSubmitting: save.current.isPending, error: readError(save.current.error) };
+      return {
+        isSubmitting: save.current.isPending,
+        isLoadingUsers: usersQuery.current.isPending,
+        error: readError(save.current.error),
+      };
     },
     actions: {
       onChange: (field, value) => form.setFieldValue(field, value as never),
       onBlur: (field) => {
         form.setFieldMeta(field, (prev) => ({ ...prev, isTouched: true }));
         void form.validateField(field, 'change');
+      },
+      onSelectUser: (user) => {
+        form.setFieldValue('userId', user.id);
+        form.setFieldValue('userEmail', user.email);
+        form.setFieldMeta('userId', (prev) => ({ ...prev, isTouched: true }));
+        void form.validateField('userId', 'change');
+      },
+      onClearUser: () => {
+        form.setFieldValue('userId', '');
+        form.setFieldValue('userEmail', '');
       },
       onSubmit: () => void form.handleSubmit(),
     },

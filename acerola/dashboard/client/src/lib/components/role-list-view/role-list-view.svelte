@@ -5,6 +5,7 @@
     ROLE_CONTEXTS,
     USER_ROLE_LABELS,
     type ContextRoles,
+    type DirectoryUser,
     type RoleContext,
     type UserRole,
   } from '@template/shared/schemas/user.schema';
@@ -17,10 +18,12 @@
       currentUser?: {
         name: string;
         email: string;
+        image?: string | null;
         role: string;
         roles?: Partial<ContextRoles>;
       };
       roles: InternalRole[];
+      users?: DirectoryUser[];
       total: number;
       filter: RolesFilter;
     };
@@ -106,6 +109,14 @@
   function countByContext(ctx: RoleContext): number {
     return data.roles.filter((r) => r.context === ctx).length;
   }
+
+  function resolveUser(item: InternalRole): DirectoryUser | undefined {
+    return data.users?.find(
+      (u) =>
+        u.id.toLowerCase() === item.userId.toLowerCase() ||
+        (item.userEmail && u.email.toLowerCase() === item.userEmail.toLowerCase()),
+    );
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-12 sm:px-6">
@@ -117,6 +128,7 @@
           <div class="relative shrink-0">
             <PersonAvatar
               name={data.currentUser.name}
+              avatarUrl={data.currentUser.image}
               ui={{ size: 'xl', className: 'size-16 ring-4 ring-primary/10 shadow-sm' }}
             />
           </div>
@@ -286,7 +298,97 @@
       />
     </EmptyState>
   {:else}
-    <div class="overflow-x-auto rounded-box border border-border bg-card shadow-xs">
+    <!-- 1. Visualização em Cards para Dispositivos Móveis (< md) -->
+    <div class="flex flex-col gap-3 md:hidden" data-slot="role-cards-mobile">
+      {#each data.roles as item (item.id)}
+        {@const user = resolveUser(item)}
+        {@const displayName = user?.name || item.userEmail || item.userId}
+        <div class="flex flex-col gap-3 rounded-box border border-border bg-card p-4 shadow-xs">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <PersonAvatar
+                name={displayName}
+                avatarUrl={user?.image}
+                ui={{ size: 'lg' }}
+              />
+              <div class="min-w-0">
+                <span class="block font-semibold text-foreground text-sm truncate">
+                  {displayName}
+                </span>
+                {#if item.userEmail}
+                  <span class="block text-xs text-muted-foreground truncate">
+                    {item.userEmail}
+                  </span>
+                {/if}
+                <span class="block text-[11px] font-mono text-muted-foreground/70 truncate">
+                  ID: {item.userId}
+                </span>
+              </div>
+            </div>
+
+            {#if canManage}
+              <div class="flex items-center gap-1 shrink-0">
+                <ActionButton
+                  data={{ label: 'Editar' }}
+                  ui={{ icon: Pencil, variant: 'ghost', size: 'sm', isIconOnly: true }}
+                  actions={{ onClick: () => actions.onEdit(item) }}
+                />
+                <ActionButton
+                  data={{ label: 'Excluir' }}
+                  ui={{
+                    icon: Trash2,
+                    variant: 'ghost',
+                    size: 'sm',
+                    isIconOnly: true,
+                    className: 'text-destructive hover:text-destructive',
+                  }}
+                  actions={{ onClick: () => actions.onAskDelete(item) }}
+                />
+              </div>
+            {/if}
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+            <div class="flex flex-col gap-1">
+              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Área / Contexto
+              </span>
+              <div>
+                <StatusBadge
+                  data={{ label: ROLE_CONTEXT_LABELS[item.context] }}
+                  ui={{ tone: contextTone(item.context), size: 'sm' }}
+                />
+              </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Cargo Interno
+              </span>
+              <div>
+                <StatusBadge
+                  data={{ label: USER_ROLE_LABELS[item.role] }}
+                  ui={{ tone: roleTone(item.role), size: 'sm' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {#if item.createdBy}
+            <div
+              class="flex items-center justify-between text-[11px] font-mono text-muted-foreground/80 pt-1 border-t border-border/40"
+            >
+              <span>Criado por: {item.createdBy}</span>
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+
+    <!-- 2. Visualização em Tabela para Desktop (>= md) -->
+    <div
+      class="hidden md:block overflow-x-auto rounded-box border border-border bg-card shadow-xs"
+      data-slot="role-table-desktop"
+    >
       <Table class="min-w-[760px]">
         <TableHeader>
           <TableRow>
@@ -301,13 +403,19 @@
         </TableHeader>
         <TableBody>
           {#each data.roles as item (item.id)}
+            {@const user = resolveUser(item)}
+            {@const displayName = user?.name || item.userEmail || item.userId}
             <TableRow>
               <TableCell class="max-w-[280px]">
                 <div class="flex items-center gap-3">
-                  <PersonAvatar name={item.userEmail || item.userId} ui={{ size: 'md' }} />
+                  <PersonAvatar
+                    name={displayName}
+                    avatarUrl={user?.image}
+                    ui={{ size: 'md' }}
+                  />
                   <div class="min-w-0">
                     <span class="block font-medium text-foreground truncate">
-                      {item.userEmail || item.userId}
+                      {displayName}
                     </span>
                     {#if item.userEmail && item.userId !== item.userEmail}
                       <span class="block text-xs font-mono text-muted-foreground truncate">

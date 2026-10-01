@@ -9,6 +9,9 @@ import { NEON_TOKEN_VERIFIER } from './neon-token.token';
 import { createNeonTokenVerifier, type NeonTokenVerifier } from './neon-token.util';
 import { RolesGuard } from './roles.guard';
 
+import { NeonUserDirectoryProvider } from './user-directory/neon-user-directory.provider';
+import { USER_DIRECTORY_PROVIDER } from './user-directory/user-directory.token';
+
 /**
  * Duas perguntas, dois mecanismos, nesta ordem:
  *
@@ -32,9 +35,13 @@ import { RolesGuard } from './roles.guard';
       useFactory: (env: Env): NeonTokenVerifier => createNeonTokenVerifier(env.NEON_AUTH_URL),
     },
     IdentityProvider,
+    {
+      provide: USER_DIRECTORY_PROVIDER,
+      useClass: NeonUserDirectoryProvider,
+    },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [IdentityProvider],
+  exports: [IdentityProvider, USER_DIRECTORY_PROVIDER],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

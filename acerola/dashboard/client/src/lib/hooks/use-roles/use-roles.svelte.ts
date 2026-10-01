@@ -1,6 +1,6 @@
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { type InternalRole } from '@template/shared/schemas/internal-role.schema';
-import { type RoleContext } from '@template/shared/schemas/user.schema';
+import { type DirectoryUser, type RoleContext } from '@template/shared/schemas/user.schema';
 import { writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
@@ -15,6 +15,7 @@ export type RolesFilter = {
 export type RolesModel = {
   data: {
     roles: InternalRole[];
+    users: DirectoryUser[];
     total: number;
     filter: RolesFilter;
     pendingDelete: InternalRole | null;
@@ -58,6 +59,13 @@ export function useRolesModel(): RolesModel {
     }),
   );
 
+  const usersQuery = mirrorStore(
+    createQuery({
+      queryKey: [...ROLES_QUERY_KEY, 'users'],
+      queryFn: () => rolesApi.listUsers(),
+    }),
+  );
+
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ROLES_QUERY_KEY });
 
   const remove = mirrorStore(
@@ -73,23 +81,17 @@ export function useRolesModel(): RolesModel {
   return {
     get data() {
       const allRoles = list.current.data ?? [];
+      const directoryUsers = usersQuery.current.data ?? [];
       const currentFilter = filter.current;
       const searchLower = currentFilter.search.trim().toLowerCase();
 
-      const filtered = allRoles.filter((item) => {
-        if (currentFilter.context && item.context !== currentFilter.context) {
-          return false;
-        }
-        if (searchLower) {
-          const matchUser = item.userId.toLowerCase().includes(searchLower);
-          const matchEmail = item.userEmail?.toLowerCase().includes(searchLower) ?? false;
-          if (!matchUser && !matchEmail) return false;
-        }
-        return true;
-      });
+      const filtered = allRoles.filter((item) =>
+        matchesRoleFilter(item, currentFilter.context, searchLower, directoryUsers),
+      );
 
       return {
         roles: filtered,
+        users: directoryUsers,
         total: allRoles.length,
         filter: currentFilter,
         pendingDelete,
@@ -130,4 +132,33 @@ export function useRolesModel(): RolesModel {
       },
     },
   };
+}
+
+function matchesRoleSearch(
+  item: InternalRole,
+  searchLower: string,
+  directoryUsers: DirectoryUser[],
+): boolean {
+  if (!searchLower) return true;
+
+  if (item.userId.toLowerCase().includes(searchLower)) return true;
+  if (item.userEmail && item.userEmail.toLowerCase().includes(searchLower)) return true;
+
+  const user = directoryUsers.find(
+    (u) =>
+      u.id.toLowerCase() === item.userId.toLowerCase() ||
+      (item.userEmail && u.email.toLowerCase() === item.userEmail.toLowerCase()),
+  );
+
+  return user ? user.name.toLowerCase().includes(searchLower) : false;
+}
+
+function matchesRoleFilter(
+  item: InternalRole,
+  contextFilter: RoleContext | '',
+  searchLower: string,
+  directoryUsers: DirectoryUser[],
+): boolean {
+  if (contextFilter && item.context !== contextFilter) return false;
+  return matchesRoleSearch(item, searchLower, directoryUsers);
 }
