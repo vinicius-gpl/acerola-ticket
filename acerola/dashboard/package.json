@@ -37,6 +37,8 @@
     "seed:network": "npm run build -w @template/shared && tsx scripts/seed/network/seed-network.ts",
     "seed:transfers": "npm run build -w @template/shared && tsx scripts/seed/transfers/seed-transfers.ts",
     "seed:users": "npm run build -w @template/shared && tsx scripts/seed/users/seed-users.ts",
+    "user:promote": "node scripts/promote-user.mjs",
+    "user:admin": "node scripts/promote-user.mjs",
     "prepare": "cd ../.. && husky acerola/dashboard/.husky && node acerola/dashboard/scripts/git/setup-git.mjs"
   },
   "devDependencies": {

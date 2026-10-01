@@ -1,6 +1,7 @@
 <script lang="ts" module>
   import type { Snippet } from 'svelte';
   import type { NavItem } from '$lib/navigation/navigation';
+  import type { ContextRoles } from '@template/shared/schemas/user.schema';
 
   /**
    * A casca do sistema: menu à esquerda, conteúdo à direita.
@@ -21,7 +22,12 @@
     data?: {
       /** Contador ao lado do item, pela `key` dele. Zero não desenha selo. */
       badges?: Partial<Record<string, number>>;
-      user?: { name: string; email: string; role: string };
+      user?: {
+        name: string;
+        email: string;
+        role: string;
+        roles?: ContextRoles;
+      };
     };
     ui?: { items?: readonly NavItem[] };
     state?: {
@@ -29,14 +35,21 @@
       activeKey?: string;
       /** O caminho da rota atual — trocar de valor é o gatilho da animação entre telas. */
       routeKey?: string;
+      isProfileOpen?: boolean;
     };
-    actions?: { onLogout?: () => void };
+    actions?: {
+      onLogout?: () => void;
+      onOpenProfile?: () => void;
+      onCloseProfile?: () => void;
+      onViewRoles?: () => void;
+    };
   };
 </script>
 
 <script lang="ts">
   import LogOut from '@lucide/svelte/icons/log-out';
   import { BrandMark } from '$lib/components/brand-mark/brand-mark';
+  import UserProfileDialog from '$lib/components/user-profile-dialog/user-profile-dialog.svelte';
   import { fadeInUp } from '$lib/motion/motion';
   import {
     Sidebar,
@@ -122,7 +135,12 @@
       <!-- A mesma folga do menu de cima: aqui são o cartão de quem entrou e o Sair. -->
       <SidebarMenu class="gap-1">
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" tooltipContent={userName}>
+          <SidebarMenuButton
+            size="lg"
+            tooltipContent={userName}
+            onclick={actions?.onOpenProfile}
+            aria-label="Abrir perfil do usuário"
+          >
             <PersonAvatar name={userName} ui={{ size: 'md' }} />
             <span class="grid flex-1 text-left leading-tight">
               <span class="truncate text-sm font-semibold">{userName}</span>
@@ -159,3 +177,15 @@
     </div>
   </SidebarInset>
 </SidebarProvider>
+
+{#if shellState?.isProfileOpen}
+  <UserProfileDialog
+    data={{ user: data?.user }}
+    state={{ isOpen: true }}
+    actions={{
+      onClose: () => actions?.onCloseProfile?.(),
+      onViewRoles: () => actions?.onViewRoles?.(),
+      onLogout: () => actions?.onLogout?.(),
+    }}
+  />
+{/if}
