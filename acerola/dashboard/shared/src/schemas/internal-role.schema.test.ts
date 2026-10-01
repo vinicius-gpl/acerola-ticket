@@ -26,7 +26,7 @@ describe('internalRoleSchema', () => {
   });
 
   it('refuses invalid role', () => {
-    expect(internalRoleSchema.safeParse({ ...valid, role: 'superadmin' }).success).toBe(false);
+    expect(internalRoleSchema.safeParse({ ...valid, role: 'invalid_role' }).success).toBe(false);
   });
 });
 
@@ -48,6 +48,15 @@ describe('assignRoleSchema', () => {
       userId: '',
       context: 'sistema' as const,
       role: 'admin' as const,
+    };
+    expect(assignRoleSchema.safeParse(input).success).toBe(false);
+  });
+
+  it('refuses superadmin assignment via schema', () => {
+    const input = {
+      userId: 'usr_123',
+      context: 'sistema' as const,
+      role: 'superadmin' as any,
     };
     expect(assignRoleSchema.safeParse(input).success).toBe(false);
   });

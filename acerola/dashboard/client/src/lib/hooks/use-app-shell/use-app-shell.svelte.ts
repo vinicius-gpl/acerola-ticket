@@ -74,14 +74,13 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
     },
     actions: {
       onOpenProfile: () => {
-        isProfileOpen = true;
+        void goto('/profile');
       },
       onCloseProfile: () => {
         isProfileOpen = false;
       },
       onViewRoles: () => {
-        isProfileOpen = false;
-        void goto('/roles');
+        void goto('/profile');
       },
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
          estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não

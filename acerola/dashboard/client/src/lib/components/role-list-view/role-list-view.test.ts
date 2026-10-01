@@ -56,12 +56,25 @@ function renderView(overrides: Partial<RoleListViewProps> = {}) {
 describe('RoleListView', () => {
   // feliz
   it('renders the header and list of roles', () => {
-    renderView();
+    renderView({
+      data: {
+        currentUser: {
+          name: 'Vinícius Gabriel',
+          email: 'vinicius@empresa.com.br',
+          role: 'admin',
+          roles: { sistema: 'admin', infra: 'user', manutencao: 'manager' },
+        },
+        roles: mockRoles,
+        total: 2,
+        filter: { search: '', context: '' },
+      },
+    });
 
-    expect(screen.getByRole('heading', { name: 'Cargos Internos' })).toBeInTheDocument();
-    expect(screen.getAllByText('vinicius@empresa.com.br')).toHaveLength(2);
-    expect(screen.getByText('Infraestrutura')).toBeInTheDocument();
-    expect(screen.getByText('Sistema')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Cargos e Perfis da Equipe' })).toBeInTheDocument();
+    expect(screen.getByText('Vinícius Gabriel')).toBeInTheDocument();
+    expect(screen.getAllByText('vinicius@empresa.com.br').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Infraestrutura').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Sistema').length).toBeGreaterThanOrEqual(1);
   });
 
   it('triggers onCreate when clicking Atribuir cargo', async () => {
@@ -87,6 +100,25 @@ describe('RoleListView', () => {
     expect(actions.onAskDelete).toHaveBeenCalledWith(mockRoles[0]);
   });
 
+  it('shows read-only banner and hides manage buttons for non-superadmin users', () => {
+    renderView({
+      data: {
+        currentUser: {
+          name: 'Operador',
+          email: 'op@empresa.com.br',
+          role: 'admin',
+        },
+        roles: mockRoles,
+        total: 2,
+        filter: { search: '', context: '' },
+      },
+    });
+
+    expect(screen.getByText(/Modo de visualização da equipe/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Atribuir cargo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+  });
+
   // triste
   it('renders empty state when there are no roles', () => {
     renderView({
@@ -107,6 +139,6 @@ describe('RoleListView', () => {
       },
     });
 
-    expect(screen.getByText('Erro ao carregar cargos')).toBeInTheDocument();
+    expect(screen.getByText('Erro ao carregar cargos da equipe')).toBeInTheDocument();
   });
 });

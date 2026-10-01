@@ -32,7 +32,7 @@ import { RolesService } from '../service/roles.service';
  */
 @ApiTags('Cargos')
 @Controller('roles')
-@Roles('admin')
+@Roles('admin', 'superadmin')
 export class RolesController {
   constructor(private readonly service: RolesService) {}
 

@@ -92,11 +92,25 @@ function isBanned(row: NeonAuthUserRow): boolean {
  *  1. Verifica se a conta já possuía papel legado em `neon_auth.user` (migração suave);
  *  2. Caso contrário, cai em `user` (mais restrito) para todos os contextos.
  */
-function toSessionUser(
+function resolveContextRoles(
   row: NeonAuthUserRow,
-  email: string | null,
   roleRows: InternalRoleRow[],
-): SessionUser | null {
+  isSuper: boolean,
+  parsedNeonRole: ReturnType<typeof userRoleSchema.safeParse>,
+): ContextRoles {
+  if (roleRows.length === 0 && row.role) {
+    if (isSuper) {
+      return { infra: 'admin', sistema: 'admin', manutencao: 'admin' };
+    }
+    if (parsedNeonRole.success) {
+      return {
+        infra: DEFAULT_USER_ROLE,
+        sistema: parsedNeonRole.data,
+        manutencao: DEFAULT_USER_ROLE,
+      };
+    }
+  }
+
   const contextRoles: ContextRoles = {
     infra: DEFAULT_USER_ROLE,
     sistema: DEFAULT_USER_ROLE,
@@ -111,15 +125,25 @@ function toSessionUser(
     }
   }
 
-  // Fallback de migração: se não tem cargo interno mas tem na tabela de autenticação
-  if (roleRows.length === 0 && row.role) {
-    const legacyRole = userRoleSchema.safeParse(row.role);
-    if (legacyRole.success) {
-      contextRoles.sistema = legacyRole.data;
-    }
-  }
+  return contextRoles;
+}
 
-  const primaryRole = contextRoles.sistema ?? DEFAULT_USER_ROLE;
+/**
+ * A linha do cadastro combinada com os cargos internos vira identidade completa.
+ *
+ * Se não houver registro na tabela de cargos internos:
+ *  1. Verifica se a conta já possuía papel legado em `neon_auth.user` (migração suave);
+ *  2. Caso contrário, cai em `user` (mais restrito) para todos os contextos.
+ */
+function toSessionUser(
+  row: NeonAuthUserRow,
+  email: string | null,
+  roleRows: InternalRoleRow[],
+): SessionUser | null {
+  const parsedNeonRole = userRoleSchema.safeParse(row.role);
+  const isSuper = parsedNeonRole.success && parsedNeonRole.data === 'superadmin';
+  const contextRoles = resolveContextRoles(row, roleRows, isSuper, parsedNeonRole);
+  const primaryRole = isSuper ? 'superadmin' : (contextRoles.sistema ?? DEFAULT_USER_ROLE);
 
   const parsed = sessionUserSchema.safeParse({
     id: row.id,

@@ -15,8 +15,8 @@ describe('userRoleSchema', () => {
     }
   });
 
-  it('knows the three roles of the system', () => {
-    expect(userRoleSchema.options).toEqual(['user', 'manager', 'admin']);
+  it('knows the four roles of the system', () => {
+    expect(userRoleSchema.options).toEqual(['user', 'manager', 'admin', 'superadmin']);
   });
 
   /* Quem chega sem papel definido no Neon Auth precisa receber MENOS acesso, nunca mais. */

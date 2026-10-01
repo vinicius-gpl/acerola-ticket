@@ -71,31 +71,35 @@ async function main() {
       }
     }
 
-    console.log(`\n🚀 Promovendo ${userToPromote.name} (${userToPromote.email}) para "${targetRole}"...`);
+    console.log(`\n🚀 Promovendo ${userToPromote.name} (${userToPromote.email}) para "superadmin" e ADMIN em todos os contextos...`);
 
-    // 1. Atualiza na autenticação legada (neon_auth.user)
+    // 1. Atualiza na autenticação externa/legada (neon_auth.user) como superadmin
     await sql`
       UPDATE neon_auth.user
-      SET role = ${targetRole}
+      SET role = 'superadmin'
       WHERE id = ${userToPromote.id}
     `;
 
-    // 2. Atualiza ou insere na nova tabela de cargos desacoplados (internal_roles)
-    await sql`
-      INSERT INTO internal_roles (user_id, user_email, context, role, created_at, created_by)
-      VALUES (${userToPromote.id}, ${userToPromote.email}, ${targetContext}, ${targetRole}, NOW(), 'dev-promote-script')
-      ON CONFLICT (user_id, context)
-      DO UPDATE SET
-        role = ${targetRole},
-        user_email = ${userToPromote.email},
-        updated_at = NOW(),
-        updated_by = 'dev-promote-script'
-    `;
+    // 2. Concede ao usuário acesso como ADMIN aos 3 contextos do sistema em internal_roles
+    const contexts = ['infra', 'sistema', 'manutencao'];
+    for (const ctx of contexts) {
+      await sql`
+        INSERT INTO internal_roles (user_id, user_email, context, role, created_at, created_by)
+        VALUES (${userToPromote.id}, ${userToPromote.email}, ${ctx}, 'admin', NOW(), 'dev-promote-script')
+        ON CONFLICT (user_id, context)
+        DO UPDATE SET
+          role = 'admin',
+          user_email = ${userToPromote.email},
+          updated_at = NOW(),
+          updated_by = 'dev-promote-script'
+      `;
+    }
 
     console.log(`✅ Sucesso!`);
     console.log(`   - Usuário: ${userToPromote.name} (${userToPromote.email})`);
-    console.log(`   - Cargo no Contexto "${targetContext}": ${targetRole}`);
-    console.log(`   - Cargo na Autenticação (neon_auth): ${targetRole}`);
+    console.log(`   - Cargo Global (neon_auth): superadmin (Super Admin)`);
+    console.log(`   - Acesso aos 3 Contextos (infra, sistema, manutencao): admin`);
+    console.log(`   - Permissão especial: Pode gerenciar e conceder todos os cadastros/cargos internos.`);
     console.log('\n💡 Se você já estiver logado no navegador, recarregue a página (F5) ou refaça o login para renovar a sessão.');
   } catch (err) {
     console.error('❌ Erro ao atualizar cargo no banco:', err);

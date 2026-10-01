@@ -1,17 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   type AssignRoleInput,
   type InternalRole,
 } from '@template/shared/schemas/internal-role.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { assertIsAdmin } from '../../../lib/policy/policy-assert.util';
+import { assertIsAdmin, assertIsSuperAdmin } from '../../../lib/policy/policy-assert.util';
 import { toInternalRole, toInternalRoleInsert } from '../mapper/roles.mapper';
 import { RolesRepository } from '../repository/roles.repository';
 
 /**
  * Regras de negócio para cargos internos.
- * Apenas quem possui perfil de Administrador (`admin`) pode consultar, atribuir ou remover cargos.
+ * Consulta permitida para Administrador e Super Administrador.
+ * Atribuição e exclusão são exclusivas de Super Administrador (quem dá os cadastros).
+ * O cargo de Super Administrador não pode ser atribuído pela interface, apenas via comando CLI.
  */
 @Injectable()
 export class RolesService {
@@ -32,7 +34,13 @@ export class RolesService {
   }
 
   async assign(actor: RequestUser, input: AssignRoleInput): Promise<InternalRole> {
-    assertIsAdmin(actor.role, 'Atribuir cargo interno');
+    assertIsSuperAdmin(actor.role, 'Atribuir cargo interno');
+
+    if ((input.role as string) === 'superadmin') {
+      throw new ForbiddenException(
+        'O cargo de Super Administrador só pode ser concedido via comando de terminal.',
+      );
+    }
 
     const insert = toInternalRoleInsert(input, actor.email);
     const row = await this.repository.upsert(insert);
@@ -41,7 +49,7 @@ export class RolesService {
   }
 
   async delete(actor: RequestUser, id: number): Promise<void> {
-    assertIsAdmin(actor.role, 'Excluir cargo interno');
+    assertIsSuperAdmin(actor.role, 'Excluir cargo interno');
 
     const existing = await this.repository.findById(id);
     if (!existing) {

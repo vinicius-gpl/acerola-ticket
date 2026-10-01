@@ -19,14 +19,15 @@ import { z } from 'zod';
  * sistema lê, nunca escreve. Papel desconhecido (ou vazio) cai em `user`, o mais restrito:
  * quem chega sem papel definido precisa receber MENOS acesso, nunca mais.
  */
-export const userRoleSchema = z.enum(['user', 'manager', 'admin']);
+export const userRoleSchema = z.enum(['user', 'manager', 'admin', 'superadmin']);
 
 export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   user: 'Usuário',
-  manager: 'Gerente',
+  manager: 'Gestor',
   admin: 'Administrador',
+  superadmin: 'Super Admin',
 };
 
 export function userRoleLabel(role: UserRole): string {
