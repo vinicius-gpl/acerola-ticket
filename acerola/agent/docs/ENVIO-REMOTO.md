@@ -51,17 +51,23 @@ recusada* · *Bloqueada pelo TI*.
 
 ### Como a chave fica guardada
 
-Cifrada com a **DPAPI do Windows**, somando uma **entropia** feita do identificador desta
-instalação do Windows (ver `src-go/secret`). Não existe chave criptográfica guardada em lugar
-nenhum — quem guarda é o Windows, amarrada à conta que cifrou. Na prática:
+No **cofre de credenciais do sistema operacional** — Credential Manager no Windows, Keychain no
+macOS (ver `src-go/secret`) — e não mais num arquivo. O `%APPDATA%\Acerola Agent\config.json`
+guarda só o endereço do painel e o intervalo; a chave em si nunca passa por ali.
 
-- o arquivo `%APPDATA%\Acerola Agent\config.json` guarda só o texto cifrado, em `tokenCipher`;
-- copiar esse arquivo para outro computador **não** abre;
-- outro usuário do mesmo computador **não** abre;
-- e a entropia extra impede que outro programa rodando como o mesmo usuário decifre.
+O cofre é por **usuário do sistema**, amarrado à conta que salvou. Na prática:
 
-Se o arquivo vier de outra máquina, o agente diz que a chave salva não pode ser lida ali, em vez
-de ficar tentando calado.
+- copiar o `config.json` para outro computador **não** leva a chave junto — não há nada nele
+  para levar;
+- outro usuário do mesmo computador **não** enxerga o que foi salvo;
+- e a chave nunca aparece em texto puro em disco, nem cifrada por conta própria — quem guarda é
+  o sistema operacional, do mesmo jeito que ele guarda a senha de um site no navegador.
+
+**Instalação vinda de uma versão anterior a este cofre:** a primeira vez que o agente novo lê um
+`config.json` com a chave ainda cifrada à moda antiga, ele migra sozinho — decifra, grava no
+cofre, e apaga o campo do arquivo. Não é preciso reconfigurar nada à mão. Se o arquivo vier de
+outra máquina (a cifra antiga não abre), o agente diz que a chave salva não pode ser lida ali,
+em vez de ficar tentando calado.
 
 ### Para instalação em massa: variável de ambiente
 

@@ -38,6 +38,14 @@ Direção prevista:
 - Ícone monocromático (`icons/ic_launcher_monochrome.svg`, já convertido para SVG mas não usado
   hoje) é candidato natural para uma bandeja em modo "serviço rodando", separado do ícone colorido
   de "app interativo aberto".
+- **Cuidado com o token (`src-go/secret`):** o cofre do sistema (Credential Manager/Keychain) é
+  POR USUÁRIO. Hoje isso não importa porque quem grava e quem lê o token é a mesma conta logada.
+  Um serviço roda sob outra conta (geralmente `LocalSystem`) e não vai enxergar o que a pessoa
+  logada salvou — o agente subiria como serviço e pareceria "nunca configurado". Resolver isto é
+  parte do design do serviço, não um detalhe a parte: ou o serviço grava o token na conta dele
+  (reconfigurar na instalação do serviço), ou ele deixa de usar o cofre por usuário e passa a usar
+  algo no escopo da máquina (ex: DPAPI em modo `LOCAL_MACHINE`, ou o cofre do Windows para a conta
+  de serviço). Decidir os dois pontos juntos, não um depois do outro.
 
 ## Autenticação do painel web
 

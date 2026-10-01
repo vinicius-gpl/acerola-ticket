@@ -7,12 +7,43 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/secret"
 )
 
 // environmentOf devolve um leitor de ambiente feito de um mapa, para o teste
 // não depender de variáveis reais da máquina que roda a suíte.
 func environmentOf(values map[string]string) Environment {
 	return func(key string) string { return values[key] }
+}
+
+// useFakeVault troca o cofre de verdade (src-go/secret, o Credential
+// Manager/Keychain real) por um mapa em memória — sem isto, rodar
+// `go test` leria e escreveria por cima do token de verdade de uma
+// instalação já configurada nesta máquina, já que o cofre é um recurso do
+// sistema, não um arquivo isolado por teste.
+func useFakeVault(testingContext *testing.T) {
+	testingContext.Helper()
+
+	fake := map[string]string{}
+	previousSave, previousLoad := saveSecret, loadSecret
+
+	saveSecret = func(token string) error {
+		fake["token"] = token
+		return nil
+	}
+	loadSecret = func() (string, error) {
+		token, found := fake["token"]
+		if !found {
+			return "", secret.ErrNotFound
+		}
+
+		return token, nil
+	}
+
+	testingContext.Cleanup(func() {
+		saveSecret, loadSecret = previousSave, previousLoad
+	})
 }
 
 func writeConfigFile(testingContext *testing.T, content string) string {
@@ -50,6 +81,7 @@ func TestLoadFromEnvironment(testingContext *testing.T) {
 
 func TestSaveThenLoad(testingContext *testing.T) {
 	// feliz: o que a tela do agente salvou é o que ele usa para conectar
+	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 
 	if _, saveError := Save(configPath, "https://painel.exemplo.com", "do-arquivo", 60); saveError != nil {
@@ -72,6 +104,7 @@ func TestSaveThenLoad(testingContext *testing.T) {
 
 func TestEnvironmentWinsOverFile(testingContext *testing.T) {
 	// feliz: apontar a máquina para outro servidor não exige reescrever o arquivo
+	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 	if _, saveError := Save(configPath, "wss://producao.exemplo.com/agent", "do-arquivo", 0); saveError != nil {
 		testingContext.Fatalf("não consegui salvar: %v", saveError)
@@ -167,7 +200,9 @@ func TestLoadRefusesBrokenFile(testingContext *testing.T) {
 }
 
 func TestSaveKeepsTheTokenOutOfTheFile(testingContext *testing.T) {
-	// feliz: quem abrir o arquivo no disco não encontra a chave
+	// feliz: quem abrir o arquivo no disco não encontra a chave — ela foi para
+	// o cofre do sistema, não para o config.json
+	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 	const token = "chave-secreta-da-maquina"
 
@@ -183,13 +218,22 @@ func TestSaveKeepsTheTokenOutOfTheFile(testingContext *testing.T) {
 	if strings.Contains(string(content), token) {
 		testingContext.Error("a chave apareceu em texto puro no arquivo")
 	}
-	if !strings.Contains(string(content), "tokenCipher") {
-		testingContext.Error("o arquivo deveria guardar a chave cifrada")
+	if strings.Contains(string(content), "tokenCipher") {
+		testingContext.Error("o arquivo não deveria guardar chave nenhuma, nem cifrada")
+	}
+
+	loaded, loadError := loadSecret()
+	if loadError != nil {
+		testingContext.Fatalf("não consegui ler do cofre: %v", loadError)
+	}
+	if loaded != token {
+		testingContext.Errorf("esperava a chave no cofre, veio %q", loaded)
 	}
 }
 
 func TestCurrentTellsWhatIsConfiguredWithoutTheSecret(testingContext *testing.T) {
 	// feliz: a tela sabe o endereço e que existe uma chave — nunca a chave
+	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 	if _, saveError := Save(configPath, "http://localhost:3005", "chave", 45); saveError != nil {
 		testingContext.Fatalf("não consegui salvar: %v", saveError)
@@ -230,12 +274,87 @@ func TestSaveRefusesWhatWouldNeverConnect(testingContext *testing.T) {
 }
 
 func TestLoadRefusesASecretFromAnotherMachine(testingContext *testing.T) {
-	// triste: arquivo copiado de outro computador não abre — e diz isso
+	// triste: arquivo copiado de outro computador não abre — e diz isso. É o
+	// mesmo caminho da migração (TestLoadMigratesLegacyTokenToTheVault),
+	// batendo no caso em que a cifra antiga não decifra nesta máquina.
 	configPath := writeConfigFile(testingContext,
 		`{"serverUrl":"http://localhost:3005","tokenCipher":"dGV4dG8gcXVlIG7Do28gYWJyZQ=="}`)
 
 	_, loadError := Load(environmentOf(nil), configPath)
 	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
 		testingContext.Errorf("esperava erro de chave ilegível, veio %v", loadError)
+	}
+}
+
+func TestLoadMigratesLegacyTokenToTheVault(testingContext *testing.T) {
+	// feliz: máquina vinda de uma versão anterior ao cofre — o token sai do
+	// arquivo cifrado à moda antiga e vai para o cofre do sistema sozinho,
+	// na primeira partida depois da atualização, sem ninguém reconfigurar nada
+	useFakeVault(testingContext)
+
+	previousLegacyUnprotect := legacyUnprotect
+	legacyUnprotect = func(encoded string) (string, error) {
+		if encoded != "cifra-de-uma-instalacao-antiga" {
+			return "", errors.New("valor inesperado para o teste")
+		}
+
+		return "token-da-instalacao-antiga", nil
+	}
+	testingContext.Cleanup(func() { legacyUnprotect = previousLegacyUnprotect })
+
+	configPath := writeConfigFile(testingContext,
+		`{"serverUrl":"http://localhost:3005","tokenCipher":"cifra-de-uma-instalacao-antiga","intervalSeconds":60}`)
+
+	loaded, loadError := Load(environmentOf(nil), configPath)
+	if loadError != nil {
+		testingContext.Fatalf("esperava migração silenciosa, veio erro: %v", loadError)
+	}
+	if loaded.Token != "token-da-instalacao-antiga" {
+		testingContext.Errorf("token inesperado: %q", loaded.Token)
+	}
+
+	vaultToken, vaultError := loadSecret()
+	if vaultError != nil || vaultToken != "token-da-instalacao-antiga" {
+		testingContext.Errorf("esperava o token migrado no cofre, veio %q (%v)", vaultToken, vaultError)
+	}
+
+	content, readError := os.ReadFile(configPath)
+	if readError != nil {
+		testingContext.Fatalf("não consegui ler o arquivo: %v", readError)
+	}
+	if strings.Contains(string(content), "tokenCipher") {
+		testingContext.Error("o arquivo deveria ter perdido a cifra antiga depois da migração")
+	}
+}
+
+func TestLoadWhenTheVaultCannotBeRead(testingContext *testing.T) {
+	// triste: cofre indisponível (serviço do sistema fora do ar, por exemplo)
+	// não deve parecer "máquina não configurada" — é um erro diferente
+	configPath := writeConfigFile(testingContext, `{"serverUrl":"http://localhost:3005"}`)
+
+	previousLoadSecret := loadSecret
+	loadSecret = func() (string, error) { return "", errors.New("cofre indisponível") }
+	testingContext.Cleanup(func() { loadSecret = previousLoadSecret })
+
+	_, loadError := Load(environmentOf(nil), configPath)
+	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
+		testingContext.Errorf("esperava erro de cofre indisponível, veio %v", loadError)
+	}
+}
+
+func TestSaveWhenTheVaultCannotBeWritten(testingContext *testing.T) {
+	// triste: cofre indisponível na hora de salvar não grava um config.json
+	// pela metade, com endereço mas sem chave nenhuma
+	configPath := filepath.Join(testingContext.TempDir(), "config.json")
+
+	previousSaveSecret := saveSecret
+	saveSecret = func(string) error { return errors.New("cofre indisponível") }
+	testingContext.Cleanup(func() { saveSecret = previousSaveSecret })
+
+	if _, saveError := Save(configPath, "http://localhost:3005", "chave", 0); saveError == nil {
+		testingContext.Error("esperava recusa quando o cofre não grava")
+	}
+	if _, statError := os.Stat(configPath); statError == nil {
+		testingContext.Error("nada deveria ter sido gravado")
 	}
 }
