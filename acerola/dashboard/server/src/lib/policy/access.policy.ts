@@ -1,4 +1,9 @@
-import { type UserRole } from '@template/shared/schemas/user.schema';
+import {
+  roleInContext,
+  type ContextRoles,
+  type RoleContext,
+  type UserRole,
+} from '@template/shared/schemas/user.schema';
 
 /**
  * QUEM PODE O QUÊ — num lugar só.
@@ -27,9 +32,9 @@ import { type UserRole } from '@template/shared/schemas/user.schema';
  * passo separado que alguém possa pular.
  */
 
-const ROLES: UserRole[] = ['user', 'manager', 'admin'];
+const ROLES: UserRole[] = ['user', 'manager', 'admin', 'superadmin'];
 
-/** Quem está identificado enxerga o cadastro inteiro — os três papéis leem tudo. */
+/** Quem está identificado enxerga o cadastro inteiro — os quatro papéis leem tudo. */
 export function canRead(role: UserRole | null | undefined): boolean {
   if (!role) return false;
 
@@ -41,8 +46,12 @@ export function canCreate(role: UserRole | null | undefined): boolean {
   return canRead(role);
 }
 
+export function isSuperAdmin(role: UserRole | null | undefined): boolean {
+  return role === 'superadmin';
+}
+
 export function isAdmin(role: UserRole | null | undefined): boolean {
-  return role === 'admin';
+  return role === 'admin' || role === 'superadmin';
 }
 
 /**
@@ -99,4 +108,25 @@ export function canModifyRecord(
   if (canManageAnyRecord(role)) return true;
 
   return isOwnRecord(actorEmail, recordEmail);
+}
+
+/**
+ * Retorna o papel de um usuário em um contexto específico.
+ */
+export function getRoleInContext(
+  user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
+  context: RoleContext,
+): UserRole {
+  return roleInContext(user, context);
+}
+
+/**
+ * Checa se o usuário pode gerenciar qualquer registro dentro de um contexto específico.
+ * Exemplo: um gestor de 'manutencao' pode gerenciar registros de manutenção mesmo sendo 'user' em 'infra'.
+ */
+export function canManageInContext(
+  user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
+  context: RoleContext,
+): boolean {
+  return canManageAnyRecord(getRoleInContext(user, context));
 }

@@ -1,7 +1,14 @@
 import { ForbiddenException } from '@nestjs/common';
 import { type UserRole } from '@template/shared/schemas/user.schema';
 
-import { canAttendTicket, canCreate, canModifyRecord, canRead, isAdmin } from './access.policy';
+import {
+  canAttendTicket,
+  canCreate,
+  canModifyRecord,
+  canRead,
+  isAdmin,
+  isSuperAdmin,
+} from './access.policy';
 
 /**
  * A policy em forma de recusa — a ponte entre "pode?" e "então pare aqui".
@@ -38,6 +45,12 @@ export function assertIsAdmin(role: UserRole | null | undefined, what: string): 
   if (isAdmin(role)) return;
 
   throw new ForbiddenException(`${what} é uma ação de administrador.`);
+}
+
+export function assertIsSuperAdmin(role: UserRole | null | undefined, what: string): void {
+  if (isSuperAdmin(role)) return;
+
+  throw new ForbiddenException(`${what} é uma ação exclusiva de Super Administrador.`);
 }
 
 /**

@@ -48,6 +48,18 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(makeContext(manager))).toBe(true);
   });
 
+  it('allows superadmin even when @Roles() only lists admin', () => {
+    const superadmin: RequestUser = {
+      id: 'super-1',
+      email: 'super@empresa.com.br',
+      name: 'Super Admin',
+      role: 'superadmin',
+    };
+    const guard = new RolesGuard(makeReflector({ roles: ['admin'] }));
+
+    expect(guard.canActivate(makeContext(superadmin))).toBe(true);
+  });
+
   // triste
   it('refuses a non-public route without identity, with 401', () => {
     const guard = new RolesGuard(makeReflector({}));

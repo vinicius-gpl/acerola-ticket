@@ -1,7 +1,11 @@
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import { useQueryClient } from '@tanstack/svelte-query';
-import { USER_ROLE_LABELS, type SessionUser } from '@template/shared/schemas/user.schema';
+import {
+  USER_ROLE_LABELS,
+  type ContextRoles,
+  type SessionUser,
+} from '@template/shared/schemas/user.schema';
 
 import { neonAuth } from '$lib/auth/neon-auth.client';
 import { activeNavKeyOf } from '$lib/navigation/navigation';
@@ -9,10 +13,24 @@ import { activeNavKeyOf } from '$lib/navigation/navigation';
 export type AppShellModel = {
   data: {
     badges: Partial<Record<string, number>>;
-    user: { name: string; email: string; role: string };
+    user: {
+      name: string;
+      email: string;
+      role: string;
+      roles?: ContextRoles;
+    };
   };
-  state: { activeKey: string | undefined; routeKey: string };
-  actions: { onLogout: () => void };
+  state: {
+    activeKey: string | undefined;
+    routeKey: string;
+    isProfileOpen: boolean;
+  };
+  actions: {
+    onLogout: () => void;
+    onOpenProfile: () => void;
+    onCloseProfile: () => void;
+    onViewRoles: () => void;
+  };
 };
 
 /**
@@ -30,6 +48,7 @@ export type AppShellModel = {
  */
 export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
   const queryClient = useQueryClient();
+  let isProfileOpen = $state(false);
 
   return {
     data: {
@@ -38,6 +57,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         name: input.user.name,
         email: input.user.email,
         role: USER_ROLE_LABELS[input.user.role],
+        roles: input.user.roles,
       },
     },
     /* Qual item está ativo é decidido AQUI, e não no componente: resolver a rota atual é
@@ -46,9 +66,22 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
        `get` e não valor: o model é montado uma vez, mas `page` muda a cada navegação. Com um
        valor fixo, o item aceso congelaria no primeiro que a pessoa abrisse. */
     get state() {
-      return { activeKey: activeNavKeyOf(page.url.pathname), routeKey: page.url.pathname };
+      return {
+        activeKey: activeNavKeyOf(page.url.pathname),
+        routeKey: page.url.pathname,
+        isProfileOpen,
+      };
     },
     actions: {
+      onOpenProfile: () => {
+        void goto('/profile');
+      },
+      onCloseProfile: () => {
+        isProfileOpen = false;
+      },
+      onViewRoles: () => {
+        void goto('/profile');
+      },
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
          estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não
          pode falhar — sem ele, os dados da pessoa anterior continuariam na tela do próximo
