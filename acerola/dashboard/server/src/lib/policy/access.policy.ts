@@ -1,4 +1,9 @@
-import { type UserRole } from '@template/shared/schemas/user.schema';
+import {
+  roleInContext,
+  type ContextRoles,
+  type RoleContext,
+  type UserRole,
+} from '@template/shared/schemas/user.schema';
 
 /**
  * QUEM PODE O QUÊ — num lugar só.
@@ -99,4 +104,25 @@ export function canModifyRecord(
   if (canManageAnyRecord(role)) return true;
 
   return isOwnRecord(actorEmail, recordEmail);
+}
+
+/**
+ * Retorna o papel de um usuário em um contexto específico.
+ */
+export function getRoleInContext(
+  user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
+  context: RoleContext,
+): UserRole {
+  return roleInContext(user, context);
+}
+
+/**
+ * Checa se o usuário pode gerenciar qualquer registro dentro de um contexto específico.
+ * Exemplo: um gestor de 'manutencao' pode gerenciar registros de manutenção mesmo sendo 'user' em 'infra'.
+ */
+export function canManageInContext(
+  user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
+  context: RoleContext,
+): boolean {
+  return canManageAnyRecord(getRoleInContext(user, context));
 }

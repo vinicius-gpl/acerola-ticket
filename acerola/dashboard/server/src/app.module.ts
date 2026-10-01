@@ -19,6 +19,7 @@ import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { NetworkModule } from './modules/network/network.module';
 import { PartsModule } from './modules/parts/parts.module';
+import { RolesModule } from './modules/roles/roles.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
@@ -67,6 +68,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     InsightsModule,
     BudgetModule,
     TransfersModule,
+    RolesModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })
