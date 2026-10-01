@@ -95,6 +95,7 @@
   import Search from '@lucide/svelte/icons/search';
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import User from '@lucide/svelte/icons/user';
+  import { staggerIn } from '$lib/motion/motion';
 
   let { data, state: formState, actions }: RoleFormDialogProps = $props();
 
@@ -104,6 +105,16 @@
 
   let userSearch = $state('');
   let isComboboxOpen = $state(false);
+  let listboxEl = $state<HTMLElement | null>(null);
+
+  $effect(() => {
+    if (isComboboxOpen && listboxEl) {
+      const items = listboxEl.querySelectorAll('[role="option"]');
+      if (items.length > 0) {
+        staggerIn(items);
+      }
+    }
+  });
 
   const selectedUser = $derived(
     users.find(
@@ -268,7 +279,13 @@
                               {USER_ROLE_LABELS[selectedUser.role as UserRole] ?? selectedUser.role}
                             </span>
                           {/if}
-                          <ChevronDown class="size-4 text-muted-foreground" aria-hidden="true" />
+                          <ChevronDown
+                            class={cn(
+                              'size-4 text-muted-foreground transition-transform duration-200',
+                              isComboboxOpen && 'rotate-180 text-primary',
+                            )}
+                            aria-hidden="true"
+                          />
                         </div>
                       {:else}
                         <div class="flex items-center gap-2 truncate">
@@ -279,7 +296,13 @@
                               : 'Selecione uma pessoa da lista…'}
                           </span>
                         </div>
-                        <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <ChevronDown
+                          class={cn(
+                            'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                            isComboboxOpen && 'rotate-180 text-primary',
+                          )}
+                          aria-hidden="true"
+                        />
                       {/if}
                     </PopoverTrigger>
 
@@ -316,7 +339,8 @@
                       </div>
 
                       <div
-                        class="max-h-60 overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1"
+                        bind:this={listboxEl}
+                        class="max-h-60 overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1 w-full"
                         role="listbox"
                         aria-label="Lista de colaboradores"
                       >
