@@ -70,7 +70,7 @@ describe('RoleFormDialog', () => {
     expect(screen.getByText('Falha de comunicação com o servidor')).toBeInTheDocument();
   });
 
-  it('lists directory users and allows picking a user', async () => {
+  it('lists directory users and allows picking a user via combobox', async () => {
     const mockUsers = [
       {
         id: 'usr_carlos',
@@ -84,12 +84,36 @@ describe('RoleFormDialog', () => {
       data: { mode: 'create', users: mockUsers, fields },
     });
 
+    // Clica no combobox para abrir as opções
+    await userEvent.click(screen.getByRole('button', { name: /Selecionar pessoa da lista/i }));
+
     expect(screen.getByText('Carlos Oliveira')).toBeInTheDocument();
     expect(screen.getByText('carlos@empresa.com.br')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('option', { name: /Carlos Oliveira/i }));
+    await userEvent.click(screen.getByText('Carlos Oliveira'));
     expect(actions.onChange).toHaveBeenCalledWith('userId', 'usr_carlos');
     expect(actions.onChange).toHaveBeenCalledWith('userEmail', 'carlos@empresa.com.br');
+  });
+
+  it('filters users by search query inside combobox', async () => {
+    const mockUsers = [
+      { id: 'usr_carlos', name: 'Carlos Oliveira', email: 'carlos@empresa.com.br' },
+      { id: 'usr_mariana', name: 'Mariana Silva', email: 'mariana@empresa.com.br' },
+    ];
+
+    renderDialog({
+      data: { mode: 'create', users: mockUsers, fields },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Selecionar pessoa da lista/i }));
+    expect(screen.getByText('Carlos Oliveira')).toBeInTheDocument();
+    expect(screen.getByText('Mariana Silva')).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText(/Buscar colaborador por nome/i);
+    await userEvent.type(searchInput, 'Mariana');
+
+    expect(screen.queryByText('Carlos Oliveira')).not.toBeInTheDocument();
+    expect(screen.getByText('Mariana Silva')).toBeInTheDocument();
   });
 
   it('renders selected user card and allows changing person', async () => {

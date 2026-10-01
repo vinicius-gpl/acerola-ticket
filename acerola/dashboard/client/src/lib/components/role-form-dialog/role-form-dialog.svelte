@@ -71,7 +71,6 @@
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
-  import TextField from '$lib/components/text-field/text-field.svelte';
   import Timeline from '$lib/components/timeline/timeline.svelte';
   import TimelineStep from '$lib/components/timeline-step/timeline-step.svelte';
   import {
@@ -82,11 +81,18 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+  } from '$lib/components/ui/popover';
   import { cn } from '$lib/utils/cn';
 
   import Check from '@lucide/svelte/icons/check';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Info from '@lucide/svelte/icons/info';
   import Layers from '@lucide/svelte/icons/layers';
+  import Search from '@lucide/svelte/icons/search';
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import User from '@lucide/svelte/icons/user';
 
@@ -97,6 +103,7 @@
   const users = $derived(data.users ?? []);
 
   let userSearch = $state('');
+  let isComboboxOpen = $state(false);
 
   const selectedUser = $derived(
     users.find(
@@ -180,7 +187,7 @@
           }}
           ui={{ tone: 'brand' }}
         >
-          {#if isEdit || fields.userId.value}
+          {#if isEdit}
             <div
               class="flex items-center justify-between gap-3 rounded-surface border border-border/80 bg-muted/20 p-3.5"
             >
@@ -196,9 +203,9 @@
                       {selectedUser?.name || fields.userEmail.value || fields.userId.value}
                     </span>
                     <span
-                      class="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20"
+                      class="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
                     >
-                      {isEdit ? 'Pessoa existente' : 'Selecionada'}
+                      Pessoa existente
                     </span>
                   </div>
                   {#if fields.userEmail.value}
@@ -211,79 +218,176 @@
                   </span>
                 </div>
               </div>
-
-              {#if !isEdit}
-                <ActionButton
-                  data={{ label: 'Trocar pessoa' }}
-                  ui={{ variant: 'ghost', size: 'sm' }}
-                  actions={{ onClick: handleClear }}
-                />
-              {/if}
             </div>
           {:else}
-            <div class="flex flex-col gap-2.5">
-              <TextField
-                data={{
-                  label: 'Buscar pessoa na lista',
-                  name: 'userSearch',
-                  value: userSearch,
-                  placeholder: 'Digite o nome ou e-mail da pessoa…',
-                }}
-                actions={{ onChange: (val) => (userSearch = val) }}
-              />
-
-              {#if formState.isLoadingUsers}
-                <p class="py-4 text-center text-xs text-muted-foreground">
-                  Carregando lista de pessoas…
-                </p>
-              {:else if filteredUsers.length === 0}
-                <div class="rounded-surface border border-dashed border-border/80 p-4 text-center">
-                  <p class="text-xs text-muted-foreground">
-                    {userSearch.trim()
-                      ? 'Nenhuma pessoa encontrada com esse termo.'
-                      : 'Nenhuma pessoa disponível no diretório.'}
-                  </p>
-                </div>
-              {:else}
-                <div
-                  class="max-h-48 overflow-y-auto space-y-1 rounded-surface border border-border/70 bg-card p-1.5"
-                  role="listbox"
-                  aria-label="Lista de colaboradores"
-                >
-                  {#each filteredUsers as user (user.id)}
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={fields.userId.value === user.id}
-                      onclick={() => handleSelect(user)}
-                      class="flex w-full items-center justify-between gap-3 rounded-control p-2 text-left hover:bg-muted/60 transition-colors"
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 min-w-0">
+                  <Popover bind:open={isComboboxOpen}>
+                    <PopoverTrigger
+                      disabled={formState.isLoadingUsers}
+                      class={cn(
+                        'flex w-full cursor-pointer items-center justify-between gap-3 rounded-control border border-border/70 bg-card text-left transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+                        fields.userId.value ? 'p-2.5' : 'control-lg px-3 text-muted-foreground',
+                      )}
+                      aria-label={fields.userId.value ? 'Alterar pessoa selecionada' : 'Selecionar pessoa da lista'}
                     >
-                      <div class="flex items-center gap-2.5 min-w-0">
-                        <PersonAvatar
-                          name={user.name}
-                          avatarUrl={user.image}
-                          ui={{ size: 'md' }}
-                        />
-                        <div class="min-w-0">
-                          <span class="block text-xs font-semibold text-foreground truncate">
-                            {user.name}
-                          </span>
-                          <span class="block text-[11px] text-muted-foreground truncate">
-                            {user.email}
+                      {#if selectedUser || fields.userId.value}
+                        <div class="flex items-center gap-2.5 min-w-0">
+                          <PersonAvatar
+                            name={selectedUser?.name || fields.userEmail.value || fields.userId.value}
+                            avatarUrl={selectedUser?.image}
+                            ui={{ size: 'md' }}
+                          />
+                          <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="block text-xs font-semibold text-foreground truncate">
+                                {selectedUser?.name || fields.userEmail.value || fields.userId.value}
+                              </span>
+                              <span
+                                class="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0"
+                              >
+                                Selecionada
+                              </span>
+                            </div>
+                            {#if fields.userEmail.value}
+                              <span class="block text-[11px] text-muted-foreground truncate">
+                                {fields.userEmail.value}
+                              </span>
+                            {/if}
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                          {#if selectedUser?.role}
+                            <span
+                              class="hidden sm:inline-block text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
+                            >
+                              {USER_ROLE_LABELS[selectedUser.role as UserRole] ?? selectedUser.role}
+                            </span>
+                          {/if}
+                          <ChevronDown class="size-4 text-muted-foreground" aria-hidden="true" />
+                        </div>
+                      {:else}
+                        <div class="flex items-center gap-2 truncate">
+                          <User class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <span class="text-xs">
+                            {formState.isLoadingUsers
+                              ? 'Carregando lista de pessoas…'
+                              : 'Selecione uma pessoa da lista…'}
                           </span>
                         </div>
-                      </div>
-                      {#if user.role}
-                        <span
-                          class="shrink-0 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
-                        >
-                          {USER_ROLE_LABELS[user.role as UserRole] ?? user.role}
-                        </span>
+                        <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                       {/if}
-                    </button>
-                  {/each}
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      portalProps={{ disabled: true }}
+                      class="min-w-(--bits-popover-anchor-width) w-(--bits-popover-anchor-width) max-w-[min(36rem,calc(100vw-2rem))] p-0"
+                      align="start"
+                    >
+                      <div class="relative border-b border-border/70 p-2">
+                        <Search
+                          class="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                        <input
+                          type="search"
+                          name="directory_user_search_filter"
+                          bind:value={userSearch}
+                          placeholder="Buscar colaborador por nome ou e-mail…"
+                          autocomplete="off"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck={false}
+                          data-bwignore="true"
+                          data-1p-ignore="true"
+                          data-lpignore="true"
+                          data-form-type="other"
+                          class="control-sm rounded-control w-full border border-border/60 bg-muted/30 pr-2 pl-7 text-xs text-foreground outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <div
+                        class="max-h-60 overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1"
+                        role="listbox"
+                        aria-label="Lista de colaboradores"
+                      >
+                        {#if formState.isLoadingUsers}
+                          <p class="py-4 text-center text-xs text-muted-foreground">
+                            Carregando lista de pessoas…
+                          </p>
+                        {:else if filteredUsers.length === 0}
+                          <div class="p-4 text-center">
+                            <p class="text-xs text-muted-foreground">
+                              {userSearch.trim()
+                                ? 'Nenhuma pessoa encontrada com esse termo.'
+                                : 'Nenhuma pessoa disponível no diretório.'}
+                            </p>
+                          </div>
+                        {:else}
+                          {#each filteredUsers as user (user.id)}
+                            {@const isSelected = fields.userId.value === user.id}
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={isSelected}
+                              onclick={() => {
+                                handleSelect(user);
+                                isComboboxOpen = false;
+                              }}
+                              class={cn(
+                                'flex w-full cursor-pointer items-center justify-between gap-3 rounded-control p-2 text-left transition-colors',
+                                isSelected ? 'bg-primary/10' : 'hover:bg-muted/60',
+                              )}
+                            >
+                              <div class="flex items-center gap-2.5 min-w-0">
+                                <PersonAvatar
+                                  name={user.name}
+                                  avatarUrl={user.image}
+                                  ui={{ size: 'md' }}
+                                />
+                                <div class="min-w-0">
+                                  <div class="flex items-center gap-1.5">
+                                    <span
+                                      class={cn(
+                                        'block text-xs font-semibold truncate',
+                                        isSelected ? 'text-primary' : 'text-foreground',
+                                      )}
+                                    >
+                                      {user.name}
+                                    </span>
+                                    {#if isSelected}
+                                      <Check class="size-3 text-primary shrink-0" aria-hidden="true" />
+                                    {/if}
+                                  </div>
+                                  <span class="block text-[11px] text-muted-foreground truncate">
+                                    {user.email}
+                                  </span>
+                                </div>
+                              </div>
+                              {#if user.role}
+                                <span
+                                  class="shrink-0 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
+                                >
+                                  {USER_ROLE_LABELS[user.role as UserRole] ?? user.role}
+                                </span>
+                              {/if}
+                            </button>
+                          {/each}
+                        {/if}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-              {/if}
+
+                {#if fields.userId.value}
+                  <ActionButton
+                    data={{ label: 'Trocar pessoa' }}
+                    ui={{ variant: 'ghost', size: 'sm' }}
+                    actions={{ onClick: handleClear }}
+                  />
+                {/if}
+              </div>
 
               {#if fields.userId.error}
                 <p class="text-xs text-destructive">{fields.userId.error}</p>
