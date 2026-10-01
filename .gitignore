@@ -22,6 +22,10 @@ test-results/
 .env.*
 !.env.example
 
+# Valor falso só para o Vitest carregar em `import.meta.env` — sem ele, o CI (que nunca tem
+# um `.env` de verdade) não consegue nem carregar a tela de login para testar o resto.
+!acerola/dashboard/client/.env.test
+
 # O banco SQLite local. O que é versionado são as migrations e os seeds, não os dados.
 *.db
 *.db-wal
