@@ -220,15 +220,18 @@
               </div>
             </div>
           {:else}
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center gap-2">
-                <div class="flex-1 min-w-0">
+            <div class="flex flex-col gap-2 w-full">
+              <div class="flex items-center gap-2 w-full">
+                <div class="flex-1 min-w-0 relative w-full">
                   <Popover bind:open={isComboboxOpen}>
                     <PopoverTrigger
                       disabled={formState.isLoadingUsers}
+                      style="width: 100%;"
                       class={cn(
-                        'flex w-full cursor-pointer items-center justify-between gap-3 rounded-control border border-border/70 bg-card text-left transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
-                        fields.userId.value ? 'p-2.5' : 'control-lg px-3 text-muted-foreground',
+                        'control-lg rounded-control',
+                        'flex w-full cursor-pointer items-center justify-between gap-3 border border-border/70 bg-card text-left transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+                        'w-full',
+                        fields.userId.value ? 'p-2.5 min-h-10 h-auto' : 'px-3 text-muted-foreground',
                       )}
                       aria-label={fields.userId.value ? 'Alterar pessoa selecionada' : 'Selecionar pessoa da lista'}
                     >
@@ -280,14 +283,18 @@
                       {/if}
                     </PopoverTrigger>
 
+                    <!-- A LARGURA DO BALÃO É AMARRADA À DO GATILHO, entre um piso e um teto.
+                         --bits-popover-anchor-width é a largura do campo de entrada medido pelo
+                         componente: o combobox mantém largura igual à do input. -->
                     <PopoverContent
-                      portalProps={{ disabled: true }}
-                      class="min-w-(--bits-popover-anchor-width) w-(--bits-popover-anchor-width) max-w-[min(36rem,calc(100vw-2rem))] p-0"
+                      matchAnchorWidth
+                      class="min-w-(--bits-popover-anchor-width) max-w-(--bits-popover-anchor-width) w-(--bits-popover-anchor-width) p-0"
                       align="start"
+                      sideOffset={4}
                     >
-                      <div class="relative border-b border-border/70 p-2">
+                      <div class="relative border-b border-border/70 p-2 sm:p-2.5 w-full">
                         <Search
-                          class="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground"
+                          class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
                           aria-hidden="true"
                         />
                         <input
@@ -303,7 +310,8 @@
                           data-1p-ignore="true"
                           data-lpignore="true"
                           data-form-type="other"
-                          class="control-sm rounded-control w-full border border-border/60 bg-muted/30 pr-2 pl-7 text-xs text-foreground outline-none focus:border-primary"
+                          class="control-lg rounded-control w-full border border-border/60 bg-muted/30 pr-3 pl-9.5 text-xs text-foreground outline-none focus:border-primary"
+                          style="width: 100%;"
                         />
                       </div>
 
