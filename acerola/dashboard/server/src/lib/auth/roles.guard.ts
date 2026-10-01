@@ -37,6 +37,7 @@ export class RolesGuard implements CanActivate {
 
     const required = this.readMetadata<UserRole[]>(REQUIRED_ROLES, context);
     if (!required?.length) return true;
+    if (user.role === 'superadmin') return true;
     if (required.includes(user.role)) return true;
 
     /* A mensagem diz qual perfil resolve. "Sem permissão" sozinho gera chamado; dizer o

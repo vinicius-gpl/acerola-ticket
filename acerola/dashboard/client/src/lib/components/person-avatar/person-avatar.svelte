@@ -7,18 +7,21 @@
      * pessoa de verdade: quem usa `PersonAvatar` não muda, só passa a receber `avatarUrl`.
      */
     avatarUrl?: string | null;
-    ui?: { size?: 'sm' | 'md'; className?: string };
+    ui?: { size?: 'sm' | 'md' | 'lg' | 'xl'; className?: string };
   };
 
   const SIZE_CLASS = {
     sm: 'size-6 text-[10px]',
     md: 'size-8 text-xs',
+    lg: 'size-12 text-sm',
+    xl: 'size-16 text-lg',
   } as const;
 
   /** Duas iniciais bastam; nome comprido no avatar vira borrão ilegível. */
   function initialsOf(name: string): string {
     return name
       .split(' ')
+      .filter(Boolean)
       .map((part) => part[0] ?? '')
       .slice(0, 2)
       .join('')
@@ -35,13 +38,13 @@
   const size = $derived(ui?.size ?? 'sm');
 </script>
 
-<Avatar class={cn(SIZE_CLASS[size], ui?.className)}>
+<Avatar class={cn('relative flex shrink-0 overflow-hidden rounded-full aspect-square', SIZE_CLASS[size], ui?.className)}>
   {#if avatarUrl}
-    <AvatarImage src={avatarUrl} alt="" />
+    <AvatarImage src={avatarUrl} alt={name} class="aspect-square size-full object-cover rounded-full" />
   {/if}
   <AvatarFallback
     class={cn(
-      'bg-gradient-to-br from-emerald-400 to-blue-500 font-bold text-white',
+      'flex size-full items-center justify-center rounded-full aspect-square bg-gradient-to-br from-emerald-500 to-blue-600 font-bold text-white select-none',
       SIZE_CLASS[size]
     )}
   >
