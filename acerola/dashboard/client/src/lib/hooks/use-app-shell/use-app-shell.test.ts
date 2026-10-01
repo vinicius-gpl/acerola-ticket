@@ -32,13 +32,26 @@ beforeEach(() => {
 describe('useAppShellModel', () => {
   // feliz
   it('translates the session user into what the shell shows', () => {
-    const model = mountModel({ name: 'Ana Souza', email: 'ana@empresa.com.br', role: 'manager' });
+    const model = mountModel({
+      name: 'Ana Souza',
+      email: 'ana@empresa.com.br',
+      role: 'manager',
+      roles: { sistema: 'admin', infra: 'user', manutencao: 'manager' },
+    });
 
     expect(model.data.user).toEqual({
       name: 'Ana Souza',
       email: 'ana@empresa.com.br',
-      role: 'Gerente',
+      role: 'Gestor',
+      roles: { sistema: 'admin', infra: 'user', manutencao: 'manager' },
     });
+  });
+
+  it('navigates to /profile on onOpenProfile', async () => {
+    const model = mountModel();
+
+    model.actions.onOpenProfile();
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/profile'));
   });
 
   it('logs out at Neon Auth and navigates to /login', async () => {

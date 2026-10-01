@@ -1,32 +1,35 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   DEFAULT_USER_ROLE,
+  roleContextSchema,
   sessionUserSchema,
   userRoleSchema,
+  type ContextRoles,
   type SessionUser,
 } from '@template/shared/schemas/user.schema';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 
-import { runMaybe } from '../db/db-error.util';
+import { runMaybe, runQuery } from '../db/db-error.util';
 import { DB } from '../db/db.token';
 import { type Database } from '../db/db.type';
 import { neonAuthUsers, type NeonAuthUserRow } from '../db/neon-auth-user.table';
+import { internalRoles, type InternalRoleRow } from '../db/schema/internal-roles.schema';
 import { NEON_TOKEN_VERIFIER } from './neon-token.token';
 import { type NeonTokenVerifier } from './neon-token.util';
 
 /**
  * DE ONDE A IDENTIDADE VEM — e só daqui.
  *
- * Duas etapas, nesta ordem, e nenhuma delas é dispensável:
+ * Duas etapas, nesta ordem:
  *
- *  1. **O token prova quem é.** Assinado pela Neon, conferido contra a chave pública dela.
- *  2. **O banco diz o que a pessoa é hoje.** Nome, e-mail, papel e banimento saem de
- *     `neon_auth.user`, nunca do token.
+ *  1. **O token prova quem é.** Assinado pela autenticação externa, conferido contra a chave pública.
+ *  2. **O banco diz o que a pessoa é hoje.** Nome, e-mail e banimento saem do provedor
+ *     (hoje `neon_auth.user`, amanhã auth-forward), e os CARGOS INTERNOS saem da tabela
+ *     `internal_roles` deste sistema.
  *
- * A ordem existe por causa do prazo: o token vale 15 minutos. Tirar o papel dele faria uma
- * pessoa rebaixada continuar administradora até o token vencer — e, pior, faria alguém
- * banido continuar entrando. Lendo do banco, a troca no painel da Neon vale na requisição
- * seguinte.
+ * Desacoplamento de identidade e cargo:
+ *  - Identidade: externa (quem é).
+ *  - Cargo: interno a este sistema, separado por contexto ('infra', 'sistema', 'manutencao').
  */
 @Injectable()
 export class IdentityProvider {
@@ -53,7 +56,21 @@ export class IdentityProvider {
     if (!row) return null;
     if (isBanned(row)) return null;
 
-    return toSessionUser(row, claims.email);
+    const email = row.email || claims.email;
+
+    const conditions = [eq(internalRoles.userId, claims.userId)];
+    if (email) {
+      conditions.push(eq(internalRoles.userEmail, email));
+      conditions.push(eq(internalRoles.userId, email));
+    }
+    const whereClause = conditions.length === 1 ? conditions[0] : or(...conditions);
+
+    const roleRows = await runQuery(
+      this.db.select().from(internalRoles).where(whereClause),
+      'consultar cargos internos da pessoa',
+    );
+
+    return toSessionUser(row, email, roleRows);
   }
 }
 
@@ -69,20 +86,72 @@ function isBanned(row: NeonAuthUserRow): boolean {
 }
 
 /**
- * A linha do cadastro vira identidade.
+ * A linha do cadastro combinada com os cargos internos vira identidade completa.
  *
- * O papel passa pelo schema: valor que não é um dos três do sistema (vazio numa conta nova,
- * ou um papel escrito à mão no painel) vira `user`, o mais restrito. Adivinhar para cima
- * seria dar acesso que ninguém concedeu.
+ * Se não houver registro na tabela de cargos internos:
+ *  1. Verifica se a conta já possuía papel legado em `neon_auth.user` (migração suave);
+ *  2. Caso contrário, cai em `user` (mais restrito) para todos os contextos.
  */
-function toSessionUser(row: NeonAuthUserRow, emailFromToken: string | null): SessionUser | null {
-  const role = userRoleSchema.safeParse(row.role);
+function resolveContextRoles(
+  row: NeonAuthUserRow,
+  roleRows: InternalRoleRow[],
+  isSuper: boolean,
+  parsedNeonRole: ReturnType<typeof userRoleSchema.safeParse>,
+): ContextRoles {
+  if (roleRows.length === 0 && row.role) {
+    if (isSuper) {
+      return { infra: 'admin', sistema: 'admin', manutencao: 'admin' };
+    }
+    if (parsedNeonRole.success) {
+      return {
+        infra: DEFAULT_USER_ROLE,
+        sistema: parsedNeonRole.data,
+        manutencao: DEFAULT_USER_ROLE,
+      };
+    }
+  }
+
+  const contextRoles: ContextRoles = {
+    infra: DEFAULT_USER_ROLE,
+    sistema: DEFAULT_USER_ROLE,
+    manutencao: DEFAULT_USER_ROLE,
+  };
+
+  for (const r of roleRows) {
+    const parsedRole = userRoleSchema.safeParse(r.role);
+    const parsedContext = roleContextSchema.safeParse(r.context);
+    if (parsedRole.success && parsedContext.success) {
+      contextRoles[parsedContext.data] = parsedRole.data;
+    }
+  }
+
+  return contextRoles;
+}
+
+/**
+ * A linha do cadastro combinada com os cargos internos vira identidade completa.
+ *
+ * Se não houver registro na tabela de cargos internos:
+ *  1. Verifica se a conta já possuía papel legado em `neon_auth.user` (migração suave);
+ *  2. Caso contrário, cai em `user` (mais restrito) para todos os contextos.
+ */
+function toSessionUser(
+  row: NeonAuthUserRow,
+  email: string | null,
+  roleRows: InternalRoleRow[],
+): SessionUser | null {
+  const parsedNeonRole = userRoleSchema.safeParse(row.role);
+  const isSuper = parsedNeonRole.success && parsedNeonRole.data === 'superadmin';
+  const contextRoles = resolveContextRoles(row, roleRows, isSuper, parsedNeonRole);
+  const primaryRole = isSuper ? 'superadmin' : (contextRoles.sistema ?? DEFAULT_USER_ROLE);
 
   const parsed = sessionUserSchema.safeParse({
     id: row.id,
-    email: row.email || emailFromToken,
+    email,
     name: row.name,
-    role: role.success ? role.data : DEFAULT_USER_ROLE,
+    image: row.image,
+    role: primaryRole,
+    roles: contextRoles,
   });
 
   return parsed.success ? parsed.data : null;
