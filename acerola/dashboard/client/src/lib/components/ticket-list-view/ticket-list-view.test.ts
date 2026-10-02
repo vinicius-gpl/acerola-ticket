@@ -204,9 +204,9 @@ describe('TicketListView', () => {
 
     expect(mobileCards).toBeInTheDocument();
     expect(desktopTable).toBeInTheDocument();
-    expect(mobileCards?.classList.contains('md:hidden')).toBe(true);
+    expect(mobileCards?.classList.contains('xl:hidden')).toBe(true);
     expect(desktopTable?.classList.contains('hidden')).toBe(true);
-    expect(desktopTable?.classList.contains('md:block')).toBe(true);
+    expect(desktopTable?.classList.contains('xl:block')).toBe(true);
   });
 
   it('renders pagination bar and notifies page changes', async () => {

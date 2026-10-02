@@ -218,8 +218,8 @@
       />
     </EmptyState>
   {:else}
-    <!-- Lista de cartões para mobile (< md) -->
-    <div class="flex flex-col gap-3 md:hidden" data-slot="part-cards-mobile">
+    <!-- Lista de cartões para mobile (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="part-cards-mobile">
       {#each data.parts as part (part.id)}
         <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
@@ -280,8 +280,8 @@
       </div>
     </div>
 
-    <!-- Tabela para desktop (>= md) -->
-    <div class="hidden md:block overflow-x-auto" data-slot="part-table-desktop">
+    <!-- Tabela para desktop (>= xl) -->
+    <div class="hidden xl:block overflow-x-auto" data-slot="part-table-desktop">
       <Table class="min-w-[760px]">
         <TableHeader>
           <TableRow>

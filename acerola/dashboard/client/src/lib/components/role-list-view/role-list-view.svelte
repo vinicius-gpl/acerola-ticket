@@ -298,8 +298,8 @@
       />
     </EmptyState>
   {:else}
-    <!-- 1. Visualização em Cards para Dispositivos Móveis (< md) -->
-    <div class="flex flex-col gap-3 md:hidden" data-slot="role-cards-mobile">
+    <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="role-cards-mobile">
       {#each data.roles as item (item.id)}
         {@const user = resolveUser(item)}
         {@const displayName = user?.name || item.userEmail || item.userId}
@@ -384,9 +384,9 @@
       {/each}
     </div>
 
-    <!-- 2. Visualização em Tabela para Desktop (>= md) -->
+    <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
     <div
-      class="hidden md:block overflow-x-auto rounded-box border border-border bg-card shadow-xs"
+      class="hidden xl:block overflow-x-auto rounded-box border border-border bg-card shadow-xs"
       data-slot="role-table-desktop"
     >
       <Table class="min-w-[760px]">
