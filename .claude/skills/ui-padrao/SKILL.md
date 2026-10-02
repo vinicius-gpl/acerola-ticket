@@ -108,3 +108,13 @@ Tudo precisa funcionar em 400px de largura: filtros empilham (`flex-col sm:flex-
 `PageHeader` descem, grade de `StatCard` vira uma coluna, e tabelas de listas alternam de linhas
 horizontais para cartões empilhados (`md:hidden`).
 
+**Nada rola para o lado, nunca.** Duas regras que sustentam isso:
+
+- **Pastilha de escolha quebra linha, não vira tira rolante.** Grupo de opções (situação,
+  urgência, categoria) usa `flex-wrap`; nunca `overflow-x-auto`. Esconder a última opção atrás
+  de um arrastão lateral é esconder uma escolha — vale para a barra de filtro e para o
+  formulário dentro do diálogo.
+- **Quem rola é a caixa da tabela, não a página.** A área de conteúdo precisa de `min-w-0`
+  (está no `SidebarInset` do `app-shell`) para encolher abaixo da largura natural da tabela.
+  Sem isso o `overflow-x-auto` da tabela não serve para nada e a página inteira arrasta.
+
