@@ -351,8 +351,8 @@
       />
     </EmptyState>
   {:else}
-    <!-- 1. Visualização em Cards para Dispositivos Móveis (< md) -->
-    <div class="flex flex-col gap-3 md:hidden" data-slot="ticket-cards-mobile">
+    <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="ticket-cards-mobile">
       {#each data.tickets as ticket (ticket.id)}
         <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
           <div class="flex items-center justify-between gap-2">
@@ -405,8 +405,8 @@
       {/each}
     </div>
 
-    <!-- 2. Visualização em Tabela para Desktop (>= md) -->
-    <div class="hidden md:block" data-slot="ticket-table-desktop">
+    <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
+    <div class="hidden xl:block" data-slot="ticket-table-desktop">
       <Table class="min-w-[880px]">
         <TableHeader>
           <TableRow>

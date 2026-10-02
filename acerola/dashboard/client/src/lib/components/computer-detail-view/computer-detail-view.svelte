@@ -559,8 +559,8 @@
         ela volta ao normal.
       </p>
     {:else}
-      <!-- Lista de cartões para mobile (< md) -->
-      <div class="flex flex-col gap-3 md:hidden" data-slot="alert-cards-mobile">
+      <!-- Lista de cartões para mobile (< xl) -->
+      <div class="flex flex-col gap-3 xl:hidden" data-slot="alert-cards-mobile">
         {#each data.alerts as alert (alert.id)}
           <div class="border-border/70 bg-card rounded-lg border p-3 shadow-xs">
             <div class="flex items-start justify-between gap-2">
@@ -600,8 +600,8 @@
         {/each}
       </div>
 
-      <!-- Tabela para desktop (>= md) -->
-      <div class="hidden md:block overflow-x-auto" data-slot="alert-table-desktop">
+      <!-- Tabela para desktop (>= xl) -->
+      <div class="hidden xl:block overflow-x-auto" data-slot="alert-table-desktop">
         <Table class="min-w-[620px]">
           <TableHeader>
             <TableRow>

@@ -129,9 +129,9 @@
         Esta peça ainda não teve entrada nem saída registrada.
       </p>
     {:else}
-      <!-- 1. Visualização Mobile (< sm) -->
+      <!-- 1. Visualização Mobile (< xl) -->
       <div
-        class="flex flex-col gap-2.5 sm:hidden max-h-[60vh] overflow-y-auto pr-1"
+        class="flex flex-col gap-2.5 xl:hidden max-h-[60vh] overflow-y-auto pr-1"
         data-slot="part-ledger-cards-mobile"
       >
         {#each data.movements as movement (movement.id)}
@@ -179,9 +179,9 @@
         {/each}
       </div>
 
-      <!-- 2. Visualização Desktop (>= sm) -->
+      <!-- 2. Visualização Desktop (>= xl) -->
       <div
-        class="hidden sm:block overflow-x-auto rounded-box border border-border"
+        class="hidden xl:block overflow-x-auto rounded-box border border-border"
         data-slot="part-ledger-table-desktop"
       >
         <Table class="min-w-[620px]">

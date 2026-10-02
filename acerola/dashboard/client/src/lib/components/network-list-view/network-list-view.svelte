@@ -237,8 +237,8 @@
       />
     </EmptyState>
   {:else}
-    <!-- Lista de cartões para mobile (< md) -->
-    <div class="flex flex-col gap-3 md:hidden" data-slot="network-cards-mobile">
+    <!-- Lista de cartões para mobile (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="network-cards-mobile">
       {#each data.events as event (event.id)}
         <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
@@ -302,8 +302,8 @@
       </div>
     </div>
 
-    <!-- Tabela para desktop (>= md) -->
-    <div class="hidden md:block overflow-x-auto" data-slot="network-table-desktop">
+    <!-- Tabela para desktop (>= xl) -->
+    <div class="hidden xl:block overflow-x-auto" data-slot="network-table-desktop">
       <Table class="min-w-[820px]">
         <TableHeader>
           <TableRow>
