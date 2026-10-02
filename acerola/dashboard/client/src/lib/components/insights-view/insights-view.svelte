@@ -22,6 +22,8 @@
 
   import { type ChartSlice } from '$lib/utils/chart-slice';
 
+  export const INSIGHTS_SECTION_PAGE_SIZE = 5;
+
   /**
    * A INTELIGÊNCIA: o que os dados juntos dizem, e que nenhuma tela sozinha mostra.
    *
@@ -147,6 +149,7 @@
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
@@ -154,6 +157,48 @@
   let { data, state: viewState, actions }: InsightsViewProps = $props();
 
   const insights = $derived(data.insights);
+
+  let overloadedPage = $state(1);
+  let upgradesPage = $state(1);
+  let troublesomePage = $state(1);
+  let sparesPage = $state(1);
+
+  $effect(() => {
+    /* Reinicia as páginas ao trocar o período de análise. */
+    void data.days;
+    overloadedPage = 1;
+    upgradesPage = 1;
+    troublesomePage = 1;
+    sparesPage = 1;
+  });
+
+  const paginatedOverloaded = $derived(
+    insights?.overloaded.slice(
+      (overloadedPage - 1) * INSIGHTS_SECTION_PAGE_SIZE,
+      overloadedPage * INSIGHTS_SECTION_PAGE_SIZE,
+    ) ?? [],
+  );
+
+  const paginatedUpgrades = $derived(
+    insights?.upgrades.slice(
+      (upgradesPage - 1) * INSIGHTS_SECTION_PAGE_SIZE,
+      upgradesPage * INSIGHTS_SECTION_PAGE_SIZE,
+    ) ?? [],
+  );
+
+  const paginatedTroublesome = $derived(
+    insights?.troublesome.slice(
+      (troublesomePage - 1) * INSIGHTS_SECTION_PAGE_SIZE,
+      troublesomePage * INSIGHTS_SECTION_PAGE_SIZE,
+    ) ?? [],
+  );
+
+  const paginatedSpares = $derived(
+    insights?.spares.slice(
+      (sparesPage - 1) * INSIGHTS_SECTION_PAGE_SIZE,
+      sparesPage * INSIGHTS_SECTION_PAGE_SIZE,
+    ) ?? [],
+  );
 
   const PERIOD_OPTIONS = [7, 30, 90].map((days) => ({
     value: String(days),
@@ -265,7 +310,7 @@
         <p class="text-ink-500 text-sm">Nenhuma máquina vivendo no limite no período.</p>
       {:else}
         <ul class="flex flex-col divide-y">
-          {#each insights.overloaded as machine (machine.computerId)}
+          {#each paginatedOverloaded as machine (machine.computerId)}
             <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div class="min-w-0 flex-1">
                 <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
@@ -288,6 +333,24 @@
             </li>
           {/each}
         </ul>
+
+        {#if insights.overloaded.length > INSIGHTS_SECTION_PAGE_SIZE}
+          <div class="mt-3 border-t pt-2">
+            <PaginationBar
+              data={{
+                page: overloadedPage,
+                pageSize: INSIGHTS_SECTION_PAGE_SIZE,
+                total: insights.overloaded.length,
+                noun: ['máquina', 'máquinas'],
+              }}
+              actions={{
+                onPageChange: (newPage) => {
+                  overloadedPage = newPage;
+                },
+              }}
+            />
+          </div>
+        {/if}
       {/if}
     </section>
 
@@ -304,7 +367,7 @@
         <p class="text-ink-500 text-sm">Nenhuma máquina pedindo upgrade.</p>
       {:else}
         <ul class="flex flex-col divide-y">
-          {#each insights.upgrades as machine (machine.computerId)}
+          {#each paginatedUpgrades as machine (machine.computerId)}
             <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div class="min-w-0 flex-1">
                 <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
@@ -328,6 +391,24 @@
             </li>
           {/each}
         </ul>
+
+        {#if insights.upgrades.length > INSIGHTS_SECTION_PAGE_SIZE}
+          <div class="mt-3 border-t pt-2">
+            <PaginationBar
+              data={{
+                page: upgradesPage,
+                pageSize: INSIGHTS_SECTION_PAGE_SIZE,
+                total: insights.upgrades.length,
+                noun: ['máquina', 'máquinas'],
+              }}
+              actions={{
+                onPageChange: (newPage) => {
+                  upgradesPage = newPage;
+                },
+              }}
+            />
+          </div>
+        {/if}
       {/if}
     </section>
 
@@ -344,7 +425,7 @@
         <p class="text-ink-500 text-sm">Nenhuma máquina com histórico de trabalho pesado.</p>
       {:else}
         <ul class="flex flex-col divide-y">
-          {#each insights.troublesome as machine (machine.computerId)}
+          {#each paginatedTroublesome as machine (machine.computerId)}
             <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div class="min-w-0 flex-1">
                 <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
@@ -367,6 +448,24 @@
             </li>
           {/each}
         </ul>
+
+        {#if insights.troublesome.length > INSIGHTS_SECTION_PAGE_SIZE}
+          <div class="mt-3 border-t pt-2">
+            <PaginationBar
+              data={{
+                page: troublesomePage,
+                pageSize: INSIGHTS_SECTION_PAGE_SIZE,
+                total: insights.troublesome.length,
+                noun: ['máquina', 'máquinas'],
+              }}
+              actions={{
+                onPageChange: (newPage) => {
+                  troublesomePage = newPage;
+                },
+              }}
+            />
+          </div>
+        {/if}
       {/if}
     </section>
 
@@ -385,7 +484,7 @@
         </p>
       {:else}
         <ul class="flex flex-col divide-y">
-          {#each insights.spares as machine (machine.computerId)}
+          {#each paginatedSpares as machine (machine.computerId)}
             <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div class="min-w-0 flex-1">
                 <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
@@ -407,6 +506,24 @@
             </li>
           {/each}
         </ul>
+
+        {#if insights.spares.length > INSIGHTS_SECTION_PAGE_SIZE}
+          <div class="mt-3 border-t pt-2">
+            <PaginationBar
+              data={{
+                page: sparesPage,
+                pageSize: INSIGHTS_SECTION_PAGE_SIZE,
+                total: insights.spares.length,
+                noun: ['máquina', 'máquinas'],
+              }}
+              actions={{
+                onPageChange: (newPage) => {
+                  sparesPage = newPage;
+                },
+              }}
+            />
+          </div>
+        {/if}
       {/if}
     </section>
   {/if}
