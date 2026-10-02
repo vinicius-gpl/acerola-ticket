@@ -66,6 +66,16 @@
   }}
 />
 
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
+<Story
+  name="Celular" globals={{ viewport: { value: 'celular' } }}
+  args={{
+    data: { roles: mockRoles, total: 3, filter: { search: '', context: '' } },
+    state: { isLoading: false, isEmpty: false, isFilteredOut: false, error: null },
+    actions: baseActions,
+  }}
+/>
+
 <Story
   name="Loading"
   args={{
