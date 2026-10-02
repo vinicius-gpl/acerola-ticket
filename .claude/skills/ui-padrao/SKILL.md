@@ -86,6 +86,7 @@ verbo. Enquanto confirma, nada fecha.
 - Ações do item à direita, como ícone `ghost` com `aria-label` (o nome aparece na dica).
 - Texto longo quebra linha (`break-words`), nunca empurra os botões.
 - Item concluído/inativo: `text-ink-500`, sem sumir.
+- **Tabela responsiva (tabela → cartão):** Em telas menores que o ponto de quebra (`< md`, 768px / 400px mobile), tabelas densas alternam para cartões empilhados (`md:hidden`, `data-slot="*-cards-mobile"`). As 2-3 informações cruciais ficam em destaque no topo (identificador, título, status com `StatusBadge` e responsável), o restante fica contextualizado no corpo com rótulo descritivo e as ações ficam acessíveis diretamente por toque. No desktop (`hidden md:block`, `data-slot="*-table-desktop"`), exibe-se a tabela completa com `overflow-x-auto`.
 
 ## Acessibilidade (não é opcional)
 
@@ -104,4 +105,6 @@ que mudou de lugar; não é enfeite.
 ## Responsivo
 
 Tudo precisa funcionar em 400px de largura: filtros empilham (`flex-col sm:flex-row`), ações do
-`PageHeader` descem, grade de `StatCard` vira uma coluna.
+`PageHeader` descem, grade de `StatCard` vira uma coluna, e tabelas de listas alternam de linhas
+horizontais para cartões empilhados (`md:hidden`).
+
