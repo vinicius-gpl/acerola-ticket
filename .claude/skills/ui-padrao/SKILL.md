@@ -86,7 +86,7 @@ verbo. Enquanto confirma, nada fecha.
 - Ações do item à direita, como ícone `ghost` com `aria-label` (o nome aparece na dica).
 - Texto longo quebra linha (`break-words`), nunca empurra os botões.
 - Item concluído/inativo: `text-ink-500`, sem sumir.
-- **Tabela responsiva (tabela → cartão):** Em telas menores que o ponto de quebra (`< md`, 768px / 400px mobile), tabelas densas alternam para cartões empilhados (`md:hidden`, `data-slot="*-cards-mobile"`). As 2-3 informações cruciais ficam em destaque no topo (identificador, título, status com `StatusBadge` e responsável), o restante fica contextualizado no corpo com rótulo descritivo e as ações ficam acessíveis diretamente por toque. No desktop (`hidden md:block`, `data-slot="*-table-desktop"`), exibe-se a tabela completa com `overflow-x-auto`.
+- **Tabela responsiva (tabela → cartão):** Até o tablet (`< xl`, 1280px) toda tabela densa vira cartão empilhado (`xl:hidden`, `data-slot="*-cards-mobile"`). As 2-3 informações cruciais ficam em destaque no topo (identificador, título, status com `StatusBadge` e responsável), o restante fica contextualizado no corpo com rótulo descritivo e as ações ficam acessíveis diretamente por toque. Só no computador (`hidden xl:block`, `data-slot="*-table-desktop"`) aparece a tabela completa, com `overflow-x-auto`.
 
 ## Acessibilidade (não é opcional)
 
@@ -106,7 +106,15 @@ que mudou de lugar; não é enfeite.
 
 Tudo precisa funcionar em 400px de largura: filtros empilham (`flex-col sm:flex-row`), ações do
 `PageHeader` descem, grade de `StatCard` vira uma coluna, e tabelas de listas alternam de linhas
-horizontais para cartões empilhados (`md:hidden`).
+horizontais para cartões empilhados (`xl:hidden`).
+
+São três faixas, e o tablet conta como celular:
+
+| Largura | Barra lateral | Lista |
+|---|---|---|
+| até 1023px (celular e tablet em pé) | gaveta, por cima | cartão |
+| 1024px a 1279px (tablet deitado) | fixa, 256px | cartão |
+| 1280px ou mais (computador) | fixa, 256px | tabela |
 
 **Nada rola para o lado, nunca.** Duas regras que sustentam isso:
 
@@ -117,4 +125,8 @@ horizontais para cartões empilhados (`md:hidden`).
 - **Quem rola é a caixa da tabela, não a página.** A área de conteúdo precisa de `min-w-0`
   (está no `SidebarInset` do `app-shell`) para encolher abaixo da largura natural da tabela.
   Sem isso o `overflow-x-auto` da tabela não serve para nada e a página inteira arrasta.
+- **A barra lateral não pode comer a largura do tablet.** O ponto de corte entre gaveta e
+  barra fixa está em `lib/hooks/is-mobile.svelte.ts` (1024px). Com ela fixa em 768px sobravam
+  494px de conteúdo, e as regras de CSS continuavam medindo os 768px da janela — daí título
+  espremido e tabela mostrando 3 das 8 colunas.
 
