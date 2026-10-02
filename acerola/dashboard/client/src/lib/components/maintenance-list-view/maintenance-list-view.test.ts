@@ -48,6 +48,7 @@ const emptyFilter: MaintenanceListFilter = { search: '', type: '', computerId: n
 const actions = {
   onSearchChange: vi.fn(),
   onTypeChange: vi.fn(),
+  onPageChange: vi.fn(),
   onClearFilters: vi.fn(),
   onRetry: vi.fn(),
   onRegister: vi.fn(),
@@ -121,9 +122,9 @@ describe('MaintenanceListView', () => {
   it('lists what was done, on which machine and by whom', () => {
     renderView();
 
-    expect(screen.getByText('Cooler do processador substituído.')).toBeInTheDocument();
-    expect(screen.getByText('Contábil — mesa do fechamento')).toBeInTheDocument();
-    expect(screen.getByText('Corretiva')).toBeInTheDocument();
+    expect(screen.getAllByText('Cooler do processador substituído.')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Contábil — mesa do fechamento')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Corretiva')[0]).toBeInTheDocument();
   });
 
   /* O lembrete abre o formulário JÁ com a máquina: quem clica ali está olhando para ela. */
@@ -185,5 +186,30 @@ describe('MaintenanceListView', () => {
     renderView({ state: { actionError: 'Este registro é de outra pessoa.' } });
 
     expect(screen.getAllByRole('alert')[0]).toHaveTextContent('Este registro é de outra pessoa.');
+  });
+
+  // feliz
+  it('renders pagination bar and notifies page changes', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    render(MaintenanceListView, {
+      props: {
+        data: {
+          maintenances: [maintenance()],
+          total: 30,
+          preventive,
+          filter: emptyFilter,
+          removing: null,
+          paging: { page: 1, pageSize: 15, total: 30 },
+        },
+        state: settled,
+        actions: { ...actions, onPageChange },
+      },
+    });
+
+    const nextButton = screen.getByRole('button', { name: /Próxima/i });
+    expect(nextButton).toBeInTheDocument();
+    await user.click(nextButton);
+    expect(onPageChange).toHaveBeenCalledWith(2);
   });
 });

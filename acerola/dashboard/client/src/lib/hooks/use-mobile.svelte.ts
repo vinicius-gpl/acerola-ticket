@@ -1,4 +1,7 @@
-const MOBILE_BREAKPOINT = 768;
+/* Mesmo ponto de quebra da troca tabela → cartão (`xl`, 1280px). Abaixo disso a coluna de
+   conteúdo é estreita — no tablet deitado os dois gráficos dividem ~750px —, e sem a forma
+   compacta os nomes em volta da teia saem cortados pela borda. */
+const MOBILE_BREAKPOINT = 1280;
 const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
 
 export class IsMobile {

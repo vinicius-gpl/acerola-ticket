@@ -123,7 +123,7 @@ describe('TicketListView', () => {
       actions: { ...actions, onAnswer },
     });
 
-    await userEvent.click(screen.getByRole('button', { name: /atender/i }));
+    await userEvent.click(screen.getAllByRole('button', { name: /atender/i })[0]!);
 
     expect(onAnswer).toHaveBeenCalledWith(only);
   });
@@ -194,5 +194,39 @@ describe('TicketListView', () => {
     });
 
     expect(screen.getByText(/mostrando 1 de 240 chamados/i)).toBeInTheDocument();
+  });
+
+  it('renders mobile cards and desktop table with proper responsive display classes', () => {
+    const { container } = setup();
+
+    const mobileCards = container.querySelector('[data-slot="ticket-cards-mobile"]');
+    const desktopTable = container.querySelector('[data-slot="ticket-table-desktop"]');
+
+    expect(mobileCards).toBeInTheDocument();
+    expect(desktopTable).toBeInTheDocument();
+    expect(mobileCards?.classList.contains('xl:hidden')).toBe(true);
+    expect(desktopTable?.classList.contains('hidden')).toBe(true);
+    expect(desktopTable?.classList.contains('xl:block')).toBe(true);
+  });
+
+  it('renders pagination bar and notifies page changes', async () => {
+    const onPageChange = vi.fn();
+    setup({
+      data: {
+        tickets: [ticket()],
+        total: 30,
+        dashboard,
+        filter: emptyFilter,
+        paging: { page: 1, pageSize: 15, total: 30 },
+      },
+      actions: { ...actions, onPageChange },
+    });
+
+    expect(screen.getByText(/1–15 de 30 chamados/i)).toBeInTheDocument();
+    const nextBtn = screen.getByRole('button', { name: /próxima/i });
+    expect(nextBtn).toBeInTheDocument();
+
+    await userEvent.click(nextBtn);
+    expect(onPageChange).toHaveBeenCalledWith(2);
   });
 });

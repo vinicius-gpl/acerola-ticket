@@ -102,6 +102,7 @@
     onRetry: () => {},
     onAnswer: () => {},
     onExportReport: () => {},
+    onPageChange: () => {},
   };
 
   const settled = {
@@ -120,6 +121,17 @@
 
 <Story
   name="Default"
+  args={{
+    data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    state: settled,
+    actions,
+  }}
+/>
+
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
+<Story
+  name="Celular"
+  globals={{ viewport: { value: 'celular' } }}
   args={{
     data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: settled,

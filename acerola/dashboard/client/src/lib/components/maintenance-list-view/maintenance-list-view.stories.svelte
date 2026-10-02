@@ -99,6 +99,7 @@
     onRetry: () => {},
     onRegister: () => {},
     onEdit: () => {},
+    onPageChange: () => {},
     onAskRemove: () => {},
     onCancelRemove: () => {},
     onConfirmRemove: () => {},
@@ -120,6 +121,23 @@
 
 <Story
   name="Default"
+  args={{
+    data: {
+      maintenances,
+      total: maintenances.length,
+      preventive,
+      filter: emptyFilter,
+      removing: null,
+    },
+    state: settled,
+    actions,
+  }}
+/>
+
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
+<Story
+  name="Celular"
+  globals={{ viewport: { value: 'celular' } }}
   args={{
     data: {
       maintenances,
@@ -199,6 +217,23 @@
   args={{
     data: { maintenances, total: 320, preventive, filter: emptyFilter, removing: null },
     state: { ...settled, isTruncated: true },
+    actions,
+  }}
+/>
+
+<!-- Lista paginada: navegação entre páginas com contagem total -->
+<Story
+  name="Paginated"
+  args={{
+    data: {
+      maintenances,
+      total: 45,
+      preventive,
+      filter: emptyFilter,
+      removing: null,
+      paging: { page: 1, pageSize: 15, total: 45 },
+    },
+    state: settled,
     actions,
   }}
 />

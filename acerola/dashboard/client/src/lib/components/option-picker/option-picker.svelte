@@ -89,7 +89,16 @@
 </script>
 
 {#if isPillMode}
-  <div class={cn('flex flex-wrap gap-1.5', ui?.className)} role="group" aria-label={ui?.ariaLabel}>
+  <div
+    class={cn(
+      /* No celular as pastilhas QUEBRAM em mais de uma linha em vez de virarem uma tira que
+         rola para o lado: escolher a situação ou o filtro não pode exigir arrastar a tela. */
+      'flex flex-wrap items-center gap-1.5',
+      ui?.className,
+    )}
+    role="group"
+    aria-label={ui?.ariaLabel}
+  >
     {#each options as option (option.value || '__all__')}
       {@const isSelected = option.value === data.value}
       <button

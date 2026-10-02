@@ -68,14 +68,24 @@
 
   import ChartFrame from '$lib/components/chart-frame/chart-frame.svelte';
   import ChartTooltip from '$lib/components/chart-tooltip/chart-tooltip.svelte';
+  import { useIsMobile } from '$lib/hooks/use-mobile.svelte';
   import { cn } from '$lib/utils/cn';
 
   /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
   let { data, state: chartState, ui, actions }: RadarChartProps = $props();
 
+  const isMobile = useIsMobile();
   const color = $derived(ui?.color ?? 'var(--chart-1)');
   const chartConfig = $derived(configOf(data.seriesLabel, color));
+
+  /* No celular, os textos dos eixos radiais vazariam a largura estreita do cartão;
+     com mais respiro lateral e nome mais enxuto, a teia cabe inteira sem cortar. */
+  const padding = $derived(
+    isMobile.current
+      ? { top: 32, bottom: 32, left: 44, right: 44 }
+      : { top: 28, bottom: 28, left: 28, right: 28 },
+  );
 </script>
 
 {#if chartState?.isLoading}
@@ -99,7 +109,11 @@
   <div class={cn('relative flex w-full flex-col', ui?.className)}>
     <!-- `role="img"` some com o conteúdo para o leitor de tela — é o que se quer de um
          desenho. Por isso a lista abaixo fica FORA desta caixa, e não dentro dela. -->
-    <div class={cn('w-full', ui?.heightClass ?? 'h-72')} role="img" aria-label={data.seriesLabel}>
+    <div
+      class={cn('w-full overflow-hidden', ui?.heightClass ?? 'h-72')}
+      role="img"
+      aria-label={data.seriesLabel}
+    >
       <ChartFrame data={{ config: chartConfig }} ui={{ className: 'h-full w-full' }}>
         <AreaChart
           data={data.slices}
@@ -113,11 +127,14 @@
           rule={false}
           grid={{ xTicks: data.slices.length, radialY: 'circle' }}
           points
-          padding={{ top: 28, bottom: 28, left: 28, right: 28 }}
+          {padding}
           props={{
             area: { fillOpacity: 0.32, line: { class: 'stroke-2' }, motion: 'tween' },
             points: { r: 3 },
-            xAxis: { format: (value: unknown) => shortenAxis(String(value)) },
+            xAxis: {
+              format: (value: unknown) =>
+                shortenAxis(String(value), isMobile.current ? 11 : 16),
+            },
           }}
         >
           {#snippet tooltip()}

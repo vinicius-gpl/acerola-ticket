@@ -158,6 +158,17 @@
   }}
 />
 
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
+<Story
+  name="Celular"
+  globals={{ viewport: { value: 'celular' } }}
+  args={{
+    data: { computers, total: computers.length, summary, filter: emptyFilter },
+    state: settled,
+    actions,
+  }}
+/>
+
 <Story
   name="Loading"
   args={{
