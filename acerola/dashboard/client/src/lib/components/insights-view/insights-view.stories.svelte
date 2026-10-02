@@ -80,6 +80,30 @@
   args={{ data: { insights: insights(), days: 30 }, state: settled, actions }}
 />
 
+<!-- Muitas máquinas: mostra a barra de paginação em funcionamento. -->
+<Story
+  name="Many items"
+  args={{
+    data: {
+      insights: insights({
+        overloaded: Array.from({ length: 12 }, (_, i) => ({
+          computerId: 10 + i,
+          computerName: `FINANCEIRO-${10 + i}`,
+          computerDisplayName: `Financeiro — mesa ${10 + i}`,
+          department: 'financeiro',
+          averageCpuPercent: 65 + (i % 30),
+          averageMemoryPercent: 88,
+          sampleCount: 288,
+          activeAlerts: i === 0 ? 1 : 0,
+        })),
+      }),
+      days: 30,
+    },
+    state: settled,
+    actions,
+  }}
+/>
+
 <!-- Nada a recomendar: a boa notícia é dita, e as quatro listas explicam a régua mesmo assim. -->
 <Story
   name="Nothing to recommend"
