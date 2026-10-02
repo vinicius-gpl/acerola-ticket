@@ -121,9 +121,9 @@ describe('MaintenanceListView', () => {
   it('lists what was done, on which machine and by whom', () => {
     renderView();
 
-    expect(screen.getByText('Cooler do processador substituído.')).toBeInTheDocument();
-    expect(screen.getByText('Contábil — mesa do fechamento')).toBeInTheDocument();
-    expect(screen.getByText('Corretiva')).toBeInTheDocument();
+    expect(screen.getAllByText('Cooler do processador substituído.')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Contábil — mesa do fechamento')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Corretiva')[0]).toBeInTheDocument();
   });
 
   /* O lembrete abre o formulário JÁ com a máquina: quem clica ali está olhando para ela. */

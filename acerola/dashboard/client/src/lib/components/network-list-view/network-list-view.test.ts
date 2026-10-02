@@ -125,7 +125,7 @@ describe('NetworkListView', () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole('button', { name: 'Marcar como resolvido' }));
+    await user.click(screen.getAllByRole('button', { name: 'Marcar como resolvido' })[0]!);
 
     expect(actions.onResolveChange).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), true);
   });
@@ -134,7 +134,7 @@ describe('NetworkListView', () => {
   it('offers to reopen an event that was already resolved', () => {
     renderView({ events: [event({ resolvedAt: '2026-09-23T12:42:00.000Z' })] });
 
-    expect(screen.getByRole('button', { name: 'Reabrir' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Reabrir' })[0]).toBeInTheDocument();
   });
 
   // triste

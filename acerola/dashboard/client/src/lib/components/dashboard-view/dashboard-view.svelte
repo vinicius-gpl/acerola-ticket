@@ -445,52 +445,93 @@
           Nenhuma máquina apontada. O parque está em ordem.
         </p>
       {:else}
-        <Table class="min-w-[640px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Máquina</TableHead>
-              <TableHead>Diagnóstico / Alertas</TableHead>
-              <TableHead>Estado de saúde</TableHead>
-              <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {#each summary.worstMachines as machine (machine.computerId)}
-              <TableRow>
-                <TableCell>
+        <!-- Lista de cartões para mobile (< md) -->
+        <div class="flex flex-col gap-3 md:hidden" data-slot="worst-machines-cards-mobile">
+          {#each summary.worstMachines as machine (machine.computerId)}
+            <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
                   <p class="text-foreground font-medium break-words">
                     {machineLabelOf(machine)}
                   </p>
                   <p class="text-muted-foreground text-xs">
                     {machine.department ? departmentLabel(machine.department) : 'Sem departamento'}
                   </p>
-                </TableCell>
-                <TableCell class="text-muted-foreground text-xs">
-                  {problemSummaryOf(machine)}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge
-                    data={{ label: healthStatusLabel(machine.healthStatus) }}
-                    ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
-                  />
-                </TableCell>
-                <TableCell class="text-right whitespace-nowrap">
-                  <TableActions>
-                    <ActionButton
-                      data={{ label: 'Abrir ficha' }}
-                      ui={{ variant: 'secondary', size: 'sm' }}
-                      actions={{ onClick: () => actions.onOpenMachine(machine) }}
-                    />
-                  </TableActions>
-                </TableCell>
-              </TableRow>
-            {/each}
-          </TableBody>
-          {#snippet footer()}
+                </div>
+                <StatusBadge
+                  data={{ label: healthStatusLabel(machine.healthStatus) }}
+                  ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
+                />
+              </div>
+
+              <p class="text-muted-foreground mt-2 text-xs">
+                {problemSummaryOf(machine)}
+              </p>
+
+              <div class="border-border/60 mt-3 flex items-center justify-end border-t pt-2">
+                <ActionButton
+                  data={{ label: 'Abrir ficha' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onOpenMachine(machine) }}
+                />
+              </div>
+            </div>
+          {/each}
+          <div class="text-muted-foreground flex justify-between px-1 text-xs">
             <span>Triagem automática por gravidade</span>
             <span>{summary.worstMachines.length} máquina(s) com pendência</span>
-          {/snippet}
-        </Table>
+          </div>
+        </div>
+
+        <!-- Tabela completa para desktop (>= md) -->
+        <div class="hidden md:block overflow-x-auto" data-slot="worst-machines-table-desktop">
+          <Table class="min-w-[640px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Máquina</TableHead>
+                <TableHead>Diagnóstico / Alertas</TableHead>
+                <TableHead>Estado de saúde</TableHead>
+                <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {#each summary.worstMachines as machine (machine.computerId)}
+                <TableRow>
+                  <TableCell>
+                    <p class="text-foreground font-medium break-words">
+                      {machineLabelOf(machine)}
+                    </p>
+                    <p class="text-muted-foreground text-xs">
+                      {machine.department ? departmentLabel(machine.department) : 'Sem departamento'}
+                    </p>
+                  </TableCell>
+                  <TableCell class="text-muted-foreground text-xs">
+                    {problemSummaryOf(machine)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      data={{ label: healthStatusLabel(machine.healthStatus) }}
+                      ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
+                    />
+                  </TableCell>
+                  <TableCell class="text-right whitespace-nowrap">
+                    <TableActions>
+                      <ActionButton
+                        data={{ label: 'Abrir ficha' }}
+                        ui={{ variant: 'secondary', size: 'sm' }}
+                        actions={{ onClick: () => actions.onOpenMachine(machine) }}
+                      />
+                    </TableActions>
+                  </TableCell>
+                </TableRow>
+              {/each}
+            </TableBody>
+            {#snippet footer()}
+              <span>Triagem automática por gravidade</span>
+              <span>{summary.worstMachines.length} máquina(s) com pendência</span>
+            {/snippet}
+          </Table>
+        </div>
       {/if}
     </PanelCard>
   {/if}

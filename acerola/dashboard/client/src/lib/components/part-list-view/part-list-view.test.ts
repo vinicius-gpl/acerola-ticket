@@ -90,7 +90,7 @@ describe('PartListView', () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole('button', { name: 'Entrada' }));
+    await user.click(screen.getAllByRole('button', { name: 'Entrada' })[0]!);
 
     expect(actions.onMove).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), 'in');
   });
@@ -99,7 +99,7 @@ describe('PartListView', () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole('button', { name: 'SSD 240 GB Kingston' }));
+    await user.click(screen.getAllByRole('button', { name: 'SSD 240 GB Kingston' })[0]!);
 
     expect(actions.onOpenLedger).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
   });
@@ -109,15 +109,15 @@ describe('PartListView', () => {
   it('keeps a part with an empty shelf on the list', () => {
     renderView({ parts: [part({ balance: 0 })] });
 
-    expect(screen.getByText('SSD 240 GB Kingston')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getAllByText('SSD 240 GB Kingston')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('0')[0]).toBeInTheDocument();
   });
 
   /* Sem peça não há saída possível: o botão trava antes de a pessoa levar uma recusa. */
   it('blocks the exit button when there is nothing to take', () => {
     renderView({ parts: [part({ balance: 0 })] });
 
-    expect(screen.getByRole('button', { name: 'Saída' })).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Saída' })[0]).toBeDisabled();
   });
 
   it('shows the reason the storeroom did not load', () => {

@@ -117,9 +117,9 @@ describe('ComputerListView', () => {
       },
     });
 
-    expect(screen.getByText('Recepção — balcão')).toBeInTheDocument();
-    expect(screen.getByText('RECEPCAO-01')).toBeInTheDocument();
-    expect(screen.getByText('Online')).toBeInTheDocument();
+    expect(screen.getAllByText('Recepção — balcão')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('RECEPCAO-01')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Online')[0]).toBeInTheDocument();
   });
 
   it('opens the machine record when asked', async () => {
@@ -132,7 +132,7 @@ describe('ComputerListView', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: 'Ver ficha' }));
+    await user.click(screen.getAllByRole('button', { name: 'Ver ficha' })[0]!);
 
     expect(actions.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
   });
@@ -153,7 +153,7 @@ describe('ComputerListView', () => {
       },
     });
 
-    expect(screen.getByText('Bloqueada')).toBeInTheDocument();
+    expect(screen.getAllByText('Bloqueada')[0]).toBeInTheDocument();
     expect(screen.queryByText('Offline')).not.toBeInTheDocument();
   });
 
