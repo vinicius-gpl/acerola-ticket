@@ -196,24 +196,12 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[840px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead class="min-w-[110px]">Data</TableHead>
-          <TableHead class="min-w-[240px]">Equipamento</TableHead>
-          <TableHead class="min-w-[120px]">Tipo</TableHead>
-          <TableHead class="min-w-[260px]">O que foi feito</TableHead>
-          <TableHead class="min-w-[130px]">Quem fez</TableHead>
-          <TableHead class="min-w-[130px] text-right"><span class="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {#each data.maintenances as maintenance (maintenance.id)}
-          <TableRow class="align-top">
-            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
-              {formatDate(maintenance.performedAt)}
-            </TableCell>
-            <TableCell class="max-w-[280px]">
+    <!-- Lista de cartões para mobile (< md) -->
+    <div class="flex flex-col gap-3 md:hidden" data-slot="maintenance-cards-mobile">
+      {#each data.maintenances as maintenance (maintenance.id)}
+        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
               <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
                 {machineLabelOf(maintenance)}
               </span>
@@ -227,45 +215,123 @@
                   Fora do inventário
                 {/if}
               </span>
-            </TableCell>
-            <TableCell class="whitespace-nowrap">
-              <StatusBadge
-                data={{ label: maintenanceTypeLabel(maintenance.type) }}
-                ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
-              />
-            </TableCell>
-            <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
-              {maintenance.description ?? '—'}
-            </TableCell>
-            <TableCell class="text-neutral-500 max-w-[140px] break-words whitespace-normal text-xs">{maintenance.performedBy ?? '—'}</TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <TableActions>
-                <ActionButton
-                  data={{ label: 'Corrigir' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onEdit(maintenance) }}
-                />
-                <ActionButton
-                  data={{ label: 'Excluir' }}
-                  ui={{
-                    variant: 'ghost',
-                    size: 'sm',
-                    icon: Trash2,
-                    isIconOnly: true,
-                    className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
-                  }}
-                  actions={{ onClick: () => actions.onAskRemove(maintenance) }}
-                />
-              </TableActions>
-            </TableCell>
-          </TableRow>
-        {/each}
-      </TableBody>
-      {#snippet footer()}
-        <span>Histórico de manutenções preventivas e corretivas</span>
+            </div>
+            <StatusBadge
+              data={{ label: maintenanceTypeLabel(maintenance.type) }}
+              ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+            />
+          </div>
+
+          <p class="text-neutral-700 dark:text-neutral-200 mt-2 text-sm break-words">
+            {maintenance.description ?? '—'}
+          </p>
+
+          <div class="mt-2 flex items-center justify-between text-xs text-neutral-400">
+            <span>{formatDate(maintenance.performedAt)}</span>
+            {#if maintenance.performedBy}
+              <span>Por: {maintenance.performedBy}</span>
+            {/if}
+          </div>
+
+          <div class="border-border/60 mt-3 flex items-center justify-end gap-2 border-t pt-2">
+            <ActionButton
+              data={{ label: 'Corrigir' }}
+              ui={{ variant: 'secondary', size: 'sm' }}
+              actions={{ onClick: () => actions.onEdit(maintenance) }}
+            />
+            <ActionButton
+              data={{ label: 'Excluir' }}
+              ui={{
+                variant: 'ghost',
+                size: 'sm',
+                icon: Trash2,
+                isIconOnly: true,
+                className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+              }}
+              actions={{ onClick: () => actions.onAskRemove(maintenance) }}
+            />
+          </div>
+        </div>
+      {/each}
+      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+        <span>Histórico de manutenções</span>
         <span>{data.maintenances.length} registro(s)</span>
-      {/snippet}
-    </Table>
+      </div>
+    </div>
+
+    <!-- Tabela para desktop (>= md) -->
+    <div class="hidden md:block overflow-x-auto" data-slot="maintenance-table-desktop">
+      <Table class="min-w-[840px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead class="min-w-[110px]">Data</TableHead>
+            <TableHead class="min-w-[240px]">Equipamento</TableHead>
+            <TableHead class="min-w-[120px]">Tipo</TableHead>
+            <TableHead class="min-w-[260px]">O que foi feito</TableHead>
+            <TableHead class="min-w-[130px]">Quem fez</TableHead>
+            <TableHead class="min-w-[130px] text-right"><span class="sr-only">Ações</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.maintenances as maintenance (maintenance.id)}
+            <TableRow class="align-top">
+              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                {formatDate(maintenance.performedAt)}
+              </TableCell>
+              <TableCell class="max-w-[280px]">
+                <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+                  {machineLabelOf(maintenance)}
+                </span>
+                <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">
+                  {#if maintenance.computerId}
+                    {maintenance.computerName}
+                    {#if maintenance.computerDepartment}
+                      · {departmentLabel(maintenance.computerDepartment)}
+                    {/if}
+                  {:else}
+                    Fora do inventário
+                  {/if}
+                </span>
+              </TableCell>
+              <TableCell class="whitespace-nowrap">
+                <StatusBadge
+                  data={{ label: maintenanceTypeLabel(maintenance.type) }}
+                  ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+                />
+              </TableCell>
+              <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+                {maintenance.description ?? '—'}
+              </TableCell>
+              <TableCell class="text-neutral-500 max-w-[140px] break-words whitespace-normal text-xs">{maintenance.performedBy ?? '—'}</TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <TableActions>
+                  <ActionButton
+                    data={{ label: 'Corrigir' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    actions={{ onClick: () => actions.onEdit(maintenance) }}
+                  />
+                  <ActionButton
+                    data={{ label: 'Excluir' }}
+                    ui={{
+                      variant: 'ghost',
+                      size: 'sm',
+                      icon: Trash2,
+                      isIconOnly: true,
+                      className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                    }}
+                    actions={{ onClick: () => actions.onAskRemove(maintenance) }}
+                  />
+                </TableActions>
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Histórico de manutenções preventivas e corretivas</span>
+          <span>{data.maintenances.length} registro(s)</span>
+        {/snippet}
+      </Table>
+    </div>
 
     <!-- Truncar calado é mentir sobre o tamanho do histórico. -->
     {#if viewState.isTruncated}

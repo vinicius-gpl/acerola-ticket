@@ -559,44 +559,88 @@
         ela volta ao normal.
       </p>
     {:else}
-      <Table class="min-w-[620px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Medida</TableHead>
-            <TableHead>Pico</TableHead>
-            <TableHead>Começou</TableHead>
-            <TableHead>Durou</TableHead>
-            <TableHead>Causa provável</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {#each data.alerts as alert (alert.id)}
+      <!-- Lista de cartões para mobile (< md) -->
+      <div class="flex flex-col gap-3 md:hidden" data-slot="alert-cards-mobile">
+        {#each data.alerts as alert (alert.id)}
+          <div class="border-border/70 bg-card rounded-lg border p-3 shadow-xs">
+            <div class="flex items-start justify-between gap-2">
+              <span class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">
+                {metricLabel(alert.metric)}
+              </span>
+              {#if alert.recoveredAt}
+                <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+              {:else}
+                <StatusBadge
+                  data={{ label: 'Acontecendo agora' }}
+                  ui={{ tone: 'danger', size: 'sm' }}
+                />
+              {/if}
+            </div>
+
+            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span class="text-muted-foreground block text-[11px]">Pico</span>
+                <span class="tabular-nums font-medium text-neutral-700 dark:text-neutral-200">
+                  {formatPercent(alert.peakValue)}
+                </span>
+              </div>
+              <div>
+                <span class="text-muted-foreground block text-[11px]">Começou</span>
+                <span class="text-neutral-500">{formatDateTime(alert.startedAt)}</span>
+              </div>
+            </div>
+
+            {#if alert.causeProcess}
+              <div class="border-border/60 mt-2 border-t pt-1.5 text-xs">
+                <span class="text-muted-foreground text-[11px]">Causa provável: </span>
+                <span class="text-neutral-600 dark:text-neutral-300 font-mono text-[11px] break-words">{alert.causeProcess}</span>
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+
+      <!-- Tabela para desktop (>= md) -->
+      <div class="hidden md:block overflow-x-auto" data-slot="alert-table-desktop">
+        <Table class="min-w-[620px]">
+          <TableHeader>
             <TableRow>
-              <TableCell class="font-medium text-neutral-900 dark:text-neutral-100">{metricLabel(alert.metric)}</TableCell>
-              <TableCell class="tabular-nums text-neutral-700 dark:text-neutral-200">
-                {formatPercent(alert.peakValue)}
-              </TableCell>
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
-                {formatDateTime(alert.startedAt)}
-              </TableCell>
-              <TableCell>
-                {#if alert.recoveredAt}
-                  <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
-                {:else}
-                  <StatusBadge
-                    data={{ label: 'Acontecendo agora' }}
-                    ui={{ tone: 'danger', size: 'sm' }}
-                  />
-                {/if}
-              </TableCell>
-              <TableCell class="text-neutral-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+              <TableHead>Medida</TableHead>
+              <TableHead>Pico</TableHead>
+              <TableHead>Começou</TableHead>
+              <TableHead>Durou</TableHead>
+              <TableHead>Causa provável</TableHead>
             </TableRow>
-          {/each}
-        </TableBody>
-        {#snippet footer()}
-          <span>Alertas automáticos gerados pelo agente</span>
-        {/snippet}
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {#each data.alerts as alert (alert.id)}
+              <TableRow>
+                <TableCell class="font-medium text-neutral-900 dark:text-neutral-100">{metricLabel(alert.metric)}</TableCell>
+                <TableCell class="tabular-nums text-neutral-700 dark:text-neutral-200">
+                  {formatPercent(alert.peakValue)}
+                </TableCell>
+                <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                  {formatDateTime(alert.startedAt)}
+                </TableCell>
+                <TableCell>
+                  {#if alert.recoveredAt}
+                    <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+                  {:else}
+                    <StatusBadge
+                      data={{ label: 'Acontecendo agora' }}
+                      ui={{ tone: 'danger', size: 'sm' }}
+                    />
+                  {/if}
+                </TableCell>
+                <TableCell class="text-neutral-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+              </TableRow>
+            {/each}
+          </TableBody>
+          {#snippet footer()}
+            <span>Alertas automáticos gerados pelo agente</span>
+          {/snippet}
+        </Table>
+      </div>
 
       <!-- A barra diz quantos episódios existem AO TODO, e não quantos vieram nesta página:
            sem isso a lista seria cortada em silêncio (CONTRIBUTING §15). Quem pagina é o

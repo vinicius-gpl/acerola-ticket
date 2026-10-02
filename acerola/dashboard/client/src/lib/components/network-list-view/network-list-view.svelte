@@ -237,74 +237,142 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[820px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Quando</TableHead>
-          <TableHead>O que houve</TableHead>
-          <TableHead>Link</TableHead>
-          <TableHead>Medidas</TableHead>
-          <TableHead>Durou</TableHead>
-          <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {#each data.events as event (event.id)}
-          <TableRow class="align-top">
-            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+    <!-- Lista de cartões para mobile (< md) -->
+    <div class="flex flex-col gap-3 md:hidden" data-slot="network-cards-mobile">
+      {#each data.events as event (event.id)}
+        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <StatusBadge
+                data={{ label: networkSeverityLabel(event.severity) }}
+                ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
+              />
+              <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words text-sm">
+                {networkEventTypeLabel(event.type)}
+              </span>
+            </div>
+            {#if event.resolvedAt}
+              <span class="text-neutral-700 dark:text-neutral-200 text-xs shrink-0">{durationLabelOf(event)}</span>
+            {:else}
+              <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
+            {/if}
+          </div>
+
+          <span class="text-neutral-400 block text-xs break-words mt-1">{event.title}</span>
+          {#if event.message}
+            <span class="text-neutral-500 block text-xs break-words mt-0.5">{event.message}</span>
+          {/if}
+
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span class="text-muted-foreground block text-[11px]">Link</span>
+              <span class="text-neutral-700 dark:text-neutral-200 font-medium break-words">{event.linkName ?? '—'}</span>
+            </div>
+            <div>
+              <span class="text-muted-foreground block text-[11px]">Medidas</span>
+              <span class="text-neutral-700 dark:text-neutral-200">{measuresOf(event) || '—'}</span>
+            </div>
+          </div>
+
+          <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
+            <span class="text-neutral-400 text-xs">
               {formatDateTime(event.occurredAt)}
-            </TableCell>
-            <TableCell class="max-w-[320px]">
-              <div class="flex flex-wrap items-center gap-2">
-                <StatusBadge
-                  data={{ label: networkSeverityLabel(event.severity) }}
-                  ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
-                />
-                <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
-                  {networkEventTypeLabel(event.type)}
-                </span>
-              </div>
-              <span class="text-neutral-400 block text-xs break-words">{event.title}</span>
-              {#if event.message}
-                <span class="text-neutral-500 block text-xs break-words">{event.message}</span>
-              {/if}
-            </TableCell>
-            <TableCell class="text-neutral-700 dark:text-neutral-200 break-words">{event.linkName ?? '—'}</TableCell>
-            <TableCell class="text-neutral-700 dark:text-neutral-200 whitespace-nowrap text-xs">{measuresOf(event) || '—'}</TableCell>
-            <TableCell>
-              {#if event.resolvedAt}
-                <span class="text-neutral-700 dark:text-neutral-200 text-xs">{durationLabelOf(event)}</span>
-              {:else}
-                <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
-              {/if}
-            </TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <TableActions>
-                {#if event.resolvedAt}
-                  <ActionButton
-                    data={{ label: 'Reabrir' }}
-                    ui={{ variant: 'ghost', size: 'sm' }}
-                    state={{ isDisabled: viewState.isSaving }}
-                    actions={{ onClick: () => actions.onResolveChange(event, false) }}
-                  />
-                {:else}
-                  <ActionButton
-                    data={{ label: 'Marcar como resolvido' }}
-                    ui={{ variant: 'secondary', size: 'sm' }}
-                    state={{ isDisabled: viewState.isSaving }}
-                    actions={{ onClick: () => actions.onResolveChange(event, true) }}
-                  />
-                {/if}
-              </TableActions>
-            </TableCell>
-          </TableRow>
-        {/each}
-      </TableBody>
-      {#snippet footer()}
+            </span>
+            {#if event.resolvedAt}
+              <ActionButton
+                data={{ label: 'Reabrir' }}
+                ui={{ variant: 'ghost', size: 'sm' }}
+                state={{ isDisabled: viewState.isSaving }}
+                actions={{ onClick: () => actions.onResolveChange(event, false) }}
+              />
+            {:else}
+              <ActionButton
+                data={{ label: 'Marcar como resolvido' }}
+                ui={{ variant: 'secondary', size: 'sm' }}
+                state={{ isDisabled: viewState.isSaving }}
+                actions={{ onClick: () => actions.onResolveChange(event, true) }}
+              />
+            {/if}
+          </div>
+        </div>
+      {/each}
+      <div class="text-muted-foreground flex justify-between px-1 text-xs">
         <span>Monitoramento de instabilidade de rede e link</span>
         <span>{data.events.length} evento(s)</span>
-      {/snippet}
-    </Table>
+      </div>
+    </div>
+
+    <!-- Tabela para desktop (>= md) -->
+    <div class="hidden md:block overflow-x-auto" data-slot="network-table-desktop">
+      <Table class="min-w-[820px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Quando</TableHead>
+            <TableHead>O que houve</TableHead>
+            <TableHead>Link</TableHead>
+            <TableHead>Medidas</TableHead>
+            <TableHead>Durou</TableHead>
+            <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.events as event (event.id)}
+            <TableRow class="align-top">
+              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                {formatDateTime(event.occurredAt)}
+              </TableCell>
+              <TableCell class="max-w-[320px]">
+                <div class="flex flex-wrap items-center gap-2">
+                  <StatusBadge
+                    data={{ label: networkSeverityLabel(event.severity) }}
+                    ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
+                  />
+                  <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                    {networkEventTypeLabel(event.type)}
+                  </span>
+                </div>
+                <span class="text-neutral-400 block text-xs break-words">{event.title}</span>
+                {#if event.message}
+                  <span class="text-neutral-500 block text-xs break-words">{event.message}</span>
+                {/if}
+              </TableCell>
+              <TableCell class="text-neutral-700 dark:text-neutral-200 break-words">{event.linkName ?? '—'}</TableCell>
+              <TableCell class="text-neutral-700 dark:text-neutral-200 whitespace-nowrap text-xs">{measuresOf(event) || '—'}</TableCell>
+              <TableCell>
+                {#if event.resolvedAt}
+                  <span class="text-neutral-700 dark:text-neutral-200 text-xs">{durationLabelOf(event)}</span>
+                {:else}
+                  <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
+                {/if}
+              </TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <TableActions>
+                  {#if event.resolvedAt}
+                    <ActionButton
+                      data={{ label: 'Reabrir' }}
+                      ui={{ variant: 'ghost', size: 'sm' }}
+                      state={{ isDisabled: viewState.isSaving }}
+                      actions={{ onClick: () => actions.onResolveChange(event, false) }}
+                    />
+                  {:else}
+                    <ActionButton
+                      data={{ label: 'Marcar como resolvido' }}
+                      ui={{ variant: 'secondary', size: 'sm' }}
+                      state={{ isDisabled: viewState.isSaving }}
+                      actions={{ onClick: () => actions.onResolveChange(event, true) }}
+                    />
+                  {/if}
+                </TableActions>
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Monitoramento de instabilidade de rede e link</span>
+          <span>{data.events.length} evento(s)</span>
+        {/snippet}
+      </Table>
+    </div>
 
     <!-- Truncar calado é mentir sobre o tamanho do histórico. -->
     {#if viewState.isTruncated}

@@ -90,6 +90,7 @@
 
   import ChartFrame from '$lib/components/chart-frame/chart-frame.svelte';
   import ChartTooltip from '$lib/components/chart-tooltip/chart-tooltip.svelte';
+  import { useIsMobile } from '$lib/hooks/use-mobile.svelte';
   import { colorOfSlice } from '$lib/utils/chart-slice';
   import { cn } from '$lib/utils/cn';
 
@@ -97,15 +98,21 @@
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
   let { data, state: chartState, ui, actions }: ColumnChartProps = $props();
 
+  const isMobile = useIsMobile();
   const isHorizontal = $derived(ui?.orientation === 'horizontal');
   const chartConfig = $derived(configOf(data.seriesLabel));
   const colors = $derived(data.slices.map((slice, index) => colorOfSlice(slice.label, index)));
 
+  const horizontalLabelSpace = $derived(isMobile.current ? 110 : HORIZONTAL_LABEL_SPACE);
+  const horizontalLabelMax = $derived(isMobile.current ? 14 : HORIZONTAL_LABEL_MAX);
+  const verticalLabelMax = $derived(isMobile.current ? 9 : VERTICAL_LABEL_MAX);
+
   /* Deitado, o eixo dos nomes precisa de largura fixa; em pé, de altura para o rótulo virado.
-     Sem essa folga o texto do eixo sai cortado pela borda do cartão. */
+     Sem essa folga o texto do eixo sai cortado pela borda do cartão. No mobile, usamos
+     uma folga proporcional para não espremer as barras horizontais. */
   const padding = $derived(
     isHorizontal
-      ? { left: HORIZONTAL_LABEL_SPACE, right: 34 }
+      ? { left: horizontalLabelSpace, right: isMobile.current ? 20 : 34 }
       : { bottom: 44, top: 20, left: 8, right: 8 },
   );
 
@@ -160,11 +167,11 @@
             bars: { radius: 4, rounded: 'edge', strokeWidth: 0 },
             xAxis: {
               format: (value: unknown) =>
-                isHorizontal ? String(value) : shorten(String(value), VERTICAL_LABEL_MAX),
+                isHorizontal ? String(value) : shorten(String(value), verticalLabelMax),
             },
             yAxis: {
               format: (value: unknown) =>
-                isHorizontal ? shorten(String(value), HORIZONTAL_LABEL_MAX) : String(value),
+                isHorizontal ? shorten(String(value), horizontalLabelMax) : String(value),
             },
             labels: { class: 'fill-foreground text-[11px] font-semibold' },
             highlight: { area: { fill: 'var(--muted)', fillOpacity: 0.5 } },

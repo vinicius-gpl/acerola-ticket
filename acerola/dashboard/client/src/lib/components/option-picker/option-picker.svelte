@@ -89,7 +89,14 @@
 </script>
 
 {#if isPillMode}
-  <div class={cn('flex flex-wrap gap-1.5', ui?.className)} role="group" aria-label={ui?.ariaLabel}>
+  <div
+    class={cn(
+      'flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:overflow-visible sm:flex-wrap',
+      ui?.className,
+    )}
+    role="group"
+    aria-label={ui?.ariaLabel}
+  >
     {#each options as option (option.value || '__all__')}
       {@const isSelected = option.value === data.value}
       <button
@@ -101,7 +108,7 @@
              `lg` quando a pastilha veste campo de formulário, `sm` na barra de filtro.
              Pastilha, campo e botão precisam parecer a mesma família de controle. */
           ui?.fullWidth ? 'control-lg' : 'control-sm',
-          'rounded-control inline-flex cursor-pointer items-center gap-1.5 border text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
+          'rounded-control inline-flex shrink-0 whitespace-nowrap cursor-pointer items-center gap-1.5 border text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
           isSelected
             ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
             : 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',

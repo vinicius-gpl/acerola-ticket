@@ -179,20 +179,12 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[760px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Máquina</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Motivo</TableHead>
-          <TableHead>Saiu em</TableHead>
-          <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {#each data.computers as computer (computer.id)}
-          <TableRow class="align-top">
-            <TableCell class="max-w-[240px]">
+    <!-- Lista de cartões para mobile (< md) -->
+    <div class="flex flex-col gap-3 md:hidden" data-slot="disposal-cards-mobile">
+      {#each data.computers as computer (computer.id)}
+        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
               <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
                 {machineLabelOf(computer)}
               </span>
@@ -202,43 +194,110 @@
                   · {departmentLabel(computer.department)}
                 {/if}
               </span>
-            </TableCell>
-            <TableCell>
-              {#if computer.disposalType}
-                <StatusBadge
-                  data={{ label: disposalTypeLabel(computer.disposalType) }}
-                  ui={{ tone: disposalTypeTone(computer.disposalType), size: 'sm' }}
-                />
-              {/if}
-            </TableCell>
-            <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+            </div>
+            {#if computer.disposalType}
+              <StatusBadge
+                data={{ label: disposalTypeLabel(computer.disposalType) }}
+                ui={{ tone: disposalTypeTone(computer.disposalType), size: 'sm' }}
+              />
+            {/if}
+          </div>
+
+          <div class="mt-2 text-xs">
+            <span class="text-muted-foreground block text-[11px]">Motivo</span>
+            <p class="text-neutral-700 dark:text-neutral-200 break-words">
               {computer.disposalReason ?? '—'}
-            </TableCell>
-            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
-              {formatDate(computer.disposedAt)}
-            </TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <TableActions>
-                <ActionButton
-                  data={{ label: 'Ver ficha' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onOpenMachine(computer) }}
-                />
-                <ActionButton
-                  data={{ label: 'Voltar ao inventário' }}
-                  ui={{ variant: 'ghost', size: 'sm' }}
-                  actions={{ onClick: () => actions.onAskRestore(computer) }}
-                />
-              </TableActions>
-            </TableCell>
-          </TableRow>
-        {/each}
-      </TableBody>
-      {#snippet footer()}
+            </p>
+          </div>
+
+          <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
+            <span class="text-xs text-neutral-400">
+              Saiu em {formatDate(computer.disposedAt)}
+            </span>
+            <div class="flex items-center gap-1">
+              <ActionButton
+                data={{ label: 'Ver ficha' }}
+                ui={{ variant: 'secondary', size: 'sm' }}
+                actions={{ onClick: () => actions.onOpenMachine(computer) }}
+              />
+              <ActionButton
+                data={{ label: 'Voltar ao inventário' }}
+                ui={{ variant: 'ghost', size: 'sm' }}
+                actions={{ onClick: () => actions.onAskRestore(computer) }}
+              />
+            </div>
+          </div>
+        </div>
+      {/each}
+      <div class="text-muted-foreground flex justify-between px-1 text-xs">
         <span>Máquinas baixadas e arquivadas</span>
         <span>{data.computers.length} registro(s)</span>
-      {/snippet}
-    </Table>
+      </div>
+    </div>
+
+    <!-- Tabela para desktop (>= md) -->
+    <div class="hidden md:block overflow-x-auto" data-slot="disposal-table-desktop">
+      <Table class="min-w-[760px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Máquina</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Motivo</TableHead>
+            <TableHead>Saiu em</TableHead>
+            <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.computers as computer (computer.id)}
+            <TableRow class="align-top">
+              <TableCell class="max-w-[240px]">
+                <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                  {machineLabelOf(computer)}
+                </span>
+                <span class="block text-xs text-neutral-400 break-words">
+                  {computer.name}
+                  {#if computer.department}
+                    · {departmentLabel(computer.department)}
+                  {/if}
+                </span>
+              </TableCell>
+              <TableCell>
+                {#if computer.disposalType}
+                  <StatusBadge
+                    data={{ label: disposalTypeLabel(computer.disposalType) }}
+                    ui={{ tone: disposalTypeTone(computer.disposalType), size: 'sm' }}
+                  />
+                {/if}
+              </TableCell>
+              <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+                {computer.disposalReason ?? '—'}
+              </TableCell>
+              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                {formatDate(computer.disposedAt)}
+              </TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <TableActions>
+                  <ActionButton
+                    data={{ label: 'Ver ficha' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    actions={{ onClick: () => actions.onOpenMachine(computer) }}
+                  />
+                  <ActionButton
+                    data={{ label: 'Voltar ao inventário' }}
+                    ui={{ variant: 'ghost', size: 'sm' }}
+                    actions={{ onClick: () => actions.onAskRestore(computer) }}
+                  />
+                </TableActions>
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Máquinas baixadas e arquivadas</span>
+          <span>{data.computers.length} registro(s)</span>
+        {/snippet}
+      </Table>
+    </div>
   {/if}
 </div>
 

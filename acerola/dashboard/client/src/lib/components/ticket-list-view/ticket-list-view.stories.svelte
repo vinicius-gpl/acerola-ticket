@@ -102,6 +102,7 @@
     onRetry: () => {},
     onAnswer: () => {},
     onExportReport: () => {},
+    onPageChange: () => {},
   };
 
   const settled = {
@@ -120,6 +121,21 @@
 
 <Story
   name="Default"
+  args={{
+    data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    state: settled,
+    actions,
+  }}
+/>
+
+<!-- Visualização em tela pequena (mobile / 400px): cartões empilhados em vez de tabela -->
+<Story
+  name="MobileView"
+  parameters={{
+    viewport: {
+      defaultViewport: 'mobile1',
+    },
+  }}
   args={{
     data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: settled,

@@ -259,56 +259,38 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[880px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead class="min-w-[240px]">Máquina</TableHead>
-          <TableHead class="min-w-[180px]">Responsável</TableHead>
-          <TableHead class="min-w-[120px]">Saúde</TableHead>
-          <TableHead class="min-w-[120px]">Chamados no mês</TableHead>
-          <TableHead class="min-w-[120px]">Situação</TableHead>
-          <TableHead class="min-w-[110px]">Vista</TableHead>
-          <TableHead class="min-w-[100px] text-right"><span class="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {#each data.computers as computer (computer.id)}
-          <TableRow>
-            <TableCell class="max-w-[280px]">
+    <!-- Lista de cartões para mobile (< md) -->
+    <div class="flex flex-col gap-3 md:hidden" data-slot="computer-cards-mobile">
+      {#each data.computers as computer (computer.id)}
+        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
               <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
                 {displayNameOf(computer)}
               </span>
               <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">{computer.name}</span>
-            </TableCell>
-            <TableCell class="max-w-[220px]">
-              <span class="block text-neutral-700 dark:text-neutral-200 break-words leading-snug">{computer.responsibleName ?? '—'}</span>
-              <span class="block text-xs text-neutral-400 mt-0.5">
-                {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
-              </span>
-            </TableCell>
-            <TableCell>
+            </div>
+            <div class="flex flex-col items-end gap-1 shrink-0">
               <StatusBadge
                 data={{ label: healthStatusLabel(computer.healthStatus) }}
                 ui={{ tone: healthStatusTone(computer.healthStatus), size: 'sm' }}
               />
-              <span class="block text-xs text-neutral-400 tabular-nums">
+              <span class="text-xs text-neutral-400 tabular-nums">
                 {computer.healthScore}/100
               </span>
-            </TableCell>
-            <!-- Quantos problemas esta máquina deu no mês corrente. Zero fica cinza e
-                 discreto: a coluna existe para as que DÃO trabalho saltarem aos olhos. -->
-            <TableCell class="tabular-nums">
-              <span
-                class={computer.ticketsThisMonth > 0
-                  ? 'text-neutral-900 dark:text-neutral-100 font-medium'
-                  : 'text-neutral-400'}
-              >
-                {computer.ticketsThisMonth}
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span class="text-muted-foreground block text-[11px]">Responsável</span>
+              <span class="font-medium text-neutral-700 dark:text-neutral-200 break-words">{computer.responsibleName ?? '—'}</span>
+              <span class="block text-neutral-400 text-[11px]">
+                {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
               </span>
-            </TableCell>
-            <TableCell>
-              <!-- Arquivada e bloqueada vêm antes de online/offline: são decisões do TI, e
-                   explicam por que a máquina não está enviando nada. -->
+            </div>
+            <div>
+              <span class="text-muted-foreground block text-[11px]">Situação</span>
               {#if computer.isArchived}
                 <StatusBadge data={{ label: 'Arquivada' }} ui={{ tone: 'neutral', size: 'sm' }} />
               {:else if computer.isBlocked}
@@ -318,27 +300,113 @@
               {:else}
                 <StatusBadge data={{ label: 'Offline' }} ui={{ tone: 'neutral', size: 'sm' }} />
               {/if}
-            </TableCell>
-            <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
-              {formatTimeAgo(computer.lastSeenAt)}
-            </TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <TableActions>
-                <ActionButton
-                  data={{ label: 'Ver ficha' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onOpen(computer) }}
-                />
-              </TableActions>
-            </TableCell>
-          </TableRow>
-        {/each}
-      </TableBody>
-      {#snippet footer()}
-        <span>Parque de computadores sincronizado com o agente</span>
+              <span class="block text-neutral-400 text-[11px] mt-1">
+                {formatTimeAgo(computer.lastSeenAt)}
+              </span>
+            </div>
+          </div>
+
+          <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
+            <span class="text-xs text-neutral-500">
+              Chamados no mês: <strong class="text-foreground">{computer.ticketsThisMonth}</strong>
+            </span>
+            <ActionButton
+              data={{ label: 'Ver ficha' }}
+              ui={{ variant: 'secondary', size: 'sm' }}
+              actions={{ onClick: () => actions.onOpen(computer) }}
+            />
+          </div>
+        </div>
+      {/each}
+      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+        <span>Parque de computadores sincronizado</span>
         <span>{data.computers.length} computador(es) listado(s)</span>
-      {/snippet}
-    </Table>
+      </div>
+    </div>
+
+    <!-- Tabela para desktop (>= md) -->
+    <div class="hidden md:block overflow-x-auto" data-slot="computer-table-desktop">
+      <Table class="min-w-[880px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead class="min-w-[240px]">Máquina</TableHead>
+            <TableHead class="min-w-[180px]">Responsável</TableHead>
+            <TableHead class="min-w-[120px]">Saúde</TableHead>
+            <TableHead class="min-w-[120px]">Chamados no mês</TableHead>
+            <TableHead class="min-w-[120px]">Situação</TableHead>
+            <TableHead class="min-w-[110px]">Vista</TableHead>
+            <TableHead class="min-w-[100px] text-right"><span class="sr-only">Ações</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.computers as computer (computer.id)}
+            <TableRow>
+              <TableCell class="max-w-[280px]">
+                <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+                  {displayNameOf(computer)}
+                </span>
+                <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">{computer.name}</span>
+              </TableCell>
+              <TableCell class="max-w-[220px]">
+                <span class="block text-neutral-700 dark:text-neutral-200 break-words leading-snug">{computer.responsibleName ?? '—'}</span>
+                <span class="block text-xs text-neutral-400 mt-0.5">
+                  {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
+                </span>
+              </TableCell>
+              <TableCell>
+                <StatusBadge
+                  data={{ label: healthStatusLabel(computer.healthStatus) }}
+                  ui={{ tone: healthStatusTone(computer.healthStatus), size: 'sm' }}
+                />
+                <span class="block text-xs text-neutral-400 tabular-nums">
+                  {computer.healthScore}/100
+                </span>
+              </TableCell>
+              <!-- Quantos problemas esta máquina deu no mês corrente. Zero fica cinza e
+                   discreto: a coluna existe para as que DÃO trabalho saltarem aos olhos. -->
+              <TableCell class="tabular-nums">
+                <span
+                  class={computer.ticketsThisMonth > 0
+                    ? 'text-neutral-900 dark:text-neutral-100 font-medium'
+                    : 'text-neutral-400'}
+                >
+                  {computer.ticketsThisMonth}
+                </span>
+              </TableCell>
+              <TableCell>
+                <!-- Arquivada e bloqueada vêm antes de online/offline: são decisões do TI, e
+                     explicam por que a máquina não está enviando nada. -->
+                {#if computer.isArchived}
+                  <StatusBadge data={{ label: 'Arquivada' }} ui={{ tone: 'neutral', size: 'sm' }} />
+                {:else if computer.isBlocked}
+                  <StatusBadge data={{ label: 'Bloqueada' }} ui={{ tone: 'danger', size: 'sm' }} />
+                {:else if computer.isOnline}
+                  <StatusBadge data={{ label: 'Online' }} ui={{ tone: 'success', size: 'sm' }} />
+                {:else}
+                  <StatusBadge data={{ label: 'Offline' }} ui={{ tone: 'neutral', size: 'sm' }} />
+                {/if}
+              </TableCell>
+              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                {formatTimeAgo(computer.lastSeenAt)}
+              </TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <TableActions>
+                  <ActionButton
+                    data={{ label: 'Ver ficha' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    actions={{ onClick: () => actions.onOpen(computer) }}
+                  />
+                </TableActions>
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Parque de computadores sincronizado com o agente</span>
+          <span>{data.computers.length} computador(es) listado(s)</span>
+        {/snippet}
+      </Table>
+    </div>
 
     <!-- Truncar calado é mentir sobre o tamanho do parque. -->
     {#if state.isTruncated}
