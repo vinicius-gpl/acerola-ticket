@@ -129,62 +129,119 @@
         Esta peça ainda não teve entrada nem saída registrada.
       </p>
     {:else}
-      <Table class="min-w-[620px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Quando</TableHead>
-            <TableHead>Movimento</TableHead>
-            <TableHead>Máquina</TableHead>
-            <TableHead>Quem</TableHead>
-            <TableHead>Saldo</TableHead>
-            <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {#each data.movements as movement (movement.id)}
-            <TableRow class="align-top">
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
-                {formatDateTime(movement.createdAt)}
-              </TableCell>
-              <TableCell>
-                <StatusBadge
-                  data={{ label: `${movementTypeLabel(movement.type)} ${signedQuantity(movement)}` }}
-                  ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
-                />
-                {#if movement.note}
-                  <span class="text-neutral-400 block text-xs break-words">{movement.note}</span>
-                {/if}
-              </TableCell>
-              <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[200px] break-words">
-                {destinationOf(movement)}
-              </TableCell>
-              <TableCell class="text-neutral-500 break-words text-xs">{movement.handledBy ?? '—'}</TableCell>
-              <TableCell class="text-neutral-900 dark:text-neutral-100 font-semibold tabular-nums">
-                {movement.balanceAfter}
-              </TableCell>
-              <TableCell class="text-right whitespace-nowrap">
-                <TableActions>
-                  <ActionButton
-                    data={{ label: 'Excluir movimentação' }}
-                    ui={{
-                      variant: 'ghost',
-                      size: 'sm',
-                      icon: Trash2,
-                      isIconOnly: true,
-                      className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
-                    }}
-                    actions={{ onClick: () => actions.onAskRemove(movement) }}
+      <!-- 1. Visualização Mobile (< xl) -->
+      <div
+        class="flex flex-col gap-2.5 xl:hidden max-h-[60vh] overflow-y-auto pr-1"
+        data-slot="part-ledger-cards-mobile"
+      >
+        {#each data.movements as movement (movement.id)}
+          <div class="flex flex-col gap-2 rounded-box border border-border bg-card p-3 shadow-xs">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex flex-col gap-1 min-w-0">
+                <span class="text-xs text-muted-foreground">{formatDateTime(movement.createdAt)}</span>
+                <div>
+                  <StatusBadge
+                    data={{ label: `${movementTypeLabel(movement.type)} ${signedQuantity(movement)}` }}
+                    ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
                   />
-                </TableActions>
-              </TableCell>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold tabular-nums text-foreground">
+                  Saldo: {movement.balanceAfter}
+                </span>
+                <ActionButton
+                  data={{ label: 'Excluir movimentação' }}
+                  ui={{
+                    variant: 'ghost',
+                    size: 'sm',
+                    icon: Trash2,
+                    isIconOnly: true,
+                    className:
+                      'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                  }}
+                  actions={{ onClick: () => actions.onAskRemove(movement) }}
+                />
+              </div>
+            </div>
+            {#if movement.note}
+              <p class="text-xs text-muted-foreground break-words">{movement.note}</p>
+            {/if}
+            <div
+              class="flex items-center justify-between text-xs text-muted-foreground border-t border-border/40 pt-1.5"
+            >
+              <span>Máquina: <strong class="text-foreground">{destinationOf(movement)}</strong></span>
+              {#if movement.handledBy}
+                <span>Por: {movement.handledBy}</span>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- 2. Visualização Desktop (>= xl) -->
+      <div
+        class="hidden xl:block overflow-x-auto rounded-box border border-border"
+        data-slot="part-ledger-table-desktop"
+      >
+        <Table class="min-w-[620px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Quando</TableHead>
+              <TableHead>Movimento</TableHead>
+              <TableHead>Máquina</TableHead>
+              <TableHead>Quem</TableHead>
+              <TableHead>Saldo</TableHead>
+              <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
             </TableRow>
-          {/each}
-        </TableBody>
-        {#snippet footer()}
-          <span>Extrato de movimentações de estoque</span>
-          <span>{data.movements.length} registro(s)</span>
-        {/snippet}
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {#each data.movements as movement (movement.id)}
+              <TableRow class="align-top">
+                <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                  {formatDateTime(movement.createdAt)}
+                </TableCell>
+                <TableCell>
+                  <StatusBadge
+                    data={{ label: `${movementTypeLabel(movement.type)} ${signedQuantity(movement)}` }}
+                    ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
+                  />
+                  {#if movement.note}
+                    <span class="text-neutral-400 block text-xs break-words">{movement.note}</span>
+                  {/if}
+                </TableCell>
+                <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[200px] break-words">
+                  {destinationOf(movement)}
+                </TableCell>
+                <TableCell class="text-neutral-500 break-words text-xs">{movement.handledBy ?? '—'}</TableCell>
+                <TableCell class="text-neutral-900 dark:text-neutral-100 font-semibold tabular-nums">
+                  {movement.balanceAfter}
+                </TableCell>
+                <TableCell class="text-right whitespace-nowrap">
+                  <TableActions>
+                    <ActionButton
+                      data={{ label: 'Excluir movimentação' }}
+                      ui={{
+                        variant: 'ghost',
+                        size: 'sm',
+                        icon: Trash2,
+                        isIconOnly: true,
+                        className:
+                          'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                      }}
+                      actions={{ onClick: () => actions.onAskRemove(movement) }}
+                    />
+                  </TableActions>
+                </TableCell>
+              </TableRow>
+            {/each}
+          </TableBody>
+          {#snippet footer()}
+            <span>Extrato de movimentações de estoque</span>
+            <span>{data.movements.length} registro(s)</span>
+          {/snippet}
+        </Table>
+      </div>
     {/if}
 
     <DialogFooter>

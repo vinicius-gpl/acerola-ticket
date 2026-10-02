@@ -83,6 +83,9 @@
 
     return formatMoneyRange(estimate.min, estimate.max);
   }
+
+  /** Quantidade máxima de máquinas mostradas por página em cada necessidade. */
+  export const BUDGET_SECTION_PAGE_SIZE = 5;
 </script>
 
 <script lang="ts">
@@ -93,6 +96,7 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
@@ -102,6 +106,22 @@
 
   /* A data da referência é ISO no domínio e vira dd/mm/aaaa aqui, como no resto do sistema. */
   const referenceDate = $derived(formatDate(`${PRICE_REFERENCE_UPDATED_AT}T12:00:00.000Z`));
+
+  let needPages = $state<Record<string, number>>({});
+
+  function pageFor(key: string): number {
+    return needPages[key] ?? 1;
+  }
+
+  function setPageFor(key: string, page: number) {
+    needPages = { ...needPages, [key]: page };
+  }
+
+  function paginatedMachines(need: BudgetNeed): BudgetMachine[] {
+    const page = pageFor(need.key);
+    const start = (page - 1) * BUDGET_SECTION_PAGE_SIZE;
+    return need.machines.slice(start, start + BUDGET_SECTION_PAGE_SIZE);
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -151,17 +171,19 @@
 
     {#each budget.needs as need (need.key)}
       <section class="bg-card rounded-surface border p-4">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div class="min-w-0">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
             <h2 class="text-ink-900 text-sm font-semibold">{budgetNeedLabel(need.key)}</h2>
-            <p class="text-ink-500 text-xs">{budgetNeedHint(need.key)}</p>
+            <p class="text-ink-500 text-xs mt-0.5">{budgetNeedHint(need.key)}</p>
           </div>
 
-          {#if need.toBuy > 0}
-            <StatusBadge data={{ label: `Comprar ${need.toBuy}` }} ui={{ tone: 'warning' }} />
-          {:else}
-            <StatusBadge data={{ label: 'Nada a comprar' }} ui={{ tone: 'success' }} />
-          {/if}
+          <div class="shrink-0 pt-0.5">
+            {#if need.toBuy > 0}
+              <StatusBadge data={{ label: `Comprar ${need.toBuy}` }} ui={{ tone: 'warning' }} />
+            {:else}
+              <StatusBadge data={{ label: 'Nada a comprar' }} ui={{ tone: 'success' }} />
+            {/if}
+          </div>
         </div>
 
         <!-- A conta inteira à vista: quem lê confere de onde saiu o número. -->
@@ -180,24 +202,44 @@
           <div class="mt-3">
             <h3 class="text-ink-700 text-xs font-semibold">Quem precisa</h3>
             <ul class="mt-1 flex flex-col divide-y">
-              {#each need.machines as machine (machine.computerId)}
-                <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <div class="min-w-0">
-                    <p class="text-ink-900 text-sm font-semibold break-words">
+              {#each paginatedMachines(need) as machine (machine.computerId)}
+                <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
                       {machineLabelOf(machine)}
                     </p>
-                    <p class="text-ink-500 text-xs">
+                    <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                       {departmentOf(machine)} · {machineValueOf(need, machine)}
                     </p>
                   </div>
-                  <ActionButton
-                    data={{ label: 'Abrir ficha' }}
-                    ui={{ variant: 'secondary', size: 'sm' }}
-                    actions={{ onClick: () => actions.onOpenMachine(machine.computerId) }}
-                  />
+                  <div class="flex shrink-0 items-center gap-2 pt-0.5">
+                    <ActionButton
+                      data={{ label: 'Abrir ficha' }}
+                      ui={{ variant: 'secondary', size: 'sm' }}
+                      actions={{ onClick: () => actions.onOpenMachine(machine.computerId) }}
+                    />
+                  </div>
                 </li>
               {/each}
             </ul>
+
+            {#if need.machines.length > BUDGET_SECTION_PAGE_SIZE}
+              <div class="mt-3 border-t pt-2">
+                <PaginationBar
+                  data={{
+                    page: pageFor(need.key),
+                    pageSize: BUDGET_SECTION_PAGE_SIZE,
+                    total: need.machines.length,
+                    noun: ['máquina', 'máquinas'],
+                  }}
+                  actions={{
+                    onPageChange: (newPage) => {
+                      setPageFor(need.key, newPage);
+                    },
+                  }}
+                />
+              </div>
+            {/if}
 
             {#if need.needed > need.machines.length}
               <p class="text-ink-500 mt-2 text-xs">

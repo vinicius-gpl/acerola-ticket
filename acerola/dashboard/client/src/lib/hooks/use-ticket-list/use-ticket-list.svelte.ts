@@ -7,7 +7,6 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from '@template/shared/domain/ticket-status.util';
-import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
 import { derived, writable } from 'svelte/store';
@@ -16,6 +15,8 @@ import { readError } from '$lib/api/http-client';
 import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
+
+export const TICKETS_PAGE_SIZE = 15;
 
 export type TicketListFilter = {
   search: string;
@@ -33,6 +34,11 @@ export type TicketListModel = {
     /** Os indicadores, sobre TODOS os chamados: eles não seguem o filtro da lista. */
     dashboard: TicketDashboard | null;
     filter: TicketListFilter;
+    paging: {
+      page: number;
+      pageSize: number;
+      total: number;
+    };
   };
   state: {
     isLoading: boolean;
@@ -54,6 +60,7 @@ export type TicketListModel = {
     onPriorityChange: (priority: TicketPriority | '') => void;
     onDepartmentChange: (department: TicketDepartment | '') => void;
     onProblemTypeChange: (problemType: TicketProblemType | '') => void;
+    onPageChange: (page: number) => void;
     onClearFilters: () => void;
     onRetry: () => void;
     onExportReport: (format: ReportFormat) => void;
@@ -94,15 +101,22 @@ export function useTicketListModel(): TicketListModel {
      do meio — e a API seria chamada sem um dos filtros. */
   const filterStore = writable<TicketListFilter>({ ...EMPTY_FILTER });
   const filter = mirrorStore(filterStore);
+  const pageStore = writable<number>(1);
+  const page = mirrorStore(pageStore);
 
   let exportingFormat = $state<ReportFormat | null>(null);
   let exportError = $state<string | null>(null);
 
   const list = mirrorStore(
     createQuery(
-      derived(filterStore, (current) => ({
-        queryKey: [...TICKETS_QUERY_KEY, 'list', scopeOf(current)],
-        queryFn: () => ticketsApi.list({ ...scopeOf(current), page: 1, pageSize: MAX_PAGE_SIZE }),
+      derived([filterStore, pageStore], ([currentFilter, currentPage]) => ({
+        queryKey: [...TICKETS_QUERY_KEY, 'list', scopeOf(currentFilter), currentPage],
+        queryFn: () =>
+          ticketsApi.list({
+            ...scopeOf(currentFilter),
+            page: currentPage,
+            pageSize: TICKETS_PAGE_SIZE,
+          }),
       })),
     ),
   );
@@ -125,6 +139,7 @@ export function useTicketListModel(): TicketListModel {
     get data() {
       return buildData({
         page: list.current.data,
+        currentPage: page.current,
         dashboard: dashboard.current.data ?? null,
         filter: filter.current,
       });
@@ -138,13 +153,27 @@ export function useTicketListModel(): TicketListModel {
       };
     },
     actions: {
-      onSearchChange: (search) => filterStore.update((current) => ({ ...current, search })),
-      onStatusChange: (status) => filterStore.update((current) => ({ ...current, status })),
-      onPriorityChange: (priority) => filterStore.update((current) => ({ ...current, priority })),
-      onDepartmentChange: (department) =>
-        filterStore.update((current) => ({ ...current, department })),
-      onProblemTypeChange: (problemType) =>
-        filterStore.update((current) => ({ ...current, problemType })),
+      onSearchChange: (search) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, search }));
+      },
+      onStatusChange: (status) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, status }));
+      },
+      onPriorityChange: (priority) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, priority }));
+      },
+      onDepartmentChange: (department) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, department }));
+      },
+      onProblemTypeChange: (problemType) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, problemType }));
+      },
+      onPageChange: (newPage) => pageStore.set(newPage),
       onExportReport: (format) => {
         exportError = null;
         exportingFormat = format;
@@ -159,7 +188,10 @@ export function useTicketListModel(): TicketListModel {
             exportingFormat = null;
           });
       },
-      onClearFilters: () => filterStore.set({ ...EMPTY_FILTER }),
+      onClearFilters: () => {
+        pageStore.set(1);
+        filterStore.set({ ...EMPTY_FILTER });
+      },
       onRetry: () => {
         void list.current.refetch();
         void dashboard.current.refetch();
@@ -176,14 +208,22 @@ type TicketPage = { items: Ticket[]; total: number } | undefined;
  */
 function buildData(input: {
   page: TicketPage;
+  currentPage: number;
   dashboard: TicketDashboard | null;
   filter: TicketListFilter;
 }): TicketListModel['data'] {
+  const total = input.page?.total ?? 0;
+
   return {
     tickets: input.page?.items ?? [],
-    total: input.page?.total ?? 0,
+    total,
     dashboard: input.dashboard,
     filter: input.filter,
+    paging: {
+      page: input.currentPage,
+      pageSize: TICKETS_PAGE_SIZE,
+      total,
+    },
   };
 }
 

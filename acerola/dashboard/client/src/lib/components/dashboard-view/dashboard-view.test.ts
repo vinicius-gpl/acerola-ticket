@@ -272,7 +272,7 @@ describe('DashboardView', () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole('button', { name: 'Abrir ficha' }));
+    await user.click(screen.getAllByRole('button', { name: 'Abrir ficha' })[0]!);
 
     expect(actions.onOpenMachine).toHaveBeenCalledWith(expect.objectContaining({ computerId: 3 }));
   });

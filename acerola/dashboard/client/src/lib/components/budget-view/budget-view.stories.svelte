@@ -99,6 +99,34 @@
   }}
 />
 
+<!-- Mais de 5 máquinas na necessidade: mostra paginação de 5 em 5. -->
+<Story
+  name="Paginated machines"
+  args={{
+    data: {
+      budget: {
+        needs: [
+          need({
+            key: 'computer',
+            needed: 12,
+            inStock: 0,
+            toBuy: 12,
+            machines: Array.from({ length: 12 }, (_, i) => ({
+              computerId: 10 + i,
+              computerName: `PC-${10 + i}`,
+              computerDisplayName: `Máquina ${10 + i} — setor ${i + 1}`,
+              department: 'financeiro' as const,
+              value: 3 + i,
+            })),
+          }),
+        ],
+      },
+    },
+    state: settled,
+    actions,
+  }}
+/>
+
 <Story
   name="Loading"
   args={{ data: { budget: null }, state: { ...settled, isLoading: true }, actions }}
