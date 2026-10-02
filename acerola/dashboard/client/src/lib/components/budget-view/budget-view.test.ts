@@ -151,6 +151,40 @@ describe('BudgetView', () => {
     expect(actions.onOpenComputers).toHaveBeenCalled();
   });
 
+  // feliz
+  it('paginates the machines list when there are more than 5 machines', async () => {
+    const manyMachines: BudgetMachine[] = Array.from({ length: 8 }, (_, i) => ({
+      computerId: 10 + i,
+      computerName: `PC-${10 + i}`,
+      computerDisplayName: `Máquina ${10 + i}`,
+      department: 'rh',
+      value: 4,
+    }));
+
+    renderView({
+      data: {
+        budget: {
+          needs: [
+            need({ needed: 8, inStock: 0, toBuy: 8, machines: manyMachines }),
+            need({ key: 'disk' }),
+            need({ key: 'computer' }),
+          ],
+        },
+      },
+    });
+
+    expect(screen.getByText('Máquina 10')).toBeInTheDocument();
+    expect(screen.getByText('Máquina 14')).toBeInTheDocument();
+    expect(screen.queryByText('Máquina 15')).not.toBeInTheDocument();
+
+    const nextButton = screen.getByRole('button', { name: /Próxima/i });
+    expect(nextButton).toBeInTheDocument();
+    await userEvent.click(nextButton);
+
+    expect(screen.getByText('Máquina 15')).toBeInTheDocument();
+    expect(screen.getByText('Máquina 17')).toBeInTheDocument();
+  });
+
   it('celebrates when the storeroom covers everything', () => {
     renderView({
       data: { budget: budget({ needed: 3, inStock: 9, toBuy: 0 }) },

@@ -190,7 +190,7 @@
             </span>
             <div class="min-w-0">
               <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">Departamento</p>
-              <p class="truncate text-xs font-medium text-foreground">{ticketDepartmentLabel(ticket.department)}</p>
+              <p class="break-words text-xs font-medium text-foreground">{ticketDepartmentLabel(ticket.department)}</p>
             </div>
           </div>
 
@@ -200,7 +200,7 @@
             </span>
             <div class="min-w-0">
               <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">Tipo</p>
-              <p class="truncate text-xs font-medium text-foreground">{ticketProblemTypeLabel(ticket.problemType)}</p>
+              <p class="break-words text-xs font-medium text-foreground">{ticketProblemTypeLabel(ticket.problemType)}</p>
             </div>
           </div>
 
@@ -210,7 +210,7 @@
             </span>
             <div class="min-w-0">
               <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">AnyDesk</p>
-              <p class="truncate text-xs font-medium text-foreground font-mono">{ticket.anydeskId ?? 'Não informado'}</p>
+              <p class="break-words text-xs font-medium text-foreground font-mono">{ticket.anydeskId ?? 'Não informado'}</p>
             </div>
           </div>
 
@@ -220,7 +220,7 @@
             </span>
             <div class="min-w-0">
               <p class="text-[10px] font-semibold tracking-wider uppercase text-neutral-400">WhatsApp</p>
-              <p class="truncate text-xs font-medium text-foreground">{ticket.contactPhone ?? 'Não informado'}</p>
+              <p class="break-words text-xs font-medium text-foreground">{ticket.contactPhone ?? 'Não informado'}</p>
             </div>
           </div>
         </div>

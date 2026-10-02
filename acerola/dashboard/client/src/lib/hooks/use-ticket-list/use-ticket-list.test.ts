@@ -114,6 +114,35 @@ describe('useTicketListModel', () => {
     });
   });
 
+  it('navigates to another page when requested', async () => {
+    const model = await mountLoadedModel();
+
+    model.actions.onPageChange(3);
+
+    await waitFor(() => {
+      expect(model.data.paging.page).toBe(3);
+      expect(ticketsApi.list).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 3 }),
+      );
+    });
+  });
+
+  it('resets to page 1 when any filter changes', async () => {
+    const model = await mountLoadedModel();
+
+    model.actions.onPageChange(2);
+    await waitFor(() => expect(model.data.paging.page).toBe(2));
+
+    model.actions.onStatusChange('open');
+
+    await waitFor(() => {
+      expect(model.data.paging.page).toBe(1);
+      expect(ticketsApi.list).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'open', page: 1 }),
+      );
+    });
+  });
+
   // triste
   /* "Ainda não há chamado" e "o filtro escondeu tudo" pedem ações opostas de quem lê. */
   it('separates an empty queue from a queue hidden by the filter', async () => {

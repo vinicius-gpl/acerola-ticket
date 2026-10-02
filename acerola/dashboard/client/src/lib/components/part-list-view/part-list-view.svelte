@@ -218,24 +218,12 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[760px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Peça</TableHead>
-          <TableHead>Categoria</TableHead>
-          <TableHead>Condição</TableHead>
-          <TableHead>Na prateleira</TableHead>
-          <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {#each data.parts as part (part.id)}
-          <TableRow class="align-top">
-            <!-- `style` (não classe) força a quebra de linha: o componente baixado do
-                 `ui/table` deixa toda célula com botão dentro em `white-space: nowrap`, e um
-                 nome comprido de peça atropelava a coluna de categoria (CONTRIBUTING §5: não
-                 se edita o componente baixado). Estilo inline vence a classe sem tocar nele. -->
-            <TableCell class="max-w-[280px]" style="white-space: normal;">
+    <!-- Lista de cartões para mobile (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="part-cards-mobile">
+      {#each data.parts as part (part.id)}
+        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
               <button
                 type="button"
                 class="font-medium text-neutral-900 dark:text-neutral-100 text-left break-words hover:underline"
@@ -243,51 +231,128 @@
               >
                 {part.name}
               </button>
-              <span class="text-neutral-400 block text-xs">Ver o histórico desta peça</span>
-            </TableCell>
-            <TableCell class="text-neutral-700 dark:text-neutral-200">{partCategoryLabel(part.category)}</TableCell>
-            <TableCell>
+              <span class="text-neutral-400 block text-xs">Ver o histórico</span>
+            </div>
+            <div class="flex flex-col items-end gap-1 shrink-0">
               <StatusBadge
                 data={{ label: partConditionLabel(part.condition) }}
                 ui={{ tone: partConditionTone(part.condition), size: 'sm' }}
               />
-            </TableCell>
-            <TableCell
-              class={cn(
-                'text-base font-semibold tabular-nums',
-                part.balance === 0 ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100',
-              )}
-            >
-              {part.balance}
-            </TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <TableActions>
-                <ActionButton
-                  data={{ label: 'Entrada' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onMove(part, 'in') }}
-                />
-                <ActionButton
-                  data={{ label: 'Saída' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  state={{ isDisabled: part.balance === 0 }}
-                  actions={{ onClick: () => actions.onMove(part, 'out') }}
-                />
-                <ActionButton
-                  data={{ label: 'Corrigir' }}
-                  ui={{ variant: 'ghost', size: 'sm' }}
-                  actions={{ onClick: () => actions.onEdit(part) }}
-                />
-              </TableActions>
-            </TableCell>
-          </TableRow>
-        {/each}
-      </TableBody>
-      {#snippet footer()}
-        <span>Controle de estoque e saldo de prateleira</span>
+              <span
+                class={cn(
+                  'text-base font-semibold tabular-nums',
+                  part.balance === 0 ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100',
+                )}
+              >
+                {part.balance} <span class="text-xs font-normal text-muted-foreground">na prateleira</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="mt-2 text-xs">
+            <span class="text-muted-foreground">Categoria: </span>
+            <span class="text-neutral-700 dark:text-neutral-200 font-medium">{partCategoryLabel(part.category)}</span>
+          </div>
+
+          <div class="border-border/60 mt-3 flex items-center justify-end gap-2 border-t pt-2">
+            <ActionButton
+              data={{ label: 'Entrada' }}
+              ui={{ variant: 'secondary', size: 'sm' }}
+              actions={{ onClick: () => actions.onMove(part, 'in') }}
+            />
+            <ActionButton
+              data={{ label: 'Saída' }}
+              ui={{ variant: 'secondary', size: 'sm' }}
+              state={{ isDisabled: part.balance === 0 }}
+              actions={{ onClick: () => actions.onMove(part, 'out') }}
+            />
+            <ActionButton
+              data={{ label: 'Corrigir' }}
+              ui={{ variant: 'ghost', size: 'sm' }}
+              actions={{ onClick: () => actions.onEdit(part) }}
+            />
+          </div>
+        </div>
+      {/each}
+      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+        <span>Controle de estoque</span>
         <span>{data.parts.length} item(ns)</span>
-      {/snippet}
-    </Table>
+      </div>
+    </div>
+
+    <!-- Tabela para desktop (>= xl) -->
+    <div class="hidden xl:block overflow-x-auto" data-slot="part-table-desktop">
+      <Table class="min-w-[760px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Peça</TableHead>
+            <TableHead>Categoria</TableHead>
+            <TableHead>Condição</TableHead>
+            <TableHead>Na prateleira</TableHead>
+            <TableHead class="text-right"><span class="sr-only">Ações</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {#each data.parts as part (part.id)}
+            <TableRow class="align-top">
+              <!-- `style` (não classe) força a quebra de linha: o componente baixado do
+                   `ui/table` deixa toda célula com botão dentro em `white-space: nowrap`, e um
+                   nome comprido de peça atropelava a coluna de categoria (CONTRIBUTING §5: não
+                   se edita o componente baixado). Estilo inline vence a classe sem tocar nele. -->
+              <TableCell class="max-w-[280px]" style="white-space: normal;">
+                <button
+                  type="button"
+                  class="font-medium text-neutral-900 dark:text-neutral-100 text-left break-words hover:underline"
+                  onclick={() => actions.onOpenLedger(part)}
+                >
+                  {part.name}
+                </button>
+                <span class="text-neutral-400 block text-xs">Ver o histórico desta peça</span>
+              </TableCell>
+              <TableCell class="text-neutral-700 dark:text-neutral-200">{partCategoryLabel(part.category)}</TableCell>
+              <TableCell>
+                <StatusBadge
+                  data={{ label: partConditionLabel(part.condition) }}
+                  ui={{ tone: partConditionTone(part.condition), size: 'sm' }}
+                />
+              </TableCell>
+              <TableCell
+                class={cn(
+                  'text-base font-semibold tabular-nums',
+                  part.balance === 0 ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100',
+                )}
+              >
+                {part.balance}
+              </TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <TableActions>
+                  <ActionButton
+                    data={{ label: 'Entrada' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    actions={{ onClick: () => actions.onMove(part, 'in') }}
+                  />
+                  <ActionButton
+                    data={{ label: 'Saída' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    state={{ isDisabled: part.balance === 0 }}
+                    actions={{ onClick: () => actions.onMove(part, 'out') }}
+                  />
+                  <ActionButton
+                    data={{ label: 'Corrigir' }}
+                    ui={{ variant: 'ghost', size: 'sm' }}
+                    actions={{ onClick: () => actions.onEdit(part) }}
+                  />
+                </TableActions>
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Controle de estoque e saldo de prateleira</span>
+          <span>{data.parts.length} item(ns)</span>
+        {/snippet}
+      </Table>
+    </div>
 
     <!-- Truncar calado é mentir sobre o tamanho do depósito. -->
     {#if viewState.isTruncated}

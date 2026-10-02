@@ -9,6 +9,23 @@ const preview: Preview = {
   tags: ['autodocs'],
   parameters: {
     controls: { expanded: true },
+    /* A régua pede que TUDO funcione em 400px de largura (skill `ui-padrao`, §Responsivo).
+       Estes dois tamanhos são o que as stories usam para mostrar a mesma tela nas duas
+       formas: cartão empilhado no celular e tabela no computador. */
+    viewport: {
+      options: {
+        celular: {
+          name: 'Celular (400px)',
+          styles: { width: '400px', height: '860px' },
+          type: 'mobile',
+        },
+        tablet: {
+          name: 'Tablet (820px)',
+          styles: { width: '820px', height: '1180px' },
+          type: 'tablet',
+        },
+      },
+    },
     backgrounds: {
       default: 'app',
       values: [

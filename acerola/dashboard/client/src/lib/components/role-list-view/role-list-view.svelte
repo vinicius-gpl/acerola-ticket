@@ -134,7 +134,7 @@
           </div>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <h1 class="text-xl font-bold tracking-tight text-foreground truncate">
+              <h1 class="text-xl font-bold tracking-tight text-foreground break-words">
                 {data.currentUser.name}
               </h1>
               <StatusBadge
@@ -145,7 +145,7 @@
                 ui={{ tone: roleTone(data.currentUser.role), size: 'sm' }}
               />
             </div>
-            <p class="text-xs font-mono text-muted-foreground mt-0.5 truncate">
+            <p class="text-xs font-mono text-muted-foreground mt-0.5 break-all">
               {data.currentUser.email}
             </p>
           </div>
@@ -298,8 +298,8 @@
       />
     </EmptyState>
   {:else}
-    <!-- 1. Visualização em Cards para Dispositivos Móveis (< md) -->
-    <div class="flex flex-col gap-3 md:hidden" data-slot="role-cards-mobile">
+    <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="role-cards-mobile">
       {#each data.roles as item (item.id)}
         {@const user = resolveUser(item)}
         {@const displayName = user?.name || item.userEmail || item.userId}
@@ -312,15 +312,15 @@
                 ui={{ size: 'lg' }}
               />
               <div class="min-w-0">
-                <span class="block font-semibold text-foreground text-sm truncate">
+                <span class="block font-semibold text-foreground text-sm break-words">
                   {displayName}
                 </span>
                 {#if item.userEmail}
-                  <span class="block text-xs text-muted-foreground truncate">
+                  <span class="block text-xs text-muted-foreground break-all">
                     {item.userEmail}
                   </span>
                 {/if}
-                <span class="block text-[11px] font-mono text-muted-foreground/70 truncate">
+                <span class="block text-[11px] font-mono text-muted-foreground/70 break-all">
                   ID: {item.userId}
                 </span>
               </div>
@@ -384,9 +384,9 @@
       {/each}
     </div>
 
-    <!-- 2. Visualização em Tabela para Desktop (>= md) -->
+    <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
     <div
-      class="hidden md:block overflow-x-auto rounded-box border border-border bg-card shadow-xs"
+      class="hidden xl:block overflow-x-auto rounded-box border border-border bg-card shadow-xs"
       data-slot="role-table-desktop"
     >
       <Table class="min-w-[760px]">

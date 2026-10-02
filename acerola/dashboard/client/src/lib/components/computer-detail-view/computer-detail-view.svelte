@@ -559,44 +559,88 @@
         ela volta ao normal.
       </p>
     {:else}
-      <Table class="min-w-[620px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Medida</TableHead>
-            <TableHead>Pico</TableHead>
-            <TableHead>Começou</TableHead>
-            <TableHead>Durou</TableHead>
-            <TableHead>Causa provável</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {#each data.alerts as alert (alert.id)}
+      <!-- Lista de cartões para mobile (< xl) -->
+      <div class="flex flex-col gap-3 xl:hidden" data-slot="alert-cards-mobile">
+        {#each data.alerts as alert (alert.id)}
+          <div class="border-border/70 bg-card rounded-lg border p-3 shadow-xs">
+            <div class="flex items-start justify-between gap-2">
+              <span class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">
+                {metricLabel(alert.metric)}
+              </span>
+              {#if alert.recoveredAt}
+                <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+              {:else}
+                <StatusBadge
+                  data={{ label: 'Acontecendo agora' }}
+                  ui={{ tone: 'danger', size: 'sm' }}
+                />
+              {/if}
+            </div>
+
+            <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span class="text-muted-foreground block text-[11px]">Pico</span>
+                <span class="tabular-nums font-medium text-neutral-700 dark:text-neutral-200">
+                  {formatPercent(alert.peakValue)}
+                </span>
+              </div>
+              <div>
+                <span class="text-muted-foreground block text-[11px]">Começou</span>
+                <span class="text-neutral-500">{formatDateTime(alert.startedAt)}</span>
+              </div>
+            </div>
+
+            {#if alert.causeProcess}
+              <div class="border-border/60 mt-2 border-t pt-1.5 text-xs">
+                <span class="text-muted-foreground text-[11px]">Causa provável: </span>
+                <span class="text-neutral-600 dark:text-neutral-300 font-mono text-[11px] break-words">{alert.causeProcess}</span>
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+
+      <!-- Tabela para desktop (>= xl) -->
+      <div class="hidden xl:block overflow-x-auto" data-slot="alert-table-desktop">
+        <Table class="min-w-[620px]">
+          <TableHeader>
             <TableRow>
-              <TableCell class="font-medium text-neutral-900 dark:text-neutral-100">{metricLabel(alert.metric)}</TableCell>
-              <TableCell class="tabular-nums text-neutral-700 dark:text-neutral-200">
-                {formatPercent(alert.peakValue)}
-              </TableCell>
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
-                {formatDateTime(alert.startedAt)}
-              </TableCell>
-              <TableCell>
-                {#if alert.recoveredAt}
-                  <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
-                {:else}
-                  <StatusBadge
-                    data={{ label: 'Acontecendo agora' }}
-                    ui={{ tone: 'danger', size: 'sm' }}
-                  />
-                {/if}
-              </TableCell>
-              <TableCell class="text-neutral-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+              <TableHead>Medida</TableHead>
+              <TableHead>Pico</TableHead>
+              <TableHead>Começou</TableHead>
+              <TableHead>Durou</TableHead>
+              <TableHead>Causa provável</TableHead>
             </TableRow>
-          {/each}
-        </TableBody>
-        {#snippet footer()}
-          <span>Alertas automáticos gerados pelo agente</span>
-        {/snippet}
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {#each data.alerts as alert (alert.id)}
+              <TableRow>
+                <TableCell class="font-medium text-neutral-900 dark:text-neutral-100">{metricLabel(alert.metric)}</TableCell>
+                <TableCell class="tabular-nums text-neutral-700 dark:text-neutral-200">
+                  {formatPercent(alert.peakValue)}
+                </TableCell>
+                <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                  {formatDateTime(alert.startedAt)}
+                </TableCell>
+                <TableCell>
+                  {#if alert.recoveredAt}
+                    <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+                  {:else}
+                    <StatusBadge
+                      data={{ label: 'Acontecendo agora' }}
+                      ui={{ tone: 'danger', size: 'sm' }}
+                    />
+                  {/if}
+                </TableCell>
+                <TableCell class="text-neutral-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+              </TableRow>
+            {/each}
+          </TableBody>
+          {#snippet footer()}
+            <span>Alertas automáticos gerados pelo agente</span>
+          {/snippet}
+        </Table>
+      </div>
 
       <!-- A barra diz quantos episódios existem AO TODO, e não quantos vieram nesta página:
            sem isso a lista seria cortada em silêncio (CONTRIBUTING §15). Quem pagina é o
@@ -636,20 +680,24 @@
     {:else}
       <ul class="flex flex-col divide-y">
         {#each data.maintenances as maintenance (maintenance.id)}
-          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm break-words">{maintenance.description ?? '—'}</p>
-              <p class="text-ink-500 text-xs">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">
+                {maintenance.description ?? '—'}
+              </p>
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(maintenance.performedAt)}
                 {#if maintenance.performedBy}
                   · {maintenance.performedBy}
                 {/if}
               </p>
             </div>
-            <StatusBadge
-              data={{ label: maintenanceTypeLabel(maintenance.type) }}
-              ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
-            />
+            <div class="shrink-0 pt-0.5">
+              <StatusBadge
+                data={{ label: maintenanceTypeLabel(maintenance.type) }}
+                ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+              />
+            </div>
           </li>
         {/each}
       </ul>
@@ -669,21 +717,23 @@
     {:else}
       <ul class="divide-y">
         {#each data.tickets as ticket (ticket.id)}
-          <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">
                 <span class="font-mono text-xs">{ticket.protocol}</span>
                 · {ticketProblemTypeLabel(ticket.problemType)}
               </p>
-              <p class="text-ink-500 text-xs">
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {ticket.requesterName} · {formatDateTime(ticket.createdAt)}
               </p>
             </div>
 
-            <StatusBadge
-              data={{ label: ticketStatusLabel(ticket.status) }}
-              ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
-            />
+            <div class="shrink-0 pt-0.5">
+              <StatusBadge
+                data={{ label: ticketStatusLabel(ticket.status) }}
+                ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+              />
+            </div>
           </li>
         {/each}
       </ul>
@@ -714,10 +764,10 @@
     {:else}
       <ul class="flex flex-col divide-y">
         {#each data.transfers as transfer (transfer.id)}
-          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm break-words">{transferRouteOf(transfer)}</p>
-              <p class="text-ink-500 text-xs break-words">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">{transferRouteOf(transfer)}</p>
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(transfer.createdAt)}
                 {#if transfer.responsible}
                   · {transfer.responsible}
@@ -728,10 +778,12 @@
               </p>
             </div>
             {#if transfer.peripheralsLeftBehind > 0}
-              <StatusBadge
-                data={{ label: `${transfer.peripheralsLeftBehind} peça(s) ficaram` }}
-                ui={{ tone: 'neutral', size: 'sm' }}
-              />
+              <div class="shrink-0 pt-0.5">
+                <StatusBadge
+                  data={{ label: `${transfer.peripheralsLeftBehind} peça(s) ficaram` }}
+                  ui={{ tone: 'neutral', size: 'sm' }}
+                />
+              </div>
             {/if}
           </li>
         {/each}
@@ -752,10 +804,10 @@
     {:else}
       <ul class="flex flex-col divide-y">
         {#each data.partMovements as movement (movement.id)}
-          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm break-words">{movement.partName}</p>
-              <p class="text-ink-500 text-xs">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">{movement.partName}</p>
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(movement.createdAt)}
                 {#if movement.handledBy}
                   · {movement.handledBy}
@@ -765,10 +817,12 @@
                 {/if}
               </p>
             </div>
-            <StatusBadge
-              data={{ label: `${movementTypeLabel(movement.type)} · ${movement.quantity}` }}
-              ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
-            />
+            <div class="shrink-0 pt-0.5">
+              <StatusBadge
+                data={{ label: `${movementTypeLabel(movement.type)} · ${movement.quantity}` }}
+                ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
+              />
+            </div>
           </li>
         {/each}
       </ul>

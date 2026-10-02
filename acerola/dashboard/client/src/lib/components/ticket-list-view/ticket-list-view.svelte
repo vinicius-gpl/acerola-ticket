@@ -50,6 +50,11 @@
       total: number;
       dashboard: TicketDashboard | null;
       filter: TicketListFilter;
+      paging?: {
+        page: number;
+        pageSize: number;
+        total: number;
+      };
     };
     state: {
       isLoading: boolean;
@@ -72,6 +77,7 @@
       onRetry: () => void;
       onAnswer: (ticket: Ticket) => void;
       onExportReport: (format: ReportFormat) => void;
+      onPageChange?: (page: number) => void;
     };
   };
 
@@ -122,6 +128,7 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
   import RadarChart from '$lib/components/radar-chart/radar-chart.svelte';
   import ReportExportActions from '$lib/components/report-export-actions/report-export-actions.svelte';
@@ -256,38 +263,58 @@
            sem gastar uma linha inteira. No celular ele vira horizontal, porque ali os grupos
            empilham em vez de ficar lado a lado. -->
       <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <OptionPicker
-          data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
-          actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
-        />
+        <div class="flex flex-col gap-1.5 sm:block">
+          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+            Situação
+          </span>
+          <OptionPicker
+            data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
+            actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
+          />
+        </div>
         <Separator orientation="horizontal" class="bg-border sm:hidden" />
         <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
-        <OptionPicker
-          data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
-          actions={{
-            onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
-          }}
-        />
+        <div class="flex flex-col gap-1.5 sm:block">
+          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+            Urgência
+          </span>
+          <OptionPicker
+            data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
+            actions={{
+              onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
+            }}
+          />
+        </div>
       </div>
       <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <OptionPicker
-          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
-          actions={{
-            onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
-          }}
-        />
+        <div class="flex flex-col gap-1.5 sm:block w-full sm:w-auto">
+          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+            Departamento
+          </span>
+          <OptionPicker
+            data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+            actions={{
+              onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
+            }}
+          />
+        </div>
         <Separator orientation="horizontal" class="bg-border sm:hidden" />
         <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
-        <OptionPicker
-          data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
-          actions={{
-            onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
-          }}
-        />
+        <div class="flex flex-col gap-1.5 sm:block w-full sm:w-auto">
+          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+            Tipo de problema
+          </span>
+          <OptionPicker
+            data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
+            actions={{
+              onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
+            }}
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -324,70 +351,141 @@
       />
     </EmptyState>
   {:else}
-    <Table class="min-w-[880px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead class="min-w-[110px]">Protocolo</TableHead>
-          <TableHead class="min-w-[180px]">Quem abriu</TableHead>
-          <TableHead class="min-w-[140px]">Tipo</TableHead>
-          <TableHead class="min-w-[160px]">Máquina</TableHead>
-          <TableHead class="min-w-[110px]">Urgência</TableHead>
-          <TableHead class="min-w-[120px]">Situação</TableHead>
-          <TableHead class="min-w-[110px]">Aberto em</TableHead>
-          <TableHead class="min-w-[90px] text-right"><span class="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {#each data.tickets as ticket (ticket.id)}
-          <TableRow>
-            <TableCell class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">{ticket.protocol}</TableCell>
-            <TableCell>
-              <span class="font-medium text-neutral-900 dark:text-neutral-100">{ticket.requesterName}</span>
-              <span class="block text-xs text-neutral-400">
-                {ticketDepartmentLabel(ticket.department)}
-              </span>
-            </TableCell>
-            <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
-            <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
-                 "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
-            <TableCell class="text-neutral-600 dark:text-neutral-300">
-              {ticket.computerName ?? '—'}
-            </TableCell>
-            <TableCell>
+    <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
+    <div class="flex flex-col gap-3 xl:hidden" data-slot="ticket-cards-mobile">
+      {#each data.tickets as ticket (ticket.id)}
+        <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+              {ticket.protocol}
+            </span>
+            <div class="flex items-center gap-1.5 flex-wrap justify-end">
               <StatusBadge
                 data={{ label: ticketPriorityLabel(ticket.priority) }}
                 ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
               />
-            </TableCell>
-            <TableCell>
               <StatusBadge
                 data={{ label: ticketStatusLabel(ticket.status) }}
                 ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
               />
-            </TableCell>
-            <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
-              {formatDate(ticket.createdAt)}
-            </TableCell>
-            <TableCell class="text-right whitespace-nowrap">
-              <TableActions>
-                <ActionButton
-                  data={{ label: 'Atender' }}
-                  ui={{ variant: 'secondary', size: 'sm' }}
-                  actions={{ onClick: () => actions.onAnswer(ticket) }}
-                />
-              </TableActions>
-            </TableCell>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-0.5">
+            <span class="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+              {ticket.requesterName}
+            </span>
+            <span class="text-xs text-neutral-400">
+              {ticketDepartmentLabel(ticket.department)}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tipo</span>
+              <span class="text-neutral-700 dark:text-neutral-200">{ticketProblemTypeLabel(ticket.problemType)}</span>
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Máquina</span>
+              <span class="text-neutral-700 dark:text-neutral-200">{ticket.computerName ?? '—'}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-border/60">
+            <span class="text-xs text-neutral-500">
+              Aberto em {formatDate(ticket.createdAt)}
+            </span>
+            <ActionButton
+              data={{ label: 'Atender' }}
+              ui={{ variant: 'secondary', size: 'sm' }}
+              actions={{ onClick: () => actions.onAnswer(ticket) }}
+            />
+          </div>
+        </div>
+      {/each}
+    </div>
+
+    <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
+    <div class="hidden xl:block" data-slot="ticket-table-desktop">
+      <Table class="min-w-[880px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead class="min-w-[110px]">Protocolo</TableHead>
+            <TableHead class="min-w-[180px]">Quem abriu</TableHead>
+            <TableHead class="min-w-[140px]">Tipo</TableHead>
+            <TableHead class="min-w-[160px]">Máquina</TableHead>
+            <TableHead class="min-w-[110px]">Urgência</TableHead>
+            <TableHead class="min-w-[120px]">Situação</TableHead>
+            <TableHead class="min-w-[110px]">Aberto em</TableHead>
+            <TableHead class="min-w-[90px] text-right"><span class="sr-only">Ações</span></TableHead>
           </TableRow>
-        {/each}
-      </TableBody>
-      {#snippet footer()}
-        <span>Fila de chamados sincronizada em tempo real</span>
-        <span>{data.tickets.length} chamado(s) listado(s)</span>
-      {/snippet}
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {#each data.tickets as ticket (ticket.id)}
+            <TableRow>
+              <TableCell class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">{ticket.protocol}</TableCell>
+              <TableCell>
+                <span class="font-medium text-neutral-900 dark:text-neutral-100">{ticket.requesterName}</span>
+                <span class="block text-xs text-neutral-400">
+                  {ticketDepartmentLabel(ticket.department)}
+                </span>
+              </TableCell>
+              <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
+              <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
+                   "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
+              <TableCell class="text-neutral-600 dark:text-neutral-300">
+                {ticket.computerName ?? '—'}
+              </TableCell>
+              <TableCell>
+                <StatusBadge
+                  data={{ label: ticketPriorityLabel(ticket.priority) }}
+                  ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
+                />
+              </TableCell>
+              <TableCell>
+                <StatusBadge
+                  data={{ label: ticketStatusLabel(ticket.status) }}
+                  ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+                />
+              </TableCell>
+              <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
+                {formatDate(ticket.createdAt)}
+              </TableCell>
+              <TableCell class="text-right whitespace-nowrap">
+                <TableActions>
+                  <ActionButton
+                    data={{ label: 'Atender' }}
+                    ui={{ variant: 'secondary', size: 'sm' }}
+                    actions={{ onClick: () => actions.onAnswer(ticket) }}
+                  />
+                </TableActions>
+              </TableCell>
+            </TableRow>
+          {/each}
+        </TableBody>
+        {#snippet footer()}
+          <span>Fila de chamados sincronizada em tempo real</span>
+          <span>{data.tickets.length} chamado(s) nesta página</span>
+        {/snippet}
+      </Table>
+    </div>
+
+    <!-- Paginação da fila de chamados -->
+    {#if (data.paging ? data.paging.total : data.total) > 0}
+      <PaginationBar
+        data={{
+          page: data.paging?.page ?? 1,
+          pageSize: data.paging?.pageSize ?? data.tickets.length,
+          total: data.paging?.total ?? data.total,
+          noun: ['chamado', 'chamados'],
+        }}
+        state={{ isLoading: state.isLoading || state.isRefetching }}
+        actions={{ onPageChange: (newPage) => actions.onPageChange?.(newPage) }}
+      />
+    {/if}
 
     <!-- Truncar calado é mentir sobre o tamanho da fila. -->
-    {#if state.isTruncated}
+    {#if state.isTruncated && !data.paging}
       <p class="text-ink-500 text-xs">
         Mostrando {data.tickets.length} de {data.total} chamados. Use os filtros para chegar ao
         que procura.

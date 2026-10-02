@@ -1,5 +1,5 @@
 import { type Insights } from '@template/shared/schemas/insight.schema';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -252,6 +252,41 @@ describe('InsightsView', () => {
     await user.click(screen.getAllByRole('button', { name: 'Abrir ficha' })[0]!);
 
     expect(actions.onOpenMachine).toHaveBeenCalledWith(2);
+  });
+
+  // feliz
+  it('paginates lists with more than 5 machines', async () => {
+    const user = userEvent.setup();
+    const manyOverloaded = Array.from({ length: 8 }, (_, i) => ({
+      computerId: 10 + i,
+      computerName: `PC-${10 + i}`,
+      computerDisplayName: `Máquina ${10 + i}`,
+      department: 'rh' as const,
+      averageCpuPercent: 50 + i,
+      averageMemoryPercent: 85,
+      sampleCount: 100,
+      activeAlerts: 0,
+    }));
+
+    renderView({
+      insights: insights({ overloaded: manyOverloaded }),
+    });
+
+    const section = screen
+      .getByRole('heading', { name: 'Máquinas sobrecarregadas' })
+      .closest('section')!;
+    const { getByText, queryByText, getByRole } = within(section);
+
+    expect(getByText('Máquina 10')).toBeInTheDocument();
+    expect(getByText('Máquina 14')).toBeInTheDocument();
+    expect(queryByText('Máquina 15')).not.toBeInTheDocument();
+
+    const nextButton = getByRole('button', { name: /Próxima/i });
+    expect(nextButton).toBeInTheDocument();
+    await user.click(nextButton);
+
+    expect(getByText('Máquina 15')).toBeInTheDocument();
+    expect(getByText('Máquina 17')).toBeInTheDocument();
   });
 
   // triste
