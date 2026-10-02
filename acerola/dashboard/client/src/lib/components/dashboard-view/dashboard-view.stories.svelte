@@ -109,6 +109,9 @@
 <!-- O dia normal: algumas coisas pegando fogo. -->
 <Story name="Default" args={{ data: { summary: summary(), days: 30 }, state: settled, actions }} />
 
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
+<Story name="Celular" globals={{ viewport: { value: 'celular' } }} args={{ data: { summary: summary(), days: 30 }, state: settled, actions }} />
+
 <!-- Parque em ordem: a boa notícia é dita, não é uma lista vazia. -->
 <Story
   name="Everything in order"

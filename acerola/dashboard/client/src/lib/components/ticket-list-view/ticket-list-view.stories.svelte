@@ -128,14 +128,10 @@
   }}
 />
 
-<!-- Visualização em tela pequena (mobile / 400px): cartões empilhados em vez de tabela -->
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
 <Story
-  name="MobileView"
-  parameters={{
-    viewport: {
-      defaultViewport: 'mobile1',
-    },
-  }}
+  name="Celular"
+  globals={{ viewport: { value: 'celular' } }}
   args={{
     data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: settled,
