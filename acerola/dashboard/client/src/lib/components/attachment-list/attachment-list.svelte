@@ -87,7 +87,7 @@
 {:else}
   <ul class="divide-y rounded-box border">
     {#each data.attachments as attachment (attachment.id)}
-      <li class="flex flex-wrap items-center justify-between gap-2 p-2.5">
+      <li class="flex items-center justify-between gap-3 p-2.5">
         <div class="min-w-0 flex-1">
           <p class="text-ink-900 truncate text-sm">{attachment.fileName}</p>
           <!-- De quem é o arquivo vai ESCRITO na linha. Sem isso, a única pista de por que uns
