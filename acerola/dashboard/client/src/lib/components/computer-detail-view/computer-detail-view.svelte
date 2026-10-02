@@ -680,20 +680,24 @@
     {:else}
       <ul class="flex flex-col divide-y">
         {#each data.maintenances as maintenance (maintenance.id)}
-          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm break-words">{maintenance.description ?? '—'}</p>
-              <p class="text-ink-500 text-xs">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">
+                {maintenance.description ?? '—'}
+              </p>
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(maintenance.performedAt)}
                 {#if maintenance.performedBy}
                   · {maintenance.performedBy}
                 {/if}
               </p>
             </div>
-            <StatusBadge
-              data={{ label: maintenanceTypeLabel(maintenance.type) }}
-              ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
-            />
+            <div class="shrink-0 pt-0.5">
+              <StatusBadge
+                data={{ label: maintenanceTypeLabel(maintenance.type) }}
+                ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
+              />
+            </div>
           </li>
         {/each}
       </ul>
@@ -713,21 +717,23 @@
     {:else}
       <ul class="divide-y">
         {#each data.tickets as ticket (ticket.id)}
-          <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">
                 <span class="font-mono text-xs">{ticket.protocol}</span>
                 · {ticketProblemTypeLabel(ticket.problemType)}
               </p>
-              <p class="text-ink-500 text-xs">
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {ticket.requesterName} · {formatDateTime(ticket.createdAt)}
               </p>
             </div>
 
-            <StatusBadge
-              data={{ label: ticketStatusLabel(ticket.status) }}
-              ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
-            />
+            <div class="shrink-0 pt-0.5">
+              <StatusBadge
+                data={{ label: ticketStatusLabel(ticket.status) }}
+                ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+              />
+            </div>
           </li>
         {/each}
       </ul>
@@ -758,10 +764,10 @@
     {:else}
       <ul class="flex flex-col divide-y">
         {#each data.transfers as transfer (transfer.id)}
-          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm break-words">{transferRouteOf(transfer)}</p>
-              <p class="text-ink-500 text-xs break-words">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">{transferRouteOf(transfer)}</p>
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(transfer.createdAt)}
                 {#if transfer.responsible}
                   · {transfer.responsible}
@@ -772,10 +778,12 @@
               </p>
             </div>
             {#if transfer.peripheralsLeftBehind > 0}
-              <StatusBadge
-                data={{ label: `${transfer.peripheralsLeftBehind} peça(s) ficaram` }}
-                ui={{ tone: 'neutral', size: 'sm' }}
-              />
+              <div class="shrink-0 pt-0.5">
+                <StatusBadge
+                  data={{ label: `${transfer.peripheralsLeftBehind} peça(s) ficaram` }}
+                  ui={{ tone: 'neutral', size: 'sm' }}
+                />
+              </div>
             {/if}
           </li>
         {/each}
@@ -796,10 +804,10 @@
     {:else}
       <ul class="flex flex-col divide-y">
         {#each data.partMovements as movement (movement.id)}
-          <li class="flex flex-wrap items-start justify-between gap-2 py-2">
-            <div class="min-w-0">
-              <p class="text-ink-900 text-sm break-words">{movement.partName}</p>
-              <p class="text-ink-500 text-xs">
+          <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div class="min-w-0 flex-1">
+              <p class="text-ink-900 text-sm break-words leading-tight">{movement.partName}</p>
+              <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(movement.createdAt)}
                 {#if movement.handledBy}
                   · {movement.handledBy}
@@ -809,10 +817,12 @@
                 {/if}
               </p>
             </div>
-            <StatusBadge
-              data={{ label: `${movementTypeLabel(movement.type)} · ${movement.quantity}` }}
-              ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
-            />
+            <div class="shrink-0 pt-0.5">
+              <StatusBadge
+                data={{ label: `${movementTypeLabel(movement.type)} · ${movement.quantity}` }}
+                ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
+              />
+            </div>
           </li>
         {/each}
       </ul>
