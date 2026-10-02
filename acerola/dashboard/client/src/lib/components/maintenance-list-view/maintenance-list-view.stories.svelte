@@ -99,6 +99,7 @@
     onRetry: () => {},
     onRegister: () => {},
     onEdit: () => {},
+    onPageChange: () => {},
     onAskRemove: () => {},
     onCancelRemove: () => {},
     onConfirmRemove: () => {},
@@ -199,6 +200,23 @@
   args={{
     data: { maintenances, total: 320, preventive, filter: emptyFilter, removing: null },
     state: { ...settled, isTruncated: true },
+    actions,
+  }}
+/>
+
+<!-- Lista paginada: navegação entre páginas com contagem total -->
+<Story
+  name="Paginated"
+  args={{
+    data: {
+      maintenances,
+      total: 45,
+      preventive,
+      filter: emptyFilter,
+      removing: null,
+      paging: { page: 1, pageSize: 15, total: 45 },
+    },
+    state: settled,
     actions,
   }}
 />

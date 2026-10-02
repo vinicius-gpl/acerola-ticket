@@ -4,12 +4,13 @@ import {
   type Maintenance,
   type PreventiveDue,
 } from '@template/shared/schemas/maintenance.schema';
-import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
 import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { maintenancesApi } from '$lib/api/maintenances.api';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+
+export const MAINTENANCES_PAGE_SIZE = 15;
 
 export type MaintenanceListFilter = {
   search: string;
@@ -27,6 +28,11 @@ export type MaintenanceListModel = {
     filter: MaintenanceListFilter;
     /** Qual registro está esperando confirmação de exclusão. */
     removing: Maintenance | null;
+    paging: {
+      page: number;
+      pageSize: number;
+      total: number;
+    };
   };
   state: {
     isLoading: boolean;
@@ -44,6 +50,7 @@ export type MaintenanceListModel = {
     onSearchChange: (search: string) => void;
     onTypeChange: (type: MaintenanceType | '') => void;
     onComputerChange: (computerId: number | null) => void;
+    onPageChange: (page: number) => void;
     onClearFilters: () => void;
     onRetry: () => void;
     onAskRemove: (maintenance: Maintenance) => void;
@@ -83,13 +90,19 @@ export function useMaintenanceListModel(
     computerId: options.computerId ?? null,
   });
   const filter = mirrorStore(filterStore);
+  const pageStore = writable<number>(1);
+  const page = mirrorStore(pageStore);
 
   const list = mirrorStore(
     createQuery(
-      derived(filterStore, (current) => ({
-        queryKey: [...MAINTENANCES_QUERY_KEY, 'list', scopeOf(current)],
+      derived([filterStore, pageStore], ([currentFilter, currentPage]) => ({
+        queryKey: [...MAINTENANCES_QUERY_KEY, 'list', scopeOf(currentFilter), currentPage],
         queryFn: () =>
-          maintenancesApi.list({ ...scopeOf(current), page: 1, pageSize: MAX_PAGE_SIZE }),
+          maintenancesApi.list({
+            ...scopeOf(currentFilter),
+            page: currentPage,
+            pageSize: MAINTENANCES_PAGE_SIZE,
+          }),
       })),
     ),
   );
@@ -129,6 +142,11 @@ export function useMaintenanceListModel(
         preventive: preventive.current.data ?? [],
         filter: filter.current,
         removing: removing.current,
+        paging: {
+          page: page.current,
+          pageSize: MAINTENANCES_PAGE_SIZE,
+          total: list.current.data?.total ?? 0,
+        },
       };
     },
     get state() {
@@ -140,11 +158,23 @@ export function useMaintenanceListModel(
       };
     },
     actions: {
-      onSearchChange: (search) => filterStore.update((current) => ({ ...current, search })),
-      onTypeChange: (type) => filterStore.update((current) => ({ ...current, type })),
-      onComputerChange: (computerId) =>
-        filterStore.update((current) => ({ ...current, computerId })),
-      onClearFilters: () => filterStore.set({ ...EMPTY_FILTER }),
+      onSearchChange: (search) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, search }));
+      },
+      onTypeChange: (type) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, type }));
+      },
+      onComputerChange: (computerId) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, computerId }));
+      },
+      onPageChange: (newPage: number) => pageStore.set(newPage),
+      onClearFilters: () => {
+        pageStore.set(1);
+        filterStore.set({ ...EMPTY_FILTER });
+      },
       onRetry: () => {
         void list.current.refetch();
         void preventive.current.refetch();
@@ -195,8 +225,8 @@ function buildListState(
     isRefetching: list.isRefetching,
     isEmpty: isSettledEmpty && !filtered,
     isFilteredOut: isSettledEmpty && filtered,
-    /* Veio menos do que casou: a tela precisa dizer, nunca truncar calada. */
-    isTruncated: (list.data?.total ?? 0) > count,
+    /* Com paginação explícita na UI, a lista não trunca calada. */
+    isTruncated: false,
     error: readError(list.error),
   };
 }
