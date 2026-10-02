@@ -166,7 +166,9 @@
     <SidebarRail />
   </Sidebar>
 
-  <SidebarInset class="border-sidebar-border bg-background border">
+  <!-- `min-w-0`: sem isto a área de conteúdo não encolhe abaixo da largura natural da tabela,
+       e quem rola para o lado é a PÁGINA inteira, em vez da tabela dentro da caixa dela. -->
+  <SidebarInset class="border-sidebar-border bg-background border min-w-0">
     <header class="flex h-12 shrink-0 items-center gap-2 px-4">
       <SidebarTrigger />
     </header>
