@@ -48,6 +48,7 @@ const emptyFilter: MaintenanceListFilter = { search: '', type: '', computerId: n
 const actions = {
   onSearchChange: vi.fn(),
   onTypeChange: vi.fn(),
+  onPageChange: vi.fn(),
   onClearFilters: vi.fn(),
   onRetry: vi.fn(),
   onRegister: vi.fn(),
@@ -185,5 +186,30 @@ describe('MaintenanceListView', () => {
     renderView({ state: { actionError: 'Este registro é de outra pessoa.' } });
 
     expect(screen.getAllByRole('alert')[0]).toHaveTextContent('Este registro é de outra pessoa.');
+  });
+
+  // feliz
+  it('renders pagination bar and notifies page changes', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    render(MaintenanceListView, {
+      props: {
+        data: {
+          maintenances: [maintenance()],
+          total: 30,
+          preventive,
+          filter: emptyFilter,
+          removing: null,
+          paging: { page: 1, pageSize: 15, total: 30 },
+        },
+        state: settled,
+        actions: { ...actions, onPageChange },
+      },
+    });
+
+    const nextButton = screen.getByRole('button', { name: /Próxima/i });
+    expect(nextButton).toBeInTheDocument();
+    await user.click(nextButton);
+    expect(onPageChange).toHaveBeenCalledWith(2);
   });
 });

@@ -36,6 +36,11 @@
       preventive: PreventiveDue[];
       filter: MaintenanceListFilter;
       removing: Maintenance | null;
+      paging?: {
+        page: number;
+        pageSize: number;
+        total: number;
+      };
     };
     state: {
       isLoading: boolean;
@@ -51,6 +56,7 @@
     actions: {
       onSearchChange: (search: string) => void;
       onTypeChange: (type: MaintenanceType | '') => void;
+      onPageChange?: (page: number) => void;
       onClearFilters: () => void;
       onRetry: () => void;
       onRegister: (computerId?: number) => void;
@@ -95,6 +101,7 @@
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
+  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import PreventiveBoard from '$lib/components/preventive-board/preventive-board.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import {
@@ -332,6 +339,22 @@
         {/snippet}
       </Table>
     </div>
+
+    {#if data.paging && data.paging.total > data.paging.pageSize && actions.onPageChange}
+      <div class="mt-4">
+        <PaginationBar
+          data={{
+            page: data.paging.page,
+            pageSize: data.paging.pageSize,
+            total: data.paging.total,
+            noun: ['manutenção', 'manutenções'],
+          }}
+          actions={{
+            onPageChange: actions.onPageChange,
+          }}
+        />
+      </div>
+    {/if}
 
     <!-- Truncar calado é mentir sobre o tamanho do histórico. -->
     {#if viewState.isTruncated}

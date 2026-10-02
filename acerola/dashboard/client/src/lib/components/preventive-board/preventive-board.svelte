@@ -78,10 +78,10 @@
   {:else}
     <ul class="flex flex-col divide-y">
       {#each pending as row (row.computerId)}
-        <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-          <div class="min-w-0">
-            <p class="text-ink-900 text-sm font-semibold break-words">{machineLabelOf(row)}</p>
-            <p class="text-ink-500 text-xs">
+        <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+          <div class="min-w-0 flex-1">
+            <p class="text-ink-900 text-sm font-semibold break-words leading-tight">{machineLabelOf(row)}</p>
+            <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
               {row.computerDepartment ? departmentLabel(row.computerDepartment) : 'Sem departamento'}
               ·
               {#if row.lastDoneAt}
@@ -92,13 +92,13 @@
                 sem preventiva ou corretiva registrada
               {/if}
               {#if isFrequentlyServiced(row.maintenanceCount)}
-                · <span class="text-amber-700">
+                · <span class="text-amber-700 font-medium">
                   já foram {row.maintenanceCount} manutenções nesta máquina
                 </span>
               {/if}
             </p>
           </div>
-          <div class="flex shrink-0 items-center gap-2">
+          <div class="flex shrink-0 items-center gap-2 pt-0.5">
             <StatusBadge
               data={{ label: preventiveStatusLabel(row.status) }}
               ui={{ tone: preventiveStatusTone(row.status), size: 'sm' }}

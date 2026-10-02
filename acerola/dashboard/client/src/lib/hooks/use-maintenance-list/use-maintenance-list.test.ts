@@ -102,6 +102,30 @@ describe('useMaintenanceListModel', () => {
     expect(maintenancesApi.remove).not.toHaveBeenCalled();
   });
 
+  // feliz
+  it('requests the next page when onPageChange is called', async () => {
+    const model = await mountLoadedModel();
+
+    model.actions.onPageChange(2);
+
+    await waitFor(() =>
+      expect(maintenancesApi.list).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 2, pageSize: 15 }),
+      ),
+    );
+    expect(model.data.paging.page).toBe(2);
+  });
+
+  it('resets page to 1 when a filter changes', async () => {
+    const model = await mountLoadedModel();
+
+    model.actions.onPageChange(3);
+    await waitFor(() => expect(model.data.paging.page).toBe(3));
+
+    model.actions.onSearchChange('formatar');
+    await waitFor(() => expect(model.data.paging.page).toBe(1));
+  });
+
   // triste
   it('hands the screen the reason the history did not load', async () => {
     vi.mocked(maintenancesApi.list).mockRejectedValue(new ApiError(500, 'O servidor tropeçou.'));
