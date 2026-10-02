@@ -266,23 +266,25 @@
       {:else}
         <ul class="flex flex-col divide-y">
           {#each insights.overloaded as machine (machine.computerId)}
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div class="min-w-0">
-                <p class="text-ink-900 text-sm font-semibold break-words">
+            <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div class="min-w-0 flex-1">
+                <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
                   {machineLabelOf(machine)}
                 </p>
-                <p class="text-ink-500 text-xs">
+                <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                   {departmentOf(machine)} · {overloadSummaryOf(machine)}
                   {#if machine.activeAlerts > 0}
-                    · <span class="text-red-700">travada agora</span>
+                    · <span class="text-red-700 font-medium">travada agora</span>
                   {/if}
                 </p>
               </div>
-              <ActionButton
-                data={{ label: 'Abrir ficha' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onOpenMachine(machine.computerId) }}
-              />
+              <div class="flex shrink-0 items-center gap-2 pt-0.5">
+                <ActionButton
+                  data={{ label: 'Abrir ficha' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onOpenMachine(machine.computerId) }}
+                />
+              </div>
             </li>
           {/each}
         </ul>
@@ -303,16 +305,16 @@
       {:else}
         <ul class="flex flex-col divide-y">
           {#each insights.upgrades as machine (machine.computerId)}
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div class="min-w-0">
-                <p class="text-ink-900 text-sm font-semibold break-words">
+            <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div class="min-w-0 flex-1">
+                <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
                   {machineLabelOf(machine)}
                 </p>
-                <p class="text-ink-500 text-xs">
+                <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                   {departmentOf(machine)} · {upgradeSummaryOf(machine)}
                 </p>
               </div>
-              <div class="flex shrink-0 items-center gap-2">
+              <div class="flex shrink-0 items-center gap-2 pt-0.5">
                 <StatusBadge
                   data={{ label: upgradeReasonLabel(machine.reason) }}
                   ui={{ tone: 'info', size: 'sm' }}
@@ -343,23 +345,25 @@
       {:else}
         <ul class="flex flex-col divide-y">
           {#each insights.troublesome as machine (machine.computerId)}
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div class="min-w-0">
-                <p class="text-ink-900 text-sm font-semibold break-words">
+            <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div class="min-w-0 flex-1">
+                <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
                   {machineLabelOf(machine)}
                 </p>
-                <p class="text-ink-500 text-xs">
+                <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                   {departmentOf(machine)} · {troubleSummaryOf(machine)}
                   {#if machine.lastMaintenanceAt}
                     · última em {formatDate(machine.lastMaintenanceAt)}
                   {/if}
                 </p>
               </div>
-              <ActionButton
-                data={{ label: 'Abrir ficha' }}
-                ui={{ variant: 'secondary', size: 'sm' }}
-                actions={{ onClick: () => actions.onOpenMachine(machine.computerId) }}
-              />
+              <div class="flex shrink-0 items-center gap-2 pt-0.5">
+                <ActionButton
+                  data={{ label: 'Abrir ficha' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onOpenMachine(machine.computerId) }}
+                />
+              </div>
             </li>
           {/each}
         </ul>
@@ -382,14 +386,14 @@
       {:else}
         <ul class="flex flex-col divide-y">
           {#each insights.spares as machine (machine.computerId)}
-            <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-              <div class="min-w-0">
-                <p class="text-ink-900 text-sm font-semibold break-words">
+            <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <div class="min-w-0 flex-1">
+                <p class="text-ink-900 text-sm font-semibold break-words leading-tight">
                   {machineLabelOf(machine)}
                 </p>
-                <p class="text-ink-500 text-xs break-words">{spareSummaryOf(machine)}</p>
+                <p class="text-ink-500 text-xs mt-1 break-words leading-normal">{spareSummaryOf(machine)}</p>
               </div>
-              <div class="flex shrink-0 items-center gap-2">
+              <div class="flex shrink-0 items-center gap-2 pt-0.5">
                 <StatusBadge
                   data={{ label: healthStatusLabel(machine.healthStatus) }}
                   ui={{ tone: healthStatusTone(machine.healthStatus), size: 'sm' }}
