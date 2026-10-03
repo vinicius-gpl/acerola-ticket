@@ -24,7 +24,7 @@ validar uma ideia, e conta com você para escrever o código no padrão da casa.
 Este repositório possui dois modos de operação para o git e o Claude:
 
 - **Modo Padrão (usuário/desenvolvedor comum):**
-  A pessoa é leiga ou está desenvolvendo features de rotina. Siga estritamente o `git-fluxo`:
+  A pessoa é leiga ou está desenvolvendo features de rotina. Siga estritamente o `git-flow`:
   toda alteração em branch `feature/<nome>` ou `bugfix/<nome>`, `develop` só recebe merge `--no-ff`
   após validação na tela, `main` protegida, e arquivos de estrutura intocados.
 
@@ -48,28 +48,28 @@ Este repositório possui dois modos de operação para o git e o Claude:
 
 ## REGRA DE OURO — git (vale para Modo Padrão)
 
-Siga a skill **`git-fluxo`** sempre que não estiver em Modo Admin com instruções diretas:
+Siga a skill **`git-flow`** sempre que não estiver em Modo Admin com instruções diretas:
 
 1. **Antes de editar qualquer arquivo**, a mudança ganha uma branch `feature/<nome>` (ou
    `bugfix/<nome>`) criada **a partir da `develop`**.
 2. O trabalho é commitado **nessa branch** (`git-commit`).
-3. No fim: trazer a `develop` para a branch (`git merge develop`), rodar `verificar`, subir o
+3. No fim: trazer a `develop` para a branch (`git merge develop`), rodar `verify`, subir o
    sistema e mostrar à pessoa **como conferir**.
 4. Perguntar: **"Está funcionando do jeito que você queria?"** e **esperar**.
 5. **Só com um OK explícito**: `git merge --no-ff` da branch na `develop` e enviar a develop.
 6. **A `main` é de quem administra** — no Modo Padrão, nem checkout, nem commit, nem merge, nem push
    (o hook `branch-guard.sh` recusa). Em Modo Admin (`git config project.admin true`), a `main` é totalmente liberada.
-7. **Conflito** → skill `resolver-conflito`: explique pela **tela** afetada, com **quem** mudou
+7. **Conflito** → skill `resolve-conflict`: explique pela **tela** afetada, com **quem** mudou
    e **quando** (do `git log`), resolva na branch de feature, nunca na develop.
 
 ## O QUE O MVP NÃO FAZ — e o que fazer quando pedirem
 
 - **"Por que meus dados não aparecem no PC de outra pessoa?"** Os dados são **locais**: cada
   computador tem o próprio banco. Explique; se insistir (dados compartilhados, servidor,
-  internet), encaminhe ao suporte → skill **`limites-do-mvp`**.
+  internet), encaminhe ao suporte → skill **`mvp-limits`**.
 - **Erro estrutural grande** (não instala, não sobe, banco ou git em estado confuso, erro que
   só some mexendo em regra/configuração/arquivo protegido, mesmo erro depois de duas
-  tentativas): no Modo Padrão, **pare**, guarde o trabalho e gere o relatório → skill **`suporte`**.
+  tentativas): no Modo Padrão, **pare**, guarde o trabalho e gere o relatório → skill **`support`**.
   Em Modo Admin, investigue e corrija diretamente a raiz do problema.
 
 **Arquivos protegidos** (lista em `acerola/dashboard/scripts/git/protected-structure.txt`): a
@@ -84,7 +84,7 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 
 1. **Idioma:** o usuário vê → português. O usuário não vê (código, log, teste, erro interno,
    pasta de bucket, chave de storage, nome de arquivo e pasta, variável de ambiente) → inglês.
-   Comentário em português, explicando o **porquê**. Exceção: nome das skills.
+   Comentário em português, explicando o **porquê**.
 2. **Early return.** Nunca `if/else` alinhado. Complexidade máxima 10.
 3. **MVVM:** rota (`+page.svelte`) só compõe — só cor, espaço e layout, nunca UI/UX de
    componente · hook (`lib/hooks/use-*/use-*.svelte.ts`, pasta própria, prefixo `use-`) tem
@@ -97,7 +97,7 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
    **Todo componente próprio tem prefixo `acerola-*`**: genérico em `lib/components/acerola-*`,
    de feature em `routes/(app)/<feature>/components/acerola-*`.
    **Todo campo de formulário tem `h-10`**, definido no `acerola-*`, nunca na tela.
-   Detalhes e checagens: skill **`sistema-de-design`**.
+   Detalhes e checagens: skill **`design-system`**.
 6. **Todo componente tem `.stories.svelte`** (default, variantes, estados, caso limite).
 7. **Todo código com lógica tem teste do caminho feliz e do triste** (`// feliz`, `// triste`).
 8. **Backend:** controller → service → repository. Policy no service. Autoria vem da
@@ -109,23 +109,26 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 
 Antes de começar uma tarefa, veja se há skill para ela em `.claude/skills/` e siga-a:
 
-| Pedido | Skill |
-|---|---|
-| Primeira vez no projeto, "como rodo isso?" | `comecar` |
-| Dar nome ao MVP (título das telas) | `renomear-projeto` |
-| Funcionalidade nova, tela nova com dados | `nova-feature` |
-| **Criar, mover ou renomear qualquer arquivo**; "isso está no lugar certo?" | `sistema-de-design` |
-| Componente visual novo ou alterado | `componente-ui` (e `ui-padrao` como referência) |
-| Tabela nova, campo novo, "apaga o banco" | `banco-de-dados` |
-| Dados de teste | `dados-de-teste` |
-| "Salva", "commita" | `git-commit` |
-| **Qualquer mudança de código** (começar, terminar, juntar, enviar) | `git-fluxo` |
-| Conflito de merge | `resolver-conflito` |
-| "Está pronto?", antes de commit de feature | `verificar` |
-| Tirar a feature de Tarefas | `remover-exemplo` |
-| Erro de ambiente, porta ocupada, instalação | `socorro` |
-| Dados em outro PC, servidor, internet | `limites-do-mvp` |
-| Erro estrutural grande, bloqueio de arquivo de estrutura | `suporte` |
+| Pedido | Skill | Atalho pt-BR |
+|---|---|---|
+| Primeira vez no projeto, "como rodo isso?" | `getting-started` | `/comecar` |
+| Dar nome ao MVP (título das telas) | `rename-project` | `/renomear-projeto` |
+| Funcionalidade nova, tela nova com dados | `new-feature` | `/nova-feature` |
+| **Criar, mover ou renomear qualquer arquivo**; "isso está no lugar certo?" | `design-system` | `/sistema-de-design` |
+| Componente visual novo ou alterado | `ui-component` (e `ui-standards` como referência) | `/componente-ui` |
+| Tabela nova, campo novo, "apaga o banco" | `database` | `/banco-de-dados` |
+| Dados de teste | `seed-data` | `/dados-de-teste` |
+| "Salva", "commita" | `git-commit` | `/commitar` |
+| **Qualquer mudança de código** (começar, terminar, juntar, enviar) | `git-flow` | `/git-fluxo` |
+| Conflito de merge | `resolve-conflict` | `/resolver-conflito` |
+| "Está pronto?", antes de commit de feature | `verify` | `/verificar` |
+| Tirar a feature de Tarefas | `remove-example` | `/remover-exemplo` |
+| Erro de ambiente, porta ocupada, instalação | `troubleshoot` | `/socorro` |
+| Dados em outro PC, servidor, internet | `mvp-limits` | `/limites-do-mvp` |
+| Erro estrutural grande, bloqueio de arquivo de estrutura | `support` | `/suporte` |
+
+A pessoa pode chamar pelo nome em inglês (`/troubleshoot`) ou pelo atalho em português
+(`/socorro`); os dois fazem o mesmo. `/help` não serve de atalho: é comando nativo do Claude Code.
 
 **A feature de Tarefas é o molde.** Quando for criar algo, abra o arquivo equivalente de
 `tasks`/`task` e siga a mesma forma — nomes, comentários, estados, testes.
@@ -190,7 +193,7 @@ use o navegador em http://localhost:5176.
 - `npm install --force` ou `--legacy-peer-deps`.
 - Editar arquivo em `lib/components/ui/` ou `lib/hooks/ui/` (envolva num `acerola-*`), `routeTree.gen.ts` ou `server/drizzle/meta/`.
 - Reescrever componente existente além do que foi pedido, ou recriar à mão componente que o shadcn-svelte já tem.
-- Criar componente em `lib/components/` que só uma feature usa, ou pasta em `lib/` fora do mapa da skill `sistema-de-design`.
+- Criar componente em `lib/components/` que só uma feature usa, ou pasta em `lib/` fora do mapa da skill `design-system`.
 - Colocar segredo em variável `VITE_` ou em arquivo versionado (`.env`).
 - Colocar dado real de pessoa ou cliente em seed, story ou teste.
 - Dizer que terminou sem ter rodado `lint`, `typecheck` e os testes do que mudou (a menos que o admin tenha pedido especificamente para ignorar).
