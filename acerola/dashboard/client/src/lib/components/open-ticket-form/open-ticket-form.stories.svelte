@@ -8,6 +8,7 @@
 
   const emptyFields: Record<OpenTicketField, FormFieldState> = {
     requesterName: field(''),
+    area: field('infra'),
     department: field('analyze'),
     problemType: field('network'),
     anydeskId: field(''),
@@ -18,6 +19,7 @@
 
   const filledFields: Record<OpenTicketField, FormFieldState> = {
     requesterName: field('Bia Costa'),
+    area: field('infra'),
     department: field('financeiro'),
     problemType: field('printer'),
     anydeskId: field('111 222 333'),
@@ -58,6 +60,26 @@
   args={{
     data: { fields: filledFields, notifyWhatsapp: true, screenshotName: null,
     attachments: [], opened: null },
+    state: {},
+    actions,
+  }}
+/>
+
+<!-- #13: área Manutenção — o tipo de problema vem de outra lista, sem "rede caiu". -->
+<Story
+  name="MaintenanceArea"
+  args={{
+    data: {
+      fields: {
+        ...filledFields,
+        area: field('manutencao'),
+        problemType: field('air_conditioning'),
+      },
+      notifyWhatsapp: false,
+      screenshotName: null,
+      attachments: [],
+      opened: null,
+    },
     state: {},
     actions,
   }}

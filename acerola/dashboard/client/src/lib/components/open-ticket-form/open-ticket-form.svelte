@@ -4,8 +4,9 @@
   import {
     TICKET_DEPARTMENTS,
     TICKET_DEPARTMENT_LABELS,
-    TICKET_PROBLEM_TYPE_LABELS,
-    TICKET_PROBLEM_TYPES,
+    ticketAreaOptions,
+    ticketProblemTypeOptionsForArea,
+    type TicketArea,
   } from '@template/shared/domain/ticket-catalog.util';
   import {
     TICKET_PRIORITIES,
@@ -16,6 +17,7 @@
 
   export type OpenTicketField =
     | 'requesterName'
+    | 'area'
     | 'department'
     | 'problemType'
     | 'anydeskId'
@@ -65,10 +67,7 @@
     label: TICKET_DEPARTMENT_LABELS[department],
   }));
 
-  const PROBLEM_TYPE_OPTIONS = TICKET_PROBLEM_TYPES.map((type) => ({
-    value: type,
-    label: TICKET_PROBLEM_TYPE_LABELS[type],
-  }));
+  const AREA_OPTIONS = ticketAreaOptions();
 
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
@@ -81,7 +80,7 @@
 
   const STEP_FIELDS: Record<StepId, OpenTicketField[]> = {
     who: ['requesterName', 'contactPhone'],
-    problem: ['department', 'problemType', 'priority', 'anydeskId'],
+    problem: ['area', 'department', 'problemType', 'priority', 'anydeskId'],
     what: ['description'],
     notify: [],
   };
@@ -140,6 +139,20 @@
   let { data, state: formState, actions }: OpenTicketFormProps = $props();
 
   const fields = $derived(data.fields);
+
+  /* As opções de tipo de problema dependem da ÁREA escolhida — Manutenção não tem "rede
+     caiu" na lista, nem Infra tem "ar-condicionado". */
+  const problemTypeOptions = $derived(
+    ticketProblemTypeOptionsForArea(fields.area.value as TicketArea),
+  );
+
+  function handleAreaChange(value: string): void {
+    actions.onChange('area', value);
+    /* Trocar de área pode deixar o tipo escolhido fora da lista nova — o primeiro tipo da
+       área nova é sempre válido, e evita mandar um tipo órfão no envio. */
+    const firstOfArea = ticketProblemTypeOptionsForArea(value as TicketArea)[0];
+    if (firstOfArea) actions.onChange('problemType', firstOfArea.value);
+  }
 
   /* Puramente visual: qual etapa está na tela agora. Não é dado do chamado. */
   let stepIndex = $state(0);
@@ -327,6 +340,16 @@
             ui={{ isLast: true }}
           >
             <div class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Área</span>
+                <OptionPicker
+                  data={{ value: fields.area.value, options: AREA_OPTIONS }}
+                  ui={{ ariaLabel: 'Área', placeholder: 'Escolha a área', fullWidth: true }}
+                  state={{ isDisabled: formState.isSubmitting }}
+                  actions={{ onChange: handleAreaChange }}
+                />
+              </div>
+
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="flex flex-col gap-1.5">
                   <span class="text-ink-700 text-sm font-medium">Departamento</span>
@@ -341,7 +364,7 @@
                 <div class="flex flex-col gap-1.5">
                   <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
                   <OptionPicker
-                    data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
+                    data={{ value: fields.problemType.value, options: problemTypeOptions }}
                     ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo', fullWidth: true }}
                     state={{ isDisabled: formState.isSubmitting }}
                     actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}

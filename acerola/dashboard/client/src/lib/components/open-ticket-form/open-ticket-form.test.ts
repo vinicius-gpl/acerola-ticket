@@ -10,6 +10,7 @@ const field = (value: string, error: string | null = null): FormFieldState => ({
 
 const fields: Record<OpenTicketField, FormFieldState> = {
   requesterName: field('Bia Costa'),
+  area: field('infra'),
   department: field('financeiro'),
   problemType: field('printer'),
   anydeskId: field(''),

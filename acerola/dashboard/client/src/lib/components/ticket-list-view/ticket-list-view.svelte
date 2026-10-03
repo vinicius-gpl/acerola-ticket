@@ -4,6 +4,7 @@
     TICKET_DEPARTMENT_LABELS,
     TICKET_PROBLEM_TYPE_LABELS,
     TICKET_PROBLEM_TYPES,
+    ticketAreaLabel,
     ticketDepartmentLabel,
     ticketProblemTypeLabel,
     type TicketDepartment,
@@ -380,7 +381,11 @@
             </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Área</span>
+              <span class="text-neutral-700 dark:text-neutral-200">{ticketAreaLabel(ticket.area)}</span>
+            </div>
             <div class="flex flex-col gap-0.5">
               <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tipo</span>
               <span class="text-neutral-700 dark:text-neutral-200">{ticketProblemTypeLabel(ticket.problemType)}</span>
@@ -407,11 +412,12 @@
 
     <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
     <div class="hidden xl:block" data-slot="ticket-table-desktop">
-      <Table class="min-w-[880px]">
+      <Table class="min-w-[980px]">
         <TableHeader>
           <TableRow>
             <TableHead class="min-w-[110px]">Protocolo</TableHead>
             <TableHead class="min-w-[180px]">Quem abriu</TableHead>
+            <TableHead class="min-w-[110px]">Área</TableHead>
             <TableHead class="min-w-[140px]">Tipo</TableHead>
             <TableHead class="min-w-[160px]">Máquina</TableHead>
             <TableHead class="min-w-[110px]">Urgência</TableHead>
@@ -430,6 +436,7 @@
                   {ticketDepartmentLabel(ticket.department)}
                 </span>
               </TableCell>
+              <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketAreaLabel(ticket.area)}</TableCell>
               <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
               <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
                    "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->

@@ -1,13 +1,21 @@
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
-import { useQueryClient } from '@tanstack/svelte-query';
+import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+import { ticketAreaOptions } from '@template/shared/domain/ticket-catalog.util';
 import {
   USER_ROLE_LABELS,
   type ContextRoles,
   type SessionUser,
 } from '@template/shared/schemas/user.schema';
+import { writable } from 'svelte/store';
 
+import { ticketsApi } from '$lib/api/tickets.api';
 import { neonAuth } from '$lib/auth/neon-auth.client';
+import {
+  type TicketAreaContext,
+  useTicketAreaContextModel,
+} from '$lib/context/ticket-area-context.svelte';
+import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { activeNavKeyOf } from '$lib/navigation/navigation';
 
 export type AppShellModel = {
@@ -19,17 +27,24 @@ export type AppShellModel = {
       role: string;
       roles?: ContextRoles;
     };
+    /**
+     * As áreas (#13) que esta pessoa atende, com a opção "Todas" na frente — vazio quando
+     * ela não tem cargo em área nenhuma, ou quando só tem uma (aí não há o que escolher).
+     */
+    areaOptions: { value: TicketAreaContext; label: string }[];
   };
   state: {
     activeKey: string | undefined;
     routeKey: string;
     isProfileOpen: boolean;
+    areaContext: TicketAreaContext;
   };
   actions: {
     onLogout: () => void;
     onOpenProfile: () => void;
     onCloseProfile: () => void;
     onViewRoles: () => void;
+    onAreaContextChange: (context: TicketAreaContext) => void;
   };
 };
 
@@ -50,6 +65,17 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
   const queryClient = useQueryClient();
   let isProfileOpen = $state(false);
 
+  /* As áreas que a pessoa atende (#13) — uma vez, igual ao resto do menu: buscar de novo a
+     cada navegação repetiria a mesma consulta a cada clique. Falha NÃO derruba o menu —
+     `useQuery` sem `throwOnError`, e o seletor simplesmente não aparece. */
+  const areas = mirrorStore(
+    createQuery(
+      writable({ queryKey: ['tickets', 'areas', 'mine'], queryFn: () => ticketsApi.myAreas() }),
+    ),
+  );
+
+  const ticketAreaContext = useTicketAreaContextModel();
+
   return {
     data: {
       badges: {},
@@ -58,6 +84,22 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         email: input.user.email,
         role: USER_ROLE_LABELS[input.user.role],
         roles: input.user.roles,
+      },
+      get areaOptions() {
+        const mine = areas.current.data ?? [];
+        /* Com uma área só (ou nenhuma), não há o que escolher — "Todas" e "Infra" seriam a
+           mesma coisa na tela, e um seletor sem escolha real só confunde. */
+        if (mine.length <= 1) return [];
+
+        const allOptions = ticketAreaOptions();
+
+        return [
+          { value: 'all' as const, label: 'Todas as áreas' },
+          ...mine.map((area) => ({
+            value: area,
+            label: allOptions.find((option) => option.value === area)?.label ?? area,
+          })),
+        ];
       },
     },
     /* Qual item está ativo é decidido AQUI, e não no componente: resolver a rota atual é
@@ -70,6 +112,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         activeKey: activeNavKeyOf(page.url.pathname),
         routeKey: page.url.pathname,
         isProfileOpen,
+        areaContext: ticketAreaContext.context,
       };
     },
     actions: {
@@ -82,6 +125,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
       onViewRoles: () => {
         void goto('/profile');
       },
+      onAreaContextChange: ticketAreaContext.actions.onContextChange,
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
          estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não
          pode falhar — sem ele, os dados da pessoa anterior continuariam na tela do próximo

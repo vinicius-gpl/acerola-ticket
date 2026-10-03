@@ -15,6 +15,7 @@ import { type FormFieldState } from '$lib/types/form-field.type';
 
 export type OpenTicketField =
   | 'requesterName'
+  | 'area'
   | 'department'
   | 'problemType'
   | 'anydeskId'
@@ -53,6 +54,7 @@ export type OpenTicketModel = {
 
 const EMPTY_VALUES: TicketFormValues = {
   requesterName: '',
+  area: 'infra',
   department: 'analyze',
   problemType: 'network',
   anydeskId: '',
@@ -111,6 +113,7 @@ export function useOpenTicketModel(): OpenTicketModel {
       return {
         fields: {
           requesterName: fieldOf('requesterName'),
+          area: fieldOf('area'),
           department: fieldOf('department'),
           problemType: fieldOf('problemType'),
           anydeskId: fieldOf('anydeskId'),

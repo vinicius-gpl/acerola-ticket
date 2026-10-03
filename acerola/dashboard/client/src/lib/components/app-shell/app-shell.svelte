@@ -1,5 +1,6 @@
 <script lang="ts" module>
   import type { Snippet } from 'svelte';
+  import type { TicketAreaContext } from '$lib/context/ticket-area-context.svelte';
   import type { NavItem } from '$lib/navigation/navigation';
   import type { ContextRoles } from '@template/shared/schemas/user.schema';
 
@@ -28,6 +29,11 @@
         role: string;
         roles?: ContextRoles;
       };
+      /**
+       * O seletor de contexto (#13) — "Todas as áreas" e as que a pessoa atende. Vazio (o
+       * padrão) esconde o controle: é o caso de quem só tem uma área, ou nenhuma.
+       */
+      areaOptions?: { value: TicketAreaContext; label: string }[];
     };
     ui?: { items?: readonly NavItem[] };
     state?: {
@@ -36,12 +42,14 @@
       /** O caminho da rota atual — trocar de valor é o gatilho da animação entre telas. */
       routeKey?: string;
       isProfileOpen?: boolean;
+      areaContext?: TicketAreaContext;
     };
     actions?: {
       onLogout?: () => void;
       onOpenProfile?: () => void;
       onCloseProfile?: () => void;
       onViewRoles?: () => void;
+      onAreaContextChange?: (context: TicketAreaContext) => void;
     };
   };
 </script>
@@ -68,6 +76,7 @@
   import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/app-shell-nav-entry/app-shell-nav-entry.svelte';
+  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import ThemeToggle from '$lib/components/theme-toggle/theme-toggle.svelte';
 
   /* `state` (o prop) precisa de outro nome aqui dentro: um binding local chamado `state` faz
@@ -171,6 +180,21 @@
   <SidebarInset class="border-sidebar-border bg-background border min-w-0">
     <header class="flex h-12 shrink-0 items-center gap-2 px-4">
       <SidebarTrigger />
+
+      <!-- Seletor de contexto (#13): só aparece para quem atende mais de uma área — ver
+           `areaOptions` em `use-app-shell`. Fica no cabeçalho, e não no menu lateral, porque
+           é sobre O QUE a pessoa está vendo agora, não sobre PARA ONDE ela pode ir. -->
+      {#if data?.areaOptions && data.areaOptions.length > 0}
+        <div class="ml-auto w-48">
+          <OptionPicker
+            data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
+            ui={{ ariaLabel: 'Área que você está vendo', fullWidth: true }}
+            actions={{
+              onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
+            }}
+          />
+        </div>
+      {/if}
     </header>
 
     <div bind:this={contentEl} class="min-w-0 flex-1">

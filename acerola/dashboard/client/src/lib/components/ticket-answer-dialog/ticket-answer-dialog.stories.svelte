@@ -1,5 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
+  import { ticketAreaOptions } from '@template/shared/domain/ticket-catalog.util';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
   import { type FormFieldState } from '$lib/types/form-field.type';
@@ -13,8 +14,10 @@
     status: 'open',
     priority: 'high',
     requesterName: 'Bia Costa',
+    area: 'infra',
     department: 'financeiro',
     problemType: 'printer',
+    participantAreas: [],
     anydeskId: '111 222 333',
     contactPhone: '62999990001',
     notifyWhatsapp: true,
@@ -34,6 +37,7 @@
   const freshFields: Record<TicketAnswerField, FormFieldState> = {
     status: field('open'),
     priority: field('high'),
+    area: field('infra'),
     problemType: field('printer'),
     computerId: field(''),
     assignee: field(''),
@@ -43,11 +47,15 @@
   const answeredFields: Record<TicketAnswerField, FormFieldState> = {
     status: field('resolved'),
     priority: field('high'),
+    area: field('infra'),
     problemType: field('printer'),
     computerId: field(''),
     assignee: field('Suporte TI'),
     solution: field('Retirei uma folha presa no rolete e limpei o tracionador.'),
   };
+
+  /** As três áreas, menos Infra — é o que sobra para somar como participante no caso comum. */
+  const availableParticipantAreas = ticketAreaOptions().filter((option) => option.value !== 'infra');
 
   const actions = {
     onChange: () => {},
@@ -58,6 +66,9 @@
     onAttachmentError: () => {},
     onAttach: () => {},
     onRemoveAttachment: () => {},
+    onChosenParticipantAreaChange: () => {},
+    onAddParticipantArea: () => {},
+    onRemoveParticipantArea: () => {},
   };
 
   const { Story } = defineMeta({
@@ -69,7 +80,7 @@
 <Story
   name="Default"
   args={{
-    data: { ticket, fields: freshFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
+    data: { ticket, fields: freshFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [], availableParticipantAreas, chosenParticipantArea: '' },
     state: { isOpen: true },
     actions,
   }}
@@ -78,7 +89,7 @@
 <Story
   name="Answered"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [], availableParticipantAreas, chosenParticipantArea: '' },
     state: { isOpen: true },
     actions,
   }}
@@ -95,6 +106,8 @@
       machines: [],
       attachments: [],
       chosenFiles: [],
+      availableParticipantAreas,
+      chosenParticipantArea: '',
     },
     state: { isOpen: true },
     actions,
@@ -111,6 +124,8 @@
       machines: [],
       attachments: [],
       chosenFiles: [],
+      availableParticipantAreas,
+      chosenParticipantArea: '',
     },
     state: { isOpen: true },
     actions,
@@ -120,7 +135,7 @@
 <Story
   name="Submitting"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [], availableParticipantAreas, chosenParticipantArea: '' },
     state: { isOpen: true, isSubmitting: true },
     actions,
   }}
@@ -130,8 +145,48 @@
 <Story
   name="ServerRefused"
   args={{
-    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
+    data: { ticket, fields: answeredFields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [], availableParticipantAreas, chosenParticipantArea: '' },
     state: { isOpen: true, error: 'O banco recusou o valor enviado.' },
+    actions,
+  }}
+/>
+
+<!-- #13: chamado de Infra que também ganhou Manutenção como área participante. -->
+<Story
+  name="WithParticipantArea"
+  args={{
+    data: {
+      ticket: { ...ticket, participantAreas: ['manutencao'] },
+      fields: freshFields,
+      whatsAppLink: null,
+      machines: [],
+      attachments: [],
+      chosenFiles: [],
+      availableParticipantAreas: ticketAreaOptions().filter(
+        (option) => option.value !== 'infra' && option.value !== 'manutencao',
+      ),
+      chosenParticipantArea: '',
+    },
+    state: { isOpen: true },
+    actions,
+  }}
+/>
+
+<!-- Somando uma área participante: o botão "Somar" trava enquanto grava. -->
+<Story
+  name="AddingParticipantArea"
+  args={{
+    data: {
+      ticket,
+      fields: freshFields,
+      whatsAppLink: null,
+      machines: [],
+      attachments: [],
+      chosenFiles: [],
+      availableParticipantAreas,
+      chosenParticipantArea: 'manutencao',
+    },
+    state: { isOpen: true, isAddingArea: true },
     actions,
   }}
 />
@@ -154,6 +209,8 @@
       machines: [],
       attachments: [],
       chosenFiles: [],
+      availableParticipantAreas,
+      chosenParticipantArea: '',
     },
     state: { isOpen: true },
     actions,

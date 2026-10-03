@@ -1,6 +1,7 @@
 import { createForm } from '@tanstack/svelte-form';
 import { writable } from 'svelte/store';
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
+import { ticketAreaOptions, type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { buildWhatsAppLink } from '@template/shared/domain/ticket-whatsapp.util';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { ticketStatusLabel } from '@template/shared/domain/ticket-status.util';
@@ -25,6 +26,7 @@ import { type FormFieldState } from '$lib/types/form-field.type';
 export type TicketAnswerField =
   | 'status'
   | 'priority'
+  | 'area'
   | 'problemType'
   | 'computerId'
   | 'assignee'
@@ -34,7 +36,7 @@ export type TicketAnswerModel = {
   data: {
     ticket: Ticket;
     fields: Record<TicketAnswerField, FormFieldState>;
-    /** O link de aviso, pronto. Nulo quando não há como (ou não se deve) avisar. */
+    /** O link de aviso, pronto. Nulo quando a pessoa não pediu para ser avisada. */
     whatsAppLink: string | null;
     /** As máquinas do inventário, para vincular o chamado a uma delas. */
     machines: { value: string; label: string }[];
@@ -42,6 +44,10 @@ export type TicketAnswerModel = {
     attachments: TicketAttachment[];
     /** Os escolhidos agora, ainda não enviados. */
     chosenFiles: File[];
+    /** As áreas que ainda PODEM entrar como participante — todas, menos as que já estão. */
+    availableParticipantAreas: { value: TicketArea; label: string }[];
+    /** A área escolhida no seletor de "somar área", ainda não enviada. */
+    chosenParticipantArea: TicketArea | '';
   };
   state: {
     isSubmitting: boolean;
@@ -52,6 +58,10 @@ export type TicketAnswerModel = {
     removingAttachmentId: number | null;
     /** A recusa da escolha ou da gravação de anexo, separada da falha do formulário. */
     attachmentError: string | null;
+    isAddingArea: boolean;
+    /** Qual área participante está sendo removida — trava o chip dela, não a lista toda. */
+    removingAreaArea: TicketArea | null;
+    areaError: string | null;
   };
   actions: {
     onChange: (field: TicketAnswerField, value: string) => void;
@@ -61,6 +71,9 @@ export type TicketAnswerModel = {
     onAttachmentError: (message: string | null) => void;
     onAttach: () => void;
     onRemoveAttachment: (attachment: TicketAttachment) => void;
+    onChosenParticipantAreaChange: (area: TicketArea | '') => void;
+    onAddParticipantArea: () => void;
+    onRemoveParticipantArea: (area: TicketArea) => void;
   };
 };
 
@@ -140,6 +153,47 @@ export function useTicketAnswerModel({
     }),
   );
 
+  /* As áreas participantes (#13) são um pedido PRÓPRIO, fora do formulário principal: somar
+     ou tirar uma área acontece na hora, sem esperar quem atende terminar de preencher o
+     resto. `currentTicket` existe porque `ticket` (o parâmetro) é o estado de QUANDO o modal
+     abriu — sem ele, somar uma área não apareceria até o modal reabrir. */
+  let currentTicket = $state(ticket);
+  let chosenParticipantArea = $state<TicketArea | ''>('');
+  let removingAreaArea = $state<TicketArea | null>(null);
+  let areaError = $state<string | null>(null);
+
+  const addArea = mirrorStore(
+    createMutation({
+      mutationFn: (area: TicketArea) => ticketsApi.addArea(ticket.id, area),
+      onSuccess: async (updated) => {
+        currentTicket = updated;
+        chosenParticipantArea = '';
+        areaError = null;
+        await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
+      },
+      onError: (error: unknown) => {
+        areaError = readError(error) ?? 'Não consegui somar a área.';
+      },
+    }),
+  );
+
+  const removeArea = mirrorStore(
+    createMutation({
+      mutationFn: (area: TicketArea) => ticketsApi.removeArea(ticket.id, area),
+      onSuccess: async (updated) => {
+        currentTicket = updated;
+        areaError = null;
+        await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
+      },
+      onError: (error: unknown) => {
+        areaError = readError(error) ?? 'Não consegui remover a área.';
+      },
+      onSettled: () => {
+        removingAreaArea = null;
+      },
+    }),
+  );
+
   const form = createForm(() => ({
     defaultValues: toFormValues(ticket),
     /* As MESMAS regras que o servidor usa para validar o corpo. UM validador só, em
@@ -163,9 +217,10 @@ export function useTicketAnswerModel({
       const current = values.current;
 
       return {
-        ticket,
+        ticket: currentTicket,
         fields: {
           status: toFieldState(current.status, fieldMeta.current.status, isSubmitted.current),
+          area: toFieldState(current.area, fieldMeta.current.area, isSubmitted.current),
           problemType: toFieldState(
             current.problemType,
             fieldMeta.current.problemType,
@@ -184,6 +239,8 @@ export function useTicketAnswerModel({
         machines: toMachineOptions(machines.current.data?.items ?? []),
         attachments: attachments.current.data ?? [],
         chosenFiles,
+        availableParticipantAreas: toAvailableParticipantAreas(currentTicket),
+        chosenParticipantArea,
       };
     },
     get state() {
@@ -193,6 +250,9 @@ export function useTicketAnswerModel({
         isAttachmentsLoading: attachments.current.isPending,
         isAttaching: attach.current.isPending,
         removingAttachmentId,
+        isAddingArea: addArea.current.isPending,
+        removingAreaArea,
+        areaError,
         /* A recusa da ESCOLHA (o arquivo não cabe) e a da GRAVAÇÃO (a rede caiu) aparecem no
            mesmo lugar: para quem está olhando, as duas respondem "por que meu arquivo não
            entrou?". */
@@ -224,8 +284,27 @@ export function useTicketAnswerModel({
         removingAttachmentId = attachment.id;
         removeAttachment.current.mutate(attachment.id);
       },
+      onChosenParticipantAreaChange: (area) => (chosenParticipantArea = area),
+      onAddParticipantArea: () => {
+        if (chosenParticipantArea === '') return;
+
+        addArea.current.mutate(chosenParticipantArea);
+      },
+      onRemoveParticipantArea: (area) => {
+        removingAreaArea = area;
+        removeArea.current.mutate(area);
+      },
     },
   };
+}
+
+/** Todas as áreas, menos a original e as que já são participantes — o que ainda pode entrar. */
+function toAvailableParticipantAreas(
+  ticket: Ticket,
+): { value: TicketArea; label: string }[] {
+  const taken = new Set<TicketArea>([ticket.area, ...ticket.participantAreas]);
+
+  return ticketAreaOptions().filter((option) => !taken.has(option.value));
 }
 
 /**
@@ -250,6 +329,7 @@ function toFormValues(ticket: Ticket): TicketAnswerFormValues {
   return {
     status: ticket.status,
     priority: ticket.priority,
+    area: ticket.area,
     problemType: ticket.problemType,
     /* Vazio é "nenhuma máquina": no formulário tudo é texto, e é o view-model que traduz. */
     computerId: ticket.computerId === null ? '' : String(ticket.computerId),
@@ -268,6 +348,7 @@ function toUpdateInput(values: TicketAnswerFormValues) {
   return {
     status: values.status,
     priority: values.priority,
+    area: values.area,
     problemType: values.problemType,
     computerId: values.computerId === '' ? null : Number(values.computerId),
     assignee: values.assignee,
