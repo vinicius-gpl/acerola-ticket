@@ -76,7 +76,7 @@
   import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/app-shell-nav-entry/app-shell-nav-entry.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
+  import SelectField from '$lib/components/select-field/select-field.svelte';
   import ThemeToggle from '$lib/components/theme-toggle/theme-toggle.svelte';
 
   /* `state` (o prop) precisa de outro nome aqui dentro: um binding local chamado `state` faz
@@ -185,10 +185,10 @@
            `areaOptions` em `use-app-shell`. Fica no cabeçalho, e não no menu lateral, porque
            é sobre O QUE a pessoa está vendo agora, não sobre PARA ONDE ela pode ir. -->
       {#if data?.areaOptions && data.areaOptions.length > 0}
-        <div class="ml-auto w-48">
-          <OptionPicker
+        <div class="ml-auto">
+          <SelectField
             data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
-            ui={{ ariaLabel: 'Área que você está vendo', fullWidth: true }}
+            ui={{ ariaLabel: 'Área que você está vendo', className: 'min-w-[160px]' }}
             actions={{
               onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
             }}
