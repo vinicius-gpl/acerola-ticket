@@ -2,6 +2,7 @@ import {
   TICKET_AREAS,
   TICKET_DEPARTMENTS,
   TICKET_PROBLEM_TYPES,
+  type TicketProblemType,
 } from '@template/shared/domain/ticket-catalog.util';
 import {
   DEFAULT_TICKET_PRIORITY,
@@ -66,7 +67,9 @@ export const tickets = pgTable(
      */
     area: text('area', { enum: TICKET_AREAS }).notNull().default('infra'),
     department: text('department', { enum: TICKET_DEPARTMENTS }).notNull(),
-    problemType: text('problem_type', { enum: TICKET_PROBLEM_TYPES }).notNull(),
+    problemType: text('problem_type', {
+      enum: TICKET_PROBLEM_TYPES as [TicketProblemType, ...TicketProblemType[]],
+    }).notNull(),
     anydeskId: text('anydesk_id'),
     contactPhone: text('contact_phone'),
     /* Só avisa quem pediu para ser avisado. Ter o telefone não autoriza usá-lo. */
