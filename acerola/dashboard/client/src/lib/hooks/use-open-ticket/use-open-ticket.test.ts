@@ -48,9 +48,12 @@ function mountModel(): OpenTicketModel {
  * O mínimo que o schema compartilhado aceita.
  *
  * O telefone entra porque ele é EXIGIDO: é como o TI retorna quando o chamado precisa de
- * conversa (ver `phone.util`). Departamento, tipo e urgência já nascem preenchidos.
+ * conversa (ver `phone.util`). Departamento, tipo e urgência já nascem preenchidos — a ÁREA
+ * não: ela nasce vazia de propósito (é a primeira escolha, numa etapa própria de cards no
+ * `open-ticket-form`), e por isso este mínimo precisa escolhê-la também.
  */
 async function fillMinimum(model: OpenTicketModel): Promise<void> {
+  model.actions.onChange('area', 'infra');
   model.actions.onChange('requesterName', 'Ana Souza');
   model.actions.onChange('contactPhone', '11 98765-4321');
   model.actions.onChange('description', 'A internet caiu na minha sala.');

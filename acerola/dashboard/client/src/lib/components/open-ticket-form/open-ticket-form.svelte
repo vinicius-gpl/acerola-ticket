@@ -1,10 +1,12 @@
 <script lang="ts" module>
+  import LaptopIcon from '@lucide/svelte/icons/laptop';
+  import ServerIcon from '@lucide/svelte/icons/server';
+  import WrenchIcon from '@lucide/svelte/icons/wrench';
   import { formatAnydeskInput } from '@template/shared/domain/anydesk.util';
   import { formatPhoneInput } from '@template/shared/domain/phone.util';
   import {
     TICKET_DEPARTMENTS,
     TICKET_DEPARTMENT_LABELS,
-    ticketAreaOptions,
     ticketProblemTypeOptionsForArea,
     type TicketArea,
   } from '@template/shared/domain/ticket-catalog.util';
@@ -67,7 +69,17 @@
     label: TICKET_DEPARTMENT_LABELS[department],
   }));
 
-  const AREA_OPTIONS = ticketAreaOptions();
+  /**
+   * As três áreas, como CARDS — a primeira escolha de quem abre o chamado, antes de qualquer
+   * outro dado. Ícone e descrição são só texto de tela (não vêm do domínio, que só sabe o
+   * valor e o rótulo).
+   */
+  const AREA_CARDS: { value: TicketArea; label: string; description: string; icon: typeof ServerIcon }[] =
+    [
+      { value: 'infra', label: 'Infraestrutura', description: 'Rede, impressora, computador, acesso remoto', icon: ServerIcon },
+      { value: 'sistema', label: 'Sistema', description: 'Erro, pedido de melhoria, acesso a uma tela', icon: LaptopIcon },
+      { value: 'manutencao', label: 'Manutenção', description: 'Ar-condicionado, mobiliário, iluminação, estrutura', icon: WrenchIcon },
+    ];
 
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
@@ -76,23 +88,26 @@
   }));
 
   /** Uma etapa do onboarding: o cabeçalho (ícone, título) e quais campos ela valida. */
-  type StepId = 'who' | 'problem' | 'what' | 'notify';
+  type StepId = 'area' | 'who' | 'problem' | 'what' | 'notify';
 
   const STEP_FIELDS: Record<StepId, OpenTicketField[]> = {
+    area: ['area'],
     who: ['requesterName', 'contactPhone'],
-    problem: ['area', 'department', 'problemType', 'priority', 'anydeskId'],
+    problem: ['department', 'problemType', 'priority', 'anydeskId'],
     what: ['description'],
     notify: [],
   };
 
-  const STEP_ORDER: StepId[] = ['who', 'problem', 'what', 'notify'];
+  const STEP_ORDER: StepId[] = ['area', 'who', 'problem', 'what', 'notify'];
 
   /**
    * Só os campos que PODEM chegar vazios e são obrigatórios — departamento, tipo e urgência
    * sempre têm um valor (vêm com padrão do próprio seletor), então travar "Avançar" neles
-   * não faria sentido: não tem como ficarem vazios.
+   * não faria sentido: não tem como ficarem vazios. A ÁREA é a exceção de propósito: ela
+   * nasce vazia, porque é a PRIMEIRA escolha, feita de verdade — nunca um padrão escondido.
    */
   const REQUIRED_FIELDS: Partial<Record<StepId, OpenTicketField[]>> = {
+    area: ['area'],
     who: ['requesterName', 'contactPhone'],
     what: ['description'],
   };
@@ -118,10 +133,10 @@
   import { DESCRIPTION_MAX_LENGTH } from '@template/shared/schemas/ticket.schema';
 
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
   import PaperclipIcon from '@lucide/svelte/icons/paperclip';
   import UserIcon from '@lucide/svelte/icons/user';
-  import WrenchIcon from '@lucide/svelte/icons/wrench';
   import XIcon from '@lucide/svelte/icons/x';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
@@ -295,7 +310,38 @@
            linha de conexão, que só faz sentido quando há uma próxima etapa visível. -->
       <div bind:this={stepContentEl}>
       <Timeline>
-        {#if stepId === 'who'}
+        {#if stepId === 'area'}
+          <TimelineStep
+            data={{ title: 'Qual área atende seu pedido?', description: 'Escolha a que mais parece com o que você precisa.', icon: LayoutGridIcon }}
+            ui={{ isLast: true, tone: 'brand' }}
+          >
+            <div class="grid gap-3 sm:grid-cols-3">
+              {#each AREA_CARDS as card (card.value)}
+                {@const isSelected = fields.area.value === card.value}
+                <button
+                  type="button"
+                  disabled={formState.isSubmitting}
+                  aria-pressed={isSelected}
+                  onclick={() => handleAreaChange(card.value)}
+                  class={cn(
+                    'flex flex-col items-start gap-2 rounded-box border p-4 text-left transition-colors',
+                    isSelected
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border/80 bg-card hover:bg-muted/40',
+                  )}
+                >
+                  <card.icon class="text-primary size-5" aria-hidden="true" />
+                  <span class="text-ink-900 text-sm font-semibold">{card.label}</span>
+                  <span class="text-ink-500 text-xs">{card.description}</span>
+                </button>
+              {/each}
+            </div>
+
+            {#if fields.area.error}
+              <p class="text-destructive mt-3 text-xs">{fields.area.error}</p>
+            {/if}
+          </TimelineStep>
+        {:else if stepId === 'who'}
           <TimelineStep data={{ title: 'Quem é você', icon: UserIcon }} ui={{ isLast: true, tone: 'brand' }}>
             <div class="grid gap-4 sm:grid-cols-2">
               <TextField
@@ -340,16 +386,6 @@
             ui={{ isLast: true }}
           >
             <div class="flex flex-col gap-4">
-              <div class="flex flex-col gap-1.5">
-                <span class="text-ink-700 text-sm font-medium">Área</span>
-                <OptionPicker
-                  data={{ value: fields.area.value, options: AREA_OPTIONS }}
-                  ui={{ ariaLabel: 'Área', placeholder: 'Escolha a área', fullWidth: true }}
-                  state={{ isDisabled: formState.isSubmitting }}
-                  actions={{ onChange: handleAreaChange }}
-                />
-              </div>
-
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="flex flex-col gap-1.5">
                   <span class="text-ink-700 text-sm font-medium">Departamento</span>

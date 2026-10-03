@@ -8,7 +8,8 @@
 
   const emptyFields: Record<OpenTicketField, FormFieldState> = {
     requesterName: field(''),
-    area: field('infra'),
+    /* Vazia de propósito: é a primeira escolha de verdade, numa etapa própria de cards. */
+    area: field(''),
     department: field('analyze'),
     problemType: field('network'),
     anydeskId: field(''),
@@ -92,6 +93,9 @@
     data: {
       fields: {
         ...emptyFields,
+        /* A área é a PRIMEIRA validação que aparece — a pessoa vê isso sem nem clicar em
+           "Avançar" (ver `missingRequiredFields`). As de baixo aparecem ao avançar. */
+        area: field('', 'Escolha a área do chamado'),
         requesterName: field('', 'Informe seu nome'),
         contactPhone: field('99999', 'Informe o WhatsApp com DDD'),
         description: field('', 'Descreva o problema'),

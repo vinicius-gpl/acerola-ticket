@@ -54,7 +54,12 @@ export type OpenTicketModel = {
 
 const EMPTY_VALUES: TicketFormValues = {
   requesterName: '',
-  area: 'infra',
+  /* Nasce vazia de propósito — é a PRIMEIRA escolha da pessoa, numa etapa própria com três
+     cards (ver `open-ticket-form`). Um padrão escondido faria alguém abrir em "Infra" sem
+     ter escolhido nada. O cast é o preço de representar "ainda não escolhida" num campo cujo
+     contrato só aceita as três áreas de verdade — o envio nunca sai daqui sem a pessoa ter
+     clicado um card, e aí o valor já é um dos três. */
+  area: '' as TicketFormValues['area'],
   department: 'analyze',
   problemType: 'network',
   anydeskId: '',
