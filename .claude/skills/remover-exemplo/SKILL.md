@@ -25,9 +25,9 @@ scripts/seed/tasks/                             (pasta inteira)
 client/src/lib/api/tasks.api.ts
 client/src/lib/hooks/use-task-list/             (pasta inteira: .svelte.ts, .test.ts, harness)
 client/src/lib/hooks/use-task-form/             (pasta inteira: .svelte.ts, .test.ts, harness)
-client/src/lib/components/task-list-view/       (pasta inteira: .svelte, stories, test)
-client/src/lib/components/task-form-dialog/     (pasta inteira: .svelte, stories, test)
-client/src/routes/tasks/                        (pasta inteira)
+client/src/routes/(app)/tasks/                   (pasta inteira: +page, slots, components/acerola-task-*)
+client/src/lib/components/task-list-view/       (enquanto não migrado para a rota — sistema-de-design §10)
+client/src/lib/components/task-form-dialog/     (idem)
 client/e2e/tasks.e2e.ts
 ```
 

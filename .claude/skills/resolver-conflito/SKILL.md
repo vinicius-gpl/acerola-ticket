@@ -54,10 +54,10 @@ Nunca diga o caminho do arquivo para a pessoa. Diga **a tela ou a parte** que el
 | Arquivo (em `acerola/dashboard/`) | Como falar |
 |---|---|
 | `client/src/routes/<rota>/+page.svelte` | "a tela **<título>**" — o título está no `PageHeader` da view que a rota usa |
-| `client/src/lib/components/<x>-view/<x>-view.svelte` | "a tela **<título do PageHeader>**" |
-| `client/src/lib/components/<x>-form-dialog/<x>-form-dialog.svelte` | "o formulário de **<x>**" (título do `DialogTitle`) |
+| `client/src/routes/(app)/<feature>/components/acerola-<x>-view/…` | "a tela **<título do PageHeader>**" |
+| `client/src/routes/(app)/<feature>/components/acerola-<x>-form-dialog/…` | "o formulário de **<x>**" (título do `DialogTitle`) |
 | `client/src/lib/hooks/use-<x>/use-<x>.svelte.ts` | "o funcionamento da tela **<x>**" (filtros, botões, o que carrega) |
-| `client/src/lib/components/<x>/<x>.svelte` (fora de `components/ui/`) | "o componente **<x>**, usado nas telas A, B…" (descubra com `Grep` quem importa) |
+| `client/src/lib/components/acerola-<x>/acerola-<x>.svelte` | "o componente **<x>**, usado nas telas A, B…" (descubra com `Grep` quem importa) |
 | `client/src/lib/navigation/navigation.ts` | "o **menu lateral**" |
 | `client/src/lib/theme/tokens.css` | "as **cores** do sistema" |
 | `shared/src/schemas/<x>.schema.ts` | "as **regras do cadastro de <x>**" (campos obrigatórios, limites, mensagens de erro) |

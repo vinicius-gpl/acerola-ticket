@@ -39,7 +39,9 @@ teste. Se o erro não é do código da feature (ou só some mexendo em configura
 
 Revise o `git diff` do trabalho:
 
-- [ ] **Componente novo/alterado em `lib/components/` tem `.stories.svelte`** com estados e caso limite.
+- [ ] **Componente novo/alterado (`lib/components/acerola-*` ou `routes/**/components/acerola-*`) tem `.stories.svelte`** com estados e caso limite.
+- [ ] **Estrutura conferida pela skill `sistema-de-design` §11** (prefixos `acerola-*`/`use-*`, componente de feature na rota, `h-10` em campo, infra em inglês) — todas as checagens voltam vazias para o que esta mudança tocou.
+- [ ] **Nenhum componente existente foi reescrito**: `git diff develop --stat` só mostra o que foi pedido.
 - [ ] **Lógica nova tem teste feliz e triste**; escalada de privilégio (viewer escrevendo,
       autoria no corpo) testada quando mexeu em permissão.
 - [ ] **Idioma:** nenhum texto em inglês que aparece na tela (rótulo, botão, erro, mensagem de
