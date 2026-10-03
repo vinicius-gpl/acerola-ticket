@@ -14,7 +14,7 @@ import { writable } from 'svelte/store';
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { transfersApi } from '$lib/api/transfers.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 
 /** O valor do `select` quando a máquina volta para a prateleira. */

@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { partsApi } from '$lib/api/parts.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';
 
 export type PartLedgerModel = {

@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import type { Snippet } from 'svelte';
-  import type { TicketAreaContext } from '$lib/context/ticket-area-context.svelte';
+  import type { TicketAreaContext } from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
   import type { NavItem } from '$lib/navigation/navigation';
   import type { ContextRoles } from '@template/shared/schemas/user.schema';
 

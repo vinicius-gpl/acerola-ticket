@@ -12,7 +12,7 @@ import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { networkApi } from '$lib/api/network.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 
 export type NetworkFilter = {
   type: NetworkEventType | '';

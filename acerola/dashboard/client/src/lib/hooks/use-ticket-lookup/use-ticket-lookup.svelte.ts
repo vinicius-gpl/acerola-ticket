@@ -4,7 +4,7 @@ import { type PublicTicket } from '@template/shared/schemas/ticket.schema';
 
 import { readError } from '$lib/api/http-client';
 import { ticketsApi } from '$lib/api/tickets.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 
 export type TicketLookupModel = {
   data: {

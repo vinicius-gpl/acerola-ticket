@@ -14,8 +14,8 @@ import {
 import { readError } from '$lib/api/http-client';
 import { computersApi } from '$lib/api/computers.api';
 import { ticketsApi } from '$lib/api/tickets.api';
-import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { TICKETS_QUERY_KEY } from '$lib/hooks/use-ticket-list/use-ticket-list.svelte';
 

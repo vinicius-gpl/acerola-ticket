@@ -25,7 +25,7 @@ import { maintenancesApi } from '$lib/api/maintenances.api';
 import { partsApi } from '$lib/api/parts.api';
 import { ticketsApi } from '$lib/api/tickets.api';
 import { transfersApi } from '$lib/api/transfers.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { MAINTENANCES_QUERY_KEY } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';
 import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';

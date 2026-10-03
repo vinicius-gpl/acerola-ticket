@@ -3,11 +3,11 @@
   import Table from '@lucide/svelte/icons/table';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
 
   /**
    * "Ver em cards" / "Ver em tabela" — ao lado de cada lista que já tinha os dois formatos
-   * (cards no celular, tabela no desktop). Cuida da própria preferência (`lib/table-view`), do
+   * (cards no celular, tabela no desktop). Cuida da própria preferência (`lib/hooks/use-table-view`), do
    * mesmo jeito que o `ThemeToggle` cuida do próprio tema: a tela não guarda nenhum estado, só
    * coloca o botão.
    *

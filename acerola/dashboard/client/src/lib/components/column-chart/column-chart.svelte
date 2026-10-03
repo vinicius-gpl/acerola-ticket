@@ -90,7 +90,7 @@
 
   import ChartFrame from '$lib/components/chart-frame/chart-frame.svelte';
   import ChartTooltip from '$lib/components/chart-tooltip/chart-tooltip.svelte';
-  import { useIsMobile } from '$lib/hooks/use-mobile.svelte';
+  import { useMediaQuery, XL_BREAKPOINT } from '$lib/hooks/use-media-query/use-media-query.svelte';
   import { colorOfSlice } from '$lib/utils/chart-slice';
   import { cn } from '$lib/utils/cn';
 
@@ -98,7 +98,7 @@
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
   let { data, state: chartState, ui, actions }: ColumnChartProps = $props();
 
-  const isMobile = useIsMobile();
+  const isMobile = useMediaQuery(XL_BREAKPOINT);
   const isHorizontal = $derived(ui?.orientation === 'horizontal');
   const chartConfig = $derived(configOf(data.seriesLabel));
   const colors = $derived(data.slices.map((slice, index) => colorOfSlice(slice.label, index)));

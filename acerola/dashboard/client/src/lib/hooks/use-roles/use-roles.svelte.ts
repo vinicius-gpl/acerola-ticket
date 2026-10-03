@@ -5,7 +5,7 @@ import { writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { rolesApi } from '$lib/api/roles.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 
 export type RolesFilter = {
   search: string;
