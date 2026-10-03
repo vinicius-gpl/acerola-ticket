@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 
 import { AppModule } from './app.module';
@@ -14,7 +15,11 @@ async function bootstrap(): Promise<void> {
      valor errado faz cada requisição falhar com um erro que não aponta para o .env. */
   const env = parseEnv(process.env);
 
-  const app = await NestFactory.create(AppModule, { logger: logLevels(env.API_LOG_LEVEL) });
+  /* `bufferLogs` segura as linhas da partida até o pino assumir: sem isto, o que o Nest escreve
+     ao montar os módulos sai no formato antigo, fora do JSON e sem nível certo. O nível vem do
+     `API_LOG_LEVEL`, aplicado pelo `LoggingModule`. */
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
   /* Fecha o banco com Ctrl+C: é o que grava o WAL de volta no arquivo principal. */
   app.enableShutdownHooks();
 
@@ -87,14 +92,6 @@ async function bootstrap(): Promise<void> {
         `Para a tela achar a API, ponha VITE_API_PORT=${port} no client/.env e reinicie o Vite.`,
     );
   }
-}
-
-function logLevels(
-  level: 'debug' | 'log' | 'warn' | 'error',
-): ('debug' | 'log' | 'warn' | 'error')[] {
-  const order = ['debug', 'log', 'warn', 'error'] as const;
-
-  return order.slice(order.indexOf(level));
 }
 
 void bootstrap();
