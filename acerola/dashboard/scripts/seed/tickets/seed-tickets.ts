@@ -22,6 +22,7 @@ export async function seedTickets(db: Database): Promise<number> {
         status: sql`excluded.status`,
         priority: sql`excluded.priority`,
         requesterName: sql`excluded.requester_name`,
+        area: sql`excluded.area`,
         department: sql`excluded.department`,
         problemType: sql`excluded.problem_type`,
         computerId: sql`excluded.computer_id`,
