@@ -4,6 +4,7 @@
   import WrenchIcon from '@lucide/svelte/icons/wrench';
   import { formatAnydeskInput } from '@template/shared/domain/anydesk.util';
   import { formatPhoneInput } from '@template/shared/domain/phone.util';
+  import { screenshotAccept } from '@template/shared/domain/screenshot-catalog.util';
   import {
     TICKET_DEPARTMENTS,
     TICKET_DEPARTMENT_LABELS,
@@ -51,7 +52,12 @@
       attachments: File[];
       opened: { protocol: string; whatsAppLink: string | null } | null;
     };
-    state: { isSubmitting?: boolean; error?: string | null; attachmentError?: string | null };
+    state: {
+      isSubmitting?: boolean;
+      error?: string | null;
+      screenshotError?: string | null;
+      attachmentError?: string | null;
+    };
     actions: {
       onChange: (field: OpenTicketField, value: string) => void;
       onBlur: (field: OpenTicketField) => void;
@@ -241,6 +247,9 @@
   function handleFile(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     actions.onScreenshotChange(input.files?.[0] ?? null);
+    /* Limpa SEMPRE, recusado ou não — senão escolher de novo o MESMO arquivo (pra tentar
+       outro no lugar) não dispara `onchange` nenhum, e a pessoa acha que o botão travou. */
+    input.value = '';
   }
 
   /* O `<input type="file">` não deixa "desmarcar" um arquivo por código sem limpar o próprio
@@ -386,26 +395,28 @@
             ui={{ isLast: true }}
           >
             <div class="flex flex-col gap-4">
-              <div class="grid gap-4 sm:grid-cols-2">
-                <div class="flex flex-col gap-1.5">
-                  <span class="text-ink-700 text-sm font-medium">Departamento</span>
-                  <OptionPicker
-                    data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
-                    ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento', fullWidth: true }}
-                    state={{ isDisabled: formState.isSubmitting }}
-                    actions={{ onChange: (value: string) => actions.onChange('department', value) }}
-                  />
-                </div>
+              <!-- Departamento sozinho na linha: ele é um dropdown curto, e espremê-lo ao
+                   lado do Tipo de problema (que em Manutenção/Sistema vira um grupo de
+                   pastilhas) deixava as duas colunas com alturas bem diferentes, uma com
+                   folga e a outra quebrando em duas linhas. -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Departamento</span>
+                <OptionPicker
+                  data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
+                  ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento', fullWidth: true }}
+                  state={{ isDisabled: formState.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('department', value) }}
+                />
+              </div>
 
-                <div class="flex flex-col gap-1.5">
-                  <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
-                  <OptionPicker
-                    data={{ value: fields.problemType.value, options: problemTypeOptions }}
-                    ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo', fullWidth: true }}
-                    state={{ isDisabled: formState.isSubmitting }}
-                    actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
-                  />
-                </div>
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
+                <OptionPicker
+                  data={{ value: fields.problemType.value, options: problemTypeOptions }}
+                  ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo', fullWidth: true }}
+                  state={{ isDisabled: formState.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
+                />
               </div>
 
               <div class="flex flex-col gap-1.5">
@@ -418,6 +429,9 @@
                 />
               </div>
 
+              <!-- O AnyDesk só faz sentido em Infra — perguntar isso pra quem veio reportar
+                   o ar-condicionado pingando seria confundir, não ajudar (#13). -->
+              {#if fields.area.value === 'infra'}
               <TextField
                 data={{
                   label: 'Número do AnyDesk (opcional)',
@@ -431,6 +445,7 @@
                   onBlur: () => actions.onBlur('anydeskId'),
                 }}
               />
+              {/if}
             </div>
           </TimelineStep>
         {:else if stepId === 'what'}
@@ -484,11 +499,14 @@
                 id="screenshot"
                 name="screenshot"
                 type="file"
-                accept="image/*"
+                accept={screenshotAccept()}
                 disabled={formState.isSubmitting}
                 onchange={handleFile}
                 class="sr-only"
               />
+              {#if formState.screenshotError}
+                <p class="text-destructive text-xs" role="alert">{formState.screenshotError}</p>
+              {/if}
             </div>
 
             <div class="flex flex-col gap-1.5">

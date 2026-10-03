@@ -135,6 +135,22 @@
   }}
 />
 
+<!-- #13: escolheu um arquivo que não é imagem — a recusa aparece NA ESCOLHA, antes do envio. -->
+<Story
+  name="ScreenshotRefused"
+  args={{
+    data: {
+      fields: filledFields,
+      notifyWhatsapp: false,
+      screenshotName: null,
+      attachments: [],
+      opened: null,
+    },
+    state: { screenshotError: 'O print precisa ser uma imagem (PNG, JPG, WEBP, GIF ou BMP).' },
+    actions,
+  }}
+/>
+
 <Story
   name="ServerRefused"
   args={{

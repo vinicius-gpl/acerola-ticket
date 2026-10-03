@@ -1,5 +1,6 @@
 import { createForm } from '@tanstack/svelte-form';
 import { createMutation } from '@tanstack/svelte-query';
+import { refuseScreenshot } from '@template/shared/domain/screenshot-catalog.util';
 import { buildWhatsAppLink } from '@template/shared/domain/ticket-whatsapp.util';
 import {
   type Ticket,
@@ -39,7 +40,14 @@ export type OpenTicketModel = {
     attachments: File[];
     opened: OpenedTicket | null;
   };
-  state: { isSubmitting: boolean; error: string | null; attachmentError: string | null };
+  state: {
+    isSubmitting: boolean;
+    error: string | null;
+    /** A recusa do PRINT — formato fora da lista ou maior que o teto. Separada da de anexo:
+        são campos diferentes, e misturar as duas faria a tela apontar o campo errado. */
+    screenshotError: string | null;
+    attachmentError: string | null;
+  };
   actions: {
     onChange: (field: OpenTicketField, value: string) => void;
     onBlur: (field: OpenTicketField) => void;
@@ -84,6 +92,7 @@ export function useOpenTicketModel(): OpenTicketModel {
   /* A recusa da ESCOLHA, separada da falha de enviar: uma é sobre o arquivo, a outra é
      sobre a rede, e misturá-las faria a tela dizer a coisa errada. */
   let attachmentError = $state<string | null>(null);
+  let screenshotError = $state<string | null>(null);
   let opened = $state<OpenedTicket | null>(null);
 
   const save = mirrorStore(
@@ -136,6 +145,7 @@ export function useOpenTicketModel(): OpenTicketModel {
       return {
         isSubmitting: save.current.isPending,
         error: readError(save.current.error),
+        screenshotError,
         attachmentError,
       };
     },
@@ -150,7 +160,28 @@ export function useOpenTicketModel(): OpenTicketModel {
         void form.validateField(field, 'change');
       },
       onNotifyChange: (notify) => form.setFieldValue('notifyWhatsapp', notify),
-      onScreenshotChange: (file) => (screenshot = file),
+      /**
+       * Julga o print NA ESCOLHA, com a MESMA regra que a API aplicaria (#13) — sem isto, um
+       * PDF escolhido pelo "Todos os arquivos" do seletor do sistema (o `accept` do campo é
+       * só uma sugestão, o navegador deixa trocar) ficava parado na tela como se tivesse
+       * dado certo, e só o envio inteiro — segundos depois — dizia que não servia.
+       */
+      onScreenshotChange: (file) => {
+        if (!file) {
+          screenshot = null;
+          screenshotError = null;
+          return;
+        }
+
+        const refusal = refuseScreenshot({ contentType: file.type, sizeBytes: file.size });
+        if (refusal) {
+          screenshotError = refusal.message;
+          return;
+        }
+
+        screenshot = file;
+        screenshotError = null;
+      },
       onAttachmentsChange: (files: File[]) => (attachments = files),
       onAttachmentError: (message: string | null) => (attachmentError = message),
       onSubmit: () => void form.handleSubmit(),
@@ -161,6 +192,7 @@ export function useOpenTicketModel(): OpenTicketModel {
         screenshot = null;
         attachments = [];
         attachmentError = null;
+        screenshotError = null;
         save.current.reset();
         form.reset();
       },

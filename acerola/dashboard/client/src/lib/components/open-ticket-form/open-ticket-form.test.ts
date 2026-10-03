@@ -73,6 +73,26 @@ describe('OpenTicketForm', () => {
     expect(onChange).toHaveBeenCalledWith('problemType', expect.any(String));
   });
 
+  /* AnyDesk é sobre uma MÁQUINA — perguntar isso pra quem veio reportar o ar-condicionado
+     pingando seria confundir, não ajudar (#13). */
+  it('hides the AnyDesk field outside the infra area', async () => {
+    const user = userEvent.setup();
+    setup({ data: { fields: { ...fields, area: field('manutencao') }, notifyWhatsapp: false, screenshotName: null, attachments: [], opened: null } });
+
+    await advanceTo(user, 2);
+
+    expect(screen.queryByPlaceholderText(/123 456 789/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the AnyDesk field for the infra area', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await advanceTo(user, 2);
+
+    expect(screen.getByPlaceholderText(/123 456 789/i)).toBeInTheDocument();
+  });
+
   it('moves forward and back between steps without losing what was typed elsewhere', async () => {
     const user = userEvent.setup();
     setup();

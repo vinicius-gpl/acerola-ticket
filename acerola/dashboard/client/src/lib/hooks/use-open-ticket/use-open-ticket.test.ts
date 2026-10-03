@@ -96,6 +96,38 @@ describe('useOpenTicketModel', () => {
     expect(model.data.screenshotName).toBe('print.png');
   });
 
+  // triste
+  /**
+   * A recusa acontece NA ESCOLHA, não só no envio (#13). Sem isto, um PDF escolhido pelo
+   * "Todos os arquivos" do seletor do sistema ficava na tela como se tivesse dado certo, e só
+   * o envio — segundos depois — dizia que não servia.
+   */
+  it('refuses a screenshot that is not an image right at the choice, before any upload', async () => {
+    const model = mountModel();
+    const notAnImage = new File(['x'], 'curriculo.pdf', { type: 'application/pdf' });
+
+    model.actions.onScreenshotChange(notAnImage);
+
+    await waitFor(() =>
+      expect(model.state.screenshotError).toBe(
+        'O print precisa ser uma imagem (PNG, JPG, WEBP, GIF ou BMP).',
+      ),
+    );
+    expect(model.data.screenshotName).toBeNull();
+    expect(ticketsApi.create).not.toHaveBeenCalled();
+  });
+
+  it('clears the screenshot refusal once a real image is chosen afterwards', async () => {
+    const model = mountModel();
+    model.actions.onScreenshotChange(new File(['x'], 'curriculo.pdf', { type: 'application/pdf' }));
+    await waitFor(() => expect(model.state.screenshotError).not.toBeNull());
+
+    model.actions.onScreenshotChange(new File(['x'], 'print.png', { type: 'image/png' }));
+
+    await waitFor(() => expect(model.state.screenshotError).toBeNull());
+    expect(model.data.screenshotName).toBe('print.png');
+  });
+
   /* O link de WhatsApp só existe quando a pessoa PEDIU para ser avisada: ter o telefone não
      autoriza usá-lo. */
   it('offers the WhatsApp link when the person asked to be notified', async () => {
