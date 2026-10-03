@@ -29,7 +29,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   fileName: 'nota.pdf',
   contentType: 'application/pdf',
   sizeBytes: MEGABYTE,
-  storageKey: 'chamados-anexos/abc.pdf',
+  storageKey: 'ticket-attachments/abc.pdf',
   createdAt: new Date('2026-09-28T12:00:00.000Z'),
   createdBy: null,
   ...over,
@@ -53,7 +53,7 @@ function makeService(
       .fn()
       .mockImplementation((input) =>
         Promise.resolve({
-          key: 'chamados-anexos/abc',
+          key: 'ticket-attachments/abc',
           contentType: input.contentType,
           sizeBytes: 10,
         }),
@@ -183,7 +183,7 @@ describe('TicketAttachmentsService.remove', () => {
     await service.remove(ana, 7, 1);
 
     expect(repository.remove).toHaveBeenCalledWith(1);
-    expect(storage.remove).toHaveBeenCalledWith('chamados-anexos/abc.pdf');
+    expect(storage.remove).toHaveBeenCalledWith('ticket-attachments/abc.pdf');
   });
 
   // triste

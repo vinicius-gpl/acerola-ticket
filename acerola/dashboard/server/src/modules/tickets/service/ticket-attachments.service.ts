@@ -27,7 +27,7 @@ import { TicketAttachmentsRepository } from '../repository/ticket-attachments.re
 import { TicketsRepository } from '../repository/tickets.repository';
 
 /** A pasta dos anexos dentro do bucket. */
-const FOLDER = 'chamados-anexos';
+const FOLDER = 'ticket-attachments';
 
 const TICKET_NOT_FOUND = 'Chamado não encontrado.';
 const ATTACHMENT_NOT_FOUND = 'Anexo não encontrado.';

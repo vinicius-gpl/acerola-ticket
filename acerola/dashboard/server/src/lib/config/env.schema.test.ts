@@ -8,7 +8,7 @@ const secrets = {
   R2_ACCOUNT_ID: 'conta-de-exemplo',
   R2_ACCESS_KEY_ID: 'chave-de-exemplo',
   R2_SECRET_ACCESS_KEY: 'segredo-de-exemplo',
-  R2_BUCKET: 'arquivos',
+  R2_BUCKET: 'files',
   NEON_AUTH_URL: 'https://ep-exemplo.neonauth.sa-east-1.aws.neon.tech/acerola/auth',
 };
 
