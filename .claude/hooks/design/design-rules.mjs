@@ -55,6 +55,37 @@ export const LIB_FOLDERS = [
   'utils',
 ];
 
+/**
+ * Primitivos genéricos por natureza: não conhecem domínio (gráfico, barra, medidor, invólucro
+ * de um `ui/<x>`), mas hoje têm um consumidor só. Sem esta lista a regra
+ * `feature-component-in-lib` os empurraria para dentro da feature — e a segunda tela que
+ * precisasse de um gráfico teria de trazê-los de volta. O nome vale com ou sem `acerola-`.
+ */
+export const GENERIC_BY_DESIGN = [
+  'radar-chart',
+  'radial-chart',
+  'area-chart',
+  'progress-bar',
+  'usage-meter',
+  /^chart-/,
+  // Invólucros de `ui/<x>`: a feature não pode importar `ui/` direto, então eles moram em lib.
+  'dialog',
+  'table',
+  'sheet',
+  'skeleton',
+  'popover',
+  'separator',
+];
+
+/** @param {string} folder */
+function isGenericByDesign(folder) {
+  const name = (segments(folder).at(-1) ?? '').replace(/^acerola-/, '');
+
+  return GENERIC_BY_DESIGN.some((entry) =>
+    typeof entry === 'string' ? entry === name : entry.test(name),
+  );
+}
+
 /** Palavras em pt-BR que denunciam pasta de bucket ou chave de storage fora do inglês. */
 const PT_STORAGE_WORDS = /(chamado|anexo|arquivo|foto|relatorio|tarefa|manutenc|computador|peca)/;
 
@@ -316,7 +347,7 @@ export const RULES = [
       'Componente de `lib/components` usado (direta ou indiretamente) por uma feature só é de feature: mora em `routes/<feature>/components/`.',
     check: (files) =>
       [...featureOwners(files)]
-        .filter(([, owners]) => owners.size === 1)
+        .filter(([folder, owners]) => owners.size === 1 && !isGenericByDesign(folder))
         .map(([folder, owners]) => ({
           rule: 'feature-component-in-lib',
           file: folder,
