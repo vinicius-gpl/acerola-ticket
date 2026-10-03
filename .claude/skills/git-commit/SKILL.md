@@ -14,9 +14,9 @@ git branch --show-current
 
 - Em `main` ou `develop`?
   - **Em Modo Admin (`git config project.admin true` ativo):** Commits diretos são totalmente liberados! O admin pode commitar na branch que quiser.
-  - **Em Modo Padrão:** Não commite aí — o git recusa. Crie a branch antes, pela skill `git-fluxo` (Fase 1): as mudanças não commitadas vão junto para a branch nova.
+  - **Em Modo Padrão:** Não commite aí — o git recusa. Crie a branch antes, pela skill `git-flow` (Fase 1): as mudanças não commitadas vão junto para a branch nova.
 - Commit na branch de feature é só um **ponto de salvamento**: não precisa do OK da pessoa. O
-  OK é para juntar na develop, e isso é a Fase 4 do `git-fluxo`.
+  OK é para juntar na develop, e isso é a Fase 4 do `git-flow`.
 - Nada para commitar? Diga isso e pare.
 
 ## 2. Separar por local
@@ -80,12 +80,12 @@ Termine a mensagem com as linhas de atribuição que o sistema indicar, se houve
 - **pre-commit** (`npm run lint`): leia o erro, **corrija o código**, `git add` de novo, commite.
 
 - **"✋ A branch main é protegida"** / **"Na branch develop só entram…"** → você está na branch
-  errada. Siga o `git-fluxo` (Fase 1) — não procure contorno.
+  errada. Siga o `git-flow` (Fase 1) — não procure contorno.
 - **"✋ Login e identidade…"** / **"Bibliotecas de login…"** → desfaça essas mudanças
   (`git restore --staged` e `git restore` nos arquivos citados, explicando à pessoa) e siga
-  `limites-do-mvp`.
+  `mvp-limits`.
 - **"✋ Estes arquivos são a base e as regras do projeto…"** → não commite esses arquivos;
-  skill `suporte`.
+  skill `support`.
 
 - **No Modo Padrão, NUNCA use `--no-verify`.** Ele desliga o lint, o formato e a trava de branch. Se o
   lint falha num arquivo que você não mexeu, conserte ou avise a pessoa — não pule.
@@ -94,4 +94,4 @@ Termine a mensagem com as linhas de atribuição que o sistema indicar, se houve
 ## 5. Depois
 
 Mostre em uma linha o que foi salvo (`git log --oneline -3`). **Não faça `git push`** sem a
-pessoa pedir — push publica. Terminar e juntar na develop é o `git-fluxo`, Fase 3.
+pessoa pedir — push publica. Terminar e juntar na develop é o `git-flow`, Fase 3.
