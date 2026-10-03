@@ -83,6 +83,7 @@
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
   import {
     Table,
     TableActions,
@@ -92,11 +93,14 @@
     TableHeader,
     TableRow,
   } from '$lib/components/ui/table';
+  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
 
   let { data, state: dialogState, actions }: PartLedgerDialogProps = $props();
 
   const balance = $derived(currentBalanceOf(data));
+  const tableView = useTableViewModel();
 </script>
 
 <Dialog
@@ -129,9 +133,16 @@
         Esta peça ainda não teve entrada nem saída registrada.
       </p>
     {:else}
+      <div class="flex justify-end">
+        <TableViewToggle />
+      </div>
+
       <!-- 1. Visualização Mobile (< xl) -->
       <div
-        class="flex flex-col gap-2.5 xl:hidden max-h-[60vh] overflow-y-auto pr-1"
+        class={cn(
+          'flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto pr-1',
+          !tableView.forceCards && 'xl:hidden',
+        )}
         data-slot="part-ledger-cards-mobile"
       >
         {#each data.movements as movement (movement.id)}
@@ -181,7 +192,10 @@
 
       <!-- 2. Visualização Desktop (>= xl) -->
       <div
-        class="hidden xl:block overflow-x-auto rounded-box border border-border"
+        class={cn(
+          'overflow-x-auto rounded-box border border-border',
+          tableView.forceCards ? 'hidden' : 'hidden xl:block',
+        )}
         data-slot="part-ledger-table-desktop"
       >
         <Table class="min-w-[620px]">
