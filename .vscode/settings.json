@@ -32,7 +32,6 @@
     "**/routeTree.gen.ts": true,
     "**/drizzle/meta": true
   },
-  "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "*.component.tsx": "${capture}.stories.tsx, ${capture}.test.tsx",
     "*.ts": "${capture}.test.ts",
