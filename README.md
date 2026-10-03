@@ -42,7 +42,7 @@ git --version
 
 4. Abra o Claude Code e digite: **`/comecar`**
 
-A skill `comecar` instala tudo, sobe o sistema, grava os dados de teste e abre no navegador.
+A skill `getting-started` instala tudo, sobe o sistema, grava os dados de teste e abre no navegador.
 
 Em seguida, peça **`/renomear-projeto`** para o nome do seu MVP aparecer nas telas.
 
