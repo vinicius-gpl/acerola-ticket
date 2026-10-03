@@ -100,6 +100,9 @@ export class FakeStorage {
 export type E2eApp = {
   app: INestApplication;
   storage: FakeStorage;
+  /** A conexão de verdade — para arquivos que precisam preparar dado que a API não expõe
+      (ex.: cargo por área, #13), sem reinventar a conexão. */
+  db: Database;
   /** Esvazia as tabelas que ESTE arquivo usa, para nenhum teste herdar o dado de outro. */
   truncate: (...tables: string[]) => Promise<void>;
 };
@@ -141,5 +144,5 @@ export async function createE2eApp(testDatabaseUrl: string): Promise<E2eApp> {
     );
   };
 
-  return { app, storage, truncate };
+  return { app, storage, db, truncate };
 }

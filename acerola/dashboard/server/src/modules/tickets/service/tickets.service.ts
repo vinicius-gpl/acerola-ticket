@@ -15,6 +15,7 @@ import {
   summarizeTickets,
   type TicketSummary,
 } from '@template/shared/domain/ticket-metrics.util';
+import { refuseScreenshot } from '@template/shared/domain/screenshot-catalog.util';
 import {
   ticketPriorityLabel,
   ticketPriorityTone,
@@ -33,7 +34,7 @@ import {
 import { type UserRole } from '@template/shared/schemas/user.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { canManageAnyRecord, isAdmin } from '../../../lib/policy/access.policy';
+import { canManageAnyRecord, isSuperAdmin } from '../../../lib/policy/access.policy';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
@@ -89,21 +90,6 @@ const NOT_FOUND = 'Chamado não encontrado. Confira o número do protocolo.';
 
 /** A pasta do print dentro do bucket. */
 const SCREENSHOT_FOLDER = 'chamados';
-
-/**
- * O print serve para o TI ver a tela de erro. Formato fora desta lista é recusado: aceitar
- * qualquer arquivo transformaria o formulário público num depósito de arquivo qualquer.
- */
-const ALLOWED_SCREENSHOT_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'image/bmp',
-]);
-
-/** 8 MB cobre print de tela em qualquer monitor; acima disso é arquivo que não é print. */
-const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
 
 /**
  * O arquivo como o multer o entrega. Declarado aqui em vez de instalar `@types/multer`: são
@@ -268,7 +254,17 @@ export class TicketsService {
 
     const participantAreas = await this.repository.listAreasOf(id);
     const access = await this.resolveAreaAccess(user);
+    const areasInvolved = [current.area, ...participantAreas];
+
     this.assertCanSeeTicket(access, current.area, participantAreas);
+    /* Escrever (qualquer campo) já exige gestor+ — quem só tem o cargo `user` na área só lê. */
+    this.assertCanWriteTicket(access, areasInvolved);
+
+    /* Resolver ou cancelar é o ÚNICO passo exclusivo de administrador — gestor contribui no
+       resto (assume, muda situação, registra solução), mas não encerra nem inativa. */
+    if (input.status === 'resolved' || input.status === 'cancelled') {
+      this.assertCanFinalizeTicket(access, areasInvolved);
+    }
 
     /* Reclassificar É mexer em quem atende — por isso pede gestor, não só "ter cargo". Sem
        esta trava, quem só lê a área de Infra poderia empurrar um chamado para Manutenção e
@@ -329,11 +325,15 @@ export class TicketsService {
   /**
    * O cargo desta pessoa, área por área — direto do banco, sem o "mínimo `user`" que o cargo
    * interno (#11) aplica em outros lugares: aqui, sem linha, é SEM ACESSO (ver issue #13).
-   * Administrador e super administrador continuam enxergando tudo, como em todo o resto do
-   * sistema.
+   *
+   * Só o SUPER ADMINISTRADOR enxerga tudo por padrão — ele é o único papel sem fronteira
+   * nenhuma no sistema (100%, ponta a ponta). Um administrador GLOBAL (`admin`, sem ser
+   * `superadmin`) não ganha as três áreas de graça: ele "faz tudo no contexto dele", e esse
+   * contexto é o que o cargo interno (#11) diz que é — igual a gestor e a usuário, só que
+   * com o nível mais alto quando o cargo existir.
    */
   private async resolveAreaAccess(user: RequestUser): Promise<AreaAccess> {
-    if (isAdmin(user.role)) {
+    if (isSuperAdmin(user.role)) {
       return TICKET_AREAS.reduce<AreaAccess>((access, area) => {
         access[area] = 'admin';
         return access;
@@ -343,7 +343,7 @@ export class TicketsService {
     return this.repository.contextRolesFor(user.id, user.email);
   }
 
-  /** Ler/atender exige cargo em alguma área do chamado — a original, ou alguma participante. */
+  /** Ler exige cargo (qualquer nível) em alguma área do chamado — a original, ou participante. */
   private assertCanSeeTicket(
     access: AreaAccess,
     area: TicketArea,
@@ -353,6 +353,30 @@ export class TicketsService {
 
     throw new ForbiddenException(
       `Você não tem cargo em ${ticketAreaLabel(area)} nem nas áreas participantes deste chamado.`,
+    );
+  }
+
+  /**
+   * Atender (mexer em qualquer campo) exige GESTOR ou ADMINISTRADOR em alguma área do
+   * chamado — quem só tem o cargo `user` numa área só CONSULTA, nunca escreve (ver issue #13).
+   */
+  private assertCanWriteTicket(access: AreaAccess, areasInvolved: readonly TicketArea[]): void {
+    if (areasInvolved.some((candidate) => canManageAnyRecord(access[candidate]))) return;
+
+    throw new ForbiddenException(
+      'Seu cargo nestas áreas só permite consultar — não atender chamados.',
+    );
+  }
+
+  /**
+   * FINALIZAR (resolver ou cancelar) exige ADMINISTRADOR em alguma área — gestor contribui
+   * (muda situação, assume, registra solução), mas nunca encerra nem inativa um chamado.
+   */
+  private assertCanFinalizeTicket(access: AreaAccess, areasInvolved: readonly TicketArea[]): void {
+    if (areasInvolved.some((candidate) => access[candidate] === 'admin')) return;
+
+    throw new ForbiddenException(
+      'Só quem administra alguma área deste chamado pode resolvê-lo ou cancelá-lo.',
     );
   }
 
@@ -396,13 +420,11 @@ export class TicketsService {
   private async storeScreenshot(screenshot?: UploadedScreenshot): Promise<string | null> {
     if (!screenshot) return null;
 
-    if (!ALLOWED_SCREENSHOT_TYPES.has(screenshot.mimetype)) {
-      throw new UnprocessableEntityException('O print precisa ser uma imagem (PNG, JPG ou WEBP).');
-    }
-
-    if (screenshot.size > MAX_SCREENSHOT_BYTES) {
-      throw new UnprocessableEntityException('O print passa de 8 MB. Envie uma imagem menor.');
-    }
+    const refusal = refuseScreenshot({
+      contentType: screenshot.mimetype,
+      sizeBytes: screenshot.size,
+    });
+    if (refusal) throw new UnprocessableEntityException(refusal.message);
 
     const stored = await this.storage.upload({
       fileName: screenshot.originalname,

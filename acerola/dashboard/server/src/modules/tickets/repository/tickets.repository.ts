@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
+import { parseTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import { type UserRole } from '@template/shared/schemas/user.schema';
 import {
   type TicketListQuery,
@@ -329,12 +330,18 @@ function buildWhere(query: TicketFilter): SQL | undefined {
 
   if (query.search) {
     const term = `%${query.search}%`;
+    /* "CH-0007", "ch 7", "7" — a MESMA leitura lenta que `findByProtocol` já aceita (ver
+       `ticket-protocol.util`). Sem isto, procurar pelo protocolo que a pessoa anotou no
+       papel não achava nada: `protocol` não é coluna, é o `id` vestido de `CH-0007`. */
+    const protocolId = parseTicketProtocol(query.search);
+
     filters.push(
       or(
         ilike(tickets.requesterName, term),
         ilike(tickets.description, term),
         ilike(tickets.solution, term),
         ilike(tickets.assignee, term),
+        ...(protocolId ? [eq(tickets.id, protocolId)] : []),
       ),
     );
   }

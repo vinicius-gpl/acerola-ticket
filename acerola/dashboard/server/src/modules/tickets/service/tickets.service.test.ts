@@ -63,12 +63,13 @@ const attachmentsStub = {
 };
 
 /**
- * O cargo padrão de quem testa: Ana tem cargo `user` em Infra, e nenhum nos outros dois — é
- * por isso que `ticketRow()` nasce em Infra, e os testes que não mexem com área continuam
- * passando sem precisar saber que ela existe.
+ * O cargo padrão de quem testa: Ana é GESTORA (`manager`) em Infra, e nenhum cargo nos outros
+ * dois — é por isso que `ticketRow()` nasce em Infra. `manager`, e não `user`, porque o
+ * padrão dos testes que só querem "atender" precisa de alguém que CONSEGUE escrever — `user`
+ * só consulta (#13); os testes que exercitam essa fronteira sobrescrevem explicitamente.
  */
 const defaultRepository: Partial<TicketsRepository> = {
-  contextRolesFor: vi.fn().mockResolvedValue({ infra: 'user' }),
+  contextRolesFor: vi.fn().mockResolvedValue({ infra: 'manager' }),
   listAreasOf: vi.fn().mockResolvedValue([]),
   listAreasFor: vi.fn().mockResolvedValue(new Map()),
 };
@@ -288,12 +289,12 @@ describe('TicketsService.update', () => {
     expect(update.mock.calls[0]?.[1].startedAt).toBeInstanceOf(Date);
   });
 
-  it('lets any identified person on the panel attend, since a ticket has no owner here', async () => {
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
+  it('lets a manager move a ticket forward, since it has no single owner here', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'in_progress' }));
     const service = makeService({ findById: vi.fn().mockResolvedValue(ticketRow()), update });
 
-    await expect(service.update(ana, 7, { status: 'resolved' })).resolves.toMatchObject({
-      status: 'resolved',
+    await expect(service.update(ana, 7, { status: 'in_progress' })).resolves.toMatchObject({
+      status: 'in_progress',
     });
   });
 
@@ -411,7 +412,11 @@ describe('TicketsService.dashboard', () => {
  */
 describe('TicketsService — acesso por área', () => {
   const manutencao: RequestUser = { ...ana, id: '2', email: 'carlos@azuos.com.br' };
-  const admin: RequestUser = { ...ana, id: '3', email: 'root@azuos.com.br', role: 'admin' };
+  /* SUPER administrador: 100%, ponta a ponta, sem fronteira — o único papel com bypass. */
+  const superadmin: RequestUser = { ...ana, id: '3', email: 'root@azuos.com.br', role: 'superadmin' };
+  /* Administrador GLOBAL (não super): "faz tudo no contexto DELE" — não ganha área nenhuma
+     de graça, precisa do mesmo cargo interno que gestor e usuário precisam (#13). */
+  const globalAdmin: RequestUser = { ...ana, id: '4', email: 'admin@azuos.com.br', role: 'admin' };
 
   // feliz
   it('scopes the queue to the areas the person has a role in', async () => {
@@ -423,12 +428,12 @@ describe('TicketsService — acesso por área', () => {
     expect(list).toHaveBeenCalledWith(expect.anything(), ['infra']);
   });
 
-  it('lets an admin see every area without even reading internal_roles', async () => {
+  it('lets a superadmin see every area without even reading internal_roles', async () => {
     const list = vi.fn().mockResolvedValue({ rows: [], total: 0 });
     const contextRolesFor = vi.fn();
     const service = makeService({ list, contextRolesFor });
 
-    await service.list(admin, query());
+    await service.list(superadmin, query());
 
     expect(list.mock.calls[0]?.[1]).toEqual(
       expect.arrayContaining(['infra', 'sistema', 'manutencao']),
@@ -437,6 +442,19 @@ describe('TicketsService — acesso por área', () => {
   });
 
   // triste
+  /* "Admin faz tudo no CONTEXTO dele" — sem cargo em área nenhuma, um admin global não vê
+     nada, igual a qualquer outro papel. Só super administrador tem o bypass automático. */
+  it('gives a plain global admin nothing without area cargo, the same opt-in as everyone', async () => {
+    const list = vi.fn().mockResolvedValue({ rows: [], total: 0 });
+    const contextRolesFor = vi.fn().mockResolvedValue({});
+    const service = makeService({ list, contextRolesFor });
+
+    await service.list(globalAdmin, query());
+
+    expect(contextRolesFor).toHaveBeenCalled();
+    expect(list).toHaveBeenCalledWith(expect.anything(), []);
+  });
+
   it('scopes the queue to nothing when the person has no role anywhere', async () => {
     const list = vi.fn().mockResolvedValue({ rows: [], total: 0 });
     const contextRolesFor = vi.fn().mockResolvedValue({});
@@ -498,9 +516,78 @@ describe('TicketsService — acesso por área', () => {
     });
   });
 
-  it('does not require manager just to change the status, only to change the area', async () => {
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
+  /**
+   * Os QUATRO níveis de cargo numa área, sobre o mesmo chamado (#13):
+   * `user` só consulta; `manager` contribui mas nunca finaliza; `admin` faz tudo.
+   */
+  // triste
+  it('refuses a "user" cargo to write anything at all, not even a non-terminal change', async () => {
+    const update = vi.fn();
     const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { status: 'in_progress' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  // feliz
+  it('lets a "manager" cargo contribute with a non-terminal status change', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'in_progress' }));
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { status: 'in_progress' })).resolves.toMatchObject({
+      status: 'in_progress',
+    });
+  });
+
+  // triste
+  /* Gestor contribui, mas NUNCA finaliza nem inativa — resolver/cancelar é exclusivo de
+     quem administra a área (#13). */
+  it('refuses a "manager" cargo to resolve a ticket', async () => {
+    const update = vi.fn();
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { status: 'resolved' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('refuses a "manager" cargo to cancel a ticket', async () => {
+    const update = vi.fn();
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { status: 'cancelled' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  // feliz
+  it('lets an "admin" cargo resolve a ticket', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'admin' });
     const service = makeService({
       findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
       update,
@@ -581,11 +668,11 @@ describe('TicketsService.myAreas', () => {
     await expect(service.myAreas(ana)).resolves.toEqual(['infra', 'sistema']);
   });
 
-  it('gives an admin all three areas without reading internal_roles', async () => {
+  it('gives a superadmin all three areas without reading internal_roles', async () => {
     const contextRolesFor = vi.fn();
     const service = makeService({ contextRolesFor });
 
-    const areas = await service.myAreas({ ...ana, role: 'admin' });
+    const areas = await service.myAreas({ ...ana, role: 'superadmin' });
 
     expect(areas).toEqual(expect.arrayContaining(['infra', 'sistema', 'manutencao']));
     expect(contextRolesFor).not.toHaveBeenCalled();
@@ -597,6 +684,15 @@ describe('TicketsService.myAreas', () => {
     const service = makeService({ contextRolesFor });
 
     await expect(service.myAreas(ana)).resolves.toEqual([]);
+  });
+
+  /* "Admin faz tudo no contexto DELE" — sem cargo em área nenhuma, um admin global não é
+     diferente de qualquer outro papel sem cargo. */
+  it('gives a plain global admin nothing without area cargo', async () => {
+    const contextRolesFor = vi.fn().mockResolvedValue({});
+    const service = makeService({ contextRolesFor });
+
+    await expect(service.myAreas({ ...ana, role: 'admin' })).resolves.toEqual([]);
   });
 
   it('refuses an unidentified request without touching the repository', async () => {
