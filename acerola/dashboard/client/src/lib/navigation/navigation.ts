@@ -45,7 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'insights', label: 'Inteligência', to: '/insights', icon: Lightbulb },
   { key: 'budget', label: 'Orçamento', to: '/budget', icon: Wallet },
   /* A feature de exemplo do template. Sai quando não servir mais de molde (skill
-     `remover-exemplo`) — ela não faz parte do sistema de TI. */
+     `remove-example`) — ela não faz parte do sistema de TI. */
   { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks },
 ];
 
