@@ -232,8 +232,8 @@ pt-BR.
 | Fixture de teste | `'tickets/abc.png'` | `'chamados/abc.png'` |
 
 Constante de pasta mora no service que usa, em inglês e com nome em SCREAMING_CASE
-(`const SCREENSHOT_FOLDER = 'tickets'`). Mudar a pasta de objetos que **já existem** no bucket
-exige migração dos objetos ou leitura dos dois prefixos — combine antes.
+(`const SCREENSHOT_FOLDER = 'tickets'`). Mudar a pasta deixa os objetos antigos no prefixo velho: em desenvolvimento, limpe o bucket;
+em produção, copie os objetos antes.
 
 ### 7.2 Continua pt-BR
 
@@ -302,10 +302,6 @@ import.
 | `lib/table-view/` | hook fora de `hooks/` | `lib/hooks/use-table-view/` |
 | `lib/context/ticket-area-context.svelte.ts` | pasta fora do mapa | `lib/hooks/use-ticket-area/` |
 | `ui/input` h-8, `ui/select` h-8/h-9, `ui/button` h-7–9 | campo sem `h-10` | `h-10` nos `acerola-*` (§6) |
-| `server/.../tickets.service.ts` `'chamados'` | bucket em pt | `'tickets'` |
-| `server/.../ticket-attachments.service.ts` `'chamados-anexos'` | bucket em pt | `'ticket-attachments'` |
-| `server/src/lib/storage/storage.service.ts` fallback `'arquivos'` | bucket em pt | `'files'` |
-| `server/**/*.test.ts` `'chamados/...'` | fixture em pt | prefixo novo |
 | `server/.../tickets.service.test.ts` `const manutencao`, `server/test/computers.e2e.ts` `const descarte` | identificador em pt | inglês |
 | `agent/docs/{ARQUITETURA,ENVIO-REMOTO,ICONES,METRICAS,REAPROVEITAMENTO,ROADMAP}.md` | nome de arquivo em pt/MAIÚSCULO | `architecture.md`, `remote-reporting.md`, `icons.md`, `metrics.md`, `reuse.md`, `roadmap.md` |
 | `option-picker` fora de `fullWidth` usa `control-sm` | pastilha de filtro abaixo de 40px | `control-lg` |
@@ -317,35 +313,21 @@ import.
 
 ## 11. Checagem automática
 
-Rode da raiz de `acerola/dashboard/client`. Toda linha deve voltar **vazia**.
-
 ```bash
-# I4 — componente sem prefixo (fora do CLI)
-find src/lib/components src/routes -path '*/components/*' -mindepth 1 -maxdepth 4 -type d \
-  ! -path '*/ui' ! -path '*/ui/*' ! -name 'components' ! -name 'acerola-*'
-
-# I5 — hook solto ou sem prefixo
-find src/lib/hooks -mindepth 1 -maxdepth 1 ! -name 'ui' \( -type f -o ! -name 'use-*' \)
-
-# Pasta fora do mapa em lib/
-ls src/lib | grep -vxE 'api|auth|components|hooks|motion|navigation|theme|types|utils'
-
-# I6 — nome de feature dentro de lib/components
-ls src/lib/components | grep -E '^(acerola-)?(dashboard|computer|part|ticket|maintenance|role|task|budget|insights|network|disposal|transfer|movement|login|forgot-password|reset-password)-'
-
-# I6 — feature importando componente de outra feature (import relativo atravessando rota)
-rg -n "\.\./[a-z-]+/components/" src/routes
-
-# I3 — ui importado fora de lib/components/acerola-*
-rg -n 'lib/components/ui/' src --glob '!src/lib/components/**'
-
-# I7 — altura compensada na rota
-rg -n '\bh-(7|8|9|11|12)\b' src/routes
-
-# I9 — infra em pt no server
-rg -n "(FOLDER\s*=|\|\|)\s*'[a-z-]*(chamado|anexo|arquivo|foto|relatorio)" ../server/src
+cd acerola/dashboard
+npm run check:design              # reprova só violação NOVA (fora da baseline)
+npm run check:design -- --all     # lista tudo, inclusive a dívida conhecida
+npm run check:design -- --update  # depois de corrigir dívida: regrava a baseline menor
 ```
 
-Lint que sustenta isso (arquivo protegido, mudança de admin): `no-restricted-imports` de
-`lib/components/ui/**` e `no-restricted-syntax` de hooks de dado precisam valer também para
-`src/routes/**/components/**`.
+As regras moram em `scripts/design/design-rules.ts` (testadas em `design-rules.test.ts`) e cobrem
+este documento e a `ui-standards`: prefixo `acerola-*`, story e teste ao lado, componente de
+feature em `lib` (seguindo a cadeia de imports), hooks, pastas de `lib`, fronteira do `ui/`,
+import entre features, markup e altura na rota, raio, paleta crua, fonte em px, sombra, par
+cartão/tabela, pasta de bucket e nome de doc.
+
+A dívida existente está congelada em `scripts/design/design-baseline.json`. **Nunca adicione
+linha nova à baseline para fazer o check passar** — corrija. A baseline só diminui. Roda no CI
+e no `pre-push`.
+
+Regra nova nas skills = regra nova em `design-rules.ts` no mesmo PR, com teste feliz e triste.
