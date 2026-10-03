@@ -1,1 +1,3 @@
 sh acerola/dashboard/scripts/git/branch-guard.sh push
+# Mesma checagem do CI, antes de sair da máquina: violação de design nova não chega ao PR.
+(cd acerola/dashboard && npm run -s check:design) || exit 1

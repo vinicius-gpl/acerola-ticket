@@ -89,7 +89,7 @@ const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
 const NOT_FOUND = 'Chamado não encontrado. Confira o número do protocolo.';
 
 /** A pasta do print dentro do bucket. */
-const SCREENSHOT_FOLDER = 'chamados';
+const SCREENSHOT_FOLDER = 'tickets';
 
 /**
  * O arquivo como o multer o entrega. Declarado aqui em vez de instalar `@types/multer`: são

@@ -59,7 +59,7 @@ describe('toTicket', () => {
   });
 
   it('never leaks the storage key, which is not a link anyone can open', () => {
-    const ticket = toTicket(row({ screenshotKey: 'chamados/abc.png' }), null);
+    const ticket = toTicket(row({ screenshotKey: 'tickets/abc.png' }), null);
 
     expect(ticket).not.toHaveProperty('screenshotKey');
   });
@@ -127,7 +127,7 @@ describe('toTicketInsert', () => {
   });
 
   it('keeps the storage key given by whoever stored the file', () => {
-    expect(toTicketInsert(input, 'chamados/abc.png').screenshotKey).toBe('chamados/abc.png');
+    expect(toTicketInsert(input, 'tickets/abc.png').screenshotKey).toBe('tickets/abc.png');
   });
 
   it('reads the checkbox sent as text by a multipart form', () => {

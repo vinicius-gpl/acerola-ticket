@@ -351,20 +351,6 @@ lista vira cartão (§6).
 
 ## 14. Checagem
 
-Rode em `acerola/dashboard/client`. Valem para **o que a mudança tocou**; o legado migra aos
-poucos.
-
-```bash
-# Raio por tamanho em componente próprio
-rg -n '\brounded(-(sm|md|lg|xl|2xl|3xl)|-\[)?\b' src/lib/components src/routes -g '!**/ui/**' -g '!*.stories.svelte' | rg -v 'rounded-(surface|control|box|chip|full|none|t|b|l|r|s|e)\b'
-
-# Paleta crua e tamanho de fonte arbitrário
-rg -n '\b(text|bg|border)-(neutral|gray|slate|zinc|red|emerald|amber|blue|rose)-[0-9]+' src/lib/components src/routes -g '!**/ui/**'
-rg -n 'text-\[[0-9]+px\]' src/lib/components src/routes -g '!**/ui/**'
-
-# Sombra fora da régua
-rg -n '\bshadow(-(sm|md|lg|2xl|inner)|-\[)?\b' src/lib/components src/routes -g '!**/ui/**' | rg -v 'shadow-(xs|xl|none)\b'
-
-# Lista com só um dos formatos
-for f in $(rg -l 'cards-mobile' src); do rg -q 'table-desktop' "$f" || echo "sem tabela: $f"; done
-```
+`npm run check:design` (em `acerola/dashboard`) confere raio, paleta crua, fonte em px, sombra e o
+par cartão/tabela, junto com as regras de estrutura. Só reprova o que é novo; a dívida está na
+baseline e só diminui. Detalhes: skill `design-system` §11.

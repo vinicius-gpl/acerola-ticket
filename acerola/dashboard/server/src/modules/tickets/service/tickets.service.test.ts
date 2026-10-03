@@ -51,7 +51,7 @@ function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithCompu
 }
 
 const storageStub = {
-  upload: vi.fn().mockResolvedValue({ key: 'chamados/abc.png' }),
+  upload: vi.fn().mockResolvedValue({ key: 'tickets/abc.png' }),
   createDownloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed'),
 };
 
@@ -128,7 +128,7 @@ describe('TicketsService.findById', () => {
   // feliz
   it('opens the ticket with a signed screenshot link', async () => {
     const service = makeService({
-      findById: vi.fn().mockResolvedValue(ticketRow({ screenshotKey: 'chamados/abc.png' })),
+      findById: vi.fn().mockResolvedValue(ticketRow({ screenshotKey: 'tickets/abc.png' })),
     });
 
     const ticket = await service.findById(ana, 7);
@@ -164,8 +164,8 @@ describe('TicketsService.create', () => {
   });
 
   it('stores the screenshot and keeps its key on the ticket', async () => {
-    const insert = vi.fn().mockResolvedValue(ticketRow({ screenshotKey: 'chamados/abc.png' }));
-    const upload = vi.fn().mockResolvedValue({ key: 'chamados/abc.png' });
+    const insert = vi.fn().mockResolvedValue(ticketRow({ screenshotKey: 'tickets/abc.png' }));
+    const upload = vi.fn().mockResolvedValue({ key: 'tickets/abc.png' });
     const service = makeService(
       { insert },
       { upload, createDownloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed') },
@@ -184,7 +184,7 @@ describe('TicketsService.create', () => {
     );
 
     expect(upload).toHaveBeenCalledOnce();
-    expect(insert.mock.calls[0]?.[0]).toMatchObject({ screenshotKey: 'chamados/abc.png' });
+    expect(insert.mock.calls[0]?.[0]).toMatchObject({ screenshotKey: 'tickets/abc.png' });
   });
 
   // triste

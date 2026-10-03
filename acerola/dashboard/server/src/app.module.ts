@@ -8,6 +8,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './lib/auth/auth.module';
 import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
+import { LoggingModule } from './lib/logging/logging.module';
 import { SecurityModule } from './lib/security/security.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
@@ -46,6 +47,9 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
       exclude: ['/api/{*path}', '/docs', '/docs-json'],
     }),
     AppConfigModule,
+    /* Logo depois da configuração: o log precisa do `API_LOG_LEVEL` e tem de existir antes de
+       qualquer outro módulo escrever a primeira linha. */
+    LoggingModule,
     /* `@Global` só vale a partir do momento em que o módulo é registrado UMA vez. Sem esta
        linha o token `DB` não existe em lugar nenhum, e todo repository falha na injeção. */
     DbModule,
