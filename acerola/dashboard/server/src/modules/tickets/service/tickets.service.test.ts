@@ -599,6 +599,31 @@ describe('TicketsService — acesso por área', () => {
     });
   });
 
+  /* O super administrador resolve, cancela e reclassifica QUALQUER chamado, mesmo sem
+     nenhuma linha de cargo interno na área — é o único papel sem fronteira (#13). Se
+     `contextRolesFor` fosse chamado aqui, o bypass teria vazado para uma consulta ao banco. */
+  it('lets a superadmin resolve, cancel and reclassify a ticket with zero cargo anywhere', async () => {
+    const superadmin: RequestUser = { ...ana, role: 'superadmin' };
+    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
+    const contextRolesFor = vi.fn();
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'manutencao' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(superadmin, 7, { status: 'resolved' })).resolves.toMatchObject({
+      status: 'resolved',
+    });
+    await expect(
+      service.update(superadmin, 7, { status: 'cancelled' }),
+    ).resolves.toMatchObject({ status: 'resolved' });
+    await expect(
+      service.update(superadmin, 7, { area: 'infra' }),
+    ).resolves.toMatchObject({ status: 'resolved' });
+    expect(contextRolesFor).not.toHaveBeenCalled();
+  });
+
   // triste
   it('refuses to add a participant area without being a manager of the current one', async () => {
     const addArea = vi.fn();
