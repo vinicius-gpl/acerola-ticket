@@ -204,7 +204,9 @@ aplicado **no `acerola-*`**, nunca no `ui/` (o CLI sobrescreve) e nunca na rota.
 
 `acerola-text-area-field` não tem altura fixa (é multilinha): usa `min-h-*`.
 
-Como aplicar: na variante `tv()` base do wrapper, `h-10`. A prop `ui.size` **não** muda a altura
+Como aplicar: na variante `tv()` base do wrapper, a utilidade `control-lg` (40px = `h-10`,
+definida em `tokens.css`) + `rounded-control`. Filtro também é campo: `control-lg`. `control-sm`
+fica para ação dentro de linha de tabela/cartão (skill `ui-standards` §3.4). A prop `ui.size` **não** muda a altura
 de campo de formulário. Verificação:
 
 ```bash
@@ -306,6 +308,9 @@ import.
 | `server/**/*.test.ts` `'chamados/...'` | fixture em pt | prefixo novo |
 | `server/.../tickets.service.test.ts` `const manutencao`, `server/test/computers.e2e.ts` `const descarte` | identificador em pt | inglês |
 | `agent/docs/{ARQUITETURA,ENVIO-REMOTO,ICONES,METRICAS,REAPROVEITAMENTO,ROADMAP}.md` | nome de arquivo em pt/MAIÚSCULO | `architecture.md`, `remote-reporting.md`, `icons.md`, `metrics.md`, `reuse.md`, `roadmap.md` |
+| `option-picker` fora de `fullWidth` usa `control-sm` | pastilha de filtro abaixo de 40px | `control-lg` |
+| `ui/date-picker` (h-10, rounded-xl), `ui/table` (snippet `footer`, cores `neutral-*`) | `ui/` editado à mão; some no próximo `add` | mover a customização para `acerola-date-picker` / `acerola-table` |
+| 12 listas com par cartão/tabela à mão, raios diferentes | duplicação | `acerola-data-view` (skill `ui-standards` §6.4) |
 | button-group, breadcrumb, collapsible, input-group, navigation-menu | não instalados | `npx shadcn-svelte@latest add …` + `acerola-*` |
 
 ---
