@@ -66,7 +66,7 @@
   }}
 />
 
-<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-padrao`). -->
+<!-- A MESMA tela em 400px: a tabela sai de cena e entra o cartão empilhado (skill `ui-standards`). -->
 <Story
   name="Celular" globals={{ viewport: { value: 'celular' } }}
   args={{
