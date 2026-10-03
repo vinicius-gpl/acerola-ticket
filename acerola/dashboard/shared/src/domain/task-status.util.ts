@@ -3,7 +3,7 @@
  *
  * Ela existe para mostrar o caminho inteiro (contrato → banco → API → tela) funcionando. Na
  * primeira feature de verdade, ela serve de molde; quando não servir mais, apague a feature
- * inteira com a skill `remover-exemplo`.
+ * inteira com a skill `remove-example`.
  *
  * A lista mora no domínio, e não no componente nem no banco, porque os três a usam: o schema
  * Zod valida com ela, a coluna do SQLite restringe com ela e o selo escolhe a cor por ela.
