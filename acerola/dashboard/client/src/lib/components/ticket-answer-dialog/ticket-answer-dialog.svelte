@@ -1,9 +1,12 @@
 <script lang="ts" module>
   import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
   import {
+    ticketAreaLabel,
+    ticketAreaOptions,
     ticketDepartmentLabel,
     ticketProblemTypeLabel,
-    ticketProblemTypeOptions,
+    ticketProblemTypeOptionsForArea,
+    type TicketArea,
   } from '@template/shared/domain/ticket-catalog.util';
   import {
     TICKET_PRIORITIES,
@@ -19,6 +22,7 @@
   export type TicketAnswerField =
     | 'status'
     | 'priority'
+    | 'area'
     | 'problemType'
     | 'computerId'
     | 'assignee'
@@ -47,6 +51,9 @@
       machines: { value: string; label: string }[];
       attachments: TicketAttachment[];
       chosenFiles: File[];
+      /** As áreas que ainda podem entrar como participante — todas, menos as que já são. */
+      availableParticipantAreas: { value: TicketArea; label: string }[];
+      chosenParticipantArea: TicketArea | '';
     };
     state: {
       isOpen: boolean;
@@ -56,6 +63,9 @@
       isAttaching?: boolean;
       removingAttachmentId?: number | null;
       attachmentError?: string | null;
+      isAddingArea?: boolean;
+      removingAreaArea?: TicketArea | null;
+      areaError?: string | null;
     };
     actions: {
       onChange: (field: TicketAnswerField, value: string) => void;
@@ -66,6 +76,9 @@
       onAttachmentError: (message: string | null) => void;
       onAttach: () => void;
       onRemoveAttachment: (attachment: TicketAttachment) => void;
+      onChosenParticipantAreaChange: (area: TicketArea | '') => void;
+      onAddParticipantArea: () => void;
+      onRemoveParticipantArea: (area: TicketArea) => void;
     };
   };
 
@@ -75,7 +88,7 @@
     tone: ticketStatusTone(status),
   }));
 
-  const PROBLEM_TYPE_OPTIONS = ticketProblemTypeOptions();
+  const AREA_OPTIONS = ticketAreaOptions();
 
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
@@ -95,8 +108,10 @@
   import MonitorSmartphone from '@lucide/svelte/icons/monitor-smartphone';
   import Paperclip from '@lucide/svelte/icons/paperclip';
   import Phone from '@lucide/svelte/icons/phone';
+  import PlusIcon from '@lucide/svelte/icons/plus';
   import UserCog from '@lucide/svelte/icons/user-cog';
   import Wrench from '@lucide/svelte/icons/wrench';
+  import XIcon from '@lucide/svelte/icons/x';
 
   import {
     Dialog,
@@ -129,6 +144,12 @@
 
   const ticket = $derived(data.ticket);
   const fields = $derived(data.fields);
+
+  /* As opções de tipo de problema dependem da ÁREA escolhida — Manutenção não tem
+     "ar-condicionado" na lista de Infra, nem Infra tem "rede caiu" na de Manutenção. */
+  const problemTypeOptions = $derived(
+    ticketProblemTypeOptionsForArea(fields.area.value as TicketArea),
+  );
 
   /**
    * OS DOIS CONJUNTOS DE ARQUIVO, separados na tela como são no contrato.
@@ -315,13 +336,35 @@
                 />
               </div>
 
+              <!-- A área (#13): quem abre escolhe pelo que parece; quem atende descobre que
+                   era de outra. Trocar aqui PODE ser recusado pelo servidor — só quem
+                   gerencia alguma área do chamado reclassifica (ver `TicketsService.update`). -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Área</span>
+                <OptionPicker
+                  data={{ value: fields.area.value, options: AREA_OPTIONS }}
+                  ui={{ ariaLabel: 'Área', fullWidth: true }}
+                  state={{ isDisabled: state.isSubmitting }}
+                  actions={{
+                    onChange: (value: string) => {
+                      actions.onChange('area', value);
+                      /* Trocar de área pode deixar o tipo de problema atual fora da lista
+                         nova — "ar-condicionado" não existe em Infra. O primeiro tipo da
+                         área nova é sempre um valor válido, e evita mandar um tipo órfão. */
+                      const firstOfArea = ticketProblemTypeOptionsForArea(value as TicketArea)[0];
+                      if (firstOfArea) actions.onChange('problemType', firstOfArea.value);
+                    },
+                  }}
+                />
+              </div>
+
               <!-- Quem abre o chamado escolhe o tipo pelo que parece; quem atende descobre o
                    que era. Sem esta correção, o mapa de "o que mais dá problema" soma o
                    palpite de quem pediu socorro, e não o diagnóstico. -->
               <div class="flex flex-col gap-1.5">
                 <span class="text-xs font-medium text-muted-foreground">Tipo do problema</span>
                 <SelectField
-                  data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
+                  data={{ value: fields.problemType.value, options: problemTypeOptions }}
                   ui={{ ariaLabel: 'Tipo do problema', className: 'sm:min-w-[180px]' }}
                   state={{ isDisabled: state.isSubmitting }}
                   actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
@@ -345,6 +388,61 @@
                   actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
                 />
               </div>
+            </div>
+
+            <!-- ÁREAS PARTICIPANTES (#13) — além da área original, de cima. Ex.: um chamado
+                 de Infra que também precisa de Manutenção. Mudança própria, fora do envio do
+                 formulário: soma/remove na hora, sem esperar o resto ser salvo. -->
+            <div class="mt-4 flex flex-col gap-1.5 border-t border-border/70 pt-4">
+              <span class="text-xs font-medium text-muted-foreground">Áreas participantes</span>
+
+              {#if data.ticket.participantAreas.length === 0}
+                <p class="text-xs text-muted-foreground/70">Nenhuma área participante ainda.</p>
+              {:else}
+                <div class="flex flex-wrap items-center gap-1.5">
+                  {#each data.ticket.participantAreas as area (area)}
+                    <span class="inline-flex items-center gap-1 rounded-chip bg-neutral-100 pl-2.5 pr-1 py-1 dark:bg-neutral-800">
+                      <StatusBadge data={{ label: ticketAreaLabel(area) }} ui={{ tone: 'brand', size: 'sm' }} />
+                      <button
+                        type="button"
+                        onclick={() => actions.onRemoveParticipantArea(area)}
+                        disabled={state.removingAreaArea === area}
+                        aria-label={`Remover ${ticketAreaLabel(area)} do chamado`}
+                        class="text-muted-foreground hover:text-destructive flex size-5 items-center justify-center rounded-full transition-colors"
+                      >
+                        <XIcon class="size-3" aria-hidden="true" />
+                      </button>
+                    </span>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if data.availableParticipantAreas.length > 0}
+                <div class="mt-1 flex items-center gap-2">
+                  <OptionPicker
+                    data={{ value: data.chosenParticipantArea, options: data.availableParticipantAreas }}
+                    ui={{ ariaLabel: 'Somar área participante', placeholder: 'Escolher área' }}
+                    state={{ isDisabled: state.isAddingArea }}
+                    actions={{
+                      onChange: (value: string) =>
+                        actions.onChosenParticipantAreaChange(value as typeof data.chosenParticipantArea),
+                    }}
+                  />
+                  <ActionButton
+                    data={{ label: 'Somar', loadingLabel: 'Somando…' }}
+                    ui={{ variant: 'secondary', size: 'sm', icon: PlusIcon }}
+                    state={{
+                      isDisabled: data.chosenParticipantArea === '',
+                      isLoading: state.isAddingArea,
+                    }}
+                    actions={{ onClick: actions.onAddParticipantArea }}
+                  />
+                </div>
+              {/if}
+
+              {#if state.areaError}
+                <p class="text-destructive text-xs">{state.areaError}</p>
+              {/if}
             </div>
           </TimelineStep>
 

@@ -112,6 +112,7 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import {
     Table,
@@ -122,11 +123,14 @@
     TableHeader,
     TableRow,
   } from '$lib/components/ui/table';
+  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { cn } from '$lib/utils/cn';
   import { formatTimeAgo } from '$lib/utils/format-machine';
 
   let { data, state, actions }: ComputerListViewProps = $props();
 
   const summary = $derived(data.summary);
+  const tableView = useTableViewModel();
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -136,6 +140,7 @@
       description: 'Os computadores da empresa, e como cada um está passando.',
     }}
   >
+    <TableViewToggle />
     <ReportExportActions
       state={{ exportingFormat: state.exportingFormat ?? null }}
       actions={{ onExport: actions.onExportReport }}
@@ -260,7 +265,10 @@
     </EmptyState>
   {:else}
     <!-- Lista de cartões para mobile (< xl) -->
-    <div class="flex flex-col gap-3 xl:hidden" data-slot="computer-cards-mobile">
+    <div
+      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      data-slot="computer-cards-mobile"
+    >
       {#each data.computers as computer (computer.id)}
         <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
@@ -325,7 +333,10 @@
     </div>
 
     <!-- Tabela para desktop (>= xl) -->
-    <div class="hidden xl:block overflow-x-auto" data-slot="computer-table-desktop">
+    <div
+      class={cn('overflow-x-auto', tableView.forceCards ? 'hidden' : 'hidden xl:block')}
+      data-slot="computer-table-desktop"
+    >
       <Table class="min-w-[880px]">
         <TableHeader>
           <TableRow>

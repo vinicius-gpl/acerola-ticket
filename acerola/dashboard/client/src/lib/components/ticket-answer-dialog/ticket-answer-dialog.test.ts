@@ -14,8 +14,10 @@ const ticket: Ticket = {
   status: 'open',
   priority: 'high',
   requesterName: 'Bia Costa',
+  area: 'infra',
   department: 'financeiro',
   problemType: 'printer',
+  participantAreas: [],
   anydeskId: '111 222 333',
   contactPhone: '62999990001',
   notifyWhatsapp: true,
@@ -35,6 +37,7 @@ const ticket: Ticket = {
 const fields: Record<TicketAnswerField, FormFieldState> = {
   status: field('open'),
   priority: field('high'),
+  area: field('infra'),
   problemType: field('printer'),
   computerId: field(''),
   assignee: field(''),
@@ -50,12 +53,29 @@ const actions = {
   onAttachmentError: vi.fn(),
   onAttach: vi.fn(),
   onRemoveAttachment: vi.fn(),
+  onChosenParticipantAreaChange: vi.fn(),
+  onAddParticipantArea: vi.fn(),
+  onRemoveParticipantArea: vi.fn(),
+};
+
+const baseData = {
+  ticket,
+  fields,
+  whatsAppLink: null,
+  machines: [],
+  attachments: [],
+  chosenFiles: [],
+  availableParticipantAreas: [
+    { value: 'sistema' as const, label: 'Sistema' },
+    { value: 'manutencao' as const, label: 'Manutenção' },
+  ],
+  chosenParticipantArea: '' as const,
 };
 
 function setup(props: Record<string, unknown> = {}) {
   return render(TicketAnswerDialog, {
     props: {
-      data: { ticket, fields, whatsAppLink: null, machines: [], attachments: [], chosenFiles: [] },
+      data: baseData,
       state: { isOpen: true },
       actions,
       ...props,
@@ -91,17 +111,7 @@ describe('TicketAnswerDialog', () => {
 
   it('offers the notice link when the person asked to be warned', () => {
     setup({
-      data: {
-        ticket,
-        fields,
-        whatsAppLink: 'https://wa.me/5562999990001?text=oi',
-        machines: [],
-        attachments: [],
-        chosenFiles: [],
-      },
-      machines: [],
-      attachments: [],
-      chosenFiles: [],
+      data: { ...baseData, whatsAppLink: 'https://wa.me/5562999990001?text=oi' },
     });
 
     expect(screen.getByRole('link', { name: /avisar no whatsapp/i })).toHaveAttribute(
@@ -112,14 +122,7 @@ describe('TicketAnswerDialog', () => {
 
   it('offers the screenshot when the ticket has one', () => {
     setup({
-      data: {
-        ticket: { ...ticket, screenshotUrl: 'https://x.invalid/print.png' },
-        fields,
-        whatsAppLink: null,
-        machines: [],
-        attachments: [],
-        chosenFiles: [],
-      },
+      data: { ...baseData, ticket: { ...ticket, screenshotUrl: 'https://x.invalid/print.png' } },
     });
 
     expect(screen.getByRole('link', { name: /abrir o print/i })).toBeInTheDocument();
@@ -143,14 +146,7 @@ describe('TicketAnswerDialog', () => {
 
   it('shows the server refusal without closing, so nothing typed is lost', () => {
     setup({
-      data: {
-        ticket,
-        fields: { ...fields, solution: field('Troquei o rolete.') },
-        whatsAppLink: null,
-        machines: [],
-        attachments: [],
-        chosenFiles: [],
-      },
+      data: { ...baseData, fields: { ...fields, solution: field('Troquei o rolete.') } },
       state: { isOpen: true, error: 'O banco recusou o valor enviado.' },
     });
 
@@ -166,18 +162,34 @@ describe('TicketAnswerDialog', () => {
 
   it('says the AnyDesk was not informed instead of leaving a blank gap', () => {
     setup({
-      data: {
-        ticket: { ...ticket, anydeskId: null },
-        fields,
-        whatsAppLink: null,
-        machines: [],
-        attachments: [],
-        chosenFiles: [],
-      },
+      data: { ...baseData, ticket: { ...ticket, anydeskId: null } },
     });
 
     /* O rótulo e o valor são elementos diferentes, então a conferência é sobre o texto
        renderizado — é o que a pessoa lê, independentemente de como foi marcado. */
     expect(document.body.textContent).toMatch(/AnyDesk\s*Não informado/);
+  });
+
+  // feliz
+  it('lists the participant areas with a way to remove each one', async () => {
+    const onRemoveParticipantArea = vi.fn();
+    setup({
+      data: { ...baseData, ticket: { ...ticket, participantAreas: ['manutencao'] } },
+      actions: { ...actions, onRemoveParticipantArea },
+    });
+
+    const removeButton = screen.getByRole('button', { name: /remover manutenção/i });
+    expect(removeButton).toBeInTheDocument();
+
+    await userEvent.click(removeButton);
+
+    expect(onRemoveParticipantArea).toHaveBeenCalledWith('manutencao');
+  });
+
+  // triste
+  it('says there is no participant area yet instead of an empty gap', () => {
+    setup();
+
+    expect(screen.getByText(/nenhuma área participante ainda/i)).toBeInTheDocument();
   });
 });

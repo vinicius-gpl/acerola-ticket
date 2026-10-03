@@ -1,11 +1,15 @@
 <script lang="ts" module>
+  import LaptopIcon from '@lucide/svelte/icons/laptop';
+  import ServerIcon from '@lucide/svelte/icons/server';
+  import WrenchIcon from '@lucide/svelte/icons/wrench';
   import { formatAnydeskInput } from '@template/shared/domain/anydesk.util';
   import { formatPhoneInput } from '@template/shared/domain/phone.util';
+  import { screenshotAccept } from '@template/shared/domain/screenshot-catalog.util';
   import {
     TICKET_DEPARTMENTS,
     TICKET_DEPARTMENT_LABELS,
-    TICKET_PROBLEM_TYPE_LABELS,
-    TICKET_PROBLEM_TYPES,
+    ticketProblemTypeOptionsForArea,
+    type TicketArea,
   } from '@template/shared/domain/ticket-catalog.util';
   import {
     TICKET_PRIORITIES,
@@ -16,6 +20,7 @@
 
   export type OpenTicketField =
     | 'requesterName'
+    | 'area'
     | 'department'
     | 'problemType'
     | 'anydeskId'
@@ -47,7 +52,12 @@
       attachments: File[];
       opened: { protocol: string; whatsAppLink: string | null } | null;
     };
-    state: { isSubmitting?: boolean; error?: string | null; attachmentError?: string | null };
+    state: {
+      isSubmitting?: boolean;
+      error?: string | null;
+      screenshotError?: string | null;
+      attachmentError?: string | null;
+    };
     actions: {
       onChange: (field: OpenTicketField, value: string) => void;
       onBlur: (field: OpenTicketField) => void;
@@ -65,10 +75,17 @@
     label: TICKET_DEPARTMENT_LABELS[department],
   }));
 
-  const PROBLEM_TYPE_OPTIONS = TICKET_PROBLEM_TYPES.map((type) => ({
-    value: type,
-    label: TICKET_PROBLEM_TYPE_LABELS[type],
-  }));
+  /**
+   * As três áreas, como CARDS — a primeira escolha de quem abre o chamado, antes de qualquer
+   * outro dado. Ícone e descrição são só texto de tela (não vêm do domínio, que só sabe o
+   * valor e o rótulo).
+   */
+  const AREA_CARDS: { value: TicketArea; label: string; description: string; icon: typeof ServerIcon }[] =
+    [
+      { value: 'infra', label: 'Infraestrutura', description: 'Rede, impressora, computador, acesso remoto', icon: ServerIcon },
+      { value: 'sistema', label: 'Sistema', description: 'Erro, pedido de melhoria, acesso a uma tela', icon: LaptopIcon },
+      { value: 'manutencao', label: 'Manutenção', description: 'Ar-condicionado, mobiliário, iluminação, estrutura', icon: WrenchIcon },
+    ];
 
   const PRIORITY_OPTIONS = TICKET_PRIORITIES.map((priority) => ({
     value: priority,
@@ -77,23 +94,26 @@
   }));
 
   /** Uma etapa do onboarding: o cabeçalho (ícone, título) e quais campos ela valida. */
-  type StepId = 'who' | 'problem' | 'what' | 'notify';
+  type StepId = 'area' | 'who' | 'problem' | 'what' | 'notify';
 
   const STEP_FIELDS: Record<StepId, OpenTicketField[]> = {
+    area: ['area'],
     who: ['requesterName', 'contactPhone'],
     problem: ['department', 'problemType', 'priority', 'anydeskId'],
     what: ['description'],
     notify: [],
   };
 
-  const STEP_ORDER: StepId[] = ['who', 'problem', 'what', 'notify'];
+  const STEP_ORDER: StepId[] = ['area', 'who', 'problem', 'what', 'notify'];
 
   /**
    * Só os campos que PODEM chegar vazios e são obrigatórios — departamento, tipo e urgência
    * sempre têm um valor (vêm com padrão do próprio seletor), então travar "Avançar" neles
-   * não faria sentido: não tem como ficarem vazios.
+   * não faria sentido: não tem como ficarem vazios. A ÁREA é a exceção de propósito: ela
+   * nasce vazia, porque é a PRIMEIRA escolha, feita de verdade — nunca um padrão escondido.
    */
   const REQUIRED_FIELDS: Partial<Record<StepId, OpenTicketField[]>> = {
+    area: ['area'],
     who: ['requesterName', 'contactPhone'],
     what: ['description'],
   };
@@ -119,10 +139,10 @@
   import { DESCRIPTION_MAX_LENGTH } from '@template/shared/schemas/ticket.schema';
 
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
   import PaperclipIcon from '@lucide/svelte/icons/paperclip';
   import UserIcon from '@lucide/svelte/icons/user';
-  import WrenchIcon from '@lucide/svelte/icons/wrench';
   import XIcon from '@lucide/svelte/icons/x';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
@@ -140,6 +160,20 @@
   let { data, state: formState, actions }: OpenTicketFormProps = $props();
 
   const fields = $derived(data.fields);
+
+  /* As opções de tipo de problema dependem da ÁREA escolhida — Manutenção não tem "rede
+     caiu" na lista, nem Infra tem "ar-condicionado". */
+  const problemTypeOptions = $derived(
+    ticketProblemTypeOptionsForArea(fields.area.value as TicketArea),
+  );
+
+  function handleAreaChange(value: string): void {
+    actions.onChange('area', value);
+    /* Trocar de área pode deixar o tipo escolhido fora da lista nova — o primeiro tipo da
+       área nova é sempre válido, e evita mandar um tipo órfão no envio. */
+    const firstOfArea = ticketProblemTypeOptionsForArea(value as TicketArea)[0];
+    if (firstOfArea) actions.onChange('problemType', firstOfArea.value);
+  }
 
   /* Puramente visual: qual etapa está na tela agora. Não é dado do chamado. */
   let stepIndex = $state(0);
@@ -213,6 +247,9 @@
   function handleFile(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     actions.onScreenshotChange(input.files?.[0] ?? null);
+    /* Limpa SEMPRE, recusado ou não — senão escolher de novo o MESMO arquivo (pra tentar
+       outro no lugar) não dispara `onchange` nenhum, e a pessoa acha que o botão travou. */
+    input.value = '';
   }
 
   /* O `<input type="file">` não deixa "desmarcar" um arquivo por código sem limpar o próprio
@@ -282,7 +319,38 @@
            linha de conexão, que só faz sentido quando há uma próxima etapa visível. -->
       <div bind:this={stepContentEl}>
       <Timeline>
-        {#if stepId === 'who'}
+        {#if stepId === 'area'}
+          <TimelineStep
+            data={{ title: 'Qual área atende seu pedido?', description: 'Escolha a que mais parece com o que você precisa.', icon: LayoutGridIcon }}
+            ui={{ isLast: true, tone: 'brand' }}
+          >
+            <div class="grid gap-3 sm:grid-cols-3">
+              {#each AREA_CARDS as card (card.value)}
+                {@const isSelected = fields.area.value === card.value}
+                <button
+                  type="button"
+                  disabled={formState.isSubmitting}
+                  aria-pressed={isSelected}
+                  onclick={() => handleAreaChange(card.value)}
+                  class={cn(
+                    'flex flex-col items-start gap-2 rounded-box border p-4 text-left transition-colors',
+                    isSelected
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border/80 bg-card hover:bg-muted/40',
+                  )}
+                >
+                  <card.icon class="text-primary size-5" aria-hidden="true" />
+                  <span class="text-ink-900 text-sm font-semibold">{card.label}</span>
+                  <span class="text-ink-500 text-xs">{card.description}</span>
+                </button>
+              {/each}
+            </div>
+
+            {#if fields.area.error}
+              <p class="text-destructive mt-3 text-xs">{fields.area.error}</p>
+            {/if}
+          </TimelineStep>
+        {:else if stepId === 'who'}
           <TimelineStep data={{ title: 'Quem é você', icon: UserIcon }} ui={{ isLast: true, tone: 'brand' }}>
             <div class="grid gap-4 sm:grid-cols-2">
               <TextField
@@ -327,26 +395,28 @@
             ui={{ isLast: true }}
           >
             <div class="flex flex-col gap-4">
-              <div class="grid gap-4 sm:grid-cols-2">
-                <div class="flex flex-col gap-1.5">
-                  <span class="text-ink-700 text-sm font-medium">Departamento</span>
-                  <OptionPicker
-                    data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
-                    ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento', fullWidth: true }}
-                    state={{ isDisabled: formState.isSubmitting }}
-                    actions={{ onChange: (value: string) => actions.onChange('department', value) }}
-                  />
-                </div>
+              <!-- Departamento sozinho na linha: ele é um dropdown curto, e espremê-lo ao
+                   lado do Tipo de problema (que em Manutenção/Sistema vira um grupo de
+                   pastilhas) deixava as duas colunas com alturas bem diferentes, uma com
+                   folga e a outra quebrando em duas linhas. -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Departamento</span>
+                <OptionPicker
+                  data={{ value: fields.department.value, options: DEPARTMENT_OPTIONS }}
+                  ui={{ ariaLabel: 'Departamento', placeholder: 'Escolha o departamento', fullWidth: true }}
+                  state={{ isDisabled: formState.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('department', value) }}
+                />
+              </div>
 
-                <div class="flex flex-col gap-1.5">
-                  <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
-                  <OptionPicker
-                    data={{ value: fields.problemType.value, options: PROBLEM_TYPE_OPTIONS }}
-                    ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo', fullWidth: true }}
-                    state={{ isDisabled: formState.isSubmitting }}
-                    actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
-                  />
-                </div>
+              <div class="flex flex-col gap-1.5">
+                <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>
+                <OptionPicker
+                  data={{ value: fields.problemType.value, options: problemTypeOptions }}
+                  ui={{ ariaLabel: 'Tipo de problema', placeholder: 'Escolha o tipo', fullWidth: true }}
+                  state={{ isDisabled: formState.isSubmitting }}
+                  actions={{ onChange: (value: string) => actions.onChange('problemType', value) }}
+                />
               </div>
 
               <div class="flex flex-col gap-1.5">
@@ -359,6 +429,9 @@
                 />
               </div>
 
+              <!-- O AnyDesk só faz sentido em Infra — perguntar isso pra quem veio reportar
+                   o ar-condicionado pingando seria confundir, não ajudar (#13). -->
+              {#if fields.area.value === 'infra'}
               <TextField
                 data={{
                   label: 'Número do AnyDesk (opcional)',
@@ -372,6 +445,7 @@
                   onBlur: () => actions.onBlur('anydeskId'),
                 }}
               />
+              {/if}
             </div>
           </TimelineStep>
         {:else if stepId === 'what'}
@@ -425,11 +499,14 @@
                 id="screenshot"
                 name="screenshot"
                 type="file"
-                accept="image/*"
+                accept={screenshotAccept()}
                 disabled={formState.isSubmitting}
                 onchange={handleFile}
                 class="sr-only"
               />
+              {#if formState.screenshotError}
+                <p class="text-destructive text-xs" role="alert">{formState.screenshotError}</p>
+              {/if}
             </div>
 
             <div class="flex flex-col gap-1.5">

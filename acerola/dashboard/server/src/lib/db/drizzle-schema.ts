@@ -9,6 +9,7 @@ import { networkEvents } from './schema/network-events.schema';
 import { partMovements } from './schema/part-movements.schema';
 import { parts } from './schema/parts.schema';
 import { tasks } from './schema/tasks.schema';
+import { ticketAreas } from './schema/ticket-areas.schema';
 import { ticketAttachments } from './schema/ticket-attachments.schema';
 import { tickets } from './schema/tickets.schema';
 
@@ -25,6 +26,7 @@ import { tickets } from './schema/tickets.schema';
 export const drizzleSchema = {
   tasks,
   tickets,
+  ticketAreas,
   ticketAttachments,
   computers,
   computerSamples,

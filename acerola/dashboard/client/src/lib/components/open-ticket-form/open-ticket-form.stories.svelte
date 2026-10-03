@@ -8,6 +8,8 @@
 
   const emptyFields: Record<OpenTicketField, FormFieldState> = {
     requesterName: field(''),
+    /* Vazia de propósito: é a primeira escolha de verdade, numa etapa própria de cards. */
+    area: field(''),
     department: field('analyze'),
     problemType: field('network'),
     anydeskId: field(''),
@@ -18,6 +20,7 @@
 
   const filledFields: Record<OpenTicketField, FormFieldState> = {
     requesterName: field('Bia Costa'),
+    area: field('infra'),
     department: field('financeiro'),
     problemType: field('printer'),
     anydeskId: field('111 222 333'),
@@ -63,6 +66,26 @@
   }}
 />
 
+<!-- #13: área Manutenção — o tipo de problema vem de outra lista, sem "rede caiu". -->
+<Story
+  name="MaintenanceArea"
+  args={{
+    data: {
+      fields: {
+        ...filledFields,
+        area: field('manutencao'),
+        problemType: field('air_conditioning'),
+      },
+      notifyWhatsapp: false,
+      screenshotName: null,
+      attachments: [],
+      opened: null,
+    },
+    state: {},
+    actions,
+  }}
+/>
+
 <!-- O erro fica colado no campo, nunca num resumo no topo. -->
 <Story
   name="WithValidationErrors"
@@ -70,6 +93,9 @@
     data: {
       fields: {
         ...emptyFields,
+        /* A área é a PRIMEIRA validação que aparece — a pessoa vê isso sem nem clicar em
+           "Avançar" (ver `missingRequiredFields`). As de baixo aparecem ao avançar. */
+        area: field('', 'Escolha a área do chamado'),
         requesterName: field('', 'Informe seu nome'),
         contactPhone: field('99999', 'Informe o WhatsApp com DDD'),
         description: field('', 'Descreva o problema'),
@@ -105,6 +131,22 @@
       opened: null,
     },
     state: {},
+    actions,
+  }}
+/>
+
+<!-- #13: escolheu um arquivo que não é imagem — a recusa aparece NA ESCOLHA, antes do envio. -->
+<Story
+  name="ScreenshotRefused"
+  args={{
+    data: {
+      fields: filledFields,
+      notifyWhatsapp: false,
+      screenshotName: null,
+      attachments: [],
+      opened: null,
+    },
+    state: { screenshotError: 'O print precisa ser uma imagem (PNG, JPG, WEBP, GIF ou BMP).' },
     actions,
   }}
 />

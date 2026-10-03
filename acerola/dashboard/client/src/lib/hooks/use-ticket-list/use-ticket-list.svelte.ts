@@ -13,6 +13,10 @@ import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
+import {
+  type TicketAreaContext,
+  useTicketAreaContextModel,
+} from '$lib/context/ticket-area-context.svelte';
 import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
@@ -77,11 +81,16 @@ const EMPTY_FILTER: TicketListFilter = {
 
 export const TICKETS_QUERY_KEY = ['tickets'] as const;
 
-function scopeOf(filter: TicketListFilter) {
+/**
+ * `areaContext` é o seletor de contexto do app-shell (#13) — "Todas" ou uma área só, entre as
+ * que a pessoa atende. Ele SOMA ao filtro, não o substitui: a fila sempre respeita os dois.
+ */
+function scopeOf(filter: TicketListFilter, areaContext: TicketAreaContext) {
   return {
     search: filter.search.trim() || undefined,
     status: filter.status || undefined,
     priority: filter.priority || undefined,
+    area: areaContext === 'all' ? undefined : areaContext,
     department: filter.department || undefined,
     problemType: filter.problemType || undefined,
   };
@@ -104,20 +113,40 @@ export function useTicketListModel(): TicketListModel {
   const pageStore = writable<number>(1);
   const page = mirrorStore(pageStore);
 
+  /* O contexto do app-shell (#13) é um RUNE compartilhado entre módulos, e `createQuery`
+     só reage a STORE (ver comentário em `filterStore`, acima). Este `$effect` é a ponte: lê
+     o rune (o que o torna reativo a ele) e espelha o valor numa store que a consulta escuta. */
+  const ticketAreaContext = useTicketAreaContextModel();
+  const areaContextStore = writable<TicketAreaContext>(ticketAreaContext.context);
+  $effect(() => {
+    areaContextStore.set(ticketAreaContext.context);
+    /* Trocar de área pode deixar a página atual fora do alcance — a página 3 de "Todas"
+       pode não existir em "Manutenção". */
+    pageStore.set(1);
+  });
+
   let exportingFormat = $state<ReportFormat | null>(null);
   let exportError = $state<string | null>(null);
 
   const list = mirrorStore(
     createQuery(
-      derived([filterStore, pageStore], ([currentFilter, currentPage]) => ({
-        queryKey: [...TICKETS_QUERY_KEY, 'list', scopeOf(currentFilter), currentPage],
-        queryFn: () =>
-          ticketsApi.list({
-            ...scopeOf(currentFilter),
-            page: currentPage,
-            pageSize: TICKETS_PAGE_SIZE,
-          }),
-      })),
+      derived(
+        [filterStore, pageStore, areaContextStore],
+        ([currentFilter, currentPage, currentAreaContext]) => ({
+          queryKey: [
+            ...TICKETS_QUERY_KEY,
+            'list',
+            scopeOf(currentFilter, currentAreaContext),
+            currentPage,
+          ],
+          queryFn: () =>
+            ticketsApi.list({
+              ...scopeOf(currentFilter, currentAreaContext),
+              page: currentPage,
+              pageSize: TICKETS_PAGE_SIZE,
+            }),
+        }),
+      ),
     ),
   );
 
@@ -179,7 +208,7 @@ export function useTicketListModel(): TicketListModel {
         exportingFormat = format;
 
         ticketsApi
-          .exportReport(scopeOf(filter.current), format)
+          .exportReport(scopeOf(filter.current, ticketAreaContext.context), format)
           .then(({ blob, fileName }) => triggerBrowserDownload(blob, fileName))
           .catch((error: unknown) => {
             exportError = readError(error) ?? 'Não consegui gerar o relatório.';

@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 import { anydeskFormSchema, anydeskSchema } from '../domain/anydesk.util';
 import { contactPhoneSchema } from '../domain/phone.util';
-import { TICKET_DEPARTMENTS, TICKET_PROBLEM_TYPES } from '../domain/ticket-catalog.util';
+import {
+  isTicketProblemTypeForArea,
+  TICKET_AREAS,
+  TICKET_DEPARTMENTS,
+  TICKET_PROBLEM_TYPES,
+  type TicketProblemType,
+} from '../domain/ticket-catalog.util';
 import {
   DEFAULT_TICKET_PRIORITY,
   TICKET_PRIORITIES,
@@ -40,10 +46,30 @@ const chooseFrom = (what: string) => ({ errorMap: () => ({ message: `Escolha ${w
 export const ticketStatusSchema = z.enum(TICKET_STATUSES, chooseFrom('uma situação da lista'));
 export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES, chooseFrom('a urgência'));
 export const ticketDepartmentSchema = z.enum(TICKET_DEPARTMENTS, chooseFrom('seu departamento'));
+export const ticketAreaSchema = z.enum(TICKET_AREAS, chooseFrom('a área do chamado'));
 export const ticketProblemTypeSchema = z.enum(
-  TICKET_PROBLEM_TYPES,
+  TICKET_PROBLEM_TYPES as [TicketProblemType, ...TicketProblemType[]],
   chooseFrom('o tipo de problema'),
 );
+
+/**
+ * O tipo de problema precisa COMBINAR com a área: "ar-condicionado" não existe em Infra, e
+ * "rede caiu" não existe em Manutenção. A checagem de enum sozinha não garante isso — ela só
+ * sabe que o valor existe em ALGUMA área (é a união das três). Por isso vai num `superRefine`,
+ * de quem é dono dos dois campos ao mesmo tempo.
+ */
+function checkProblemTypeMatchesArea(
+  value: { area: string; problemType: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (isTicketProblemTypeForArea(value.area as never, value.problemType)) return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: 'Escolha um tipo de problema da área selecionada',
+    path: ['problemType'],
+  });
+}
 
 const requesterNameSchema = z
   .string({ required_error: 'Informe seu nome' })
@@ -91,8 +117,20 @@ export const ticketSchema = z.object({
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
   requesterName: z.string(),
+  /**
+   * A ÁREA de quem atende (Infra, Sistema ou Manutenção) — escolhida por quem abre, pelo que
+   * PARECE o problema (#13). É dela que depende quem enxerga o chamado: só quem tem cargo
+   * nesta área (ou nalguma das `participantAreas`) consegue ler e atender.
+   */
+  area: ticketAreaSchema,
   department: ticketDepartmentSchema,
   problemType: ticketProblemTypeSchema,
+  /**
+   * Áreas ADICIONAIS, somadas à área original depois que o chamado já existe — ex.: um
+   * chamado de Infra que também precisa de Manutenção. Quem gerencia alguma área do chamado
+   * pode somar outra; a área original nunca entra aqui, só as que vieram depois.
+   */
+  participantAreas: z.array(ticketAreaSchema),
   anydeskId: z.string().nullable(),
   contactPhone: z.string().nullable(),
   notifyWhatsapp: z.boolean(),
@@ -134,6 +172,7 @@ export const publicTicketSchema = ticketSchema
     status: true,
     priority: true,
     requesterName: true,
+    area: true,
     department: true,
     problemType: true,
     anydeskId: true,
@@ -163,23 +202,26 @@ export type PublicTicket = z.infer<typeof publicTicketSchema>;
  * O print não está no schema: ele viaja como arquivo, na mesma requisição, e é o controller
  * que o recebe. Validar imagem é trabalho de quem lê os bytes, não do Zod.
  */
-export const createTicketSchema = z.object({
-  requesterName: requesterNameSchema,
-  department: ticketDepartmentSchema,
-  problemType: ticketProblemTypeSchema,
-  anydeskId: anydeskSchema.optional(),
-  priority: ticketPrioritySchema.default(DEFAULT_TICKET_PRIORITY),
-  contactPhone: contactPhoneSchema,
-  /**
-   * Vem de uma caixa de seleção, e num formulário multipart todo campo chega como texto:
-   * `"true"` e `true` precisam significar a mesma coisa. Qualquer outro valor é "não" —
-   * ninguém é inscrito em aviso por engano de digitação.
-   */
-  notifyWhatsapp: z
-    .preprocess((value) => value === true || value === 'true', z.boolean())
-    .default(false),
-  description: descriptionSchema,
-});
+export const createTicketSchema = z
+  .object({
+    requesterName: requesterNameSchema,
+    area: ticketAreaSchema,
+    department: ticketDepartmentSchema,
+    problemType: ticketProblemTypeSchema,
+    anydeskId: anydeskSchema.optional(),
+    priority: ticketPrioritySchema.default(DEFAULT_TICKET_PRIORITY),
+    contactPhone: contactPhoneSchema,
+    /**
+     * Vem de uma caixa de seleção, e num formulário multipart todo campo chega como texto:
+     * `"true"` e `true` precisam significar a mesma coisa. Qualquer outro valor é "não" —
+     * ninguém é inscrito em aviso por engano de digitação.
+     */
+    notifyWhatsapp: z
+      .preprocess((value) => value === true || value === 'true', z.boolean())
+      .default(false),
+    description: descriptionSchema,
+  })
+  .superRefine(checkProblemTypeMatchesArea);
 
 export type CreateTicketInput = z.input<typeof createTicketSchema>;
 
@@ -190,16 +232,19 @@ export type CreateTicketInput = z.input<typeof createTicketSchema>;
  * API devolveria. O que muda é só a forma: o servidor transforma "" em nulo; o formulário
  * não precisa saber disso.
  */
-export const ticketFormSchema = z.object({
-  requesterName: requesterNameSchema,
-  department: ticketDepartmentSchema,
-  problemType: ticketProblemTypeSchema,
-  anydeskId: anydeskFormSchema,
-  priority: ticketPrioritySchema,
-  contactPhone: contactPhoneSchema,
-  notifyWhatsapp: z.boolean(),
-  description: descriptionSchema,
-});
+export const ticketFormSchema = z
+  .object({
+    requesterName: requesterNameSchema,
+    area: ticketAreaSchema,
+    department: ticketDepartmentSchema,
+    problemType: ticketProblemTypeSchema,
+    anydeskId: anydeskFormSchema,
+    priority: ticketPrioritySchema,
+    contactPhone: contactPhoneSchema,
+    notifyWhatsapp: z.boolean(),
+    description: descriptionSchema,
+  })
+  .superRefine(checkProblemTypeMatchesArea);
 
 export type TicketFormValues = z.input<typeof ticketFormSchema>;
 
@@ -217,6 +262,12 @@ export const updateTicketSchema = z.object({
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
   /**
+   * Reclassificar a área — quem abriu escolheu pelo que parecia; quem atende descobre que
+   * era de outra área. Só quem gerencia (cargo de gestor+) numa das áreas atuais do chamado
+   * pode mudar isto (ver `TicketsService.update`).
+   */
+  area: ticketAreaSchema.optional(),
+  /**
    * O tipo do problema É corrigível pelo painel: quem abre escolhe pelo que parece, e quem
    * atende descobre o que era. Sem isso, o mapa de "o que mais dá problema" fica torto para
    * sempre — ele é somado justamente por este campo.
@@ -230,28 +281,47 @@ export const updateTicketSchema = z.object({
 
 export type UpdateTicketInput = z.input<typeof updateTicketSchema>;
 
-/** A forma do formulário de atendimento, no painel. */
-export const ticketAnswerFormSchema = z.object({
-  status: ticketStatusSchema,
-  priority: ticketPrioritySchema,
-  problemType: ticketProblemTypeSchema,
-  /**
-   * No formulário a máquina é TEXTO, como todo campo de `select`: vazio quer dizer "nenhuma".
-   * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
-   */
-  computerId: z.string(),
-  assignee: z
-    .string()
-    .max(
-      ASSIGNEE_MAX_LENGTH,
-      `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-    ),
-  solution: z
-    .string()
-    .max(SOLUTION_MAX_LENGTH, `O que foi feito pode ter até ${SOLUTION_MAX_LENGTH} caracteres`),
-});
+/**
+ * A forma do formulário de atendimento, no painel.
+ *
+ * `area` entra aqui porque reclassificar é parte de atender: quem pegou o chamado é quem
+ * percebe que ele é de outra área. A API decide se quem está atendendo PODE mudar — o
+ * formulário só manda o valor escolhido.
+ */
+export const ticketAnswerFormSchema = z
+  .object({
+    status: ticketStatusSchema,
+    priority: ticketPrioritySchema,
+    area: ticketAreaSchema,
+    problemType: ticketProblemTypeSchema,
+    /**
+     * No formulário a máquina é TEXTO, como todo campo de `select`: vazio quer dizer "nenhuma".
+     * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
+     */
+    computerId: z.string(),
+    assignee: z
+      .string()
+      .max(
+        ASSIGNEE_MAX_LENGTH,
+        `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
+      ),
+    solution: z
+      .string()
+      .max(SOLUTION_MAX_LENGTH, `O que foi feito pode ter até ${SOLUTION_MAX_LENGTH} caracteres`),
+  })
+  .superRefine(checkProblemTypeMatchesArea);
 
 export type TicketAnswerFormValues = z.input<typeof ticketAnswerFormSchema>;
+
+/**
+ * Somar uma área PARTICIPANTE a um chamado já aberto (#13) — ex.: um chamado de Infra que
+ * também precisa de Manutenção. A área original não entra aqui: ela já está em `area`.
+ */
+export const addTicketAreaSchema = z.object({
+  area: ticketAreaSchema,
+});
+
+export type AddTicketAreaInput = z.infer<typeof addTicketAreaSchema>;
 
 export const ticketListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
@@ -259,6 +329,7 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
   computerId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
+  area: ticketAreaSchema.optional(),
   department: ticketDepartmentSchema.optional(),
   problemType: ticketProblemTypeSchema.optional(),
 });

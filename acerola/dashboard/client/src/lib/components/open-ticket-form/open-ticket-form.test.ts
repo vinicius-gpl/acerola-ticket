@@ -10,6 +10,7 @@ const field = (value: string, error: string | null = null): FormFieldState => ({
 
 const fields: Record<OpenTicketField, FormFieldState> = {
   requesterName: field('Bia Costa'),
+  area: field('infra'),
   department: field('financeiro'),
   problemType: field('printer'),
   anydeskId: field(''),
@@ -40,7 +41,7 @@ function setup(props: Record<string, unknown> = {}) {
   });
 }
 
-/** Vai da primeira etapa até a de índice `index` (0 = "Quem é você"), clicando Avançar. */
+/** Vai da etapa de área até a de índice `index` (0 = área, 1 = "Quem é você"), clicando Avançar. */
 async function advanceTo(user: ReturnType<typeof userEvent.setup>, index: number) {
   for (let step = 0; step < index; step += 1) {
     await user.click(screen.getByRole('button', { name: /avançar/i }));
@@ -49,20 +50,54 @@ async function advanceTo(user: ReturnType<typeof userEvent.setup>, index: number
 
 describe('OpenTicketForm', () => {
   // feliz
-  it('opens on the first step, asking who is filing the ticket', () => {
+  it('opens on the area step, with the three cards to choose from', () => {
     setup();
 
-    expect(screen.getByLabelText(/seu nome/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/seu whatsapp/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/descrição do problema/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/etapa 1 de 4/i)).toBeInTheDocument();
+    expect(screen.getByText('Infraestrutura')).toBeInTheDocument();
+    expect(screen.getByText('Sistema')).toBeInTheDocument();
+    expect(screen.getByText('Manutenção')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/seu nome/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/etapa 1 de 5/i)).toBeInTheDocument();
+  });
+
+  it('chooses the area by clicking its card, and moves on to who is filing the ticket', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    setup({ actions: { ...actions, onChange } });
+
+    await user.click(screen.getByText('Manutenção'));
+
+    /* Trocar de área também corrige o tipo de problema, para não sobrar um tipo de outra
+       área escolhido por padrão. */
+    expect(onChange).toHaveBeenCalledWith('area', 'manutencao');
+    expect(onChange).toHaveBeenCalledWith('problemType', expect.any(String));
+  });
+
+  /* AnyDesk é sobre uma MÁQUINA — perguntar isso pra quem veio reportar o ar-condicionado
+     pingando seria confundir, não ajudar (#13). */
+  it('hides the AnyDesk field outside the infra area', async () => {
+    const user = userEvent.setup();
+    setup({ data: { fields: { ...fields, area: field('manutencao') }, notifyWhatsapp: false, screenshotName: null, attachments: [], opened: null } });
+
+    await advanceTo(user, 2);
+
+    expect(screen.queryByPlaceholderText(/123 456 789/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the AnyDesk field for the infra area', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await advanceTo(user, 2);
+
+    expect(screen.getByPlaceholderText(/123 456 789/i)).toBeInTheDocument();
   });
 
   it('moves forward and back between steps without losing what was typed elsewhere', async () => {
     const user = userEvent.setup();
     setup();
 
-    await advanceTo(user, 2);
+    await advanceTo(user, 3);
     expect(screen.getByLabelText(/descrição do problema/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /voltar/i }));
@@ -107,6 +142,9 @@ describe('OpenTicketForm', () => {
       },
     });
 
+    /* A área já vem escolhida neste fixture — só precisa sair da etapa de cards. */
+    await user.click(screen.getByRole('button', { name: /avançar/i }));
+
     const phoneInput = screen.getByLabelText(/seu whatsapp/i);
     await user.type(phoneInput, 'abc62999999999xyz');
 
@@ -125,7 +163,7 @@ describe('OpenTicketForm', () => {
       },
     });
 
-    await advanceTo(user, 2);
+    await advanceTo(user, 3);
 
     expect(screen.getByText(/erro\.png/)).toBeInTheDocument();
   });
@@ -144,7 +182,7 @@ describe('OpenTicketForm', () => {
       actions: { ...actions, onScreenshotChange },
     });
 
-    await advanceTo(user, 2);
+    await advanceTo(user, 3);
     await user.click(screen.getByRole('button', { name: /remover o print/i }));
 
     expect(onScreenshotChange).toHaveBeenCalledWith(null);
@@ -157,7 +195,7 @@ describe('OpenTicketForm', () => {
 
     expect(screen.queryByRole('button', { name: /abrir chamado/i })).not.toBeInTheDocument();
 
-    await advanceTo(user, 3);
+    await advanceTo(user, 4);
     await user.click(screen.getByRole('button', { name: /abrir chamado/i }));
 
     expect(onSubmit).toHaveBeenCalledOnce();
@@ -197,7 +235,8 @@ describe('OpenTicketForm', () => {
   });
 
   // triste
-  it('shows each validation error next to its own field, never as a summary on top', () => {
+  it('shows each validation error next to its own field, never as a summary on top', async () => {
+    const user = userEvent.setup();
     setup({
       data: {
         fields: {
@@ -212,6 +251,8 @@ describe('OpenTicketForm', () => {
       },
     });
 
+    await user.click(screen.getByRole('button', { name: /avançar/i }));
+
     expect(screen.getByText('Informe seu nome')).toBeInTheDocument();
     expect(screen.getByText('Informe o WhatsApp com DDD')).toBeInTheDocument();
   });
@@ -221,7 +262,7 @@ describe('OpenTicketForm', () => {
     const user = userEvent.setup();
     const { rerender } = setup();
 
-    await advanceTo(user, 3);
+    await advanceTo(user, 4);
     await user.click(screen.getByRole('button', { name: /abrir chamado/i }));
 
     /* Simula o hook de verdade devolvendo o erro depois da tentativa de envio. */
@@ -245,7 +286,7 @@ describe('OpenTicketForm', () => {
     const user = userEvent.setup();
     setup({ state: { error: 'O print precisa ser uma imagem (PNG, JPG ou WEBP).' } });
 
-    await advanceTo(user, 3);
+    await advanceTo(user, 4);
 
     expect(screen.getByText(/o print precisa ser uma imagem/i)).toBeInTheDocument();
 
@@ -259,7 +300,24 @@ describe('OpenTicketForm', () => {
   it('blocks the fields while submitting, so two clicks do not open two tickets', () => {
     setup({ state: { isSubmitting: true } });
 
-    expect(screen.getByLabelText(/seu nome/i)).toBeDisabled();
+    expect(screen.getByText('Infraestrutura').closest('button')).toBeDisabled();
+  });
+
+  /* Trocar de área nasce vazia de propósito (ver `use-open-ticket`): é a primeira escolha de
+     verdade, não um padrão escondido. */
+  it('does not move past the area step until a card is chosen', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn();
+    setup({
+      data: { fields: { ...fields, area: field('', 'Escolha a área do chamado') }, notifyWhatsapp: false, screenshotName: null, attachments: [], opened: null },
+      actions: { ...actions, onBlur },
+    });
+
+    await user.click(screen.getByRole('button', { name: /avançar/i }));
+
+    expect(onBlur).toHaveBeenCalledWith('area');
+    expect(screen.getByText('Escolha a área do chamado')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/seu nome/i)).not.toBeInTheDocument();
   });
 
   /* Sem o link, o botão não aparece: ter o telefone não é autorização para usá-lo. */

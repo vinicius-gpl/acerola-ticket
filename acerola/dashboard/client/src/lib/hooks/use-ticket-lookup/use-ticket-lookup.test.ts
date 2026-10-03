@@ -18,6 +18,7 @@ const ticket: PublicTicket = {
   status: 'in_progress',
   priority: 'high',
   requesterName: 'Bia Costa',
+  area: 'infra',
   department: 'financeiro',
   problemType: 'printer',
   anydeskId: null,

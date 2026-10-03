@@ -2,7 +2,8 @@ import { type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
+import { internalRoles } from '../src/lib/db/schema/internal-roles.schema';
+import { BIA, CAIO, asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
 
 /**
  * O FLUXO DO CHAMADO de ponta a ponta, que é onde o sistema realmente trabalha.
@@ -20,6 +21,7 @@ const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 /** O mínimo que o portal público exige para abrir um chamado. */
 const PEDIDO = {
   requesterName: 'Marta da Recepção',
+  area: 'infra',
   department: 'recepcao',
   problemType: 'printer',
   contactPhone: '62 99999-1234',
@@ -41,6 +43,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     request(app.getHttpServer())
       .post('/api/tickets')
       .field('requesterName', PEDIDO.requesterName)
+      .field('area', PEDIDO.area)
       .field('department', PEDIDO.department)
       .field('problemType', PEDIDO.problemType)
       .field('contactPhone', PEDIDO.contactPhone)
@@ -53,10 +56,20 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
 
   /* Cada teste começa com as tabelas vazias e o contador de `id` em 1: o protocolo é derivado
      do id, e sem isto uma asserção sobre `CH-0001` só passaria na primeira execução. Os anexos
-     vão junto — eles não existem sem o chamado. */
+     vão junto — eles não existem sem o chamado.
+     `internal_roles` entra junto (#13): sem cargo nenhum, Caio e Bia não enxergariam chamado
+     nenhum — o padrão agora é SEM ACESSO, não o cargo mínimo `user`. Os dois ganham `admin`
+     em Infra, a área de todo chamado deste arquivo: o FOCO aqui é o fluxo de ponta a ponta
+     (anexo, consulta pública, identidade), não a régua fina de cargo — essa já tem suíte
+     própria em `tickets.service.test.ts`. */
   beforeEach(async () => {
-    await started.truncate('tickets', 'ticket_attachments');
+    await started.truncate('tickets', 'ticket_attachments', 'internal_roles');
     started.storage.files.clear();
+
+    await started.db.insert(internalRoles).values([
+      { userId: CAIO.id, userEmail: CAIO.email, context: 'infra', role: 'admin' },
+      { userId: BIA.id, userEmail: BIA.email, context: 'infra', role: 'admin' },
+    ]);
   });
 
   afterAll(async () => {
@@ -162,6 +175,23 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
         .expect(200);
 
       expect(found.body.protocol).toBe('CH-0001');
+    }
+  });
+
+  /* A FILA do painel também precisa achar pelo protocolo — sem isto, procurar "CH-0001" na
+     busca da tela não achava nada: `protocol` não é coluna, é o `id` vestido (#13). */
+  it('finds a ticket on the panel queue by protocol, typed loosely', async () => {
+    await openTicket().expect(201);
+
+    for (const typed of ['CH-0001', 'ch 1', '1']) {
+      const found = await request(app.getHttpServer())
+        .get('/api/tickets')
+        .query({ search: typed })
+        .set(asCaio())
+        .expect(200);
+
+      expect(found.body.items).toHaveLength(1);
+      expect(found.body.items[0].protocol).toBe('CH-0001');
     }
   });
 
@@ -283,6 +313,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/tickets')
       .field('requesterName', PEDIDO.requesterName)
+      .field('area', PEDIDO.area)
       .field('department', PEDIDO.department)
       .field('problemType', PEDIDO.problemType)
       .field('contactPhone', PEDIDO.contactPhone)
@@ -300,6 +331,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/tickets')
       .field('requesterName', PEDIDO.requesterName)
+      .field('area', PEDIDO.area)
       .field('department', PEDIDO.department)
       .field('problemType', PEDIDO.problemType)
       .field('contactPhone', '9999')
@@ -340,9 +372,9 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       .expect(401);
   });
 
-  /* Atender é do time inteiro, e não só de gerente: chamado parado esperando o gerente certo é
-     pior para quem está sem impressora. Mas continua exigindo estar identificado. */
-  it('lets any identified person answer, and nobody unidentified', async () => {
+  /* Atender exige cargo na área do chamado (#13, Bia tem `admin` em Infra no `beforeEach`) —
+     e continua exigindo estar identificado, sempre. */
+  it('lets whoever has a cargo in the area answer, and nobody unidentified', async () => {
     const created = await openTicket().expect(201);
 
     await request(app.getHttpServer())

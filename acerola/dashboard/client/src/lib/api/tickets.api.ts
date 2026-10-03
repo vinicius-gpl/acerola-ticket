@@ -1,3 +1,4 @@
+import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
@@ -36,12 +37,16 @@ export const ticketsApi = {
         search: query.search,
         status: query.status,
         priority: query.priority,
+        area: query.area,
         department: query.department,
         problemType: query.problemType,
       },
     }),
 
   dashboard: () => apiRequest<TicketDashboard>('/tickets/dashboard'),
+
+  /** As áreas que esta pessoa atende — alimenta o seletor de contexto do menu (#13). */
+  myAreas: () => apiRequest<TicketArea[]>('/tickets/areas/mine'),
 
   /** Baixa o relatório com os MESMOS filtros da fila — sem página, é a lista inteira. */
   exportReport: (query: Partial<TicketListQuery>, format: ReportFormat): Promise<Downloaded> =>
@@ -51,6 +56,7 @@ export const ticketsApi = {
         search: query.search,
         status: query.status,
         priority: query.priority,
+        area: query.area,
         department: query.department,
         problemType: query.problemType,
       },
@@ -60,6 +66,14 @@ export const ticketsApi = {
 
   update: (id: number, body: UpdateTicketInput) =>
     apiRequest<Ticket>(`/tickets/${id}`, { method: 'PATCH', body }),
+
+  /** Soma uma área PARTICIPANTE ao chamado (#13) — a área original não muda. */
+  addArea: (id: number, area: TicketArea) =>
+    apiRequest<Ticket>(`/tickets/${id}/areas`, { method: 'POST', body: { area } }),
+
+  /** Tira uma área participante. A área original nunca sai por aqui. */
+  removeArea: (id: number, area: TicketArea) =>
+    apiRequest<Ticket>(`/tickets/${id}/areas/${area}`, { method: 'DELETE' }),
 
   /**
    * Abre um chamado — público, sem login.
@@ -110,6 +124,7 @@ function toTicketFormData(
   const form = new FormData();
 
   form.set('requesterName', values.requesterName);
+  form.set('area', values.area);
   form.set('department', values.department);
   form.set('problemType', values.problemType);
   form.set('priority', values.priority);

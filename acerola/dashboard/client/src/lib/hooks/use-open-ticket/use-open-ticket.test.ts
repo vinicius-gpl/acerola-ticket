@@ -48,9 +48,12 @@ function mountModel(): OpenTicketModel {
  * O mínimo que o schema compartilhado aceita.
  *
  * O telefone entra porque ele é EXIGIDO: é como o TI retorna quando o chamado precisa de
- * conversa (ver `phone.util`). Departamento, tipo e urgência já nascem preenchidos.
+ * conversa (ver `phone.util`). Departamento, tipo e urgência já nascem preenchidos — a ÁREA
+ * não: ela nasce vazia de propósito (é a primeira escolha, numa etapa própria de cards no
+ * `open-ticket-form`), e por isso este mínimo precisa escolhê-la também.
  */
 async function fillMinimum(model: OpenTicketModel): Promise<void> {
+  model.actions.onChange('area', 'infra');
   model.actions.onChange('requesterName', 'Ana Souza');
   model.actions.onChange('contactPhone', '11 98765-4321');
   model.actions.onChange('description', 'A internet caiu na minha sala.');
@@ -90,6 +93,38 @@ describe('useOpenTicketModel', () => {
     await waitFor(() => expect(ticketsApi.create).toHaveBeenCalled());
     expect(vi.mocked(ticketsApi.create).mock.calls[0]?.[1]).toBe(screenshot);
     expect(vi.mocked(ticketsApi.create).mock.calls[0]?.[2]).toEqual([attachment]);
+    expect(model.data.screenshotName).toBe('print.png');
+  });
+
+  // triste
+  /**
+   * A recusa acontece NA ESCOLHA, não só no envio (#13). Sem isto, um PDF escolhido pelo
+   * "Todos os arquivos" do seletor do sistema ficava na tela como se tivesse dado certo, e só
+   * o envio — segundos depois — dizia que não servia.
+   */
+  it('refuses a screenshot that is not an image right at the choice, before any upload', async () => {
+    const model = mountModel();
+    const notAnImage = new File(['x'], 'curriculo.pdf', { type: 'application/pdf' });
+
+    model.actions.onScreenshotChange(notAnImage);
+
+    await waitFor(() =>
+      expect(model.state.screenshotError).toBe(
+        'O print precisa ser uma imagem (PNG, JPG, WEBP, GIF ou BMP).',
+      ),
+    );
+    expect(model.data.screenshotName).toBeNull();
+    expect(ticketsApi.create).not.toHaveBeenCalled();
+  });
+
+  it('clears the screenshot refusal once a real image is chosen afterwards', async () => {
+    const model = mountModel();
+    model.actions.onScreenshotChange(new File(['x'], 'curriculo.pdf', { type: 'application/pdf' }));
+    await waitFor(() => expect(model.state.screenshotError).not.toBeNull());
+
+    model.actions.onScreenshotChange(new File(['x'], 'print.png', { type: 'image/png' }));
+
+    await waitFor(() => expect(model.state.screenshotError).toBeNull());
     expect(model.data.screenshotName).toBe('print.png');
   });
 

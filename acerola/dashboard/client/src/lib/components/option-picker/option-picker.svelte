@@ -89,11 +89,14 @@
 </script>
 
 {#if isPillMode}
+  <!-- Grupo de botões num TRILHO só — uma pastilha ativa "flutuando" dentro de uma tira com
+     fundo próprio, em vez de cada opção ser um botão bordado e solto. É o que faz ler como
+     UM controle com vários estados, não uma fileira de botões separados. -->
   <div
     class={cn(
-      /* No celular as pastilhas QUEBRAM em mais de uma linha em vez de virarem uma tira que
-         rola para o lado: escolher a situação ou o filtro não pode exigir arrastar a tela. */
-      'flex flex-wrap items-center gap-1.5',
+      /* No celular as opções QUEBRAM em mais de uma linha em vez de virarem uma tira que rola
+         para o lado: escolher a situação ou o filtro não pode exigir arrastar a tela. */
+      'inline-flex flex-wrap items-center gap-1 rounded-control border border-border/70 bg-muted/50 p-1',
       ui?.className,
     )}
     role="group"
@@ -113,7 +116,7 @@
           'rounded-control inline-flex cursor-pointer items-center gap-1.5 border text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
           isSelected
             ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
-            : 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+            : 'border-transparent text-muted-foreground hover:bg-card/70 hover:text-foreground',
         )}
       >
         {#if option.tone && !isSelected}

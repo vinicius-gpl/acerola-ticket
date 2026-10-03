@@ -90,6 +90,7 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
   import {
     Table,
     TableActions,
@@ -100,8 +101,12 @@
     TableRow,
   } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { cn } from '$lib/utils/cn';
 
   let { data, state, actions }: RoleListViewProps = $props();
+
+  const tableView = useTableViewModel();
 
   const isFiltered = $derived(Boolean(data.filter.search || data.filter.context));
   const canManage = $derived(!data.currentUser || data.currentUser.role === 'superadmin');
@@ -187,6 +192,7 @@
       description: 'Consulte e atribua cargos internos às pessoas por contexto, desacoplados do mecanismo de autenticação.',
     }}
   >
+    <TableViewToggle />
     {#if canManage}
       <ActionButton
         data={{ label: 'Atribuir cargo' }}
@@ -299,7 +305,10 @@
     </EmptyState>
   {:else}
     <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
-    <div class="flex flex-col gap-3 xl:hidden" data-slot="role-cards-mobile">
+    <div
+      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      data-slot="role-cards-mobile"
+    >
       {#each data.roles as item (item.id)}
         {@const user = resolveUser(item)}
         {@const displayName = user?.name || item.userEmail || item.userId}
@@ -386,7 +395,10 @@
 
     <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
     <div
-      class="hidden xl:block overflow-x-auto rounded-box border border-border bg-card shadow-xs"
+      class={cn(
+        'overflow-x-auto rounded-box border border-border bg-card shadow-xs',
+        tableView.forceCards ? 'hidden' : 'hidden xl:block',
+      )}
       data-slot="role-table-desktop"
     >
       <Table class="min-w-[760px]">

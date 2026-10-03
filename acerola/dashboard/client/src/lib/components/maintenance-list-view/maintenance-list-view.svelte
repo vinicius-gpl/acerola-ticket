@@ -104,6 +104,7 @@
   import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import PreventiveBoard from '$lib/components/preventive-board/preventive-board.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
   import {
     Table,
     TableActions,
@@ -114,9 +115,13 @@
     TableRow,
   } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { cn } from '$lib/utils/cn';
   import { formatDate } from '$lib/utils/format-date';
 
   let { data, state: viewState, actions }: MaintenanceListViewProps = $props();
+
+  const tableView = useTableViewModel();
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -126,6 +131,7 @@
       description: 'O que já foi feito em cada máquina, e o que está para vencer.',
     }}
   >
+    <TableViewToggle />
     <ActionButton
       data={{ label: 'Registrar manutenção' }}
       ui={{ icon: Plus }}
@@ -204,7 +210,10 @@
     </EmptyState>
   {:else}
     <!-- Lista de cartões para mobile (< xl) -->
-    <div class="flex flex-col gap-3 xl:hidden" data-slot="maintenance-cards-mobile">
+    <div
+      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      data-slot="maintenance-cards-mobile"
+    >
       {#each data.maintenances as maintenance (maintenance.id)}
         <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
@@ -267,7 +276,10 @@
     </div>
 
     <!-- Tabela para desktop (>= xl) -->
-    <div class="hidden xl:block overflow-x-auto" data-slot="maintenance-table-desktop">
+    <div
+      class={cn('overflow-x-auto', tableView.forceCards ? 'hidden' : 'hidden xl:block')}
+      data-slot="maintenance-table-desktop"
+    >
       <Table class="min-w-[840px]">
         <TableHeader>
           <TableRow>

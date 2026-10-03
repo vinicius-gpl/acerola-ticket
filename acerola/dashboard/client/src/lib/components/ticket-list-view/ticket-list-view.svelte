@@ -4,6 +4,7 @@
     TICKET_DEPARTMENT_LABELS,
     TICKET_PROBLEM_TYPE_LABELS,
     TICKET_PROBLEM_TYPES,
+    ticketAreaLabel,
     ticketDepartmentLabel,
     ticketProblemTypeLabel,
     type TicketDepartment,
@@ -126,7 +127,6 @@
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import { Separator } from '$lib/components/ui/separator';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
@@ -135,6 +135,7 @@
   import StatCard from '$lib/components/stat-card/stat-card.svelte';
   import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
   import {
     Table,
     TableActions,
@@ -145,8 +146,12 @@
     TableRow,
   } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
+  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { cn } from '$lib/utils/cn';
 
   let { data, state, actions }: TicketListViewProps = $props();
+
+  const tableView = useTableViewModel();
 
   const dashboard = $derived(data.dashboard);
 
@@ -169,10 +174,11 @@
   }
 </script>
 
-<div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
-  <PageHeader
-    data={{ title: 'Chamados', description: 'O que o pessoal pediu, e em que pé está.' }}
-  >
+<!-- max-w-7xl, e não 6xl como as outras listas: com 9 colunas (a área entrou com o #13), a
+     tabela de chamados é a mais larga do painel, e no 6xl ela não cabia — nascia com rolagem
+     para o lado mesmo em tela cheia. -->
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-10 sm:px-6">
+  <PageHeader data={{ title: 'Chamados', description: 'O que o pessoal pediu, e em que pé está.' }}>
     <ReportExportActions
       state={{ exportingFormat: state.exportingFormat ?? null }}
       actions={{ onExport: actions.onExportReport }}
@@ -203,7 +209,9 @@
       data={{
         label: 'Tempo médio de resolução',
         value: formatAverage(dashboard?.averageResolutionHours),
-        hint: dashboard?.resolved ? `sobre ${dashboard.resolved} resolvido(s)` : 'nada resolvido ainda',
+        hint: dashboard?.resolved
+          ? `sobre ${dashboard.resolved} resolvido(s)`
+          : 'nada resolvido ainda',
       }}
       ui={{ tone: 'brand' }}
       state={{ isLoading: state.isDashboardLoading }}
@@ -228,7 +236,10 @@
     </PanelCard>
 
     <PanelCard
-      data={{ title: 'Departamentos com mais chamados', hint: 'Do que mais pediu para o que menos' }}
+      data={{
+        title: 'Departamentos com mais chamados',
+        hint: 'Do que mais pediu para o que menos',
+      }}
     >
       <div class="max-h-72 overflow-x-hidden overflow-y-auto">
         <ColumnChart
@@ -240,256 +251,285 @@
     </PanelCard>
   </div>
 
-  <!-- Os filtros ficam juntos e acima da lista, para a pessoa ver de uma vez o que está
-       limitando o que ela enxerga. -->
-  <div class="flex flex-col gap-3">
-    <TextField
-      data={{
-        label: 'Buscar',
-        name: 'search',
-        value: data.filter.search,
-        placeholder: 'Nome de quem abriu, descrição, responsável ou solução',
-      }}
-      actions={{ onChange: actions.onSearchChange }}
-    />
+  <!-- Busca, filtros e a fila dividem o MESMO cartão — no protótipo que validou este layout,
+       filtro e tabela em fundos separados pareciam duas telas coladas. A fileira de filtros
+       agora é UMA SÓ, que quebra sozinha (`flex-wrap`): no celular e no tablet cada pastilha
+       ou balão cai pra próxima linha por conta própria, sem precisar de rolagem nem de uma
+       segunda fileira fixa. -->
+  <div class="flex flex-col rounded-2xl border border-border bg-card shadow-xs">
+    <div class="flex flex-col gap-3 p-4">
+      <TextField
+        data={{
+          label: 'Buscar',
+          name: 'search',
+          value: data.filter.search,
+          placeholder: 'Nome de quem abriu, descrição, responsável ou solução',
+        }}
+        actions={{ onChange: actions.onSearchChange }}
+      />
 
-    <!-- Duas fileiras fixas, e não uma só que quebra sozinha: situação/urgência (poucas
-         opções, pastilha) numa linha, departamento/tipo (muitas opções, busca em balão) na
-         de baixo — uma fileira só virava uma bagunça de tamanhos diferentes se reordenando
-         a cada largura de tela. -->
-    <div class="flex flex-col gap-3">
-      <!-- Situação e urgência são perguntas DIFERENTES ("em que pé está" e "quão urgente é"),
-           e lado a lado os dois grupos de botões viravam uma régua só. O traço separa os dois
-           sem gastar uma linha inteira. No celular ele vira horizontal, porque ali os grupos
-           empilham em vez de ficar lado a lado. -->
-      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div class="flex flex-col gap-1.5 sm:block">
-          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
-            Situação
-          </span>
-          <OptionPicker
-            data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
-            ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
-            actions={{ onChange: (value: string) => actions.onStatusChange(value as TicketStatus | '') }}
-          />
-        </div>
-        <Separator orientation="horizontal" class="bg-border sm:hidden" />
-        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
-        <div class="flex flex-col gap-1.5 sm:block">
-          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
-            Urgência
-          </span>
-          <OptionPicker
-            data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
-            ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
-            actions={{
-              onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
-            }}
-          />
-        </div>
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div class="flex flex-col gap-1.5 sm:block w-full sm:w-auto">
-          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
-            Departamento
-          </span>
-          <OptionPicker
-            data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-            ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
-            actions={{
-              onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
-            }}
-          />
-        </div>
-        <Separator orientation="horizontal" class="bg-border sm:hidden" />
-        <Separator orientation="vertical" class="bg-border mx-1 hidden h-9 w-px sm:block" />
-        <div class="flex flex-col gap-1.5 sm:block w-full sm:w-auto">
-          <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
-            Tipo de problema
-          </span>
-          <OptionPicker
-            data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
-            ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
-            actions={{
-              onChange: (value: string) => actions.onProblemTypeChange(value as TicketProblemType | ''),
-            }}
-          />
+      <div class="flex flex-wrap items-center gap-2">
+        <OptionPicker
+          data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
+          actions={{
+            onChange: (value: string) => actions.onStatusChange(value as TicketStatus | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
+          actions={{
+            onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+          actions={{
+            onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
+          }}
+        />
+        <OptionPicker
+          data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
+          actions={{
+            onChange: (value: string) =>
+              actions.onProblemTypeChange(value as TicketProblemType | ''),
+          }}
+        />
+        <!-- Ver em cards/tabela mora NESTE contexto — é sobre o que vem logo abaixo, não
+             sobre a tela inteira (por isso saiu do cabeçalho da página). -->
+        <div class="ml-auto">
+          <TableViewToggle />
         </div>
       </div>
+    </div>
+
+    <div class="border-t border-border">
+      <!-- Estados na frente, conteúdo por último e sem aninhamento (CONTRIBUTING §2). -->
+      {#if state.error}
+        <div class="p-4">
+          <ErrorState
+            data={{ title: 'Não consegui carregar os chamados', message: state.error }}
+            state={{ isRetrying: state.isRefetching }}
+            actions={{ onRetry: actions.onRetry }}
+          />
+        </div>
+      {:else if state.isLoading}
+        <p class="text-ink-500 py-10 text-center text-sm">Carregando os chamados…</p>
+      {:else if state.isEmpty}
+        <div class="p-4">
+          <EmptyState
+            data={{
+              title: 'Nenhum chamado ainda',
+              description: 'Quando alguém abrir um chamado na página pública, ele aparece aqui.',
+            }}
+            ui={{ icon: Inbox }}
+          />
+        </div>
+      {:else if state.isFilteredOut}
+        <div class="p-4">
+          <EmptyState
+            data={{
+              title: 'Nenhum chamado com esses filtros',
+              description: 'Tente limpar os filtros para ver a fila inteira.',
+            }}
+            ui={{ icon: SearchX }}
+          >
+            <ActionButton
+              data={{ label: 'Limpar filtros' }}
+              ui={{ variant: 'secondary' }}
+              actions={{ onClick: actions.onClearFilters }}
+            />
+          </EmptyState>
+        </div>
+      {:else}
+        <!-- 1. Visualização em Cards: sempre que a tela é estreita (< xl), ou quando a pessoa
+         pediu para ver sempre assim (`TableViewToggle`, no cabeçalho dos filtros). -->
+        <div
+          class={cn('flex flex-col gap-3 p-4', !tableView.forceCards && 'xl:hidden')}
+          data-slot="ticket-cards-mobile"
+        >
+          {#each data.tickets as ticket (ticket.id)}
+            <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span
+                  class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100"
+                >
+                  {ticket.protocol}
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                  <StatusBadge
+                    data={{ label: ticketPriorityLabel(ticket.priority) }}
+                    ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
+                  />
+                  <StatusBadge
+                    data={{ label: ticketStatusLabel(ticket.status) }}
+                    ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+                  />
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <span class="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+                  {ticket.requesterName}
+                </span>
+                <span class="text-xs text-neutral-400">
+                  {ticketDepartmentLabel(ticket.department)}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
+                <div class="flex flex-col gap-0.5">
+                  <span
+                    class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
+                    >Área</span
+                  >
+                  <span class="text-neutral-700 dark:text-neutral-200"
+                    >{ticketAreaLabel(ticket.area)}</span
+                  >
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <span
+                    class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
+                    >Tipo</span
+                  >
+                  <span class="text-neutral-700 dark:text-neutral-200"
+                    >{ticketProblemTypeLabel(ticket.problemType)}</span
+                  >
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <span
+                    class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
+                    >Máquina</span
+                  >
+                  <span class="text-neutral-700 dark:text-neutral-200"
+                    >{ticket.computerName ?? '—'}</span
+                  >
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-2 border-t border-border/60">
+                <span class="text-xs text-neutral-500">
+                  Aberto em {formatDate(ticket.createdAt)}
+                </span>
+                <ActionButton
+                  data={{ label: 'Atender' }}
+                  ui={{ variant: 'secondary', size: 'sm' }}
+                  actions={{ onClick: () => actions.onAnswer(ticket) }}
+                />
+              </div>
+            </div>
+          {/each}
+        </div>
+
+        <!-- 2. Visualização em Tabela: só quando a tela cabe (>= xl) E a pessoa não preferiu
+         sempre cards. -->
+        <div
+          class={cn('hidden', !tableView.forceCards && 'xl:block')}
+          data-slot="ticket-table-desktop"
+        >
+          <Table
+            class="min-w-[980px]"
+            containerClass="rounded-none border-0 bg-transparent shadow-none"
+          >
+            <TableHeader>
+              <TableRow>
+                <TableHead class="min-w-[110px]">Protocolo</TableHead>
+                <TableHead class="min-w-[180px]">Quem abriu</TableHead>
+                <TableHead class="min-w-[110px]">Área</TableHead>
+                <TableHead class="min-w-[140px]">Tipo</TableHead>
+                <TableHead class="min-w-[160px]">Máquina</TableHead>
+                <TableHead class="min-w-[110px]">Urgência</TableHead>
+                <TableHead class="min-w-[120px]">Situação</TableHead>
+                <TableHead class="min-w-[110px]">Aberto em</TableHead>
+                <TableHead class="min-w-[90px] text-right"
+                  ><span class="sr-only">Ações</span></TableHead
+                >
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {#each data.tickets as ticket (ticket.id)}
+                <TableRow>
+                  <TableCell
+                    class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100"
+                    >{ticket.protocol}</TableCell
+                  >
+                  <TableCell>
+                    <span class="font-medium text-neutral-900 dark:text-neutral-100"
+                      >{ticket.requesterName}</span
+                    >
+                    <span class="block text-xs text-neutral-400">
+                      {ticketDepartmentLabel(ticket.department)}
+                    </span>
+                  </TableCell>
+                  <TableCell class="text-neutral-600 dark:text-neutral-300"
+                    >{ticketAreaLabel(ticket.area)}</TableCell
+                  >
+                  <TableCell class="text-neutral-600 dark:text-neutral-300"
+                    >{ticketProblemTypeLabel(ticket.problemType)}</TableCell
+                  >
+                  <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
+                   "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
+                  <TableCell class="text-neutral-600 dark:text-neutral-300">
+                    {ticket.computerName ?? '—'}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      data={{ label: ticketPriorityLabel(ticket.priority) }}
+                      ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      data={{ label: ticketStatusLabel(ticket.status) }}
+                      ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
+                    />
+                  </TableCell>
+                  <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
+                    {formatDate(ticket.createdAt)}
+                  </TableCell>
+                  <TableCell class="text-right whitespace-nowrap">
+                    <TableActions>
+                      <ActionButton
+                        data={{ label: 'Atender' }}
+                        ui={{ variant: 'secondary', size: 'sm' }}
+                        actions={{ onClick: () => actions.onAnswer(ticket) }}
+                      />
+                    </TableActions>
+                  </TableCell>
+                </TableRow>
+              {/each}
+            </TableBody>
+            {#snippet footer()}
+              <span>Fila de chamados sincronizada em tempo real</span>
+              <span>{data.tickets.length} chamado(s) nesta página</span>
+            {/snippet}
+          </Table>
+        </div>
+      {/if}
     </div>
   </div>
 
-  <!-- Estados na frente, conteúdo por último e sem aninhamento (CONTRIBUTING §2). -->
-  {#if state.error}
-    <ErrorState
-      data={{ title: 'Não consegui carregar os chamados', message: state.error }}
-      state={{ isRetrying: state.isRefetching }}
-      actions={{ onRetry: actions.onRetry }}
-    />
-  {:else if state.isLoading}
-    <p class="text-ink-500 py-10 text-center text-sm">Carregando os chamados…</p>
-  {:else if state.isEmpty}
-    <EmptyState
+  <!-- Paginação da fila de chamados -->
+  {#if (data.paging ? data.paging.total : data.total) > 0}
+    <PaginationBar
       data={{
-        title: 'Nenhum chamado ainda',
-        description: 'Quando alguém abrir um chamado na página pública, ele aparece aqui.',
+        page: data.paging?.page ?? 1,
+        pageSize: data.paging?.pageSize ?? data.tickets.length,
+        total: data.paging?.total ?? data.total,
+        noun: ['chamado', 'chamados'],
       }}
-      ui={{ icon: Inbox }}
+      state={{ isLoading: state.isLoading || state.isRefetching }}
+      actions={{ onPageChange: (newPage) => actions.onPageChange?.(newPage) }}
     />
-  {:else if state.isFilteredOut}
-    <EmptyState
-      data={{
-        title: 'Nenhum chamado com esses filtros',
-        description: 'Tente limpar os filtros para ver a fila inteira.',
-      }}
-      ui={{ icon: SearchX }}
-    >
-      <ActionButton
-        data={{ label: 'Limpar filtros' }}
-        ui={{ variant: 'secondary' }}
-        actions={{ onClick: actions.onClearFilters }}
-      />
-    </EmptyState>
-  {:else}
-    <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
-    <div class="flex flex-col gap-3 xl:hidden" data-slot="ticket-cards-mobile">
-      {#each data.tickets as ticket (ticket.id)}
-        <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
-          <div class="flex items-center justify-between gap-2">
-            <span class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">
-              {ticket.protocol}
-            </span>
-            <div class="flex items-center gap-1.5 flex-wrap justify-end">
-              <StatusBadge
-                data={{ label: ticketPriorityLabel(ticket.priority) }}
-                ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
-              />
-              <StatusBadge
-                data={{ label: ticketStatusLabel(ticket.status) }}
-                ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
-              />
-            </div>
-          </div>
+  {/if}
 
-          <div class="flex flex-col gap-0.5">
-            <span class="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
-              {ticket.requesterName}
-            </span>
-            <span class="text-xs text-neutral-400">
-              {ticketDepartmentLabel(ticket.department)}
-            </span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
-            <div class="flex flex-col gap-0.5">
-              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Tipo</span>
-              <span class="text-neutral-700 dark:text-neutral-200">{ticketProblemTypeLabel(ticket.problemType)}</span>
-            </div>
-            <div class="flex flex-col gap-0.5">
-              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Máquina</span>
-              <span class="text-neutral-700 dark:text-neutral-200">{ticket.computerName ?? '—'}</span>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between pt-2 border-t border-border/60">
-            <span class="text-xs text-neutral-500">
-              Aberto em {formatDate(ticket.createdAt)}
-            </span>
-            <ActionButton
-              data={{ label: 'Atender' }}
-              ui={{ variant: 'secondary', size: 'sm' }}
-              actions={{ onClick: () => actions.onAnswer(ticket) }}
-            />
-          </div>
-        </div>
-      {/each}
-    </div>
-
-    <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
-    <div class="hidden xl:block" data-slot="ticket-table-desktop">
-      <Table class="min-w-[880px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead class="min-w-[110px]">Protocolo</TableHead>
-            <TableHead class="min-w-[180px]">Quem abriu</TableHead>
-            <TableHead class="min-w-[140px]">Tipo</TableHead>
-            <TableHead class="min-w-[160px]">Máquina</TableHead>
-            <TableHead class="min-w-[110px]">Urgência</TableHead>
-            <TableHead class="min-w-[120px]">Situação</TableHead>
-            <TableHead class="min-w-[110px]">Aberto em</TableHead>
-            <TableHead class="min-w-[90px] text-right"><span class="sr-only">Ações</span></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {#each data.tickets as ticket (ticket.id)}
-            <TableRow>
-              <TableCell class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100">{ticket.protocol}</TableCell>
-              <TableCell>
-                <span class="font-medium text-neutral-900 dark:text-neutral-100">{ticket.requesterName}</span>
-                <span class="block text-xs text-neutral-400">
-                  {ticketDepartmentLabel(ticket.department)}
-                </span>
-              </TableCell>
-              <TableCell class="text-neutral-600 dark:text-neutral-300">{ticketProblemTypeLabel(ticket.problemType)}</TableCell>
-              <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
-                   "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
-              <TableCell class="text-neutral-600 dark:text-neutral-300">
-                {ticket.computerName ?? '—'}
-              </TableCell>
-              <TableCell>
-                <StatusBadge
-                  data={{ label: ticketPriorityLabel(ticket.priority) }}
-                  ui={{ tone: ticketPriorityTone(ticket.priority), size: 'sm' }}
-                />
-              </TableCell>
-              <TableCell>
-                <StatusBadge
-                  data={{ label: ticketStatusLabel(ticket.status) }}
-                  ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
-                />
-              </TableCell>
-              <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
-                {formatDate(ticket.createdAt)}
-              </TableCell>
-              <TableCell class="text-right whitespace-nowrap">
-                <TableActions>
-                  <ActionButton
-                    data={{ label: 'Atender' }}
-                    ui={{ variant: 'secondary', size: 'sm' }}
-                    actions={{ onClick: () => actions.onAnswer(ticket) }}
-                  />
-                </TableActions>
-              </TableCell>
-            </TableRow>
-          {/each}
-        </TableBody>
-        {#snippet footer()}
-          <span>Fila de chamados sincronizada em tempo real</span>
-          <span>{data.tickets.length} chamado(s) nesta página</span>
-        {/snippet}
-      </Table>
-    </div>
-
-    <!-- Paginação da fila de chamados -->
-    {#if (data.paging ? data.paging.total : data.total) > 0}
-      <PaginationBar
-        data={{
-          page: data.paging?.page ?? 1,
-          pageSize: data.paging?.pageSize ?? data.tickets.length,
-          total: data.paging?.total ?? data.total,
-          noun: ['chamado', 'chamados'],
-        }}
-        state={{ isLoading: state.isLoading || state.isRefetching }}
-        actions={{ onPageChange: (newPage) => actions.onPageChange?.(newPage) }}
-      />
-    {/if}
-
-    <!-- Truncar calado é mentir sobre o tamanho da fila. -->
-    {#if state.isTruncated && !data.paging}
-      <p class="text-ink-500 text-xs">
-        Mostrando {data.tickets.length} de {data.total} chamados. Use os filtros para chegar ao
-        que procura.
-      </p>
-    {/if}
+  <!-- Truncar calado é mentir sobre o tamanho da fila. -->
+  {#if state.isTruncated && !data.paging}
+    <p class="text-ink-500 text-xs">
+      Mostrando {data.tickets.length} de {data.total} chamados. Use os filtros para chegar ao que procura.
+    </p>
   {/if}
 </div>

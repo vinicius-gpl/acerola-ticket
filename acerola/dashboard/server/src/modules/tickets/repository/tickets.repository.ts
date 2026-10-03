@@ -1,14 +1,30 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
+import { parseTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
+import { type UserRole } from '@template/shared/schemas/user.schema';
 import {
   type TicketListQuery,
   type TicketReportQuery,
 } from '@template/shared/schemas/ticket.schema';
-import { and, count, desc, eq, getTableColumns, ilike, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  ilike,
+  inArray,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
 import { computers } from '../../../lib/db/schema/computers.schema';
+import { internalRoles } from '../../../lib/db/schema/internal-roles.schema';
+import { ticketAreas, type TicketAreaInsert } from '../../../lib/db/schema/ticket-areas.schema';
 import { tickets, type TicketInsert, type TicketRow } from '../../../lib/db/schema/tickets.schema';
 
 /**
@@ -43,6 +59,7 @@ export type TicketMetricsRow = {
   resolvedAt: Date | null;
   problemType: TicketRow['problemType'];
   department: TicketRow['department'];
+  area: TicketRow['area'];
 };
 
 /**
@@ -59,8 +76,16 @@ export type TicketMetricsRow = {
 export class TicketsRepository {
   constructor(@Inject(DB) private readonly db: Database) {}
 
-  async list(query: TicketListQuery): Promise<TicketPage> {
-    const where = buildWhere(query);
+  /**
+   * `areas` são as áreas que QUEM PEDIU enxerga (ver `TicketsService.resolveAreaAccess`) —
+   * sem cargo em área nenhuma, lista vazia, e a consulta nem toca o banco: devolve página
+   * vazia direto, sem gastar uma viagem para aprender o que já se sabia de antemão.
+   */
+  async list(query: TicketListQuery, areas: readonly TicketArea[]): Promise<TicketPage> {
+    if (areas.length === 0) return { rows: [], total: 0 };
+
+    const where = await this.scopedWhere(query, areas);
+
     const offset = (query.page - 1) * query.pageSize;
 
     const [rows, [counted]] = await Promise.all([
@@ -86,16 +111,51 @@ export class TicketsRepository {
    * MESMOS filtros da tela, e por isso reaproveita `buildWhere`; sem paginação de propósito,
    * porque o relatório existe justamente para levar o que a tela não mostra de uma vez.
    */
-  async listAll(query: TicketReportQuery): Promise<TicketWithComputer[]> {
+  async listAll(query: TicketReportQuery, areas: readonly TicketArea[]): Promise<TicketWithComputer[]> {
+    if (areas.length === 0) return [];
+
     return runQuery(
       this.db
         .select(ticketColumns)
         .from(tickets)
         .leftJoin(computers, eq(computers.id, tickets.computerId))
-        .where(buildWhere(query))
+        .where(await this.scopedWhere(query, areas))
         .orderBy(desc(tickets.createdAt), desc(tickets.id)),
       'listar chamados para o relatório',
     );
+  }
+
+  /**
+   * O filtro da tela/relatório, SOMADO à área de quem está vendo: a área principal do chamado
+   * está entre as acessíveis, OU alguma das áreas PARTICIPANTES está. Sem a segunda parte,
+   * quem ganhou acesso como participante nunca veria o chamado na fila — só se abrisse pelo
+   * link direto.
+   */
+  private async scopedWhere(query: TicketFilter, areas: readonly TicketArea[]): Promise<SQL | undefined> {
+    const participantIds = await this.ticketIdsWithParticipantArea(areas);
+    const visibility =
+      participantIds.length > 0
+        ? or(inArray(tickets.area, areas), inArray(tickets.id, participantIds))
+        : inArray(tickets.area, areas);
+
+    const filters = buildWhere(query);
+
+    return filters ? and(filters, visibility) : visibility;
+  }
+
+  /** Os `id` de chamados que ganharam alguma destas áreas como PARTICIPANTE (não a original). */
+  private async ticketIdsWithParticipantArea(areas: readonly TicketArea[]): Promise<number[]> {
+    if (areas.length === 0) return [];
+
+    const rows = await runQuery(
+      this.db
+        .selectDistinct({ ticketId: ticketAreas.ticketId })
+        .from(ticketAreas)
+        .where(inArray(ticketAreas.area, areas)),
+      'listar chamados por área participante',
+    );
+
+    return rows.map((row) => row.ticketId);
   }
 
   async findById(id: number): Promise<TicketWithComputer | null> {
@@ -118,7 +178,9 @@ export class TicketsRepository {
    * É um `select` estreito justamente por isso: a descrição e o print de cada chamado não
    * entram em cálculo nenhum, e trazê-los seria carregar o banco à toa.
    */
-  async listForMetrics(): Promise<TicketMetricsRow[]> {
+  async listForMetrics(areas: readonly TicketArea[]): Promise<TicketMetricsRow[]> {
+    if (areas.length === 0) return [];
+
     return runQuery(
       this.db
         .select({
@@ -127,8 +189,10 @@ export class TicketsRepository {
           resolvedAt: tickets.resolvedAt,
           problemType: tickets.problemType,
           department: tickets.department,
+          area: tickets.area,
         })
-        .from(tickets),
+        .from(tickets)
+        .where(inArray(tickets.area, areas)),
       'calcular indicadores de chamados',
     );
   }
@@ -163,12 +227,90 @@ export class TicketsRepository {
 
     return saved;
   }
+
+  /**
+   * O cargo da pessoa em CADA área, direto de `internal_roles` — sem o padrão `'user'` que
+   * `roleInContext` aplicaria. A AUSÊNCIA de linha aqui É a resposta "sem acesso" (#13):
+   * diferente do cargo interno (#11), chamado não tem cargo mínimo implícito.
+   */
+  async contextRolesFor(
+    userId: string,
+    userEmail: string | null,
+  ): Promise<Partial<Record<TicketArea, UserRole>>> {
+    const rows = await runQuery(
+      this.db
+        .select({ context: internalRoles.context, role: internalRoles.role })
+        .from(internalRoles)
+        .where(
+          userEmail
+            ? or(eq(internalRoles.userId, userId), eq(internalRoles.userEmail, userEmail))
+            : eq(internalRoles.userId, userId),
+        ),
+      'ler cargos por área do chamado',
+    );
+
+    const byArea: Partial<Record<TicketArea, UserRole>> = {};
+    for (const row of rows) byArea[row.context as TicketArea] = row.role as UserRole;
+
+    return byArea;
+  }
+
+  /** As áreas PARTICIPANTES de um chamado — nunca inclui a área original (`tickets.area`). */
+  async listAreasOf(ticketId: number): Promise<TicketArea[]> {
+    const rows = await runQuery(
+      this.db.select({ area: ticketAreas.area }).from(ticketAreas).where(eq(ticketAreas.ticketId, ticketId)),
+      'listar áreas participantes do chamado',
+    );
+
+    return rows.map((row) => row.area as TicketArea);
+  }
+
+  /** As áreas participantes de VÁRIOS chamados de uma vez — para a lista não ir ao banco um a um. */
+  async listAreasFor(ticketIds: readonly number[]): Promise<Map<number, TicketArea[]>> {
+    const byTicket = new Map<number, TicketArea[]>();
+    if (ticketIds.length === 0) return byTicket;
+
+    const rows = await runQuery(
+      this.db
+        .select({ ticketId: ticketAreas.ticketId, area: ticketAreas.area })
+        .from(ticketAreas)
+        .where(inArray(ticketAreas.ticketId, ticketIds)),
+      'listar áreas participantes dos chamados',
+    );
+
+    for (const row of rows) {
+      const current = byTicket.get(row.ticketId) ?? [];
+      current.push(row.area as TicketArea);
+      byTicket.set(row.ticketId, current);
+    }
+
+    return byTicket;
+  }
+
+  /**
+   * Soma uma área participante. `onConflictDoNothing`: somar uma área que já é participante
+   * (ou que é a própria área original, coincidência inofensiva) não é erro — é o mesmo pedido
+   * de novo, e o resultado final é o mesmo chamado com a mesma área participante.
+   */
+  async addArea(values: TicketAreaInsert): Promise<void> {
+    await runQuery(
+      this.db.insert(ticketAreas).values(values).onConflictDoNothing(),
+      'somar área ao chamado',
+    );
+  }
+
+  async removeArea(ticketId: number, area: TicketArea): Promise<void> {
+    await runQuery(
+      this.db.delete(ticketAreas).where(and(eq(ticketAreas.ticketId, ticketId), eq(ticketAreas.area, area))),
+      'remover área do chamado',
+    );
+  }
 }
 
 /** Os filtros que a lista E o relatório têm em comum — nenhum dos dois usa página aqui. */
 type TicketFilter = Pick<
   TicketListQuery,
-  'search' | 'status' | 'priority' | 'department' | 'problemType' | 'computerId'
+  'search' | 'status' | 'priority' | 'area' | 'department' | 'problemType' | 'computerId'
 >;
 
 /**
@@ -181,18 +323,25 @@ function buildWhere(query: TicketFilter): SQL | undefined {
 
   if (query.status) filters.push(eq(tickets.status, query.status));
   if (query.priority) filters.push(eq(tickets.priority, query.priority));
+  if (query.area) filters.push(eq(tickets.area, query.area));
   if (query.department) filters.push(eq(tickets.department, query.department));
   if (query.problemType) filters.push(eq(tickets.problemType, query.problemType));
   if (query.computerId) filters.push(eq(tickets.computerId, query.computerId));
 
   if (query.search) {
     const term = `%${query.search}%`;
+    /* "CH-0007", "ch 7", "7" — a MESMA leitura lenta que `findByProtocol` já aceita (ver
+       `ticket-protocol.util`). Sem isto, procurar pelo protocolo que a pessoa anotou no
+       papel não achava nada: `protocol` não é coluna, é o `id` vestido de `CH-0007`. */
+    const protocolId = parseTicketProtocol(query.search);
+
     filters.push(
       or(
         ilike(tickets.requesterName, term),
         ilike(tickets.description, term),
         ilike(tickets.solution, term),
         ilike(tickets.assignee, term),
+        ...(protocolId ? [eq(tickets.id, protocolId)] : []),
       ),
     );
   }

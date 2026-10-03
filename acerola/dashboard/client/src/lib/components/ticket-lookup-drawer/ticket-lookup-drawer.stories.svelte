@@ -10,6 +10,7 @@
     status: 'in_progress',
     priority: 'high',
     requesterName: 'Bia Costa',
+    area: 'infra',
     department: 'financeiro',
     problemType: 'printer',
     anydeskId: '111 222 333',

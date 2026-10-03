@@ -1,6 +1,8 @@
 import {
+  TICKET_AREAS,
   TICKET_DEPARTMENTS,
   TICKET_PROBLEM_TYPES,
+  type TicketProblemType,
 } from '@template/shared/domain/ticket-catalog.util';
 import {
   DEFAULT_TICKET_PRIORITY,
@@ -57,8 +59,17 @@ export const tickets = pgTable(
 
     /* Quem pediu — digitado no formulário público, porque não há identidade a consultar. */
     requesterName: text('requester_name').notNull(),
+    /**
+     * A ÁREA de quem atende (#13) — escolhida por quem abre, pelo que PARECE o problema.
+     * `default('infra')`: os chamados que existiam antes desta coluna eram todos do molde de
+     * Infra (a única área que existia), e um valor padrão evita que a migration os deixe sem
+     * área nenhuma.
+     */
+    area: text('area', { enum: TICKET_AREAS }).notNull().default('infra'),
     department: text('department', { enum: TICKET_DEPARTMENTS }).notNull(),
-    problemType: text('problem_type', { enum: TICKET_PROBLEM_TYPES }).notNull(),
+    problemType: text('problem_type', {
+      enum: TICKET_PROBLEM_TYPES as [TicketProblemType, ...TicketProblemType[]],
+    }).notNull(),
     anydeskId: text('anydesk_id'),
     contactPhone: text('contact_phone'),
     /* Só avisa quem pediu para ser avisado. Ter o telefone não autoriza usá-lo. */
@@ -99,6 +110,9 @@ export const tickets = pgTable(
   },
   (table) => [
     index('tickets_status_idx').on(table.status),
+    /* "Os chamados desta área" é a consulta que decide quem enxerga o quê (ver
+       `TicketsRepository.contextRolesFor` + `TicketsService.resolveAreaAccess`). */
+    index('tickets_area_idx').on(table.area),
     index('tickets_department_idx').on(table.department),
     index('tickets_problem_type_idx').on(table.problemType),
     index('tickets_priority_idx').on(table.priority),
@@ -110,6 +124,7 @@ export const tickets = pgTable(
        Studio. Elas são geradas das MESMAS listas do domínio que o formulário usa. */
     check('tickets_status_valid', sql`${table.status} in (${valuesFor(TICKET_STATUSES)})`),
     check('tickets_priority_valid', sql`${table.priority} in (${valuesFor(TICKET_PRIORITIES)})`),
+    check('tickets_area_valid', sql`${table.area} in (${valuesFor(TICKET_AREAS)})`),
     check(
       'tickets_department_valid',
       sql`${table.department} in (${valuesFor(TICKET_DEPARTMENTS)})`,
