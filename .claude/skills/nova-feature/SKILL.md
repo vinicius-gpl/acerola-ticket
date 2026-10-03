@@ -87,11 +87,16 @@ banco (unique, check, relação).
 - `lib/hooks/use-<entity>-form/use-<entity>-form.svelte.ts` (+ `.test.ts`) — TanStack Form
   (versão Svelte) com `validators: { onChange: <entity>FormSchema }` (**só `onChange`**: com
   `onSubmit` o erro fica preso) e `mutate` (não `await mutateAsync`).
-- `lib/components/<entity>-list-view/<entity>-list-view.svelte`,
-  `lib/components/<entity>-form-dialog/<entity>-form-dialog.svelte` — cada um com
-  `.stories.svelte` e `.test.ts`. Siga `ui-padrao` e `componente-ui`: `PageHeader`,
-  `EmptyState`, `ErrorState`, `ConfirmDialog`, `ActionButton`, `TextField`…
-- `routes/<entities>/+page.svelte` — só composição (modelo: `routes/tasks/+page.svelte`).
+- `routes/(app)/<entities>/components/acerola-<entity>-list-view/acerola-<entity>-list-view.svelte`,
+  `routes/(app)/<entities>/components/acerola-<entity>-form-dialog/acerola-<entity>-form-dialog.svelte`
+  — componentes **da feature**: moram na rota, não em `lib/`. Cada um com `.stories.svelte`
+  (`Features/<Entities>/…`) e `.test.ts`. Só importam `acerola-*` genéricos de `lib/components/`
+  (`acerola-page-header`, `acerola-empty-state`, `acerola-error-state`, `acerola-confirm-dialog`,
+  `acerola-action-button`, `acerola-text-field`…), nunca `ui/*`. Siga `sistema-de-design`,
+  `componente-ui` e `ui-padrao`. Faltou um genérico? Instale do shadcn e envolva — não recrie.
+- `routes/(app)/<entities>/+page.svelte` — só composição: hook + componente + classes de
+  cor/espaço/layout (modelo: `routes/(app)/tasks/+page.svelte`). Formulário em diálogo ligado ao
+  hook vai em `<entity>-form-slot.svelte` ao lado.
 - `lib/navigation/navigation.ts` — uma linha no menu, ícone Lucide.
 
 ## 6. Commits — skill `git-commit`

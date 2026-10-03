@@ -5,6 +5,10 @@ description: O padrão de UI/UX do projeto — tokens de cor, estrutura de toda 
 
 # Padrão de UI/UX
 
+Onde cada arquivo mora, prefixo `acerola-*` e o que a rota pode fazer: skill `sistema-de-design`.
+Os nomes abaixo (`PageHeader`, `ErrorState`…) são os componentes `acerola-*` correspondentes
+(`acerola-page-header`, `acerola-error-state`…).
+
 O objetivo não é enfeitar: é que **todo MVP feito com este template pareça o mesmo sistema** e
 que a pessoa nunca fique sem saber o que aconteceu.
 
@@ -66,6 +70,8 @@ Uma ação principal por tela (azul). As outras são `secondary` ou `ghost`.
 ## Formulário
 
 - Em modal (`Dialog`) para cadastro curto; em tela própria se tiver mais de ~8 campos.
+- **Todo campo tem `h-10`** (input, select, input-group, date-picker, pastilhas, botão de
+  enviar) — vem do componente `acerola-*`, nunca de classe na tela. Textarea usa `min-h-*`.
 - Rótulo acima do campo, **erro colado embaixo do campo** (nunca só um resumo no topo).
 - Erro aparece depois que a pessoa **sai do campo** ou **tenta enviar** — nunca na primeira letra.
 - Enter envia (`<form onSubmit>`). O botão de enviar trava e diz "Salvando…".
@@ -126,7 +132,8 @@ São três faixas, e o tablet conta como celular:
   (está no `SidebarInset` do `app-shell`) para encolher abaixo da largura natural da tabela.
   Sem isso o `overflow-x-auto` da tabela não serve para nada e a página inteira arrasta.
 - **A barra lateral não pode comer a largura do tablet.** O ponto de corte entre gaveta e
-  barra fixa está em `lib/hooks/is-mobile.svelte.ts` (1024px). Com ela fixa em 768px sobravam
+  barra fixa é 1024px: vem do `sidebar` do shadcn (`lib/hooks/ui/`, do CLI); o resto da tela
+  mede largura com `lib/hooks/use-media-query/` passando o breakpoint. Com ela fixa em 768px sobravam
   494px de conteúdo, e as regras de CSS continuavam medindo os 768px da janela — daí título
   espremido e tabela mostrando 3 das 8 colunas.
 

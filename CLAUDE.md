@@ -82,15 +82,22 @@ ambos os hooks liberam o acesso sem restrições.
 
 O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebram:
 
-1. **Idioma:** o usuário vê → português. O usuário não vê (código, log, teste, erro interno) →
-   inglês. Comentário em português, explicando o **porquê**.
+1. **Idioma:** o usuário vê → português. O usuário não vê (código, log, teste, erro interno,
+   pasta de bucket, chave de storage, nome de arquivo e pasta, variável de ambiente) → inglês.
+   Comentário em português, explicando o **porquê**. Exceção: nome das skills.
 2. **Early return.** Nunca `if/else` alinhado. Complexidade máxima 10.
-3. **MVVM:** rota (`+page.svelte`) só compõe · hook (`lib/hooks/use-*/use-*.svelte.ts`) tem
+3. **MVVM:** rota (`+page.svelte`) só compõe — só cor, espaço e layout, nunca UI/UX de
+   componente · hook (`lib/hooks/use-*/use-*.svelte.ts`, pasta própria, prefixo `use-`) tem
    estado e dados, sem marcação · componente de UI é função pura de props, zero
    `createQuery`/`createMutation`/navegação direta.
 4. **Props em quatro grupos:** `data`, `ui`, `state`, `actions`.
-5. **`lib/components/ui/` não se edita.** Precisa mudar? Envolva num componente próprio em
-   `lib/components/<nome>/`.
+5. **`lib/components/ui/` e `lib/hooks/ui/` não se editam** (são do CLI do shadcn). Precisa
+   mudar? Envolva num `acerola-*`. Existe no shadcn-svelte? Instale, não recrie.
+   **Nunca reescreva um componente existente** — mude só o que foi pedido.
+   **Todo componente próprio tem prefixo `acerola-*`**: genérico em `lib/components/acerola-*`,
+   de feature em `routes/(app)/<feature>/components/acerola-*`.
+   **Todo campo de formulário tem `h-10`**, definido no `acerola-*`, nunca na tela.
+   Detalhes e checagens: skill **`sistema-de-design`**.
 6. **Todo componente tem `.stories.svelte`** (default, variantes, estados, caso limite).
 7. **Todo código com lógica tem teste do caminho feliz e do triste** (`// feliz`, `// triste`).
 8. **Backend:** controller → service → repository. Policy no service. Autoria vem da
@@ -107,6 +114,7 @@ Antes de começar uma tarefa, veja se há skill para ela em `.claude/skills/` e 
 | Primeira vez no projeto, "como rodo isso?" | `comecar` |
 | Dar nome ao MVP (título das telas) | `renomear-projeto` |
 | Funcionalidade nova, tela nova com dados | `nova-feature` |
+| **Criar, mover ou renomear qualquer arquivo**; "isso está no lugar certo?" | `sistema-de-design` |
 | Componente visual novo ou alterado | `componente-ui` (e `ui-padrao` como referência) |
 | Tabela nova, campo novo, "apaga o banco" | `banco-de-dados` |
 | Dados de teste | `dados-de-teste` |
@@ -131,9 +139,11 @@ acerola/dashboard/shared/src/{domain,schemas}/        contrato e regra pura
 acerola/dashboard/server/src/lib/db/schema/           tabelas (Drizzle, Postgres/Neon)
 acerola/dashboard/server/src/modules/<feature>/       API
 acerola/dashboard/server/drizzle/                     migrations (geradas — não edite à mão)
-acerola/dashboard/client/src/routes/                  telas (só composição, SvelteKit)
-acerola/dashboard/client/src/lib/hooks/<nome>/        estado e dados das telas
-acerola/dashboard/client/src/lib/components/          componentes
+acerola/dashboard/client/src/routes/(app)/<feature>/  tela (só composição, SvelteKit)
+acerola/dashboard/client/src/routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
+acerola/dashboard/client/src/lib/hooks/use-<nome>/    estado e dados das telas
+acerola/dashboard/client/src/lib/components/acerola-<nome>/  componente genérico
+acerola/dashboard/client/src/lib/components/ui/       ⛔ CLI do shadcn (lib/hooks/ui/ idem)
 acerola/dashboard/client/src/lib/navigation/          menu lateral
 acerola/dashboard/scripts/seed/<entidade>/            dados de teste
 ```
@@ -178,7 +188,9 @@ use o navegador em http://localhost:5176.
 
 ### Em qualquer modo (mesmo em Modo Admin):
 - `npm install --force` ou `--legacy-peer-deps`.
-- Editar arquivo em `lib/components/ui/` (envolva num componente próprio), `routeTree.gen.ts` ou `server/drizzle/meta/`.
+- Editar arquivo em `lib/components/ui/` ou `lib/hooks/ui/` (envolva num `acerola-*`), `routeTree.gen.ts` ou `server/drizzle/meta/`.
+- Reescrever componente existente além do que foi pedido, ou recriar à mão componente que o shadcn-svelte já tem.
+- Criar componente em `lib/components/` que só uma feature usa, ou pasta em `lib/` fora do mapa da skill `sistema-de-design`.
 - Colocar segredo em variável `VITE_` ou em arquivo versionado (`.env`).
 - Colocar dado real de pessoa ou cliente em seed, story ou teste.
 - Dizer que terminou sem ter rodado `lint`, `typecheck` e os testes do que mudou (a menos que o admin tenha pedido especificamente para ignorar).
