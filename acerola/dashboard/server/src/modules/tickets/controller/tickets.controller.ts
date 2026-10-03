@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -25,12 +26,14 @@ import {
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
+import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
+  AddTicketAreaDto,
   CreateTicketDto,
   PublicTicketDto,
   TicketDto,
@@ -115,6 +118,18 @@ export class TicketsController {
     return this.service.findByProtocol(protocol);
   }
 
+  /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard` e `export`. */
+  @Get('areas/mine')
+  @ApiOperation({
+    summary: 'As áreas que esta pessoa atende',
+    description:
+      'Infra, Sistema e/ou Manutenção — só as que a pessoa tem cargo. Alimenta o seletor de contexto do menu (#13). Administrador enxerga as três sempre.',
+  })
+  @ApiOkResponse({ description: 'Lista de áreas, de zero a três.' })
+  async myAreas(@CurrentUser() user: RequestUser): Promise<TicketArea[]> {
+    return this.service.myAreas(user);
+  }
+
   /* Vem ANTES de `:id`: declarada depois, o Nest leria "dashboard" como se fosse um número. */
   @Get('dashboard')
   @ApiOperation({
@@ -195,5 +210,38 @@ export class TicketsController {
     @Body() body: UpdateTicketDto,
   ): Promise<TicketDto> {
     return this.service.update(user, id, body);
+  }
+
+  @Post(':id/areas')
+  @ApiOperation({
+    summary: 'Soma uma área participante ao chamado (#13)',
+    description:
+      'Ex.: um chamado de Infra que também precisa de Manutenção. A área original não muda. Só quem gerencia alguma área do chamado pode somar outra.',
+  })
+  @ApiOkResponse({ type: TicketDto })
+  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
+  @ApiForbiddenResponse({ description: 'Só gestor de alguma área do chamado pode somar outra.' })
+  async addArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AddTicketAreaDto,
+  ): Promise<TicketDto> {
+    return this.service.addArea(user, id, body.area);
+  }
+
+  @Delete(':id/areas/:area')
+  @ApiOperation({
+    summary: 'Tira uma área participante do chamado (#13)',
+    description: 'A área original nunca pode ser removida por aqui — só reclassificada (PATCH).',
+  })
+  @ApiOkResponse({ type: TicketDto })
+  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
+  @ApiForbiddenResponse({ description: 'Só gestor de alguma área do chamado pode remover outra.' })
+  async removeArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('area') area: TicketArea,
+  ): Promise<TicketDto> {
+    return this.service.removeArea(user, id, area);
   }
 }

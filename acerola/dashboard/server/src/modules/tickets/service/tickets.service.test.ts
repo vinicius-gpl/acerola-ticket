@@ -29,6 +29,7 @@ function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithCompu
     status: 'open',
     priority: 'medium',
     requesterName: 'Bia Costa',
+    area: 'infra',
     department: 'financeiro',
     computerId: null,
     computerName: null,
@@ -61,13 +62,24 @@ const attachmentsStub = {
   list: vi.fn().mockResolvedValue([]),
 };
 
+/**
+ * O cargo padrão de quem testa: Ana tem cargo `user` em Infra, e nenhum nos outros dois — é
+ * por isso que `ticketRow()` nasce em Infra, e os testes que não mexem com área continuam
+ * passando sem precisar saber que ela existe.
+ */
+const defaultRepository: Partial<TicketsRepository> = {
+  contextRolesFor: vi.fn().mockResolvedValue({ infra: 'user' }),
+  listAreasOf: vi.fn().mockResolvedValue([]),
+  listAreasFor: vi.fn().mockResolvedValue(new Map()),
+};
+
 function makeService(
   repository: Partial<TicketsRepository>,
   storage: Partial<StorageService> = storageStub,
   attachments: Partial<TicketAttachmentsService> = attachmentsStub,
 ) {
   return new TicketsService(
-    repository as TicketsRepository,
+    { ...defaultRepository, ...repository } as TicketsRepository,
     storage as StorageService,
     attachments as TicketAttachmentsService,
   );
@@ -139,6 +151,7 @@ describe('TicketsService.create', () => {
 
     const ticket = await service.create({
       requesterName: 'Bia Costa',
+      area: 'infra' as const,
       department: 'financeiro',
       problemType: 'printer',
       contactPhone: '62999999999',
@@ -160,6 +173,7 @@ describe('TicketsService.create', () => {
     await service.create(
       {
         requesterName: 'Bia Costa',
+        area: 'infra' as const,
         department: 'financeiro',
         problemType: 'printer',
         contactPhone: '62999999999',
@@ -180,6 +194,7 @@ describe('TicketsService.create', () => {
     const attempt = service.create(
       {
         requesterName: 'Bia Costa',
+        area: 'infra' as const,
         department: 'financeiro',
         problemType: 'printer',
         contactPhone: '62999999999',
@@ -199,6 +214,7 @@ describe('TicketsService.create', () => {
     const attempt = service.create(
       {
         requesterName: 'Bia Costa',
+        area: 'infra' as const,
         department: 'financeiro',
         problemType: 'printer',
         contactPhone: '62999999999',
@@ -311,7 +327,7 @@ describe('TicketsService.exportList', () => {
 
     const report = await service.exportList(ana, { format: 'xlsx', status: 'open' });
 
-    expect(listAll).toHaveBeenCalledWith({ format: 'xlsx', status: 'open' });
+    expect(listAll).toHaveBeenCalledWith({ format: 'xlsx', status: 'open' }, ['infra']);
     expect(report.fileName).toBe('chamados.xlsx');
     expect(report.buffer.length).toBeGreaterThan(0);
   });
@@ -339,6 +355,7 @@ describe('TicketsService.dashboard', () => {
           resolvedAt: new Date('2026-03-01T10:00:00.000Z'),
           problemType: 'printer',
           department: 'rh',
+          area: 'infra',
         },
         {
           status: 'open',
@@ -346,6 +363,7 @@ describe('TicketsService.dashboard', () => {
           resolvedAt: null,
           problemType: 'printer',
           department: 'financeiro',
+          area: 'infra',
         },
       ]),
     });
@@ -373,5 +391,219 @@ describe('TicketsService.dashboard', () => {
 
     await expect(service.dashboard(noRole)).rejects.toThrow(ForbiddenException);
     expect(listForMetrics).not.toHaveBeenCalled();
+  });
+
+  // feliz
+  it('scopes the metrics to the areas the person has a role in', async () => {
+    const listForMetrics = vi.fn().mockResolvedValue([]);
+    const service = makeService({ listForMetrics });
+
+    await service.dashboard(ana);
+
+    expect(listForMetrics).toHaveBeenCalledWith(['infra']);
+  });
+});
+
+/**
+ * As áreas (#13) são um cargo PRÓPRIO do chamado, sem o mínimo `user` que o cargo interno
+ * (#11) tem em outros lugares: sem linha em `internal_roles`, não existe cargo — nunca
+ * `'user'` por omissão. Cada teste aqui é uma tentativa de escalação (CONTRIBUTING §7).
+ */
+describe('TicketsService — acesso por área', () => {
+  const manutencao: RequestUser = { ...ana, id: '2', email: 'carlos@azuos.com.br' };
+  const admin: RequestUser = { ...ana, id: '3', email: 'root@azuos.com.br', role: 'admin' };
+
+  // feliz
+  it('scopes the queue to the areas the person has a role in', async () => {
+    const list = vi.fn().mockResolvedValue({ rows: [], total: 0 });
+    const service = makeService({ list });
+
+    await service.list(ana, query());
+
+    expect(list).toHaveBeenCalledWith(expect.anything(), ['infra']);
+  });
+
+  it('lets an admin see every area without even reading internal_roles', async () => {
+    const list = vi.fn().mockResolvedValue({ rows: [], total: 0 });
+    const contextRolesFor = vi.fn();
+    const service = makeService({ list, contextRolesFor });
+
+    await service.list(admin, query());
+
+    expect(list.mock.calls[0]?.[1]).toEqual(
+      expect.arrayContaining(['infra', 'sistema', 'manutencao']),
+    );
+    expect(contextRolesFor).not.toHaveBeenCalled();
+  });
+
+  // triste
+  it('scopes the queue to nothing when the person has no role anywhere', async () => {
+    const list = vi.fn().mockResolvedValue({ rows: [], total: 0 });
+    const contextRolesFor = vi.fn().mockResolvedValue({});
+    const service = makeService({ list, contextRolesFor });
+
+    await service.list(ana, query());
+
+    expect(list).toHaveBeenCalledWith(expect.anything(), []);
+  });
+
+  it('refuses to open a ticket from an area the person has no role in', async () => {
+    const contextRolesFor = vi.fn().mockResolvedValue({ manutencao: 'user' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      contextRolesFor,
+    });
+
+    await expect(service.findById(manutencao, 7)).rejects.toThrow(ForbiddenException);
+  });
+
+  it('lets a person in through a PARTICIPANT area, even without the original one', async () => {
+    const contextRolesFor = vi.fn().mockResolvedValue({ manutencao: 'user' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      listAreasOf: vi.fn().mockResolvedValue(['manutencao']),
+      contextRolesFor,
+    });
+
+    await expect(service.findById(manutencao, 7)).resolves.toMatchObject({ id: 7 });
+  });
+
+  it('refuses to reclassify the area with only the "user" role, even having a role there', async () => {
+    const update = vi.fn();
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { area: 'manutencao' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  // feliz
+  it('lets a manager of the ticket area reclassify it', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ area: 'manutencao' }));
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { area: 'manutencao' })).resolves.toMatchObject({
+      area: 'manutencao',
+    });
+  });
+
+  it('does not require manager just to change the status, only to change the area', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      update,
+      contextRolesFor,
+    });
+
+    await expect(service.update(ana, 7, { status: 'resolved' })).resolves.toMatchObject({
+      status: 'resolved',
+    });
+  });
+
+  // triste
+  it('refuses to add a participant area without being a manager of the current one', async () => {
+    const addArea = vi.fn();
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      addArea,
+      contextRolesFor,
+    });
+
+    await expect(service.addArea(ana, 7, 'manutencao')).rejects.toThrow(ForbiddenException);
+    expect(addArea).not.toHaveBeenCalled();
+  });
+
+  // feliz
+  it('lets a manager add a participant area', async () => {
+    const addArea = vi.fn().mockResolvedValue(undefined);
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      addArea,
+      contextRolesFor,
+    });
+
+    const ticket = await service.addArea(ana, 7, 'manutencao');
+
+    expect(addArea).toHaveBeenCalledWith({ ticketId: 7, area: 'manutencao', createdBy: ana.email });
+    expect(ticket.participantAreas).toEqual(['manutencao']);
+  });
+
+  it('refuses to add the original area as a participant', async () => {
+    const addArea = vi.fn();
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      addArea,
+      contextRolesFor,
+    });
+
+    await expect(service.addArea(ana, 7, 'infra')).rejects.toThrow(UnprocessableEntityException);
+    expect(addArea).not.toHaveBeenCalled();
+  });
+
+  it('lets a manager remove a participant area', async () => {
+    const removeArea = vi.fn().mockResolvedValue(undefined);
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
+    const service = makeService({
+      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
+      listAreasOf: vi.fn().mockResolvedValue(['manutencao']),
+      removeArea,
+      contextRolesFor,
+    });
+
+    const ticket = await service.removeArea(ana, 7, 'manutencao');
+
+    expect(removeArea).toHaveBeenCalledWith(7, 'manutencao');
+    expect(ticket.participantAreas).toEqual([]);
+  });
+});
+
+describe('TicketsService.myAreas', () => {
+  // feliz
+  it('lists only the areas the person has a role in', async () => {
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user', sistema: 'manager' });
+    const service = makeService({ contextRolesFor });
+
+    await expect(service.myAreas(ana)).resolves.toEqual(['infra', 'sistema']);
+  });
+
+  it('gives an admin all three areas without reading internal_roles', async () => {
+    const contextRolesFor = vi.fn();
+    const service = makeService({ contextRolesFor });
+
+    const areas = await service.myAreas({ ...ana, role: 'admin' });
+
+    expect(areas).toEqual(expect.arrayContaining(['infra', 'sistema', 'manutencao']));
+    expect(contextRolesFor).not.toHaveBeenCalled();
+  });
+
+  // triste
+  it('gives nobody an area they have no role in', async () => {
+    const contextRolesFor = vi.fn().mockResolvedValue({});
+    const service = makeService({ contextRolesFor });
+
+    await expect(service.myAreas(ana)).resolves.toEqual([]);
+  });
+
+  it('refuses an unidentified request without touching the repository', async () => {
+    const contextRolesFor = vi.fn();
+    const service = makeService({ contextRolesFor });
+
+    await expect(service.myAreas(noRole)).rejects.toThrow(ForbiddenException);
+    expect(contextRolesFor).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
+import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import { type TicketStatus } from '@template/shared/domain/ticket-status.util';
 import {
@@ -19,7 +20,11 @@ import { type TicketWithComputer } from '../repository/tickets.repository';
  * O link do print entra por parâmetro, já assinado: gerar link é ida ao R2, e uma função de
  * tradução que faz chamada de rede não dá para testar sem subir nada.
  */
-export function toTicket(row: TicketWithComputer, screenshotUrl: string | null): Ticket {
+export function toTicket(
+  row: TicketWithComputer,
+  screenshotUrl: string | null,
+  participantAreas: readonly TicketArea[] = [],
+): Ticket {
   return {
     id: row.id,
     /* O protocolo vem pronto do servidor: se cada tela formatasse por conta própria, o
@@ -28,8 +33,10 @@ export function toTicket(row: TicketWithComputer, screenshotUrl: string | null):
     status: row.status,
     priority: row.priority,
     requesterName: row.requesterName,
+    area: row.area,
     department: row.department,
     problemType: row.problemType,
+    participantAreas: [...participantAreas],
     anydeskId: row.anydeskId,
     contactPhone: row.contactPhone,
     notifyWhatsapp: row.notifyWhatsapp,
@@ -68,6 +75,7 @@ export function toPublicTicket(
     status: ticket.status,
     priority: ticket.priority,
     requesterName: ticket.requesterName,
+    area: ticket.area,
     department: ticket.department,
     problemType: ticket.problemType,
     anydeskId: ticket.anydeskId,
@@ -88,6 +96,7 @@ export function toTicketInsert(
 ): TicketInsert {
   return {
     requesterName: input.requesterName.trim(),
+    area: input.area,
     department: input.department,
     problemType: input.problemType,
     anydeskId: normalizeOptional(input.anydeskId) ?? null,
@@ -115,6 +124,9 @@ export function toTicketUpdate(
   const update: Partial<TicketInsert> = { updatedAt: now, updatedBy: actorEmail };
 
   setIfDefined(update, 'priority', input.priority);
+  /* Reclassificar a área — a policy (`TicketsService.update`) já confirmou que quem pediu
+     pode. Aqui é só gravar. */
+  setIfDefined(update, 'area', input.area);
   setIfDefined(update, 'assignee', normalizeOptional(input.assignee));
   setIfDefined(update, 'solution', normalizeOptional(input.solution));
   setIfDefined(update, 'status', input.status);

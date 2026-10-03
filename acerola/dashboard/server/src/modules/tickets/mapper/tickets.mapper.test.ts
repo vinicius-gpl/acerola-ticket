@@ -13,6 +13,7 @@ function row(over: Partial<TicketWithComputer> = {}): TicketWithComputer {
     status: 'open',
     priority: 'medium',
     requesterName: 'Bia Costa',
+    area: 'infra',
     department: 'financeiro',
     computerId: null,
     computerName: null,
@@ -62,6 +63,18 @@ describe('toTicket', () => {
 
     expect(ticket).not.toHaveProperty('screenshotKey');
   });
+
+  it('carries the participant areas it was given, besides the original area', () => {
+    const ticket = toTicket(row({ area: 'infra' }), null, ['manutencao']);
+
+    expect(ticket.area).toBe('infra');
+    expect(ticket.participantAreas).toEqual(['manutencao']);
+  });
+
+  // triste
+  it('defaults to no participant areas when none were given', () => {
+    expect(toTicket(row(), null).participantAreas).toEqual([]);
+  });
 });
 
 describe('toPublicTicket', () => {
@@ -94,6 +107,7 @@ describe('toPublicTicket', () => {
 describe('toTicketInsert', () => {
   const input = {
     requesterName: '  Bia Costa  ',
+    area: 'infra' as const,
     department: 'rh' as const,
     problemType: 'network' as const,
     contactPhone: ' 62 99999-9999 ',
@@ -106,6 +120,10 @@ describe('toTicketInsert', () => {
 
     expect(values.requesterName).toBe('Bia Costa');
     expect(values.description).toBe('A internet caiu.');
+  });
+
+  it('carries the area the person chose', () => {
+    expect(toTicketInsert(input, null).area).toBe('infra');
   });
 
   it('keeps the storage key given by whoever stored the file', () => {
@@ -190,6 +208,15 @@ describe('toTicketUpdate', () => {
 
   it('touches nothing but the stamps when the change is empty', () => {
     expect(toTicketUpdate({}, ANA, row(), NOW)).toEqual({ updatedAt: NOW, updatedBy: ANA });
+  });
+
+  it('reclassifies the area when asked to', () => {
+    expect(toTicketUpdate({ area: 'manutencao' }, ANA, row(), NOW).area).toBe('manutencao');
+  });
+
+  // triste
+  it('leaves the area alone when it was not sent', () => {
+    expect(toTicketUpdate({ status: 'resolved' }, ANA, row(), NOW)).not.toHaveProperty('area');
   });
 });
 

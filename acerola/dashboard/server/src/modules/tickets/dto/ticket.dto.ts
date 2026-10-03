@@ -1,4 +1,5 @@
 import {
+  addTicketAreaSchema,
   createTicketSchema,
   publicTicketSchema,
   ticketListQuerySchema,
@@ -18,6 +19,7 @@ export class TicketListQueryDto extends createZodDto(ticketListQuerySchema) {}
 export class TicketReportQueryDto extends createZodDto(ticketReportQuerySchema) {}
 export class CreateTicketDto extends createZodDto(createTicketSchema) {}
 export class UpdateTicketDto extends createZodDto(updateTicketSchema) {}
+export class AddTicketAreaDto extends createZodDto(addTicketAreaSchema) {}
 export class TicketDto extends createZodDto(ticketSchema) {}
 
 /** O que a consulta pública por protocolo devolve — menos campos, de propósito. */
