@@ -3,7 +3,7 @@ import {
 	ReportingSettings,
 	ReportingState as readReportingState,
 	SaveReportingSettings
-} from '../../../wailsjs/go/main/App';
+} from '../../../../wailsjs/go/main/App';
 
 /**
  * O envio ao painel central, como as telas do agente o enxergam.

@@ -82,7 +82,7 @@ mudança — só usada pela ferramenta `src-go/cmd/icongen`, não pelo agente em
 O Wails resolve esse transporte nativamente:
 
 - **Go → Svelte**: `runtime.EventsEmit(ctx, "metrics:snapshot", snapshot)` no Go,
-  `EventsOn("metrics:snapshot", callback)` no Svelte (`svelte/src/lib/metrics/store.svelte.ts`).
+  `EventsOn("metrics:snapshot", callback)` no Svelte (`svelte/src/lib/hooks/use-metrics/use-metrics.svelte.ts`).
   O `metrics.Broadcaster` (mesma peça da versão anterior, ver abaixo) permanece o único lugar que
   chama `Collector.Snapshot` — só que agora, em vez de escrever num canal por aba de navegador,
   ele empurra pro frontend via evento nativo.

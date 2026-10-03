@@ -25,7 +25,7 @@
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import XIcon from '@lucide/svelte/icons/x';
 
-	import { useMetrics } from '$lib/metrics/store.svelte';
+	import { useMetrics } from '$lib/hooks/use-metrics/use-metrics.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
 	import { cn } from '$lib/utils/cn';

@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import AcerolaProcessDrawer from './acerola-process-drawer.svelte';
-import type { ProcessStats } from '$lib/metrics/types';
+import type { ProcessStats } from '$lib/types/metrics.type';
 
 const chrome: ProcessStats = {
 	name: 'chrome.exe',

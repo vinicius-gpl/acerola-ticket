@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import AcerolaProcessTable from './acerola-process-table.svelte';
-import type { ProcessStats } from '$lib/metrics/types';
+import type { ProcessStats } from '$lib/types/metrics.type';
 
 // O caso que motivou o agrupamento: o Chrome soma 2,6 GB em três processos,
 // mas o maior deles sozinho tem só 1,2 GB.
