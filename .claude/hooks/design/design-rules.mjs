@@ -5,37 +5,44 @@
  * Aqui cada regra vira uma função pura sobre a lista de arquivos do projeto — sem disco, sem
  * rede —, para o teste poder montar um projeto de mentira e provar que a regra pega o que deve.
  *
- * Quem lê o disco e decide se o CI falha é o `check-design.ts`.
+ * Cobre os dois apps Svelte do projeto (`APPS`), e é o mesmo módulo que roda no `check:design`
+ * (CI, pre-push) e no hook `PostToolUse` do Claude Code — por isso é `.mjs` puro, sem `tsx` e
+ * sem dependência: o hook precisa ser rápido em toda edição.
+ *
+ * Quem lê o disco e decide se o CI (ou o hook) reprova é o `check-design.mjs`.
+ *
+ * @typedef {Object} ProjectFile
+ * @property {string} path - Caminho relativo à raiz do repositório, com `/`.
+ * @property {string} content - Conteúdo; só é lido para arquivos de texto que alguma regra inspeciona.
+ *
+ * @typedef {Object} Violation
+ * @property {string} rule
+ * @property {string} file
+ * @property {string} detail - O que está errado, sem número de linha: a chave da baseline não pode mudar a cada edição.
+ * @property {number} [line]
+ *
+ * @typedef {Object} Rule
+ * @property {string} id
+ * @property {string} description - Uma linha, em pt-BR: aparece no relatório para quem vai corrigir.
+ * @property {(files: ProjectFile[]) => Violation[]} check
+ *
+ * @typedef {Object.<string, number>} Baseline
+ *
+ * @typedef {Object} Comparison
+ * @property {Violation[]} added - Violações a mais do que a baseline permite: é isso que reprova.
+ * @property {string[]} fixed - Chaves que a baseline tinha e sumiram (ou diminuíram): dívida paga, falta atualizar.
  */
 
-export type ProjectFile = {
-  /** Caminho relativo a `acerola/dashboard`, com `/`. */
-  path: string;
-  /** Conteúdo; só é lido para arquivos de texto que alguma regra inspeciona. */
-  content: string;
-};
+/** Os apps Svelte do projeto. Cada um segue as mesmas regras de componente, hook e rota. */
+export const APPS = [
+  { name: 'dashboard', src: 'acerola/dashboard/client/src' },
+  { name: 'agent', src: 'acerola/agent/svelte/src' },
+];
 
-export type Violation = {
-  rule: string;
-  file: string;
-  /** O que está errado, sem número de linha: a chave da baseline não pode mudar a cada edição. */
-  detail: string;
-  line?: number;
-};
+/** A pasta do server, fora dos apps Svelte (só a regra `storage-folder-language` olha aqui). */
+const SERVER_SRC = 'acerola/dashboard/server/src';
 
-export type Rule = {
-  id: string;
-  /** Uma linha, em pt-BR: aparece no relatório para quem vai corrigir. */
-  description: string;
-  check: (files: ProjectFile[]) => Violation[];
-};
-
-const CLIENT = 'client/src';
-const LIB_COMPONENTS = `${CLIENT}/lib/components`;
-const LIB_HOOKS = `${CLIENT}/lib/hooks`;
-const ROUTES = `${CLIENT}/routes`;
-
-/** Pastas permitidas em `client/src/lib` (skill `design-system` §2). */
+/** Pastas permitidas em `<app>/lib` (skill `design-system` §2), para os dois apps. */
 export const LIB_FOLDERS = [
   'api',
   'auth',
@@ -59,90 +66,156 @@ const OFF_SCALE_SHADOW = /\bshadow(?:-(?:sm|md|lg|2xl|inner|\[[^\]]+\]))?(?=[\s"
 const OFF_SCALE_HEIGHT = /\bh-(?:7|8|9|11|12)\b/g;
 const RAW_INTERACTIVE = /<(button|input|select|textarea|table)\b/g;
 
-function segments(path: string): string[] {
+/** @param {string} path */
+function segments(path) {
   return path.split('/');
 }
 
-function isUi(path: string): boolean {
+/** O app que contém o caminho, ou `undefined` se ele não mora em nenhum (ex.: `server/`). */
+/** @param {string} path @returns {{name: string, src: string} | undefined} */
+function appOf(path) {
+  return APPS.find((app) => path === app.src || path.startsWith(`${app.src}/`));
+}
+
+/** @param {{src: string}} app */
+function libComponents(app) {
+  return `${app.src}/lib/components`;
+}
+
+/** @param {{src: string}} app */
+function libHooks(app) {
+  return `${app.src}/lib/hooks`;
+}
+
+/** @param {{src: string}} app */
+function routesDir(app) {
+  return `${app.src}/routes`;
+}
+
+/** @param {string} path */
+function isUi(path) {
   return path.includes('/components/ui/') || path.includes('/hooks/ui/');
 }
 
-function isStoryOrTest(path: string): boolean {
+/** @param {string} path */
+function isStoryOrTest(path) {
   return /\.(stories\.svelte|test\.ts|test\.svelte)$/.test(path) || path.includes('-harness.test');
 }
 
-/** Arquivo de componente próprio (genérico ou de feature), fora do CLI e fora de story/teste. */
-function isOwnComponentSource(path: string): boolean {
-  if (!path.endsWith('.svelte') || isUi(path) || isStoryOrTest(path)) return false;
+/**
+ * Arquivo de rota: qualquer `.svelte` dentro de `<app>/routes`, fora de `/components/`. O
+ * dashboard usa `+page.svelte`/`+layout.svelte`/`-slot.svelte`; o agent usa `<tela>/<tela>.svelte`
+ * — os dois contam.
+ * @param {string} path
+ */
+function isRouteFile(path) {
+  const app = appOf(path);
+  if (!app) return false;
+  if (!path.startsWith(`${routesDir(app)}/`) || !path.endsWith('.svelte')) return false;
 
-  return path.startsWith(`${LIB_COMPONENTS}/`) || /\/routes\/.+\/components\//.test(path);
+  return !path.includes('/components/');
+}
+
+/** Arquivo de componente próprio (genérico ou de feature), fora do CLI e fora de story/teste. */
+/** @param {string} path */
+function isOwnComponentSource(path) {
+  if (!path.endsWith('.svelte') || isUi(path) || isStoryOrTest(path)) return false;
+  const app = appOf(path);
+  if (!app) return false;
+  if (path.startsWith(`${libComponents(app)}/`)) return true;
+
+  return new RegExp(`^${routesDir(app)}/.+/components/`).test(path);
 }
 
 /** Onde regra de classe Tailwind vale: componente próprio e arquivo de rota. */
-function isStyledSource(path: string): boolean {
+/** @param {string} path */
+function isStyledSource(path) {
   if (isOwnComponentSource(path)) return true;
 
-  return path.startsWith(`${ROUTES}/`) && path.endsWith('.svelte') && !isStoryOrTest(path);
+  return isRouteFile(path) && !isStoryOrTest(path);
 }
 
-/** As pastas imediatas de componente: `lib/components/<x>` e `routes/**\/components/<x>`. */
-export function componentFolders(files: ProjectFile[]): string[] {
-  const folders = new Set<string>();
+/** As pastas imediatas de componente: `lib/components/<x>` e `routes/**\/components/<x>`, nos dois apps. */
+/** @param {ProjectFile[]} files @returns {string[]} */
+export function componentFolders(files) {
+  const folders = new Set();
 
   for (const { path } of files) {
     if (isUi(path)) continue;
+    const app = appOf(path);
+    if (!app) continue;
 
-    const lib = path.match(new RegExp(`^(${LIB_COMPONENTS}/[^/]+)/`));
+    const lib = path.match(new RegExp(`^(${libComponents(app)}/[^/]+)/`));
     if (lib?.[1]) folders.add(lib[1]);
 
-    const feature = path.match(/^(client\/src\/routes\/.+?\/components\/[^/]+)\//);
+    const feature = path.match(new RegExp(`^(${routesDir(app)}/.+?/components/[^/]+)/`));
     if (feature?.[1]) folders.add(feature[1]);
   }
 
   return [...folders].sort();
 }
 
-/** A feature de um arquivo de rota: `routes/(app)/tickets/+page.svelte` → `tickets`. */
-function featureOf(path: string): string {
-  return (
-    path
-      .slice(ROUTES.length + 1)
-      .replace(/^\([^)]+\)\//, '')
-      .split('/')[0] ?? ''
-  );
+/**
+ * A feature de um arquivo de rota: `routes/(app)/tickets/+page.svelte` → `tickets`;
+ * `routes/dashboard/dashboard.svelte` (agent, sem grupo) → `dashboard`. O grupo `(app)/` some
+ * antes de olhar o primeiro segmento; `+layout`/`+error`, ou um `.svelte` direto na raiz de
+ * `routes` (sem subpasta), contam como "app inteiro" (`*`).
+ * @param {string} path
+ */
+function featureOf(path) {
+  const app = appOf(path);
+  if (!app) return '';
+
+  const rest = path.slice(routesDir(app).length + 1).replace(/^\([^)]+\)\//, '');
+  const parts = rest.split('/');
+  if (parts.length <= 1) return '*';
+
+  return parts[0].startsWith('+') ? '*' : parts[0];
 }
 
 /**
  * Para cada componente de `lib/components`, as features que o usam — seguindo a cadeia: se
  * `dashboard-peaking` só é importado por `dashboard-view`, e `dashboard-view` só pela rota
  * `dashboard`, os dois são do dashboard. O `+layout` da raiz conta como "app inteiro" (`*`).
+ * Só compara arquivos do MESMO app — um `acerola-button` do agent nunca é "dono" de um import
+ * do dashboard, e vice-versa.
+ * @param {ProjectFile[]} files @returns {Map<string, Set<string>>}
  */
-export function featureOwners(files: ProjectFile[]): Map<string, Set<string>> {
-  const libFolders = componentFolders(files).filter((folder) => folder.startsWith(LIB_COMPONENTS));
-  const importersOf = new Map<string, ProjectFile[]>();
+export function featureOwners(files) {
+  const libFolders = componentFolders(files).filter((folder) => {
+    const app = appOf(folder);
+
+    return app && folder.startsWith(`${libComponents(app)}/`);
+  });
+  const importersOf = new Map();
 
   for (const folder of libFolders) {
+    const app = appOf(folder);
     const name = segments(folder).at(-1) ?? '';
     const importPath = `components/${name}/${name}`;
     importersOf.set(
       folder,
       files.filter(
-        (file) => !file.path.startsWith(`${folder}/`) && file.content.includes(importPath),
+        (file) =>
+          appOf(file.path) === app &&
+          !file.path.startsWith(`${folder}/`) &&
+          file.content.includes(importPath),
       ),
     );
   }
 
-  const memo = new Map<string, Set<string>>();
-  const resolving = new Set<string>();
+  const memo = new Map();
+  const resolving = new Set();
 
-  const ownersOf = (folder: string): Set<string> => {
+  const ownersOf = (folder) => {
     const cached = memo.get(folder);
     if (cached) return cached;
     /* Ciclo de import: trata como genérico para não reprovar por engano. */
     if (resolving.has(folder)) return new Set(['*']);
     resolving.add(folder);
 
-    const owners = new Set<string>();
+    const owners = new Set();
+    const app = appOf(folder);
     for (const importer of importersOf.get(folder) ?? []) {
       if (isStoryOrTest(importer.path)) continue;
       const libOwner = libFolders.find((other) => importer.path.startsWith(`${other}/`));
@@ -150,12 +223,11 @@ export function featureOwners(files: ProjectFile[]): Map<string, Set<string>> {
         for (const owner of ownersOf(libOwner)) owners.add(owner);
         continue;
       }
-      if (!importer.path.startsWith(`${ROUTES}/`)) {
+      if (!importer.path.startsWith(`${routesDir(app)}/`)) {
         owners.add('*');
         continue;
       }
-      const feature = featureOf(importer.path);
-      owners.add(feature.startsWith('+') ? '*' : feature);
+      owners.add(featureOf(importer.path));
     }
 
     resolving.delete(folder);
@@ -172,18 +244,21 @@ export function featureOwners(files: ProjectFile[]): Map<string, Set<string>> {
   return memo;
 }
 
-function lineOf(content: string, index: number): number {
+/** @param {string} content @param {number} index */
+function lineOf(content, index) {
   return content.slice(0, index).split('\n').length;
 }
 
 /** Uma violação por classe distinta por arquivo — a baseline conta, não lista linhas. */
-function classViolations(
-  files: ProjectFile[],
-  rule: string,
-  pattern: RegExp,
-  allowed: (match: string, file: ProjectFile) => boolean = () => false,
-): Violation[] {
-  const out: Violation[] = [];
+/**
+ * @param {ProjectFile[]} files
+ * @param {string} rule
+ * @param {RegExp} pattern
+ * @param {(match: string, file: ProjectFile) => boolean} [allowed]
+ * @returns {Violation[]}
+ */
+function classViolations(files, rule, pattern, allowed = () => false) {
+  const out = [];
 
   for (const file of files) {
     if (!isStyledSource(file.path)) continue;
@@ -202,7 +277,8 @@ function classViolations(
   return out;
 }
 
-export const RULES: Rule[] = [
+/** @type {Rule[]} */
+export const RULES = [
   {
     id: 'component-prefix',
     description: 'Todo componente próprio mora em pasta `acerola-<nome>/`.',
@@ -220,7 +296,7 @@ export const RULES: Rule[] = [
     description: 'Todo componente próprio tem `.stories.svelte` e `.test.ts` ao lado.',
     check: (files) => {
       const paths = new Set(files.map((file) => file.path));
-      const out: Violation[] = [];
+      const out = [];
 
       for (const folder of componentFolders(files)) {
         const name = segments(folder).at(-1) ?? '';
@@ -250,50 +326,53 @@ export const RULES: Rule[] = [
   {
     id: 'hook-location',
     description: 'Hook próprio mora em `lib/hooks/use-<nome>/`; nada solto, nada sem `use-`.',
-    check: (files) => {
-      const entries = new Set<string>();
-      for (const { path } of files) {
-        const match = path.match(new RegExp(`^${LIB_HOOKS}/([^/]+)(/)?`));
-        if (match?.[1]) entries.add(match[2] ? `${match[1]}/` : match[1]);
-      }
+    check: (files) =>
+      APPS.flatMap((app) => {
+        const entries = new Set();
+        for (const { path } of files) {
+          const match = path.match(new RegExp(`^${libHooks(app)}/([^/]+)(/)?`));
+          if (match?.[1]) entries.add(match[2] ? `${match[1]}/` : match[1]);
+        }
 
-      return [...entries]
-        .filter((entry) => entry !== 'ui/' && !(entry.startsWith('use-') && entry.endsWith('/')))
-        .map((entry) => ({
-          rule: 'hook-location',
-          file: `${LIB_HOOKS}/${entry.replace(/\/$/, '')}`,
-          detail: entry.endsWith('/') ? 'pasta sem prefixo use-' : 'arquivo solto em lib/hooks',
-        }));
-    },
+        return [...entries]
+          .filter((entry) => entry !== 'ui/' && !(entry.startsWith('use-') && entry.endsWith('/')))
+          .map((entry) => ({
+            rule: 'hook-location',
+            file: `${libHooks(app)}/${entry.replace(/\/$/, '')}`,
+            detail: entry.endsWith('/') ? 'pasta sem prefixo use-' : 'arquivo solto em lib/hooks',
+          }));
+      }),
   },
   {
     id: 'lib-folder',
-    description: `Em \`client/src/lib\` só existem: ${LIB_FOLDERS.join(', ')}.`,
-    check: (files) => {
-      const folders = new Set<string>();
-      for (const { path } of files) {
-        const match = path.match(new RegExp(`^${CLIENT}/lib/([^/]+)/`));
-        if (match?.[1]) folders.add(match[1]);
-      }
+    description: `Em \`<app>/lib\` só existem: ${LIB_FOLDERS.join(', ')}.`,
+    check: (files) =>
+      APPS.flatMap((app) => {
+        const folders = new Set();
+        for (const { path } of files) {
+          const match = path.match(new RegExp(`^${app.src}/lib/([^/]+)/`));
+          if (match?.[1]) folders.add(match[1]);
+        }
 
-      return [...folders]
-        .filter((folder) => !LIB_FOLDERS.includes(folder))
-        .map((folder) => ({
-          rule: 'lib-folder',
-          file: `${CLIENT}/lib/${folder}`,
-          detail: 'pasta fora do mapa',
-        }));
-    },
+        return [...folders]
+          .filter((folder) => !LIB_FOLDERS.includes(folder))
+          .map((folder) => ({
+            rule: 'lib-folder',
+            file: `${app.src}/lib/${folder}`,
+            detail: 'pasta fora do mapa',
+          }));
+      }),
   },
   {
     id: 'ui-import-boundary',
     description: '`lib/components/ui` só é importado por componente genérico de `lib/components`.',
     check: (files) =>
       files
-        .filter(
-          (file) =>
-            !file.path.startsWith(`${LIB_COMPONENTS}/`) && file.path.startsWith(`${CLIENT}/`),
-        )
+        .filter((file) => {
+          const app = appOf(file.path);
+
+          return app && !file.path.startsWith(`${libComponents(app)}/`);
+        })
         .filter((file) => /lib\/components\/ui\//.test(file.content))
         .map((file) => ({
           rule: 'ui-import-boundary',
@@ -306,7 +385,11 @@ export const RULES: Rule[] = [
     description: 'Feature não importa componente de outra feature.',
     check: (files) =>
       files
-        .filter((file) => file.path.startsWith(`${ROUTES}/`))
+        .filter((file) => {
+          const app = appOf(file.path);
+
+          return app && file.path.startsWith(`${routesDir(app)}/`);
+        })
         .flatMap((file) =>
           [...file.content.matchAll(/from\s+['"](\.\.\/)+([a-z-]+)\/components\//g)].map(
             (match) => ({
@@ -323,8 +406,7 @@ export const RULES: Rule[] = [
       'Rota só compõe: nada de `<button>`, `<input>`, `<select>`, `<textarea>`, `<table>` cru.',
     check: (files) =>
       files
-        .filter((file) => file.path.startsWith(`${ROUTES}/`))
-        .filter((file) => /(\+page|\+layout|\+error|-slot)\.svelte$/.test(file.path))
+        .filter((file) => isRouteFile(file.path))
         .flatMap((file) =>
           [...file.content.matchAll(RAW_INTERACTIVE)].map((match) => ({
             rule: 'route-markup',
@@ -339,9 +421,7 @@ export const RULES: Rule[] = [
     description: 'A rota não define altura de controle; campo é `control-lg` no componente.',
     check: (files) =>
       classViolations(
-        files.filter(
-          (file) => file.path.startsWith(`${ROUTES}/`) && !/\/components\//.test(file.path),
-        ),
+        files.filter((file) => isRouteFile(file.path)),
         'route-height',
         OFF_SCALE_HEIGHT,
       ),
@@ -390,7 +470,7 @@ export const RULES: Rule[] = [
     description: 'Pasta de bucket e chave de storage em inglês.',
     check: (files) =>
       files
-        .filter((file) => file.path.startsWith('server/src/') && file.path.endsWith('.ts'))
+        .filter((file) => file.path.startsWith(`${SERVER_SRC}/`) && file.path.endsWith('.ts'))
         .filter((file) => !file.path.endsWith('.test.ts'))
         .flatMap((file) =>
           [...file.content.matchAll(/(?:FOLDER\s*=|\|\|)\s*'([a-z-]+)'/g)]
@@ -418,14 +498,14 @@ export const RULES: Rule[] = [
 ];
 
 /** A chave que a baseline conta: muda quando o problema muda, não quando a linha anda. */
-export function violationKey(violation: Violation): string {
+/** @param {Violation} violation */
+export function violationKey(violation) {
   return `${violation.rule}|${violation.file}|${violation.detail}`;
 }
 
-export type Baseline = Record<string, number>;
-
-export function countByKey(violations: Violation[]): Baseline {
-  const counts: Baseline = {};
+/** @param {Violation[]} violations @returns {Baseline} */
+export function countByKey(violations) {
+  const counts = {};
   for (const violation of violations) {
     const key = violationKey(violation);
     counts[key] = (counts[key] ?? 0) + 1;
@@ -434,16 +514,10 @@ export function countByKey(violations: Violation[]): Baseline {
   return counts;
 }
 
-export type Comparison = {
-  /** Violações a mais do que a baseline permite: é isso que reprova. */
-  added: Violation[];
-  /** Chaves que a baseline tinha e sumiram (ou diminuíram): dívida paga, falta atualizar. */
-  fixed: string[];
-};
-
-export function compareWithBaseline(violations: Violation[], baseline: Baseline): Comparison {
-  const seen: Baseline = {};
-  const added: Violation[] = [];
+/** @param {Violation[]} violations @param {Baseline} baseline @returns {Comparison} */
+export function compareWithBaseline(violations, baseline) {
+  const seen = {};
+  const added = [];
 
   for (const violation of violations) {
     const key = violationKey(violation);
@@ -456,4 +530,14 @@ export function compareWithBaseline(violations: Violation[], baseline: Baseline)
     .map(([key]) => key);
 
   return { added, fixed };
+}
+
+/**
+ * As violações que tocam um arquivo editado: as dele mesmo, e as da pasta de componente onde
+ * ele mora (a violação de `component-prefix`/`component-siblings` é registrada na PASTA, não no
+ * arquivo — editar `acerola-x.svelte` precisa acusar a violação de `acerola-x/`).
+ * @param {Violation[]} violations @param {string} path @returns {Violation[]}
+ */
+export function violationsTouching(violations, path) {
+  return violations.filter((violation) => path === violation.file || path.startsWith(`${violation.file}/`));
 }

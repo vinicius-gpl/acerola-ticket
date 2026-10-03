@@ -40,8 +40,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      # Regras das skills design-system e ui-standards. Só reprova violação NOVA (fora da
-      # baseline em scripts/design/design-baseline.json).
+      # Regras das skills design-system e ui-standards, para os dois apps Svelte. Só reprova
+      # violação NOVA (fora da baseline em .claude/hooks/design/design-baseline.json).
       - run: npm run check:design
       - run: npm test
       - run: npm run test:e2e -w server

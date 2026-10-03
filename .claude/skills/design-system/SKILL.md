@@ -308,10 +308,15 @@ import.
 | `ui/date-picker` (h-10, rounded-xl), `ui/table` (snippet `footer`, cores `neutral-*`) | `ui/` editado à mão; some no próximo `add` | mover a customização para `acerola-date-picker` / `acerola-table` |
 | 12 listas com par cartão/tabela à mão, raios diferentes | duplicação | `acerola-data-view` (skill `ui-standards` §6.4) |
 | button-group, breadcrumb, collapsible, input-group, navigation-menu | não instalados | `npx shadcn-svelte@latest add …` + `acerola-*` |
+| `agent/svelte` sem os tokens de raio por papel nem a régua `control-*` | tema do agent solto do `tokens.css` do dashboard | igualar o `theme` do agent ao do dashboard (raio por papel, régua de altura) |
 
 ---
 
 ## 11. Checagem automática
+
+As regras moram em `.claude/hooks/design/design-rules.mjs` (testadas em
+`design-rules.test.mjs`) — `.mjs` puro, sem `tsx` e sem dependência, porque o mesmo módulo roda
+em três lugares:
 
 ```bash
 cd acerola/dashboard
@@ -320,14 +325,24 @@ npm run check:design -- --all     # lista tudo, inclusive a dívida conhecida
 npm run check:design -- --update  # depois de corrigir dívida: regrava a baseline menor
 ```
 
-As regras moram em `scripts/design/design-rules.ts` (testadas em `design-rules.test.ts`) e cobrem
-este documento e a `ui-standards`: prefixo `acerola-*`, story e teste ao lado, componente de
-feature em `lib` (seguindo a cadeia de imports), hooks, pastas de `lib`, fronteira do `ui/`,
+- **CI** e **`pre-push`**: o projeto inteiro, como acima.
+- **Hook `PostToolUse` do Claude Code** (`.claude/settings.json`): depois de todo `Edit`/`Write`,
+  roda sozinho (`check-design.mjs --hook`) e, se a edição introduziu violação nova — mesmo que
+  fora da baseline de outro arquivo —, devolve a regra, a descrição e `arquivo:linha` para o
+  Claude corrigir **na mesma tarefa**, antes de seguir. Arquivo fora da varredura (outro app,
+  outra extensão) não paga custo nenhum: sai sem rodar as regras.
+
+Cobre os **dois apps Svelte** (`APPS` em `design-rules.mjs`: `acerola/dashboard/client/src` e
+`acerola/agent/svelte/src`) — mesmo prefixo `acerola-*`, mesmo `use-*`, mesmo mapa de `lib/`,
+mesma fronteira de `ui/`, cada um comparado só contra si mesmo (import de uma feature do
+dashboard não "é dono" de um componente do agent, e vice-versa). Cobre ainda: story e teste ao
+lado, componente de feature em `lib` (seguindo a cadeia de imports), hooks, pastas de `lib`,
 import entre features, markup e altura na rota, raio, paleta crua, fonte em px, sombra, par
-cartão/tabela, pasta de bucket e nome de doc.
+cartão/tabela, pasta de bucket (só `acerola/dashboard/server/src`) e nome de doc (qualquer
+`docs/*.md` dentro de `acerola/`).
 
-A dívida existente está congelada em `scripts/design/design-baseline.json`. **Nunca adicione
-linha nova à baseline para fazer o check passar** — corrija. A baseline só diminui. Roda no CI
-e no `pre-push`.
+A dívida existente está congelada em `.claude/hooks/design/design-baseline.json`. **Nunca
+adicione linha nova à baseline para fazer o check passar** — corrija. A baseline só diminui.
 
-Regra nova nas skills = regra nova em `design-rules.ts` no mesmo PR, com teste feliz e triste.
+Regra nova nas skills = regra nova em `design-rules.mjs` no mesmo PR, com teste feliz e triste
+(incluindo um caso do agent quando a regra tocar componente, hook ou rota).

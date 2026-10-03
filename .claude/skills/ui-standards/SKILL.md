@@ -352,5 +352,7 @@ lista vira cartão (§6).
 ## 14. Checagem
 
 `npm run check:design` (em `acerola/dashboard`) confere raio, paleta crua, fonte em px, sombra e o
-par cartão/tabela, junto com as regras de estrutura. Só reprova o que é novo; a dívida está na
-baseline e só diminui. Detalhes: skill `design-system` §11.
+par cartão/tabela, junto com as regras de estrutura — nos dois apps Svelte (dashboard e agent). Só
+reprova o que é novo; a dívida está na baseline e só diminui. O mesmo check também roda sozinho,
+como hook `PostToolUse`, a cada `Edit`/`Write` do Claude Code — ele avisa na hora se a edição
+introduziu uma violação nova. Detalhes: skill `design-system` §11.
