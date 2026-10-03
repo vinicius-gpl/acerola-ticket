@@ -4,8 +4,8 @@ import { loginRequestSchema, type LoginInput } from '@template/shared/schemas/au
 import { goto } from '$app/navigation';
 
 import { neonAuth } from '$lib/auth/neon-auth.client';
-import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
 
 export type LoginField = 'email' | 'password';

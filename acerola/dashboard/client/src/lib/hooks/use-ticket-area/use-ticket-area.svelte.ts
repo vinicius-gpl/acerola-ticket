@@ -7,7 +7,7 @@ import { isTicketArea, type TicketArea } from '@template/shared/domain/ticket-ca
  * inteiro, não de uma tela — por isso o `$state` vive no escopo do MÓDULO, compartilhado por
  * quem importar, e persistido para sobreviver ao fechar o navegador.
  *
- * Mora fora de `lib/hooks/` pelo mesmo motivo do tema: não é o estado de UMA tela. O
+ * Como o tema, não é o estado de UMA tela. O
  * seletor fica no app-shell (#13), mas quem lê o valor é a fila de chamados.
  */
 export type TicketAreaContext = TicketArea | 'all';

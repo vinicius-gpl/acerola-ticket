@@ -7,7 +7,7 @@ import { derived, writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 
 export type DisposalFilter = {

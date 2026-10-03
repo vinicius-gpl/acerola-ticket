@@ -6,7 +6,7 @@ const STORAGE_KEY = 'acerola-table-view';
 async function freshTableView() {
   vi.resetModules();
 
-  return import('./table-view.svelte');
+  return import('./use-table-view.svelte');
 }
 
 beforeEach(() => {

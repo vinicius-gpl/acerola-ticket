@@ -1,8 +1,8 @@
 /**
  * "Ver sempre em cards" — uma preferência do SISTEMA, não de uma tela: quem prefere cards liga
  * uma vez e toda tabela do painel (as que já tinham modo cards no celular) passa a abrir assim,
- * em qualquer largura. Mora fora de `lib/hooks/` pelo mesmo motivo do tema (`lib/theme`): o
- * `$state` vive no escopo do MÓDULO, compartilhado por quem importar, e não copiado por tela.
+ * em qualquer largura. Como o tema (`lib/theme`), o `$state` vive no escopo do MÓDULO:
+ * compartilhado por quem importar, e não copiado por tela.
  *
  * Sem preferência salva, a tela decide pela própria largura (como já era: cards no celular,
  * tabela no desktop) — "automático" continua sendo o padrão de quem nunca tocou no botão.

@@ -9,8 +9,8 @@ import {
 import { readError } from '$lib/api/http-client';
 import { partsApi } from '$lib/api/parts.api';
 import { type PartFormField } from '$lib/components/part-form-dialog/part-form-dialog.svelte';
-import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
 

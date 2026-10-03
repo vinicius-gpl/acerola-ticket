@@ -68,14 +68,14 @@
 
   import ChartFrame from '$lib/components/chart-frame/chart-frame.svelte';
   import ChartTooltip from '$lib/components/chart-tooltip/chart-tooltip.svelte';
-  import { useIsMobile } from '$lib/hooks/use-mobile.svelte';
+  import { useMediaQuery, XL_BREAKPOINT } from '$lib/hooks/use-media-query/use-media-query.svelte';
   import { cn } from '$lib/utils/cn';
 
   /* O prop precisa de outro nome aqui dentro: um binding local chamado `state` faz o
      compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune. */
   let { data, state: chartState, ui, actions }: RadarChartProps = $props();
 
-  const isMobile = useIsMobile();
+  const isMobile = useMediaQuery(XL_BREAKPOINT);
   const color = $derived(ui?.color ?? 'var(--chart-1)');
   const chartConfig = $derived(configOf(data.seriesLabel, color));
 

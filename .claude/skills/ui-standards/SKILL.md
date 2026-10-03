@@ -181,7 +181,7 @@ colunas, cartão para ler um item por vez. Os dois mostram **os mesmos dados e a
   `< xl` tabela nunca aparece.
 - No computador, o `TableViewToggle` (ícone na barra de filtros) liga "ver sempre em cards".
   É **preferência do sistema, não da tela**: vale para todas as listas e fica guardada no
-  navegador (`acerola-table-view`). Hook: `use-table-view` (hoje em `lib/table-view/`, a mover).
+  navegador (`acerola-table-view`). Hook: `use-table-view`.
 - A troca é **por CSS**, não por JS: os dois blocos são renderizados e um deles fica `hidden`.
   Assim não há pulo de layout na primeira pintura nem diferença entre servidor e navegador.
 

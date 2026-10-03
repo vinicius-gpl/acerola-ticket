@@ -87,7 +87,7 @@
     TableRow,
   } from '$lib/components/ui/table';
   import TextField from '$lib/components/text-field/text-field.svelte';
-  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDate } from '$lib/utils/format-date';
 

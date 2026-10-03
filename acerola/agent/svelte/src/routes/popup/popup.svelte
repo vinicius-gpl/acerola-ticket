@@ -13,7 +13,7 @@
 	import MonitorIcon from '@lucide/svelte/icons/monitor';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import XIcon from '@lucide/svelte/icons/x';
-	import { useMetrics } from '$lib/metrics/store.svelte';
+	import { useMetrics } from '$lib/hooks/use-metrics/use-metrics.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
 	import { HideWindow, ShowSettings } from '../../../wailsjs/go/main/App';

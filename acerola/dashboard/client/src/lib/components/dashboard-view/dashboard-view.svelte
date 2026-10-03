@@ -174,7 +174,7 @@
     TableHeader,
     TableRow,
   } from '$lib/components/ui/table';
-  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: viewState, actions }: DashboardViewProps = $props();

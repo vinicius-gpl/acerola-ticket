@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { ProcessStats } from '$lib/metrics/types';
+	import type { ProcessStats } from '$lib/types/metrics.type';
 
 	export type FilterTab = 'all' | 'high' | 'apps' | 'system';
 
@@ -181,16 +181,16 @@
 
 <div
 	class={cn(
-		'grid gap-4 lg:grid-cols-[360px_1fr] h-full min-h-[580px] lg:h-[calc(100vh-140px)] lg:max-h-[760px]',
+		'grid h-full min-h-[580px] gap-4 lg:h-[calc(100vh-140px)] lg:max-h-[760px] lg:grid-cols-[360px_1fr]',
 		ui?.class
 	)}
 >
 	<!-- Coluna Esquerda: Fila de Processos -->
 	<div
-		class="border-border/80 bg-card flex flex-col h-full overflow-hidden rounded-2xl border shadow-xs"
+		class="border-border/80 bg-card flex h-full flex-col overflow-hidden rounded-2xl border shadow-xs"
 	>
 		<!-- Cabeçalho da Fila -->
-		<div class="border-border/70 shrink-0 border-b p-4 bg-card">
+		<div class="border-border/70 bg-card shrink-0 border-b p-4">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<LayersIcon size={16} class="text-primary" />
@@ -210,7 +210,7 @@
 					class={cn(
 						'cursor-pointer rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
 						activeFilter === 'all'
-							? 'bg-foreground text-background shadow-xs font-semibold'
+							? 'bg-foreground text-background font-semibold shadow-xs'
 							: 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground border'
 					)}
 					onclick={() => (activeFilter = 'all')}
@@ -222,7 +222,7 @@
 					class={cn(
 						'cursor-pointer rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
 						activeFilter === 'high'
-							? 'bg-foreground text-background shadow-xs font-semibold'
+							? 'bg-foreground text-background font-semibold shadow-xs'
 							: 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground border'
 					)}
 					onclick={() => (activeFilter = 'high')}
@@ -234,7 +234,7 @@
 					class={cn(
 						'cursor-pointer rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
 						activeFilter === 'apps'
-							? 'bg-foreground text-background shadow-xs font-semibold'
+							? 'bg-foreground text-background font-semibold shadow-xs'
 							: 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground border'
 					)}
 					onclick={() => (activeFilter = 'apps')}
@@ -246,7 +246,7 @@
 					class={cn(
 						'cursor-pointer rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
 						activeFilter === 'system'
-							? 'bg-foreground text-background shadow-xs font-semibold'
+							? 'bg-foreground text-background font-semibold shadow-xs'
 							: 'border-border/70 bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground border'
 					)}
 					onclick={() => (activeFilter = 'system')}
@@ -271,7 +271,7 @@
 		</div>
 
 		<!-- Lista de Processos em Cards Independentes -->
-		<div class="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-1.5">
+		<div class="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2.5">
 			{#each filteredProcesses as proc (proc.name)}
 				{@const isSelected = selectedProcess?.name === proc.name}
 				{@const category = getCategory(proc.name)}
@@ -283,8 +283,8 @@
 					class={cn(
 						'group relative flex w-full cursor-pointer items-center gap-3 rounded-xl p-2.5 text-left transition-all',
 						isSelected
-							? 'bg-muted/80 text-foreground border-border/80 shadow-xs ring-1 ring-border/50 border'
-							: 'border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:border-border/40 border'
+							? 'bg-muted/80 text-foreground border-border/80 ring-border/50 border shadow-xs ring-1'
+							: 'text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:border-border/40 border border-transparent'
 					)}
 				>
 					<span
@@ -314,7 +314,7 @@
 
 					<span
 						class={cn(
-							'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium border',
+							'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium',
 							category === 'Sistema'
 								? 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400'
 								: 'border-border/50 bg-muted/60 text-muted-foreground'
@@ -335,18 +335,18 @@
 
 	<!-- Coluna Direita: Detail Drawer -->
 	<div
-		class="relative border-border/80 bg-card flex flex-col h-full overflow-hidden rounded-2xl border shadow-xs"
+		class="border-border/80 bg-card relative flex h-full flex-col overflow-hidden rounded-2xl border shadow-xs"
 	>
 		{#if selectedProcess}
 			{@const category = getCategory(selectedProcess.name)}
 
 			<!-- Decorator Fixo do Processo (Sem backdrop-blur para evitar artefato nos cantos) -->
 			<div
-				class="border-border/70 bg-card shrink-0 border-b p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3"
+				class="border-border/70 bg-card flex shrink-0 flex-wrap items-center justify-between gap-3 border-b p-4 sm:p-5"
 			>
 				<div>
 					<div class="flex items-center gap-2">
-						<h2 class="text-foreground text-lg sm:text-xl font-semibold tracking-tight">
+						<h2 class="text-foreground text-lg font-semibold tracking-tight sm:text-xl">
 							{selectedProcess.name}
 						</h2>
 						<span
@@ -372,7 +372,7 @@
 						type="button"
 						onclick={() => (isPidDrawerOpen = !isPidDrawerOpen)}
 						class={cn(
-							'inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all shadow-xs',
+							'inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium shadow-xs transition-all',
 							isPidDrawerOpen
 								? 'bg-foreground text-background border-foreground shadow-xs'
 								: 'border-border/70 bg-muted/40 text-foreground hover:bg-muted'
@@ -393,7 +393,7 @@
 			</div>
 
 			<!-- Conteúdo Principal com Rolagem Interna -->
-			<div class="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6">
+			<div class="min-h-0 flex-1 space-y-6 overflow-y-auto p-5 sm:p-6">
 				<!-- Grid de Definição (<dl>) com 6 Campos Técnicos -->
 				<dl class="grid gap-4 sm:grid-cols-2">
 					<div class="border-border/60 bg-muted/20 rounded-xl border p-3">
@@ -499,7 +499,7 @@
 						<button
 							type="button"
 							onclick={() => (isPidDrawerOpen = true)}
-							class="text-primary hover:text-primary/90 bg-primary/10 hover:bg-primary/20 border-primary/20 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all shadow-xs"
+							class="text-primary hover:text-primary/90 bg-primary/10 hover:bg-primary/20 border-primary/20 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium shadow-xs transition-all"
 						>
 							<Maximize2Icon size={12} />
 							<span>Expandir Gaveta ({selectedProcess.instances.length})</span>
@@ -509,7 +509,7 @@
 					<div class="border-border/60 overflow-hidden rounded-xl border">
 						<!-- Header fixo fora do scroll -->
 						<div class="border-border/60 bg-muted/40 text-muted-foreground shrink-0 border-b">
-							<table class="w-full text-xs tabular-nums table-fixed">
+							<table class="w-full table-fixed text-xs tabular-nums">
 								<colgroup>
 									<col class="w-auto" />
 									<col class="w-20" />
@@ -529,7 +529,7 @@
 
 						<!-- Corpo com scroll dedicado (scrollbar não sobe no header) -->
 						<div class="max-h-48 overflow-y-auto">
-							<table class="w-full text-xs tabular-nums table-fixed">
+							<table class="w-full table-fixed text-xs tabular-nums">
 								<colgroup>
 									<col class="w-auto" />
 									<col class="w-20" />
@@ -564,7 +564,8 @@
 								class="border-border/40 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground flex w-full cursor-pointer items-center justify-center gap-1.5 border-t py-2 text-center text-xs font-medium transition-colors"
 							>
 								<Maximize2Icon size={12} />
-								<span>Ver todas as {selectedProcess.instances.length} instâncias em tela cheia</span>
+								<span>Ver todas as {selectedProcess.instances.length} instâncias em tela cheia</span
+								>
 							</button>
 						{/if}
 					</div>
@@ -573,7 +574,7 @@
 
 			<!-- Rodapé Fixo de Ações do Drawer -->
 			<div
-				class="border-border/70 bg-muted/20 shrink-0 flex flex-wrap items-center justify-between gap-2 border-t px-6 py-3.5"
+				class="border-border/70 bg-muted/20 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-6 py-3.5"
 			>
 				<span class="text-muted-foreground text-xs">Última amostragem: Agora</span>
 
@@ -606,11 +607,11 @@
 			<!-- Desliza de baixo para cima cobrindo o conteúdo de métricas e mantendo o decorator no topo -->
 			{#if isPidDrawerOpen}
 				<div
-					class="drawer-slide-up absolute inset-x-0 bottom-0 top-[73px] z-20 flex flex-col bg-card border-t border-border shadow-2xl"
+					class="drawer-slide-up bg-card border-border absolute inset-x-0 top-[73px] bottom-0 z-20 flex flex-col border-t shadow-2xl"
 				>
 					<!-- Puxador Superior & Cabeçalho da Gaveta -->
-					<div class="border-border/60 shrink-0 border-b px-5 pt-3 pb-3 bg-card">
-						<div class="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30"></div>
+					<div class="border-border/60 bg-card shrink-0 border-b px-5 pt-3 pb-3">
+						<div class="bg-muted-foreground/30 mx-auto mb-3 h-1 w-10 rounded-full"></div>
 
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="flex items-center gap-2.5">
@@ -639,7 +640,7 @@
 										type="text"
 										bind:value={pidSearchQuery}
 										placeholder="Filtrar PID..."
-										class="border-border/70 bg-muted/30 focus:border-primary text-foreground placeholder:text-muted-foreground/60 w-36 sm:w-44 rounded-lg border py-1 pr-2.5 pl-7 text-xs transition-colors outline-none"
+										class="border-border/70 bg-muted/30 focus:border-primary text-foreground placeholder:text-muted-foreground/60 w-36 rounded-lg border py-1 pr-2.5 pl-7 text-xs transition-colors outline-none sm:w-44"
 									/>
 								</div>
 
@@ -672,10 +673,12 @@
 					</div>
 
 					<!-- Tabela Completa com Scroll Interno -->
-					<div class="flex-1 min-h-0 p-4 sm:p-5 flex flex-col">
-						<div class="border-border/70 overflow-hidden rounded-xl border bg-card flex flex-col flex-1 min-h-0">
+					<div class="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+						<div
+							class="border-border/70 bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border"
+						>
 							<div class="border-border/70 bg-muted/40 text-muted-foreground shrink-0 border-b">
-								<table class="w-full text-xs tabular-nums table-fixed">
+								<table class="w-full table-fixed text-xs tabular-nums">
 									<colgroup>
 										<col class="w-auto" />
 										<col class="w-32" />
@@ -695,8 +698,8 @@
 								</table>
 							</div>
 
-							<div class="flex-1 min-h-0 overflow-y-auto">
-								<table class="w-full text-xs tabular-nums table-fixed">
+							<div class="min-h-0 flex-1 overflow-y-auto">
+								<table class="w-full table-fixed text-xs tabular-nums">
 									<colgroup>
 										<col class="w-auto" />
 										<col class="w-32" />
@@ -709,12 +712,14 @@
 											<tr class="hover:bg-muted/30 transition-colors">
 												<td class="text-foreground px-4 py-2.5 font-mono font-semibold">
 													<span
-														class="bg-muted/80 text-foreground rounded px-1.5 py-0.5 text-[11px] font-mono border border-border/50"
+														class="bg-muted/80 text-foreground border-border/50 rounded border px-1.5 py-0.5 font-mono text-[11px]"
 													>
 														PID {instance.pid}
 													</span>
 												</td>
-												<td class="text-muted-foreground px-4 py-2.5 text-right font-mono font-medium">
+												<td
+													class="text-muted-foreground px-4 py-2.5 text-right font-mono font-medium"
+												>
 													<div class="flex items-center justify-end gap-2">
 														<span>{instance.cpuPercent.toFixed(1)}%</span>
 														<div class="bg-muted h-1.5 w-12 overflow-hidden rounded-full">
@@ -725,7 +730,9 @@
 														</div>
 													</div>
 												</td>
-												<td class="text-muted-foreground px-4 py-2.5 text-right font-mono font-medium">
+												<td
+													class="text-muted-foreground px-4 py-2.5 text-right font-mono font-medium"
+												>
 													{instance.memPercent.toFixed(1)}%
 												</td>
 												<td class="text-foreground px-4 py-2.5 text-right font-mono font-semibold">
@@ -740,7 +747,7 @@
 													>
 														{#if pidCopied === instance.pid}
 															<CheckIcon size={12} class="text-emerald-500" />
-															<span class="text-emerald-500 text-[10px]">Copiado</span>
+															<span class="text-[10px] text-emerald-500">Copiado</span>
 														{:else}
 															<CopyIcon size={12} />
 															<span class="text-[10px]">Copiar</span>
@@ -763,9 +770,9 @@
 
 					<!-- Rodapé da Gaveta Expandida -->
 					<div
-						class="border-border/70 bg-muted/30 shrink-0 flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-xs"
+						class="border-border/70 bg-muted/30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-xs"
 					>
-						<div class="flex items-center gap-3 text-muted-foreground font-mono text-[11px]">
+						<div class="text-muted-foreground flex items-center gap-3 font-mono text-[11px]">
 							<span>
 								Total: <strong class="text-foreground">{selectedProcess.instances.length}</strong>
 								PIDs
@@ -778,7 +785,8 @@
 							</span>
 							<span>·</span>
 							<span>
-								Agregado RAM: <strong class="text-foreground">{bytes(selectedProcess.memBytes)}</strong
+								Agregado RAM: <strong class="text-foreground"
+									>{bytes(selectedProcess.memBytes)}</strong
 								>
 							</span>
 						</div>
@@ -786,7 +794,7 @@
 						<button
 							type="button"
 							onclick={() => (isPidDrawerOpen = false)}
-							class="bg-foreground text-background hover:opacity-90 inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-semibold shadow-xs transition-all"
+							class="bg-foreground text-background inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-semibold shadow-xs transition-all hover:opacity-90"
 						>
 							<span>Fechar Gaveta</span>
 						</button>

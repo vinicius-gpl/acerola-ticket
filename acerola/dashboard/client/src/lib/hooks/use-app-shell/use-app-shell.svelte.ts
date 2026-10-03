@@ -14,8 +14,8 @@ import { neonAuth } from '$lib/auth/neon-auth.client';
 import {
   type TicketAreaContext,
   useTicketAreaContextModel,
-} from '$lib/context/ticket-area-context.svelte';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+} from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { activeNavKeyOf } from '$lib/navigation/navigation';
 
 export type AppShellModel = {

@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { ProcessStats } from '$lib/metrics/types';
+	import type { ProcessStats } from '$lib/types/metrics.type';
 
 	// Colunas por onde dá pra ordenar. "name" ordena alfabeticamente; as
 	// outras, do maior consumo pro menor.
@@ -109,7 +109,7 @@
 >
 	<!-- Cabeçalho Fixo (Fora do container de rolagem, sem bordas vazando e sem scrollbar) -->
 	<div class="border-border/70 bg-muted/40 text-muted-foreground shrink-0 border-b">
-		<table class="w-full text-xs tabular-nums table-fixed">
+		<table class="w-full table-fixed text-xs tabular-nums">
 			<colgroup>
 				<col class="w-auto" />
 				<col class="w-20" />
@@ -148,7 +148,7 @@
 
 	<!-- Corpo da Tabela com Rolagem Dedicada (Scrollbar fica restrita apenas aos dados roláveis) -->
 	<div class="max-h-72 flex-1 overflow-y-auto">
-		<table class="w-full text-xs tabular-nums table-fixed">
+		<table class="w-full table-fixed text-xs tabular-nums">
 			<colgroup>
 				<col class="w-auto" />
 				<col class="w-20" />
@@ -244,7 +244,7 @@
 
 	<!-- Cost Explorer Footnote & Summary Bar -->
 	<div
-		class="border-border/70 bg-muted/20 text-muted-foreground shrink-0 flex flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5 text-[11px]"
+		class="border-border/70 bg-muted/20 text-muted-foreground flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5 text-[11px]"
 	>
 		<span>Agrupamento por executável · Amostragem a cada 1s</span>
 		<span class="text-foreground font-medium">{sortedProcesses.length} aplicativos ativos</span>

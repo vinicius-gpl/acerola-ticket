@@ -11,7 +11,7 @@
     "components": "$lib/components",
     "utils": "$lib/utils/cn",
     "ui": "$lib/components/ui",
-    "hooks": "$lib/hooks"
+    "hooks": "$lib/hooks/ui"
   },
   "typescript": true
 }

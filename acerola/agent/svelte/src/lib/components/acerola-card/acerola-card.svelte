@@ -29,12 +29,12 @@
 <Card.Root
 	size={ui?.size ?? 'default'}
 	class={cn(
-		'border-border/80 bg-card text-card-foreground hover:border-border rounded-2xl border shadow-xs transition-all flex flex-col',
+		'border-border/80 bg-card text-card-foreground hover:border-border flex flex-col rounded-2xl border shadow-xs transition-all',
 		ui?.class
 	)}
 >
 	{#if data?.title}
-		<Card.Header class="flex flex-row items-center justify-between pb-1 shrink-0">
+		<Card.Header class="flex shrink-0 flex-row items-center justify-between pb-1">
 			<div>
 				<Card.Title
 					class="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase"
@@ -54,7 +54,7 @@
 	{/if}
 
 	{#if children}
-		<Card.Content class="flex-1 flex flex-col min-h-0">
+		<Card.Content class="flex min-h-0 flex-1 flex-col">
 			{@render children()}
 		</Card.Content>
 	{/if}

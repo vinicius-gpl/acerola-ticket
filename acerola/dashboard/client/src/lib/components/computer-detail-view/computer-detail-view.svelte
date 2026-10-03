@@ -278,7 +278,7 @@
   import UsageChart from '$lib/components/usage-chart/usage-chart.svelte';
   import ComputerBlockDialog from '$lib/components/computer-block-dialog/computer-block-dialog.svelte';
   import ComputerDisposalDialog from '$lib/components/computer-disposal-dialog/computer-disposal-dialog.svelte';
-  import { useTableViewModel } from '$lib/table-view/table-view.svelte';
+  import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
   import { formatPercent, formatTimeAgo } from '$lib/utils/format-machine';

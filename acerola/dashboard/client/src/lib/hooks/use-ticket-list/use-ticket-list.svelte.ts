@@ -16,8 +16,8 @@ import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
 import {
   type TicketAreaContext,
   useTicketAreaContextModel,
-} from '$lib/context/ticket-area-context.svelte';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+} from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
 export const TICKETS_PAGE_SIZE = 15;

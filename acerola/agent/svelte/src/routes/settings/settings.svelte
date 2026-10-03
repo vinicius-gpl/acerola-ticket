@@ -5,7 +5,7 @@
 
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaReportingCard from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
-	import { useReporting } from '$lib/reporting/store.svelte';
+	import { useReporting } from '$lib/hooks/use-reporting/use-reporting.svelte';
 	import { HideWindow, ShowDashboard } from '../../../wailsjs/go/main/App';
 
 	/**

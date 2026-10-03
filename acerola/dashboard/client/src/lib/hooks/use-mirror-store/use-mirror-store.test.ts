@@ -2,7 +2,7 @@ import { render } from '@testing-library/svelte';
 import { readable, writable, type Readable } from 'svelte/store';
 import { describe, expect, it, vi } from 'vitest';
 
-import Harness from './mirror-store-harness.test.svelte';
+import Harness from './use-mirror-store-harness.test.svelte';
 
 function mount(store: Readable<unknown>) {
   let mirror!: { readonly current: unknown };

@@ -5,7 +5,7 @@
    */
   import { type Readable } from 'svelte/store';
 
-  import { mirrorStore } from './mirror-store.svelte';
+  import { mirrorStore } from './use-mirror-store.svelte';
 
   let {
     store,

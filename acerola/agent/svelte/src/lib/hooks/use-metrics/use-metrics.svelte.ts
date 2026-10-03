@@ -1,5 +1,5 @@
-import { EventsOn } from '../../../wailsjs/runtime/runtime';
-import type { Snapshot } from './types';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime';
+import type { Snapshot } from '$lib/types/metrics.type';
 
 const MAX_HISTORY = 120; // ~2 minutos de histórico a 1 amostra/segundo
 
