@@ -26,7 +26,7 @@ A régua é uma só: **o usuário vê, é português. O usuário não vê, é in
 | Pasta/prefixo de bucket (R2/S3), chave de storage, nome de fila, variável de ambiente  | **Inglês**                                                    |
 | Nome de arquivo de documentação (`docs/architecture.md`)                               | **Inglês** (conteúdo em pt-BR)                                |
 | Nome de arquivo baixado pelo usuário (`chamados.csv`)                                  | **Português (pt-BR)**                                         |
-| Nome de pasta de skill em `.claude/skills/`                                            | **Português (pt-BR)** — exceção: a pessoa invoca pelo nome    |
+| Nome de skill (`.claude/skills/<name>/`); atalho pt-BR em `.claude/commands/`          | **Inglês** (atalho em pt-BR: `/socorro` → `troubleshoot`)     |
 | `console.log`, `Logger`, mensagem de log, nome de métrica                              | **Inglês**                                                    |
 | `throw new Error(...)` interno, mensagem de exceção, texto de `assert`                 | **Inglês**                                                    |
 | `describe` / `it` de teste, nome de story do Storybook                                 | **Inglês**                                                    |
@@ -123,7 +123,7 @@ Regras:
 
 **Lint:** `no-restricted-imports` bloqueia `lib/components/ui/**` fora de `lib/components/**`.
 
-Regra completa, árvore de decisão e checagens: skill `sistema-de-design`.
+Regra completa, árvore de decisão e checagens: skill `design-system`.
 
 ---
 
