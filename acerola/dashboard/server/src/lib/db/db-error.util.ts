@@ -94,6 +94,8 @@ const CHECK_MESSAGES: Record<string, string> = {
   tickets_priority_valid: 'A urgência do chamado precisa ser Baixa, Média ou Alta.',
   tickets_department_valid: 'O departamento precisa ser um dos da lista.',
   tickets_problem_type_valid: 'O tipo de problema precisa ser um dos da lista.',
+  tickets_area_valid: 'A área do chamado precisa ser Infra, Sistema ou Manutenção.',
+  ticket_areas_area_valid: 'A área precisa ser Infra, Sistema ou Manutenção.',
   computers_health_status_valid: 'A situação de saúde precisa ser uma das opções da lista.',
   computers_department_valid: 'O departamento precisa ser um dos da lista.',
   computers_health_score_range: 'A nota de saúde precisa ficar entre 0 e 100.',
