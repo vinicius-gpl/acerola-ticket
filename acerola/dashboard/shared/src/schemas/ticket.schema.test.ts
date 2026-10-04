@@ -217,6 +217,7 @@ describe('publicTicketSchema', () => {
     updatedAt: null,
     updatedBy: null,
     attachments: [],
+    histories: [],
   };
 
   // feliz
@@ -247,6 +248,7 @@ describe('publicTicketSchema', () => {
     const file = (over: Record<string, unknown>) => ({
       id: 1,
       ticketId: 7,
+      historyId: null,
       kind: 'pdf' as const,
       origin: 'requester' as const,
       fileName: 'nota.pdf',
@@ -276,12 +278,12 @@ describe('publicTicketSchema', () => {
 
 describe('updateTicketSchema', () => {
   // feliz
-  it('accepts changing only the status', () => {
-    expect(updateTicketSchema.parse({ status: 'resolved' })).toEqual({ status: 'resolved' });
+  it('accepts changing only the urgency', () => {
+    expect(updateTicketSchema.parse({ priority: 'high' })).toEqual({ priority: 'high' });
   });
 
-  it('turns an emptied solution into null, so the field is actually cleared', () => {
-    expect(updateTicketSchema.parse({ solution: '   ' }).solution).toBeNull();
+  it('turns an emptied assignee into null, so the field is actually cleared', () => {
+    expect(updateTicketSchema.parse({ assignee: '   ' }).assignee).toBeNull();
   });
 
   it('accepts an empty change without touching anything', () => {
@@ -289,11 +291,20 @@ describe('updateTicketSchema', () => {
   });
 
   // triste
-  it('refuses an unknown status, in Portuguese', () => {
-    const result = updateTicketSchema.safeParse({ status: 'arquivado' });
+  /* O estágio e a solução só mudam por um histórico lançado: aceitá-los aqui seria uma porta
+     lateral para encerrar um chamado sem deixar rastro na linha do tempo. */
+  it('ignores the stage and the solution, which only change through a history', () => {
+    const parsed = updateTicketSchema.parse({ status: 'resolved', solution: 'Pronto.' });
+
+    expect(parsed).not.toHaveProperty('status');
+    expect(parsed).not.toHaveProperty('solution');
+  });
+
+  it('refuses an unknown urgency, in Portuguese', () => {
+    const result = updateTicketSchema.safeParse({ priority: 'urgentíssima' });
 
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe('Escolha uma situação da lista');
+    expect(result.error?.issues[0]?.message).toBe('Escolha a urgência');
   });
 
   it('refuses changing who opened the ticket', () => {

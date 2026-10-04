@@ -1,4 +1,10 @@
-import { isClosedTicketStatus, type TicketStatus } from './ticket-status.util';
+import {
+  isClosedTicketStatus,
+  isSolvedTicketStatus,
+  ticketStatusPhase,
+  type TicketPhase,
+  type TicketStatus,
+} from './ticket-status.util';
 
 /**
  * Os indicadores do painel, calculados a partir da lista de chamados.
@@ -22,6 +28,9 @@ export type TicketSummary = {
   total: number;
   open: number;
   inProgress: number;
+  /** Parados, esperando alguém de fora do TI (quem abriu, um fornecedor, uma peça). */
+  waiting: number;
+  /** Encerrados com o problema tratado — com ou sem ressalva. */
   resolved: number;
   cancelled: number;
   averageResolutionHours: number | null;
@@ -61,15 +70,23 @@ export function averageResolutionHours(tickets: readonly TicketMetricsInput[]): 
   return total / durations.length;
 }
 
+/**
+ * As contagens perguntam pelo MOMENTO do chamado (`phase`) e por `isSolved`, nunca pelo nome do
+ * estágio: um estágio novo no catálogo já cai na conta certa, sem ninguém lembrar de vir aqui.
+ */
 export function summarizeTickets(tickets: readonly TicketMetricsInput[]): TicketSummary {
-  const countOf = (status: TicketStatus) => tickets.filter((t) => t.status === status).length;
+  const inPhase = (phase: TicketPhase) =>
+    tickets.filter((ticket) => ticketStatusPhase(ticket.status) === phase).length;
+  const solved = tickets.filter((ticket) => isSolvedTicketStatus(ticket.status)).length;
 
   return {
     total: tickets.length,
-    open: countOf('open'),
-    inProgress: countOf('in_progress'),
-    resolved: countOf('resolved'),
-    cancelled: countOf('cancelled'),
+    open: inPhase('queue'),
+    inProgress: inPhase('working'),
+    waiting: inPhase('waiting'),
+    resolved: solved,
+    /* Encerrado sem resolver: hoje, só o cancelado. */
+    cancelled: inPhase('closed') - solved,
     averageResolutionHours: averageResolutionHours(tickets),
   };
 }

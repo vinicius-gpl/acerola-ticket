@@ -40,6 +40,11 @@ export type AttachmentOrigin = z.infer<typeof attachmentOriginSchema>;
 export const ticketAttachmentSchema = z.object({
   id: z.number().int(),
   ticketId: z.number().int(),
+  /**
+   * O histórico com o qual o arquivo foi anexado. Nulo é o arquivo do próprio chamado: o que
+   * veio com a abertura, ou o que o TI juntou solto.
+   */
+  historyId: z.number().int().nullable(),
   kind: attachmentKindSchema,
   /** De quem é o arquivo — ver `attachmentOriginSchema`. É o que decide quem pode apagá-lo. */
   origin: attachmentOriginSchema,
