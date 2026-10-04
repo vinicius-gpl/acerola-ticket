@@ -7,7 +7,7 @@ marcado como **feito**, com o link para a documentação de verdade.
 ## Envio remoto de dados — **feito**
 
 O agente reporta ao painel central por WebSocket, com token por máquina. Como configurar, o que
-cada código de recusa significa e como conferir estão em [ENVIO-REMOTO.md](ENVIO-REMOTO.md).
+cada código de recusa significa e como conferir estão em [remote-reporting.md](remote-reporting.md).
 
 O que continua valendo do plano original: o envio é só mais um assinante do `metrics.Broadcaster`
 (nada mudou no `Collector`), e a cadência é bem mais espaçada que o 1s do dashboard local —

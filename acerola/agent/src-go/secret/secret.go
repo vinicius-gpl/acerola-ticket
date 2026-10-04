@@ -10,7 +10,7 @@
 // O cofre é por USUÁRIO do sistema operacional, não por instalação: um
 // agente rodando como serviço, sob outra conta, não enxerga o que foi salvo
 // pela pessoa logada. Antes de transformar o agente num serviço (ver
-// agent/docs/ROADMAP.md), este desenho precisa ser revisitado junto.
+// agent/docs/roadmap.md), este desenho precisa ser revisitado junto.
 package secret
 
 import (

@@ -52,7 +52,7 @@ complexidade de build) sem benefício real aqui:
 - **Stryker (mutação), Playwright e2e, WebdriverIO** — infraestrutura de teste pra um app com
   várias telas, vários contribuidores e fluxos de usuário completos pra testar de ponta a ponta.
   O Storybook, ao contrário, **foi trazido** (ver "Storybook + testes de componente" em
-  `ARQUITETURA.md`) — decisão revista depois da primeira versão deste documento: virou exigência
+  `architecture.md`) — decisão revista depois da primeira versão deste documento: virou exigência
   do projeto ter revisão visual de componente e teste de componente (feliz/triste) igual ao
   projeto de referência, então cada `acerola-*` tem `.stories.svelte` (mesmo addon,
   `@storybook/addon-svelte-csf`) e `.test.ts`.

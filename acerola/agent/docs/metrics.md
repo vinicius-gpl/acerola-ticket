@@ -89,4 +89,4 @@ Duas consequências que valem saber:
 para "que máquina é essa e como está equipada" — ela responde "o que está rodando agora", uma
 pergunta de diagnóstico, não de inventário. Por isso o `Broadcaster` sempre coleta os processos
 (quem decide não mostrá-los é a tela: a popup simplesmente não lê `snap.processes`, só o
-dashboard usa) — ver `ARQUITETURA.md` para como o Go entrega esse snapshot ao Svelte.
+dashboard usa) — ver `architecture.md` para como o Go entrega esse snapshot ao Svelte.

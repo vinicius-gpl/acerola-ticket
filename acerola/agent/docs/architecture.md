@@ -4,7 +4,7 @@ Agente de monitoramento de sistema para Windows: um ícone na bandeja (visão r�
 uma janela com painel completo (visão densa, tipo btop, o "dashboard"). Os dois são views da
 **mesma janela nativa** de um único app Wails — não duas janelas separadas, não um navegador
 externo. Esta é a fase de prova de conceito: tudo roda localmente, nada sai desta máquina. Veja
-`ROADMAP.md` para o que vem depois.
+`roadmap.md` para o que vem depois.
 
 > Esta é a segunda versão da arquitetura. A primeira usava `net/http` + uma página servida no
 > navegador; foi abandonada porque o pedido passou a ser uma experiência de app nativo (janela
@@ -41,7 +41,7 @@ nativos.
 framework de UI completo), independente do resto.
 
 **Frontend — Svelte 5 + Vite + Tailwind v4 + shadcn-svelte**, portado do projeto de referência
-`acerola-reader/acerola/desktop` (ver `REAPROVEITAMENTO.md` para o que foi copiado, adaptado ou
+`acerola-reader/acerola/desktop` (ver `reuse.md` para o que foi copiado, adaptado ou
 deixado de fora). Sem SvelteKit — o app tem só duas telas, então o roteamento de arquivos e o
 adapter da SvelteKit resolveriam um problema que não existe aqui; um Svelte+Vite comum com
 `svelte-spa-router` (2 rotas: `/popup`, `/dashboard`) já basta.
@@ -75,7 +75,7 @@ monta, não o desenho em si).
 
 **Rasterização de ícone — `github.com/srwiley/oksvg` + `github.com/srwiley/rasterx`.** Sem
 mudança — só usada pela ferramenta `src-go/cmd/icongen`, não pelo agente em produção (ver
-`ICONES.md`).
+`icons.md`).
 
 ## Como o Go fala com o Svelte (sem servidor, sem WebSocket manual)
 
@@ -224,7 +224,7 @@ src-go/
   screen/            área útil do monitor (SystemParametersInfoW), pra posicionar as janelas
   assets/            ícone da bandeja embutido no binário (.ico)
   cmd/icongen/       ferramenta de build (não roda em produção): SVG → .ico
-svelte/              frontend (Svelte 5 + Vite), ver REAPROVEITAMENTO.md
+svelte/              frontend (Svelte 5 + Vite), ver reuse.md
 icons/               SVGs de origem e o .ico gerado — a cópia "de referência"
 docs/                este diretório
 ```
@@ -248,4 +248,4 @@ Vite.
   diferente da primeira versão, agora nem existe mais uma porta TCP aberta: a comunicação
   Go↔Svelte é só IPC do Wails dentro do próprio processo.
 - O agente roda em primeiro plano (minimizado na bandeja); não há instalação como serviço do
-  Windows nesta fase — ver `ROADMAP.md`.
+  Windows nesta fase — ver `roadmap.md`.

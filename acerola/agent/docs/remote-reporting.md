@@ -97,4 +97,4 @@ na ficha.
 ## O que ainda não faz
 
 Se a rede cair, as leituras daquele período **se perdem** — não há fila em disco. É o próximo
-passo previsto em [ROADMAP.md](ROADMAP.md).
+passo previsto em [roadmap.md](roadmap.md).
