@@ -13,7 +13,7 @@ Os quatro SVGs de origem estão em `icons/` (cópia de `Documents/Acerola/icons/
   misturar a ele.
 - `ic_launcher_background.svg` — o fundo sólido isolado. Mantido só como peça de referência.
 - `ic_launcher_monochrome.svg` — a mesma silhueta em preto sólido, sem cor. Não usada nesta fase,
-  mantida para a variante adaptável de ícone do Windows 11 (`ROADMAP.md`).
+  mantida para a variante adaptável de ícone do Windows 11 (`roadmap.md`).
 
 ## Por que converter para .ico
 
@@ -40,7 +40,7 @@ buildar com só o Go instalado. A conversão foi feita com uma ferramenta própr
 
 Essa ferramenta **não faz parte do binário final** do agente — é rodada uma vez, o resultado
 (`icons/tray.ico`, `build/appicon.png`) é commitado, e o agente só embute o `.ico` já pronto (via
-`src-go/assets`, ver `ARQUITETURA.md`). Isso mantém o binário do agente livre de uma dependência
+`src-go/assets`, ver `architecture.md`). Isso mantém o binário do agente livre de uma dependência
 de rasterização de SVG que ele nunca usa em produção.
 
 ## Como gerar (ou regenerar)
@@ -48,7 +48,7 @@ de rasterização de SVG que ele nunca usa em produção.
 ```bash
 cd acerola/agent
 go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.ico -sizes 16,32,48,256 -zoom 1.44
-cp icons/tray.ico src-go/assets/tray.ico     # cópia embutida no binário — ver ARQUITETURA.md
+cp icons/tray.ico src-go/assets/tray.ico     # cópia embutida no binário — ver architecture.md
 cp icons/tray.ico build/windows/icon.ico     # ícone do .exe e do instalador (convenção do Wails)
 
 go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out build/appicon.png -sizes 512 -zoom 1.44

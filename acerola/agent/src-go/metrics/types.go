@@ -1,6 +1,6 @@
 // Package metrics coleta métricas locais de sistema via gopsutil e as
 // normaliza nas structs consumidas tanto pelo menu da bandeja quanto pelo
-// painel web. Veja docs/METRICAS.md para o significado de cada campo e por
+// painel web. Veja docs/metrics.md para o significado de cada campo e por
 // que ele foi escolhido.
 package metrics
 
