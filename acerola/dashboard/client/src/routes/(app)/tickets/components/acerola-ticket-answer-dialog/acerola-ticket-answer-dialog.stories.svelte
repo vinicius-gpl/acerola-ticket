@@ -172,7 +172,7 @@
   }}
 />
 
-<!-- Somando uma área participante: o botão "Somar" trava enquanto grava. -->
+<!-- Adicionando uma área participante: o botão "Adicionar" trava enquanto grava. -->
 <Story
   name="AddingParticipantArea"
   args={{

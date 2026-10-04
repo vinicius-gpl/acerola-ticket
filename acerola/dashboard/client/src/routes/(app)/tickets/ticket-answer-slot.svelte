@@ -10,6 +10,8 @@
    */
   export type TicketAnswerSlotProps = {
     ticket: Ticket;
+    /** O nome de quem está logado: vira o "quem está atendendo" quando ninguém assumiu ainda. */
+    attendantName?: string;
     onClose: () => void;
   };
 </script>
@@ -18,14 +20,14 @@
   import TicketAnswerDialog from './components/acerola-ticket-answer-dialog/acerola-ticket-answer-dialog.svelte';
   import { useTicketAnswerModel } from '$lib/hooks/use-ticket-answer/use-ticket-answer.svelte';
 
-  let { ticket, onClose }: TicketAnswerSlotProps = $props();
+  let { ticket, attendantName, onClose }: TicketAnswerSlotProps = $props();
 
   /* O compilador avisa que isto lê `ticket` e `onClose` só uma vez — e é exatamente o que se
      quer. O formulário fotografa o chamado na montagem e não acompanha mudanças dele: quem
      troca de chamado é o `{#key}` da rota, que monta este componente de novo. Acompanhar
      apagaria o que quem atende está digitando quando a fila recarregasse por trás. */
   // svelte-ignore state_referenced_locally
-  const answer = useTicketAnswerModel({ ticket, onSaved: onClose });
+  const answer = useTicketAnswerModel({ ticket, attendantName, onSaved: onClose });
 </script>
 
 <TicketAnswerDialog

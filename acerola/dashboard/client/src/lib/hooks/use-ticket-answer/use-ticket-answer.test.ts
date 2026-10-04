@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
 import Harness from './use-ticket-answer-harness.test.svelte';
-import { type TicketAnswerModel } from './use-ticket-answer.svelte';
+import { initialAssigneeOf, type TicketAnswerModel } from './use-ticket-answer.svelte';
 
 vi.mock('$lib/api/tickets.api', () => ({
   ticketsApi: {
@@ -76,6 +76,30 @@ function mountModel(current: Ticket = ticket(), onSaved = vi.fn()): TicketAnswer
 
   return model;
 }
+
+describe('initialAssigneeOf', () => {
+  // feliz
+  it('starts with the name of who is logged in when nobody took the ticket yet', () => {
+    expect(initialAssigneeOf(ticket({ assignee: null }), 'Marina Bastos')).toBe('Marina Bastos');
+  });
+
+  /* Abrir o chamado de um colega não pode trocar o responsável sem ninguém perceber. */
+  it('keeps who already took the ticket, even when someone else opens it', () => {
+    expect(initialAssigneeOf(ticket({ assignee: 'Suporte TI' }), 'Marina Bastos')).toBe(
+      'Suporte TI',
+    );
+  });
+
+  // triste
+  it('falls back to the logged user when the saved name is only spaces', () => {
+    expect(initialAssigneeOf(ticket({ assignee: '   ' }), 'Marina Bastos')).toBe('Marina Bastos');
+  });
+
+  it('stays empty when there is no saved name and no logged user name', () => {
+    expect(initialAssigneeOf(ticket({ assignee: null }))).toBe('');
+    expect(initialAssigneeOf(ticket({ assignee: null }), '  ')).toBe('');
+  });
+});
 
 describe('useTicketAnswerModel', () => {
   beforeEach(() => {
