@@ -1,8 +1,12 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import BarChart3 from '@lucide/svelte/icons/chart-column';
+  import Cpu from '@lucide/svelte/icons/cpu';
+  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
   import ListChecks from '@lucide/svelte/icons/list-checks';
+  import Server from '@lucide/svelte/icons/server';
   import Settings from '@lucide/svelte/icons/settings';
+  import Wrench from '@lucide/svelte/icons/wrench';
   import { fn } from 'storybook/test';
 
   import AppShell from './acerola-app-shell.svelte';
@@ -47,6 +51,26 @@
     ui={{ items: manyItems }}
     data={{ user, badges: { tasks: 3, reports: 12 } }}
     state={{ isCollapsed: true, activeKey: 'tasks' }}
+  >
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
+  </AppShell>
+</Story>
+
+<!-- Quem atende mais de uma área: as pastilhas de contexto ficam no cabeçalho, ao lado do
+     botão do menu, com a área atual acesa. -->
+<Story name="WithAreaContext">
+  <AppShell
+    data={{
+      user,
+      areaOptions: [
+        { value: 'all', label: 'Todas', icon: LayoutGrid },
+        { value: 'infra', label: 'Infraestrutura', icon: Server },
+        { value: 'sistema', label: 'Sistema', icon: Cpu },
+        { value: 'manutencao', label: 'Manutenção', icon: Wrench },
+      ],
+    }}
+    state={{ activeKey: 'tasks', areaContext: 'manutencao' }}
+    {actions}
   >
     <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>

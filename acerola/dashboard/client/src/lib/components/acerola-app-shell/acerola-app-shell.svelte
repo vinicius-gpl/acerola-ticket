@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import type { LucideIcon } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
   import type { TicketAreaContext } from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
   import type { NavItem } from '$lib/navigation/navigation';
@@ -33,7 +34,7 @@
        * O seletor de contexto (#13) — "Todas as áreas" e as que a pessoa atende. Vazio (o
        * padrão) esconde o controle: é o caso de quem só tem uma área, ou nenhuma.
        */
-      areaOptions?: { value: TicketAreaContext; label: string }[];
+      areaOptions?: { value: TicketAreaContext; label: string; icon?: LucideIcon }[];
     };
     ui?: { items?: readonly NavItem[] };
     state?: {
@@ -76,6 +77,7 @@
   import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/acerola-app-shell-nav-entry/acerola-app-shell-nav-entry.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
   import EffectsToggle from '$lib/components/acerola-effects-toggle/acerola-effects-toggle.svelte';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
@@ -188,22 +190,38 @@
   <!-- `min-w-0`: sem isto a área de conteúdo não encolhe abaixo da largura natural da tabela,
        e quem rola para o lado é a PÁGINA inteira, em vez da tabela dentro da caixa dela. -->
   <SidebarInset class="border-sidebar-border bg-background border min-w-0">
-    <header class="flex h-12 shrink-0 items-center gap-2 px-4">
+    <!-- `min-h` e `flex-wrap`, e não altura fixa: no celular as pastilhas de contexto quebram
+         para a linha de baixo em vez de vazar pela lateral. -->
+    <header class="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1">
       <SidebarTrigger />
 
       <!-- Seletor de contexto (#13): só aparece para quem atende mais de uma área — ver
            `areaOptions` em `use-app-shell`. Fica no cabeçalho, e não no menu lateral, porque
-           é sobre O QUE a pessoa está vendo agora, não sobre PARA ONDE ela pode ir. -->
+           é sobre O QUE a pessoa está vendo agora, não sobre PARA ONDE ela pode ir.
+
+           São PASTILHAS, coladas no botão do menu, e não uma lista suspensa no canto oposto:
+           o contexto muda tudo o que a tela mostra, então a pessoa precisa VER em qual está
+           sem abrir nada — e trocar com um clique. -->
       {#if data?.areaOptions && data.areaOptions.length > 0}
-        <div class="ml-auto">
-          <SelectField
-            data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
-            ui={{ ariaLabel: 'Área que você está vendo', className: 'min-w-[160px]' }}
-            actions={{
-              onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
-            }}
-          />
-        </div>
+        <!-- DOIS DESENHOS do mesmo controle, um por largura. Com espaço (`lg` em diante), as
+             pastilhas: o contexto fica à vista e troca com um clique. No tablet e no celular,
+             quatro pastilhas não cabem ao lado do botão do menu e quebravam em duas linhas —
+             ali ele vira uma lista suspensa, que ocupa o lugar de um botão só e ainda mostra a
+             área atual. Só um dos dois aparece por vez; quem esconde é o CSS. -->
+        <OptionPicker
+          data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
+          ui={{ ariaLabel: 'Área que você está vendo', className: 'hidden lg:inline-flex' }}
+          actions={{
+            onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
+          }}
+        />
+        <SelectField
+          data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
+          ui={{ ariaLabel: 'Área que você está vendo', className: 'w-auto min-w-[150px] lg:hidden' }}
+          actions={{
+            onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
+          }}
+        />
       {/if}
     </header>
 

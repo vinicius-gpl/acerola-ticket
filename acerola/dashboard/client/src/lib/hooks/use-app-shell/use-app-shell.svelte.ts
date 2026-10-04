@@ -1,5 +1,10 @@
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
+import type { LucideIcon } from '@lucide/svelte';
+import Cpu from '@lucide/svelte/icons/cpu';
+import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+import Server from '@lucide/svelte/icons/server';
+import Wrench from '@lucide/svelte/icons/wrench';
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { ticketAreaOptions } from '@template/shared/domain/ticket-catalog.util';
 import {
@@ -18,6 +23,17 @@ import {
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { activeNavKeyOf } from '$lib/navigation/navigation';
 
+/**
+ * O ícone de cada contexto. Um desenho por área faz a pessoa achar a dela pelo formato, antes
+ * de ler — e é o que sobra de pista quando o rótulo fica cortado numa tela estreita.
+ */
+export const AREA_CONTEXT_ICONS: Record<TicketAreaContext, LucideIcon> = {
+  all: LayoutGrid,
+  infra: Server,
+  sistema: Cpu,
+  manutencao: Wrench,
+};
+
 export type AppShellModel = {
   data: {
     badges: Partial<Record<string, number>>;
@@ -31,7 +47,7 @@ export type AppShellModel = {
      * As áreas (#13) que esta pessoa atende, com a opção "Todas" na frente — vazio quando
      * ela não tem cargo em área nenhuma, ou quando só tem uma (aí não há o que escolher).
      */
-    areaOptions: { value: TicketAreaContext; label: string }[];
+    areaOptions: { value: TicketAreaContext; label: string; icon: LucideIcon }[];
   };
   state: {
     activeKey: string | undefined;
@@ -94,10 +110,13 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         const allOptions = ticketAreaOptions();
 
         return [
-          { value: 'all' as const, label: 'Todas as áreas' },
+          /* "Todas", e não "Todas as áreas": é uma pastilha ao lado das outras, e o rótulo
+             "Contexto" na frente já diz do que se trata. */
+          { value: 'all' as const, label: 'Todas', icon: AREA_CONTEXT_ICONS.all },
           ...mine.map((area) => ({
             value: area,
             label: allOptions.find((option) => option.value === area)?.label ?? area,
+            icon: AREA_CONTEXT_ICONS[area],
           })),
         ];
       },
