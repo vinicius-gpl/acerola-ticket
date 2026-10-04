@@ -26,6 +26,7 @@
 	import ActivityIcon from '@lucide/svelte/icons/activity';
 	import Maximize2Icon from '@lucide/svelte/icons/maximize-2';
 	import Minimize2Icon from '@lucide/svelte/icons/minimize-2';
+	import { cubicIn, cubicOut } from 'svelte/easing';
 	import { cn } from '$lib/utils/cn';
 	import { bytes } from '$lib/utils/format';
 
@@ -38,6 +39,102 @@
 
 	let isPidDrawerOpen = $state(false);
 	let pidSearchQuery = $state('');
+
+	/* ---- A gaveta de PIDs: arrastar pela língua e animar a entrada e a saída ----
+
+	   Tudo aqui é estado puramente visual. `drawerOffset` é quanto a pessoa já puxou a gaveta
+	   para baixo, em pixels; soltar depois do limite recolhe, soltar antes devolve ao lugar. */
+	const DRAWER_CLOSE_THRESHOLD = 96;
+	const DRAWER_CLICK_SLACK = 4;
+
+	let drawerOffset = $state(0);
+	let isDraggingDrawer = $state(false);
+	let dragStartY = 0;
+	let didDragDrawer = false;
+
+	/* Quem pediu menos movimento ao sistema operacional não vê a gaveta deslizar: ela só
+	   aparece e some. O mesmo vale onde o navegador não sabe animar (`animate` ausente). */
+	function drawerDuration(ms: number): number {
+		if (typeof Element === 'undefined' || typeof Element.prototype.animate !== 'function') return 0;
+		if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return 0;
+
+		return ms;
+	}
+
+	function drawerIn(node: HTMLElement) {
+		const height = node.offsetHeight;
+
+		return {
+			duration: drawerDuration(280),
+			easing: cubicOut,
+			css: (t: number, u: number) =>
+				`transform: translateY(${u * height}px); opacity: ${0.6 + 0.4 * t}`
+		};
+	}
+
+	/* A saída parte de ONDE A GAVETA ESTÁ, e não do topo: quem a arrastou até a metade e soltou
+	   a vê continuar descendo dali, sem voltar para cima antes de sumir. */
+	function drawerOut(node: HTMLElement) {
+		const height = node.offsetHeight;
+		const from = drawerOffset;
+
+		return {
+			duration: drawerDuration(220),
+			easing: cubicIn,
+			css: (t: number, u: number) =>
+				`transform: translateY(${from + u * (height - from)}px); opacity: ${0.6 + 0.4 * t}`
+		};
+	}
+
+	function closePidDrawer() {
+		isPidDrawerOpen = false;
+	}
+
+	function onDrawerDragStart(event: PointerEvent) {
+		isDraggingDrawer = true;
+		didDragDrawer = false;
+		dragStartY = event.clientY;
+		/* Captura o ponteiro: o arrasto continua valendo mesmo se o cursor sair de cima da língua. */
+		(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+	}
+
+	function onDrawerDragMove(event: PointerEvent) {
+		if (!isDraggingDrawer) return;
+
+		/* Só para baixo: puxar para cima não faz nada, a gaveta já está aberta inteira. */
+		const moved = event.clientY - dragStartY;
+		drawerOffset = Math.max(0, moved);
+		if (Math.abs(moved) > DRAWER_CLICK_SLACK) didDragDrawer = true;
+	}
+
+	function onDrawerDragEnd() {
+		if (!isDraggingDrawer) return;
+		isDraggingDrawer = false;
+
+		if (drawerOffset > DRAWER_CLOSE_THRESHOLD) {
+			closePidDrawer();
+			return;
+		}
+
+		drawerOffset = 0;
+	}
+
+	/* Clique (ou Enter/Espaço no teclado) na língua também recolhe. Um arrasto curto que voltou
+	   ao lugar termina num `click` do navegador — esse não conta. */
+	function onDrawerHandleClick() {
+		if (didDragDrawer) {
+			didDragDrawer = false;
+			return;
+		}
+
+		closePidDrawer();
+	}
+
+	/* Toda vez que a gaveta abre, ela nasce no lugar — o deslocamento do último arrasto ficou
+	   guardado só para a animação de saída partir dele. */
+	$effect(() => {
+		if (isPidDrawerOpen) drawerOffset = 0;
+	});
 	let pidCopied = $state<number | 'all' | null>(null);
 
 	function isSystemProcess(name: string): boolean {
@@ -607,11 +704,44 @@
 			<!-- Desliza de baixo para cima cobrindo o conteúdo de métricas e mantendo o decorator no topo -->
 			{#if isPidDrawerOpen}
 				<div
-					class="drawer-slide-up bg-card border-border absolute inset-x-0 top-[73px] bottom-0 z-20 flex flex-col border-t shadow-xl"
+					in:drawerIn
+					out:drawerOut
+					style:transform={drawerOffset > 0 ? `translateY(${drawerOffset}px)` : undefined}
+					class={cn(
+						'bg-card border-border absolute inset-x-0 top-[73px] bottom-0 z-20 flex flex-col border-t shadow-xl',
+						/* Soltou antes do limite: volta ao lugar deslizando. Durante o arrasto não há
+						   transição — a gaveta tem de acompanhar o dedo sem atraso. */
+						!isDraggingDrawer && 'transition-transform duration-200 ease-out'
+					)}
 				>
 					<!-- Puxador Superior & Cabeçalho da Gaveta -->
-					<div class="border-border/60 bg-card shrink-0 border-b px-5 pt-3 pb-3">
-						<div class="bg-muted-foreground/30 mx-auto mb-3 h-1 w-10 rounded-full"></div>
+					<div class="border-border/60 bg-card shrink-0 border-b px-5 pb-3">
+						<!-- A língua. A área de pegar é a faixa inteira, bem maior que o traço que se vê:
+						     4px de altura não é alvo para mouse nem para dedo. `touch-none` impede a
+						     janela de rolar enquanto a pessoa arrasta. -->
+						<button
+							type="button"
+							aria-label="Recolher gaveta — arraste para baixo ou clique"
+							title="Arraste para baixo para recolher"
+							class={cn(
+								'group flex w-full touch-none justify-center pt-3 pb-3 outline-none',
+								isDraggingDrawer ? 'cursor-grabbing' : 'cursor-grab'
+							)}
+							onpointerdown={onDrawerDragStart}
+							onpointermove={onDrawerDragMove}
+							onpointerup={onDrawerDragEnd}
+							onpointercancel={onDrawerDragEnd}
+							onclick={onDrawerHandleClick}
+						>
+							<span
+								class={cn(
+									'h-1 w-10 rounded-full transition-colors',
+									isDraggingDrawer
+										? 'bg-muted-foreground/70'
+										: 'bg-muted-foreground/30 group-hover:bg-muted-foreground/60 group-focus-visible:bg-primary'
+								)}
+							></span>
+						</button>
 
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="flex items-center gap-2.5">
@@ -661,7 +791,7 @@
 
 								<button
 									type="button"
-									onclick={() => (isPidDrawerOpen = false)}
+									onclick={closePidDrawer}
 									class="border-border/70 bg-card hover:bg-muted text-muted-foreground hover:text-foreground rounded-control inline-flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs font-medium shadow-xs transition-all"
 									title="Recolher gaveta"
 								>
@@ -793,7 +923,7 @@
 
 						<button
 							type="button"
-							onclick={() => (isPidDrawerOpen = false)}
+							onclick={closePidDrawer}
 							class="bg-foreground text-background rounded-control inline-flex cursor-pointer items-center gap-1.5 px-4 py-1.5 text-xs font-semibold shadow-xs transition-all hover:opacity-90"
 						>
 							<span>Fechar Gaveta</span>
@@ -814,19 +944,3 @@
 		{/if}
 	</div>
 </div>
-
-<style>
-	@keyframes slideFromBottom {
-		from {
-			transform: translateY(100%);
-			opacity: 0.6;
-		}
-		to {
-			transform: translateY(0);
-			opacity: 1;
-		}
-	}
-	.drawer-slide-up {
-		animation: slideFromBottom 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-	}
-</style>
