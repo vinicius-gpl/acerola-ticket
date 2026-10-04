@@ -215,13 +215,13 @@
       data-slot="maintenance-cards-mobile"
     >
       {#each data.maintenances as maintenance (maintenance.id)}
-        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
-              <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+              <span class="block font-medium text-ink-900 break-words leading-snug">
                 {machineLabelOf(maintenance)}
               </span>
-              <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">
+              <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5">
                 {#if maintenance.computerId}
                   {maintenance.computerName}
                   {#if maintenance.computerDepartment}
@@ -238,11 +238,11 @@
             />
           </div>
 
-          <p class="text-neutral-700 dark:text-neutral-200 mt-2 text-sm break-words">
+          <p class="text-ink-700 mt-2 text-sm break-words">
             {maintenance.description ?? '—'}
           </p>
 
-          <div class="mt-2 flex items-center justify-between text-xs text-neutral-400">
+          <div class="mt-2 flex items-center justify-between text-xs text-ink-500">
             <span>{formatDate(maintenance.performedAt)}</span>
             {#if maintenance.performedBy}
               <span>Por: {maintenance.performedBy}</span>
@@ -262,7 +262,7 @@
                 size: 'sm',
                 icon: Trash2,
                 isIconOnly: true,
-                className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                className: 'text-ink-500 hover:text-destructive hover:bg-destructive/10',
               }}
               actions={{ onClick: () => actions.onAskRemove(maintenance) }}
             />
@@ -294,14 +294,14 @@
         <TableBody>
           {#each data.maintenances as maintenance (maintenance.id)}
             <TableRow class="align-top">
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              <TableCell class="text-ink-500 whitespace-nowrap text-xs">
                 {formatDate(maintenance.performedAt)}
               </TableCell>
               <TableCell class="max-w-[280px]">
-                <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+                <span class="block font-medium text-ink-900 break-words leading-snug">
                   {machineLabelOf(maintenance)}
                 </span>
-                <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">
+                <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5">
                   {#if maintenance.computerId}
                     {maintenance.computerName}
                     {#if maintenance.computerDepartment}
@@ -318,10 +318,10 @@
                   ui={{ tone: maintenanceTypeTone(maintenance.type), size: 'sm' }}
                 />
               </TableCell>
-              <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+              <TableCell class="text-ink-700 max-w-[320px] break-words whitespace-normal">
                 {maintenance.description ?? '—'}
               </TableCell>
-              <TableCell class="text-neutral-500 max-w-[140px] break-words whitespace-normal text-xs">{maintenance.performedBy ?? '—'}</TableCell>
+              <TableCell class="text-ink-500 max-w-[140px] break-words whitespace-normal text-xs">{maintenance.performedBy ?? '—'}</TableCell>
               <TableCell class="text-right whitespace-nowrap">
                 <TableActions>
                   <ActionButton
@@ -336,7 +336,7 @@
                       size: 'sm',
                       icon: Trash2,
                       isIconOnly: true,
-                      className: 'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                      className: 'text-ink-500 hover:text-destructive hover:bg-destructive/10',
                     }}
                     actions={{ onClick: () => actions.onAskRemove(maintenance) }}
                   />
