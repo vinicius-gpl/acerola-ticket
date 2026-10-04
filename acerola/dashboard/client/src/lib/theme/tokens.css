@@ -358,6 +358,34 @@
   padding-inline: 0;
 }
 
+/* ==========================================================================
+   A GRADE DE CARTÕES DAS LISTAS.
+
+   De 1 a 4 cartões por linha, e quem decide quantos é o ESPAÇO QUE A LISTA TEM, não a
+   largura da janela: a área de conteúdo é mais estreita que o monitor (o menu lateral ocupa
+   256px e a página tem largura máxima), e uma lista dentro de um diálogo é mais estreita
+   ainda. Contando pela janela, o diálogo ganharia quatro colunas espremidas.
+
+   Na prática: celular 1, tablet 2 a 3, monitor 3 a 4.
+
+   A conta: cada cartão tem no mínimo 15rem (240px); cabem quantos couberem, e o `max(...)`
+   segura o teto em 4 — um quinto cartão só entraria com cada um mais estreito que um quarto
+   da linha, o que o mínimo não deixa. `min-width: 0` nos filhos é o que permite o texto
+   comprido quebrar dentro do cartão em vez de alargar a coluna.
+   ========================================================================== */
+@utility card-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(15rem, calc((100% - 3 * 0.75rem) / 4)), 1fr)
+  );
+
+  & > * {
+    min-width: 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

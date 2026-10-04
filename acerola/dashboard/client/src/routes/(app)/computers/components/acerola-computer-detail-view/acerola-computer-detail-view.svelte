@@ -571,7 +571,7 @@
     {:else}
       <!-- Lista de cartões para mobile (< xl) -->
       <div
-        class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+        class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
         data-slot="alert-cards-mobile"
       >
         {#each data.alerts as alert (alert.id)}

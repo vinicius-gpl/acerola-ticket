@@ -266,7 +266,7 @@
   {:else}
     <!-- Lista de cartões para mobile (< xl) -->
     <div
-      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
       data-slot="computer-cards-mobile"
     >
       {#each data.computers as computer (computer.id)}
@@ -326,7 +326,8 @@
           </div>
         </div>
       {/each}
-      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+      <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
+      <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
         <span>Parque de computadores sincronizado</span>
         <span>{data.computers.length} computador(es) listado(s)</span>
       </div>

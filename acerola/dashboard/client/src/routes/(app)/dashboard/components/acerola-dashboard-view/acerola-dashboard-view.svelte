@@ -457,7 +457,7 @@
       {:else}
         <!-- Lista de cartões para mobile (< xl) -->
         <div
-          class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+          class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
           data-slot="worst-machines-cards-mobile"
         >
           {#each summary.worstMachines as machine (machine.computerId)}
@@ -490,7 +490,8 @@
               </div>
             </div>
           {/each}
-          <div class="text-muted-foreground flex justify-between px-1 text-xs">
+          <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
+          <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
             <span>Triagem automática por gravidade</span>
             <span>{summary.worstMachines.length} máquina(s) com pendência</span>
           </div>

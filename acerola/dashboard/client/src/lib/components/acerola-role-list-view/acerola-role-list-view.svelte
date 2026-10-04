@@ -306,7 +306,7 @@
   {:else}
     <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
     <div
-      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
       data-slot="role-cards-mobile"
     >
       {#each data.roles as item (item.id)}

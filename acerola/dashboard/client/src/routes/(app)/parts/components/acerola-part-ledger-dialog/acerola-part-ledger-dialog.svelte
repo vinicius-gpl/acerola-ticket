@@ -140,7 +140,7 @@
       <!-- 1. Visualização Mobile (< xl) -->
       <div
         class={cn(
-          'flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto pr-1',
+          'card-grid max-h-[60vh] overflow-y-auto pr-1',
           !tableView.forceCards && 'xl:hidden',
         )}
         data-slot="part-ledger-cards-mobile"

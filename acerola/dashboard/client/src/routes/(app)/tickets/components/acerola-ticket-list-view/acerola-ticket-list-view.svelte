@@ -348,7 +348,7 @@
         <!-- 1. Visualização em Cards: sempre que a tela é estreita (< xl), ou quando a pessoa
          pediu para ver sempre assim (`TableViewToggle`, no cabeçalho dos filtros). -->
         <div
-          class={cn('flex flex-col gap-3 p-4', !tableView.forceCards && 'xl:hidden')}
+          class={cn('card-grid p-4', !tableView.forceCards && 'xl:hidden')}
           data-slot="ticket-cards-mobile"
         >
           {#each data.tickets as ticket (ticket.id)}
