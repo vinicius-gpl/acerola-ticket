@@ -11,7 +11,7 @@
   };
 
   const SIZE_CLASS = {
-    sm: 'size-6 text-[10px]',
+    sm: 'size-6 text-xs',
     md: 'size-8 text-xs',
     lg: 'size-12 text-sm',
     xl: 'size-16 text-lg',
@@ -44,7 +44,7 @@
   {/if}
   <AvatarFallback
     class={cn(
-      'flex size-full items-center justify-center rounded-full aspect-square bg-gradient-to-br from-emerald-500 to-blue-600 font-bold text-white select-none',
+      'flex size-full items-center justify-center rounded-full aspect-square bg-gradient-to-br from-success to-info font-bold text-primary-foreground select-none',
       SIZE_CLASS[size]
     )}
   >

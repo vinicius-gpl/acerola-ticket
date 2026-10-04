@@ -17,7 +17,7 @@
         primary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
         secondary: 'border-border bg-card text-foreground hover:bg-accent/50 border',
         ghost: 'text-foreground/80 hover:bg-accent hover:text-foreground bg-transparent shadow-none border border-transparent',
-        danger: 'bg-red-600 text-white hover:bg-red-700',
+        danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       },
       size: {
         sm: 'control-sm',

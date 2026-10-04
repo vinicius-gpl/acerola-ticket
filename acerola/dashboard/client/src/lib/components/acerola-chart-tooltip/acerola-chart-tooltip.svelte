@@ -76,7 +76,7 @@
       {#each series as item, index (`${item.key}-${index}`)}
         <div class="flex w-full items-center gap-2">
           <span
-            class="size-2.5 shrink-0 rounded-[2px]"
+            class="size-2.5 shrink-0 rounded-none"
             style="background: {item.config?.color ?? item.color};"
             aria-hidden="true"
           ></span>

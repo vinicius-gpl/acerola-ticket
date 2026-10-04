@@ -33,10 +33,10 @@ describe('AcerolaProgressBar', () => {
     const { container, rerender } = render(ProgressBar, {
       props: { data: { percentage: 100, done: 13, total: 13 } },
     });
-    expect(container.innerHTML).toContain('emerald');
+    expect(container.innerHTML).toContain('chart-4');
 
     await rerender({ data: { percentage: 10, done: 1, total: 13 } });
-    expect(container.innerHTML).toContain('red');
+    expect(container.innerHTML).toContain('chart-1');
   });
 
   // triste

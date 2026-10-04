@@ -62,7 +62,7 @@
        sozinho quando a barra está recolhida. -->
   {#if badge}
     <SidebarMenuBadge
-      class="bg-gradient-to-r from-rose-500 to-red-600 font-bold text-white shadow-lg shadow-rose-500/40"
+      class="bg-destructive font-bold text-destructive-foreground shadow-xs shadow-destructive/40"
     >
       {badge}
     </SidebarMenuBadge>

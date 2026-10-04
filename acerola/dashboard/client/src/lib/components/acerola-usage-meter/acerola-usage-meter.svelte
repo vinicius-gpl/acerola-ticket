@@ -14,9 +14,9 @@
   export type UsageTone = 'calm' | 'attention' | 'critical';
 
   const TONE_CLASSES: Record<UsageTone, string> = {
-    calm: 'bg-emerald-500',
-    attention: 'bg-yellow-500',
-    critical: 'bg-red-500',
+    calm: 'bg-chart-4',
+    attention: 'bg-chart-3',
+    critical: 'bg-chart-1',
   };
 
   /**

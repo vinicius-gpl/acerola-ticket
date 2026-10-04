@@ -80,7 +80,7 @@ describe('AcerolaStatCard', () => {
     });
 
     const card = container.firstElementChild;
-    expect(card?.className).toContain('bg-rose-100');
+    expect(card?.className).toContain('bg-destructive-soft');
     expect(card?.className).not.toMatch(/\/\d/);
   });
 

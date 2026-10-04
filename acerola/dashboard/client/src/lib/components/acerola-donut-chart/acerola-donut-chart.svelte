@@ -91,7 +91,7 @@
         <span class="text-foreground text-xl leading-tight font-bold">
           {total.toLocaleString('pt-BR')}
         </span>
-        <span class="text-muted-foreground text-[10px] tracking-wide uppercase">
+        <span class="text-muted-foreground text-xs tracking-wide uppercase">
           {data.seriesLabel}
         </span>
       </div>
@@ -134,7 +134,7 @@
 
 {#snippet row(slice: ChartSlice, color: string | undefined, percent: number)}
   <span
-    class="size-2 shrink-0 rounded-[2px]"
+    class="size-2 shrink-0 rounded-none"
     style="background-color: {color}"
     aria-hidden="true"
   ></span>

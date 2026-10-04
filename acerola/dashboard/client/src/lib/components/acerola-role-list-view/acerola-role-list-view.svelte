@@ -134,7 +134,7 @@
             <PersonAvatar
               name={data.currentUser.name}
               avatarUrl={data.currentUser.image}
-              ui={{ size: 'xl', className: 'size-16 ring-4 ring-primary/10 shadow-sm' }}
+              ui={{ size: 'xl', className: 'size-16 ring-4 ring-primary/10 shadow-xs' }}
             />
           </div>
           <div class="min-w-0">
@@ -175,7 +175,7 @@
                   ui={{ tone: roleTone(role), size: 'sm' }}
                 />
               </div>
-              <p class="mt-2 text-[11px] text-muted-foreground leading-snug">
+              <p class="mt-2 text-xs text-muted-foreground leading-snug">
                 {contextDescription(ctx)}
               </p>
             </div>
@@ -329,7 +329,7 @@
                     {item.userEmail}
                   </span>
                 {/if}
-                <span class="block text-[11px] font-mono text-muted-foreground/70 break-all">
+                <span class="block text-xs font-mono text-muted-foreground/70 break-all">
                   ID: {item.userId}
                 </span>
               </div>
@@ -359,7 +359,7 @@
 
           <div class="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
             <div class="flex flex-col gap-1">
-              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <span class="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Área / Contexto
               </span>
               <div>
@@ -370,7 +370,7 @@
               </div>
             </div>
             <div class="flex flex-col gap-1">
-              <span class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <span class="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Cargo Interno
               </span>
               <div>
@@ -384,7 +384,7 @@
 
           {#if item.createdBy}
             <div
-              class="flex items-center justify-between text-[11px] font-mono text-muted-foreground/80 pt-1 border-t border-border/40"
+              class="flex items-center justify-between text-xs font-mono text-muted-foreground/80 pt-1 border-t border-border/40"
             >
               <span>Criado por: {item.createdBy}</span>
             </div>

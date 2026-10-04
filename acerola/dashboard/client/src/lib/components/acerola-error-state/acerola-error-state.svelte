@@ -33,13 +33,13 @@
 <div
   role="alert"
   class={cn(
-    'flex gap-3 rounded-box border border-red-300 bg-red-50 text-red-900',
+    'flex gap-3 rounded-box border border-destructive/40 bg-destructive/10 text-destructive',
     isInline ? 'items-center px-3 py-2' : 'items-start p-4',
     ui?.className
   )}
 >
   <AlertTriangle
-    class={cn('shrink-0 text-red-600', isInline ? 'size-4' : 'mt-0.5 size-5')}
+    class={cn('shrink-0 text-destructive', isInline ? 'size-4' : 'mt-0.5 size-5')}
     aria-hidden="true"
   />
 
@@ -48,7 +48,7 @@
   {:else}
     <div class="min-w-0 flex-1">
       <p class="text-sm font-semibold">{data.title ?? 'Algo deu errado'}</p>
-      <p class="mt-0.5 text-sm break-words text-red-800">{data.message}</p>
+      <p class="mt-0.5 text-sm break-words text-destructive">{data.message}</p>
     </div>
   {/if}
 
@@ -57,7 +57,7 @@
       type="button"
       onclick={actions.onRetry}
       disabled={isRetrying}
-      class="control-sm inline-flex shrink-0 items-center gap-1.5 rounded-control border border-red-300 bg-white text-xs font-semibold text-red-800 hover:bg-red-100 disabled:opacity-60"
+      class="control-sm inline-flex shrink-0 items-center gap-1.5 rounded-control border border-destructive/40 bg-card text-xs font-semibold text-destructive hover:bg-destructive-soft disabled:opacity-60"
     >
       <RotateCw class={cn('size-3.5', isRetrying && 'animate-spin')} aria-hidden="true" />
       Tentar de novo

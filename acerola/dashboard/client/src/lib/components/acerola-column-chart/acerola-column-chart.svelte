@@ -173,7 +173,7 @@
               format: (value: unknown) =>
                 isHorizontal ? shorten(String(value), horizontalLabelMax) : String(value),
             },
-            labels: { class: 'fill-foreground text-[11px] font-semibold' },
+            labels: { class: 'fill-foreground text-xs font-semibold' },
             highlight: { area: { fill: 'var(--muted)', fillOpacity: 0.5 } },
           }}
         >
