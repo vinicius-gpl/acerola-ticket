@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import type { LucideIcon } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
   import type { TicketAreaContext } from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
   import type { NavItem } from '$lib/navigation/navigation';
@@ -33,7 +34,7 @@
        * O seletor de contexto (#13) — "Todas as áreas" e as que a pessoa atende. Vazio (o
        * padrão) esconde o controle: é o caso de quem só tem uma área, ou nenhuma.
        */
-      areaOptions?: { value: TicketAreaContext; label: string }[];
+      areaOptions?: { value: TicketAreaContext; label: string; icon?: LucideIcon }[];
     };
     ui?: { items?: readonly NavItem[] };
     state?: {

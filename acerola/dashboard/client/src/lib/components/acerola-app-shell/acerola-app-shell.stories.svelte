@@ -1,8 +1,12 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import BarChart3 from '@lucide/svelte/icons/chart-column';
+  import Cpu from '@lucide/svelte/icons/cpu';
+  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
   import ListChecks from '@lucide/svelte/icons/list-checks';
+  import Server from '@lucide/svelte/icons/server';
   import Settings from '@lucide/svelte/icons/settings';
+  import Wrench from '@lucide/svelte/icons/wrench';
   import { fn } from 'storybook/test';
 
   import AppShell from './acerola-app-shell.svelte';
@@ -59,10 +63,10 @@
     data={{
       user,
       areaOptions: [
-        { value: 'all', label: 'Todas' },
-        { value: 'infra', label: 'Infraestrutura' },
-        { value: 'sistema', label: 'Sistema' },
-        { value: 'manutencao', label: 'Manutenção' },
+        { value: 'all', label: 'Todas', icon: LayoutGrid },
+        { value: 'infra', label: 'Infraestrutura', icon: Server },
+        { value: 'sistema', label: 'Sistema', icon: Cpu },
+        { value: 'manutencao', label: 'Manutenção', icon: Wrench },
       ],
     }}
     state={{ activeKey: 'tasks', areaContext: 'manutencao' }}

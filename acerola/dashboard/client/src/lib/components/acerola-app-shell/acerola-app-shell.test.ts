@@ -67,6 +67,31 @@ describe('AcerolaAppShell', () => {
     expect(onAreaContextChange).toHaveBeenCalledWith('manutencao');
   });
 
+  /* Cada contexto tem um desenho na frente do texto: a pessoa acha a área pelo formato. */
+  it('draws the icon of each context next to its name', () => {
+    renderShell({
+      data: {
+        areaOptions: [
+          { value: 'all', label: 'Todas', icon: ListChecks },
+          { value: 'infra', label: 'Infraestrutura', icon: BarChart3 },
+          { value: 'sistema', label: 'Sistema' },
+        ],
+      },
+      state: { areaContext: 'all' },
+    });
+
+    const group = screen.getByRole('group', { name: 'Área que você está vendo' });
+
+    expect(within(group).getByRole('button', { name: 'Todas' }).querySelector('svg')).not.toBeNull();
+    expect(within(group).getByRole('button', { name: 'Infraestrutura' }).querySelector('svg')).not.toBeNull();
+    /* Opção sem ícone continua valendo: só o texto. */
+    expect(within(group).getByRole('button', { name: 'Sistema' }).querySelector('svg')).toBeNull();
+    /* A lista suspensa das telas estreitas mostra o ícone da área atual também. */
+    expect(
+      screen.getByRole('combobox', { name: 'Área que você está vendo' }).querySelector('svg'),
+    ).not.toBeNull();
+  });
+
   /* No tablet e no celular as pastilhas não cabem: o mesmo contexto vira uma lista suspensa,
      que mostra a área atual. Os dois desenhos existem na tela; o CSS mostra um por largura. */
   it('offers the same context as a compact list for narrow screens', () => {

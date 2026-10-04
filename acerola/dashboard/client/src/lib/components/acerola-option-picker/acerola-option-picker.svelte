@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import type { LucideIcon } from '@lucide/svelte';
   import { tv } from 'tailwind-variants';
 
   import type { StatusBadgeTone } from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
@@ -14,7 +15,13 @@
    * O tom (verde, vermelho...) é decidido por QUEM CHAMA — o mesmo cuidado do `StatusBadge`,
    * para a cor de uma situação nunca variar de tela pra tela.
    */
-  export type OptionPickerOption = { value: string; label: string; tone?: StatusBadgeTone };
+  /** `icon` é opcional: um desenho na frente do texto, para a opção não ser só uma palavra. */
+  export type OptionPickerOption = {
+    value: string;
+    label: string;
+    tone?: StatusBadgeTone;
+    icon?: LucideIcon;
+  };
 
   export type AcerolaOptionPickerProps = {
     data: { value: string; options: OptionPickerOption[] };
@@ -190,7 +197,9 @@
         onclick={() => select(option.value)}
         class={optionPill({ layout, isSelected, tone: option.tone })}
       >
-        {#if option.tone && !isSelected}
+        {#if option.icon}
+          <option.icon class="size-3.5 shrink-0" aria-hidden="true" />
+        {:else if option.tone && !isSelected}
           <span class={optionDot({ tone: option.tone })} aria-hidden="true"></span>
         {/if}
         {option.label}
@@ -214,7 +223,9 @@
       <!-- A bolinha do tom acompanha a opção escolhida: sem ela, ao virar lista o tipo perderia
            a cor que tinha como pastilha. -->
       <span class="flex min-w-0 items-center gap-2">
-        {#if selectedOption?.tone}
+        {#if selectedOption?.icon}
+          <selectedOption.icon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        {:else if selectedOption?.tone}
           <span class={optionDot({ tone: selectedOption.tone })} aria-hidden="true"></span>
         {/if}
         <span class="truncate">{selectedOption?.label ?? ui?.placeholder ?? 'Selecione'}</span>
@@ -262,7 +273,9 @@
               isSelected ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted/60',
             )}
           >
-            {#if option.tone}
+            {#if option.icon}
+              <option.icon class="size-3.5 shrink-0" aria-hidden="true" />
+            {:else if option.tone}
               <span class={optionDot({ tone: option.tone })} aria-hidden="true"></span>
             {/if}
             <span class="flex-1 truncate">{option.label}</span>
