@@ -111,6 +111,60 @@ describe('machineLabelOf', () => {
   });
 });
 
+describe('AcerolaDisposalListView — stat card shortcuts and filter bar', () => {
+  function renderWithFilter(filter: Partial<DisposalFilter> = {}) {
+    return render(DisposalListView, {
+      props: {
+        data: {
+          computers: [computer()],
+          total: 1,
+          summary,
+          filter: { ...emptyFilter, ...filter },
+          restoring: null,
+        },
+        state: settled,
+        actions,
+      },
+    });
+  }
+
+  // feliz
+  it('turns the defect and scrap cards into shortcuts for the type filter', async () => {
+    renderWithFilter();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Com defeito: filtrar a lista' }));
+    expect(actions.onTypeChange).toHaveBeenLastCalledWith('defect');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Lixo: filtrar a lista' }));
+    expect(actions.onTypeChange).toHaveBeenLastCalledWith('scrap');
+  });
+
+  it('marks the card while its filter is on, and clears it on a second click', async () => {
+    renderWithFilter({ type: 'scrap' });
+
+    const card = screen.getByRole('button', { name: 'Lixo: tirar o filtro' });
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(card);
+    expect(actions.onTypeChange).toHaveBeenLastCalledWith('');
+  });
+
+  it('names the filter and offers to clear it once it is on', () => {
+    renderWithFilter({ type: 'defect' });
+
+    expect(screen.getByText('Tipo de descarte')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Limpar filtros' })).toBeInTheDocument();
+  });
+
+  // triste
+  it('does not turn the total card into a shortcut, and hides the clear button with no filter', () => {
+    renderWithFilter();
+
+    expect(screen.queryByRole('button', { name: /Máquinas fora de uso/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Limpar filtros' })).toBeNull();
+  });
+});
+
 describe('AcerolaDisposalListView', () => {
   // feliz
   /* A tela existe para responder "o que saiu, e por quê" — o motivo é a coluna principal. */

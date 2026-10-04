@@ -64,6 +64,7 @@
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import SearchX from '@lucide/svelte/icons/search-x';
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
@@ -71,6 +72,7 @@
   import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
@@ -95,6 +97,22 @@
   let { data, state: viewState, actions }: AcerolaDisposalListViewProps = $props();
 
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(Boolean(data.filter.search || data.filter.type));
+
+  /* Quem clica num cartão do topo precisa VER o resultado: a tela rola até os filtros. A
+     referência só é usada dentro do clique, então é uma variável comum. */
+  let filtersElement: HTMLElement | null = null;
+
+  function filterByType(type: DisposalType) {
+    actions.onTypeChange(data.filter.type === type ? '' : type);
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filtersElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -103,10 +121,10 @@
       title: 'Descarte',
       description: 'As máquinas que saíram de uso, e o motivo de cada uma.',
     }}
-  >
-    <TableViewToggle />
-  </PageHeader>
+  />
 
+  <!-- "Com defeito" e "Lixo" são ATALHOS do filtro de tipo: clicar liga o mesmo filtro das
+       pastilhas, clicar de novo desliga. "Máquinas fora de uso" é o total — não filtra nada. -->
   <StatCardGrid>
     <StatCard
       data={{ label: 'Máquinas fora de uso', value: data.summary.total }}
@@ -119,10 +137,14 @@
         hint: 'ainda rendem peça ou conserto',
       }}
       ui={{ tone: 'warning' }}
+      state={{ isSelected: data.filter.type === 'defect' }}
+      actions={{ onClick: () => filterByType('defect') }}
     />
     <StatCard
       data={{ label: 'Lixo', value: data.summary.scrap, hint: 'não ligam mais' }}
       ui={{ tone: 'neutral' }}
+      state={{ isSelected: data.filter.type === 'scrap' }}
+      actions={{ onClick: () => filterByType('scrap') }}
     />
   </StatCardGrid>
 
@@ -133,7 +155,7 @@
     />
   {/if}
 
-  <div class="flex flex-col gap-3">
+  <div bind:this={filtersElement} class="flex scroll-mt-4 flex-col gap-3">
     <TextField
       data={{
         label: 'Buscar',
@@ -144,12 +166,29 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-      <OptionPicker
-        data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo de descarte', allLabel: 'Com defeito e lixo' }}
-        actions={{ onChange: (value: string) => actions.onTypeChange(value as DisposalType | '') }}
-      />
+    <!-- O filtro com o nome em cima e, à direita, o que age sobre a lista logo abaixo: limpar
+         os filtros e trocar entre tabela e cards. -->
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <FilterField data={{ label: 'Tipo de descarte' }}>
+        <OptionPicker
+          data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por tipo de descarte', allLabel: 'Com defeito e lixo' }}
+          actions={{
+            onChange: (value: string) => actions.onTypeChange(value as DisposalType | ''),
+          }}
+        />
+      </FilterField>
+
+      <div class="ml-auto flex items-center gap-2">
+        {#if hasActiveFilter && !viewState.isFilteredOut}
+          <ActionButton
+            data={{ label: 'Limpar filtros' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+            actions={{ onClick: actions.onClearFilters }}
+          />
+        {/if}
+        <TableViewToggle />
+      </div>
     </div>
   </div>
 
