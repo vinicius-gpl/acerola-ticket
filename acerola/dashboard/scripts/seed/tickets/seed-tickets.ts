@@ -1,9 +1,14 @@
-import { sql } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 
 import { type Database } from '../../../server/src/lib/db/db.type';
+import { ticketHistories } from '../../../server/src/lib/db/schema/ticket-histories.schema';
 import { tickets } from '../../../server/src/lib/db/schema/tickets.schema';
 import { openSeedDatabase, report } from '../seed.util';
+import { timelineOf } from './ticket-histories.data';
 import { TICKETS_SEED } from './tickets.data';
+
+/** Quantas linhas vão por `insert`: o Postgres tem teto de parâmetros por comando. */
+const HISTORY_BATCH_SIZE = 500;
 
 /**
  * Grava os chamados de teste.
@@ -41,8 +46,29 @@ export async function seedTickets(db: Database): Promise<number> {
     });
 
   await syncIdSequence(db);
+  await seedTimelines(db);
 
   return TICKETS_SEED.length;
+}
+
+/**
+ * Regrava a LINHA DO TEMPO de cada chamado de teste.
+ *
+ * Apaga e grava de novo, em vez de atualizar por `id`: o histórico não tem um identificador
+ * estável entre execuções (a migration já criou alguns para os chamados antigos), e é a linha
+ * do tempo INTEIRA que precisa voltar ao original — inclusive sem o que alguém lançou num
+ * chamado de teste pela tela. Só mexe nos chamados deste seed; os abertos pelo formulário
+ * ficam como estão.
+ */
+async function seedTimelines(db: Database): Promise<void> {
+  const seededIds = TICKETS_SEED.map((ticket) => ticket.id as number);
+  const histories = TICKETS_SEED.flatMap(timelineOf);
+
+  await db.delete(ticketHistories).where(inArray(ticketHistories.ticketId, seededIds));
+
+  for (let start = 0; start < histories.length; start += HISTORY_BATCH_SIZE) {
+    await db.insert(ticketHistories).values(histories.slice(start, start + HISTORY_BATCH_SIZE));
+  }
 }
 
 /**
