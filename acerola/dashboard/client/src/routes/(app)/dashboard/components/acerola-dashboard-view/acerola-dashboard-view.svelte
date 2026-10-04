@@ -175,6 +175,7 @@
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: viewState, actions }: AcerolaDashboardViewProps = $props();
@@ -461,7 +462,13 @@
           data-slot="worst-machines-cards-mobile"
         >
           {#each summary.worstMachines as machine (machine.computerId)}
-            <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
+            <!-- PROTÓTIPO do preenchimento no hover: a cor da situação entra por onde o mouse
+                 entrou. Só nestes cartões, para validar antes de levar às outras listas. -->
+            <div
+              use:fillFromPointer
+              style:--fill-color={fillColorOf(healthStatusTone(machine.healthStatus))}
+              class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+            >
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0 flex-1">
                   <p class="text-foreground font-medium break-words">

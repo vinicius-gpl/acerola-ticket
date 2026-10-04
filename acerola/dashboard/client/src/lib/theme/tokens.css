@@ -386,6 +386,53 @@
   }
 }
 
+/* ==========================================================================
+   O PREENCHIMENTO NO HOVER — a cor do status entra por onde o mouse entrou.
+
+   Um círculo da cor do tom nasce no ponto em que o cursor cruzou a borda e cresce até
+   cobrir o item; ao sair, encolhe em direção ao ponto de saída. Quem informa os dois pontos
+   é a action `fillFromPointer` (`lib/motion/hover-fill.ts`), por `--fill-x`/`--fill-y`; a cor
+   vem em `--fill-color`.
+
+   É LEVE DE PROPÓSITO: a única coisa animada é `transform: scale` de uma camada só, que o
+   navegador entrega à placa de vídeo sem redesenhar o conteúdo — nada de animar cor de fundo,
+   sombra ou tamanho. E só o item sob o mouse anima, então 50 itens custam o mesmo que 5.
+
+   O círculo tem 3× a largura do item: de qualquer ponto de entrada ele alcança o canto mais
+   distante. `isolation` + `z-index: -1` o deixam ACIMA do fundo do item e ABAIXO do texto.
+   Quem pediu menos movimento ao sistema vê a cor aparecer e sumir, sem crescer.
+   ========================================================================== */
+@utility hover-fill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: var(--fill-y, 50%);
+    left: var(--fill-x, 50%);
+    width: 300%;
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    background-color: var(--fill-color, var(--muted));
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+
+  &:hover::before {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
