@@ -1,25 +1,15 @@
 <script lang="ts">
-  import { cn } from '$lib/utils/cn';
-  import type { HTMLTdAttributes } from 'svelte/elements';
-  import type { Snippet } from 'svelte';
+	import { cn, type WithElementRef } from "$lib/utils/cn.js";
+	import type { HTMLTdAttributes } from "svelte/elements";
 
-  let {
-    class: className,
-    ref = $bindable(null),
-    children,
-    ...restProps
-  }: HTMLTdAttributes & { ref?: HTMLTableCellElement | null; children?: Snippet } = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLTdAttributes> = $props();
 </script>
 
-<td
-  bind:this={ref}
-  data-slot="table-cell"
-  class={cn(
-    "px-6 py-3.5 align-middle text-sm [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-    "[&:has(button)]:whitespace-nowrap [&_button]:align-middle",
-    className
-  )}
-  {...restProps}
->
-  {@render children?.()}
+<td bind:this={ref} data-slot="table-cell" class={cn("p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0", className)} {...restProps}>
+	{@render children?.()}
 </td>

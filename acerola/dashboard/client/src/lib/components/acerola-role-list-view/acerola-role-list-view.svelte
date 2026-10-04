@@ -99,7 +99,7 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
