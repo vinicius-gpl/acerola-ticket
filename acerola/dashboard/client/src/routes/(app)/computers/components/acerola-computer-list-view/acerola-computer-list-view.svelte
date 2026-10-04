@@ -124,6 +124,7 @@
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
   import { formatTimeAgo } from '$lib/utils/format-machine';
 
@@ -270,7 +271,12 @@
       data-slot="computer-cards-mobile"
     >
       {#each data.computers as computer (computer.id)}
-        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
+        <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+        <div
+          use:fillFromPointer
+          style:--fill-color={fillColorOf(healthStatusTone(computer.healthStatus))}
+          class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+        >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
               <span class="block font-medium text-ink-900 break-words leading-snug">

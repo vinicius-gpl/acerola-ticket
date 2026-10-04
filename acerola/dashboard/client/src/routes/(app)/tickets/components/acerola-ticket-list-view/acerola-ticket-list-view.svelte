@@ -147,6 +147,7 @@
   } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state, actions }: AcerolaTicketListViewProps = $props();
@@ -352,7 +353,12 @@
           data-slot="ticket-cards-mobile"
         >
           {#each data.tickets as ticket (ticket.id)}
-            <div class="flex flex-col gap-3 rounded-surface border border-border bg-card p-4 shadow-xs">
+            <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+            <div
+              use:fillFromPointer
+              style:--fill-color={fillColorOf(ticketStatusTone(ticket.status))}
+              class="hover-fill flex flex-col gap-3 rounded-surface border border-border bg-card p-4 shadow-xs"
+            >
               <div class="flex items-center justify-between gap-2">
                 <span
                   class="font-mono text-xs font-semibold text-ink-900"

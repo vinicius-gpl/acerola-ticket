@@ -462,8 +462,7 @@
           data-slot="worst-machines-cards-mobile"
         >
           {#each summary.worstMachines as machine (machine.computerId)}
-            <!-- PROTÓTIPO do preenchimento no hover: a cor da situação entra por onde o mouse
-                 entrou. Só nestes cartões, para validar antes de levar às outras listas. -->
+            <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
             <div
               use:fillFromPointer
               style:--fill-color={fillColorOf(healthStatusTone(machine.healthStatus))}

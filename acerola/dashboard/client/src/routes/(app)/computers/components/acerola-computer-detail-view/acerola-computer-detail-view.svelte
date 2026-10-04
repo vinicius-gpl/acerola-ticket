@@ -279,6 +279,7 @@
   import ComputerBlockDialog from '../acerola-computer-block-dialog/acerola-computer-block-dialog.svelte';
   import ComputerDisposalDialog from '../acerola-computer-disposal-dialog/acerola-computer-disposal-dialog.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
   import { formatPercent, formatTimeAgo } from '$lib/utils/format-machine';
@@ -575,7 +576,12 @@
         data-slot="alert-cards-mobile"
       >
         {#each data.alerts as alert (alert.id)}
-          <div class="border-border/70 bg-card rounded-surface border p-3 shadow-xs">
+          <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+          <div
+            use:fillFromPointer
+            style:--fill-color={fillColorOf(alert.recoveredAt ? 'neutral' : 'danger')}
+            class="hover-fill border-border/70 bg-card rounded-surface border p-3 shadow-xs"
+          >
             <div class="flex items-start justify-between gap-2">
               <span class="font-medium text-ink-900 text-sm">
                 {metricLabel(alert.metric)}
