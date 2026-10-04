@@ -169,7 +169,7 @@
                     icon: Trash2,
                     isIconOnly: true,
                     className:
-                      'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                      'text-ink-500 hover:text-destructive hover:bg-destructive/10',
                   }}
                   actions={{ onClick: () => actions.onAskRemove(movement) }}
                 />
@@ -212,7 +212,7 @@
           <TableBody>
             {#each data.movements as movement (movement.id)}
               <TableRow class="align-top">
-                <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                <TableCell class="text-ink-500 whitespace-nowrap text-xs">
                   {formatDateTime(movement.createdAt)}
                 </TableCell>
                 <TableCell>
@@ -221,14 +221,14 @@
                     ui={{ tone: movementTypeTone(movement.type), size: 'sm' }}
                   />
                   {#if movement.note}
-                    <span class="text-neutral-400 block text-xs break-words">{movement.note}</span>
+                    <span class="text-ink-500 block text-xs break-words">{movement.note}</span>
                   {/if}
                 </TableCell>
-                <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[200px] break-words">
+                <TableCell class="text-ink-700 max-w-[200px] break-words">
                   {destinationOf(movement)}
                 </TableCell>
-                <TableCell class="text-neutral-500 break-words text-xs">{movement.handledBy ?? '—'}</TableCell>
-                <TableCell class="text-neutral-900 dark:text-neutral-100 font-semibold tabular-nums">
+                <TableCell class="text-ink-500 break-words text-xs">{movement.handledBy ?? '—'}</TableCell>
+                <TableCell class="text-ink-900 font-semibold tabular-nums">
                   {movement.balanceAfter}
                 </TableCell>
                 <TableCell class="text-right whitespace-nowrap">
@@ -241,7 +241,7 @@
                         icon: Trash2,
                         isIconOnly: true,
                         className:
-                          'text-neutral-400 hover:text-red-600 hover:bg-red-500/10 dark:text-neutral-500 dark:hover:text-red-400',
+                          'text-ink-500 hover:text-destructive hover:bg-destructive/10',
                       }}
                       actions={{ onClick: () => actions.onAskRemove(movement) }}
                     />
