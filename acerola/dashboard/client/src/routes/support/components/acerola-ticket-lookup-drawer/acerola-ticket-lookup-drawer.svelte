@@ -21,8 +21,9 @@
    * nesta tela veio ABRIR um chamado, não consultar um — deixar a consulta fora do fluxo
    * principal é o que dá à página inteira espaço para o formulário em etapas, sem scroll.
    *
-   * O chamado que chega aqui já vem podado pelo servidor — sem telefone, sem responsável e
-   * sem a solução. Esta tela não esconde nada: ela simplesmente não recebe.
+   * O chamado que chega aqui já vem podado pelo servidor — sem telefone e sem responsável, e
+   * da linha do tempo só os históricos que o TI marcou como visíveis para quem abriu. Esta
+   * tela não esconde nada: ela simplesmente não recebe.
    */
   export type AcerolaTicketLookupDrawerProps = {
     data: {
@@ -52,6 +53,7 @@
 
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import HistoryTimeline from '$lib/components/acerola-history-timeline/acerola-history-timeline.svelte';
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
@@ -187,6 +189,18 @@
               Abrir o print enviado
             </a>
           {/if}
+
+          <!-- O ANDAMENTO: é o que a pessoa veio buscar. "Aguardando a peça chegar" responde
+               mais do que o selo da situação sozinho. -->
+          <div class="border-border/70 flex flex-col gap-3 border-t pt-3.5">
+            <p class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+              Andamento
+            </p>
+            <HistoryTimeline
+              data={{ histories: ticket.histories }}
+              ui={{ emptyLabel: 'Ainda não há andamento registrado neste chamado.' }}
+            />
+          </div>
         </div>
       {/if}
     </div>

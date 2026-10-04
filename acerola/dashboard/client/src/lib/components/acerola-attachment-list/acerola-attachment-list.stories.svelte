@@ -8,6 +8,7 @@
   const file = (over: Record<string, unknown> = {}) => ({
     id: 1,
     ticketId: 7,
+    historyId: null,
     kind: 'pdf' as const,
     origin: 'support' as const,
     fileName: 'nota-fiscal.pdf',

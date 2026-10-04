@@ -39,6 +39,7 @@ const dashboard: TicketDashboard = {
   total: 12,
   open: 5,
   inProgress: 2,
+  waiting: 0,
   resolved: 4,
   cancelled: 1,
   averageResolutionHours: 1.8,
@@ -115,8 +116,41 @@ describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Em atendimento: filtrar a lista' }));
     expect(onStatusChange).toHaveBeenLastCalledWith('in_progress');
 
+    expect(onStatusChange).toHaveBeenCalledTimes(2);
+  });
+
+  /* "Aguardando" e "Resolvidos" contam MAIS DE UM estágio: o clique filtra pelo grupo inteiro,
+     para o número do cartão e o tamanho da lista baterem. */
+  it('filters by the whole group of stages on the cards that count more than one', async () => {
+    const onStatusGroupChange = vi.fn();
+    const onStatusChange = vi.fn();
+    setup({ actions: { ...actions, onStatusChange, onStatusGroupChange } });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aguardando: filtrar a lista' }));
+    expect(onStatusGroupChange).toHaveBeenLastCalledWith('waiting');
+
     await userEvent.click(screen.getByRole('button', { name: 'Resolvidos: filtrar a lista' }));
-    expect(onStatusChange).toHaveBeenLastCalledWith('resolved');
+    expect(onStatusGroupChange).toHaveBeenLastCalledWith('solved');
+    expect(onStatusChange).not.toHaveBeenCalled();
+  });
+
+  it('marks the group card whose filter is on, and clicking it again clears it', async () => {
+    const onStatusGroupChange = vi.fn();
+    setup({
+      data: {
+        tickets: [ticket()],
+        total: 1,
+        dashboard,
+        filter: { ...emptyFilter, statusGroup: 'waiting' },
+      },
+      actions: { ...actions, onStatusGroupChange },
+    });
+
+    const card = screen.getByRole('button', { name: 'Aguardando: tirar o filtro' });
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(card);
+    expect(onStatusGroupChange).toHaveBeenLastCalledWith('');
   });
 
   it('marks the card whose filter is on, and clicking it again clears the filter', async () => {
@@ -154,11 +188,12 @@ describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
   });
 
   // triste
-  /* O tempo médio não corresponde a nenhum filtro: não pode parecer clicável. */
-  it('does not turn the average-time card into a shortcut', () => {
+  /* O tempo médio é uma LEITURA dos resolvidos, e não uma quinta contagem: mora na dica do
+     cartão deles, e não vira um atalho próprio. */
+  it('does not turn the average time into a shortcut of its own', () => {
     setup();
 
-    expect(screen.queryByRole('button', { name: /Tempo médio/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Tempo médio/i })).toBeNull();
   });
 
   it('hides the clear button while no filter is on', () => {
@@ -182,7 +217,7 @@ describe('AcerolaTicketListView', () => {
     expect(within(table).getByText('Aberto')).toBeInTheDocument();
   });
 
-  it('asks to attend the ticket that was clicked', async () => {
+  it('asks to open the ticket that was clicked', async () => {
     const onAnswer = vi.fn();
     const only = ticket({ id: 42, protocol: 'CH-0042' });
     setup({
@@ -190,7 +225,7 @@ describe('AcerolaTicketListView', () => {
       actions: { ...actions, onAnswer },
     });
 
-    await userEvent.click(screen.getAllByRole('button', { name: /atender/i })[0]!);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Abrir' })[0]!);
 
     expect(onAnswer).toHaveBeenCalledWith(only);
   });
@@ -198,7 +233,7 @@ describe('AcerolaTicketListView', () => {
   it('shows the indicators over every ticket, not only the ones listed', () => {
     setup();
 
-    expect(screen.getByText('1,8 h')).toBeInTheDocument();
+    expect(screen.getByText('tempo médio: 1,8 h')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 

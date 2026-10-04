@@ -2,17 +2,15 @@
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
-  import { useTicketAnswerModel, type TicketAnswerModel } from './use-ticket-answer.svelte';
+  import { useTicketDataFormModel, type TicketDataFormModel } from './use-ticket-data-form.svelte';
 
   /** Mesmo apoio dos demais view-models: o model precisa de um componente para existir. */
   let {
     ticket,
-    onSaved,
     onReady,
   }: {
     ticket: Ticket;
-    onSaved: () => void;
-    onReady: (model: TicketAnswerModel) => void;
+    onReady: (model: TicketDataFormModel) => void;
   } = $props();
 
   setQueryClientContext(
@@ -21,5 +19,6 @@
     }),
   );
 
-  onReady(useTicketAnswerModel({ ticket, onSaved }));
+  // svelte-ignore state_referenced_locally
+  onReady(useTicketDataFormModel({ ticket }));
 </script>

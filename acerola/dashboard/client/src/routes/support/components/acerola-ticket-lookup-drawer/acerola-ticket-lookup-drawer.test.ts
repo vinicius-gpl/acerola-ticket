@@ -18,6 +18,7 @@ const ticket: PublicTicket = {
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
   attachments: [],
+  histories: [],
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 
@@ -74,7 +75,41 @@ describe('AcerolaTicketLookupDrawer', () => {
     expect(screen.getByText('111 222 333')).toBeInTheDocument();
   });
 
+  /* O andamento é o que a pessoa veio buscar: "aguardando a peça chegar" responde mais do que
+     o selo da situação sozinho. */
+  it('shows the timeline the requester is allowed to see', () => {
+    setup({
+      data: {
+        protocol: 'CH-0007',
+        ticket: {
+          ...ticket,
+          histories: [
+            {
+              id: 1,
+              type: 'waiting_third_party',
+              description: 'Peça pedida ao fornecedor.',
+              statusAfter: 'waiting_third_party',
+              authorName: 'Suporte TI',
+              createdAt: '2026-09-15T13:00:00.000Z',
+              attachments: [],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(screen.getByText('Andamento')).toBeInTheDocument();
+    expect(screen.getByText('Peça pedida ao fornecedor.')).toBeInTheDocument();
+    expect(screen.getByText('Aguardando terceiro ou peça')).toBeInTheDocument();
+  });
+
   // triste
+  it('says there is no progress yet instead of showing an empty timeline', () => {
+    setup({ data: { protocol: 'CH-0007', ticket } });
+
+    expect(screen.getByText(/ainda não há andamento registrado/i)).toBeInTheDocument();
+  });
+
   it('stays closed until asked to open', () => {
     setup({ state: { isOpen: false } });
 

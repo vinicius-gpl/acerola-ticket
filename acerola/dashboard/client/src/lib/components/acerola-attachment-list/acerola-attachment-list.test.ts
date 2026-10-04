@@ -7,6 +7,7 @@ import AttachmentList, { fileSizeOf } from './acerola-attachment-list.svelte';
 const attachment = (over: Record<string, unknown> = {}) => ({
   id: 1,
   ticketId: 7,
+  historyId: null,
   kind: 'pdf' as const,
   /* O padrão é o do TI: é o lado que a ficha do painel gerencia. O arquivo de quem abriu o
      chamado é pedido explicitamente nos testes que tratam da regra de dono. */
