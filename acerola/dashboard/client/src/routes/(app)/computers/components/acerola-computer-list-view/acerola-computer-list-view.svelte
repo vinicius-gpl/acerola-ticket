@@ -86,6 +86,9 @@
     tone: healthStatusTone(status),
   }));
 
+  /** "Arquivadas": a opção sem valor ("Ocultar") vem do `allLabel` do seletor. */
+  const ARCHIVED_OPTIONS = [{ value: 'yes', label: 'Mostrar' }];
+
   /**
    * O nome que a pessoa reconhece.
    *
@@ -99,6 +102,7 @@
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import HardDrive from '@lucide/svelte/icons/hard-drive';
   import Plus from '@lucide/svelte/icons/plus';
   import SearchX from '@lucide/svelte/icons/search-x';
@@ -106,6 +110,7 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import ReportExportActions from '$lib/components/acerola-report-export-actions/acerola-report-export-actions.svelte';
@@ -132,6 +137,30 @@
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(
+    Boolean(
+      data.filter.search ||
+        data.filter.department ||
+        data.filter.healthStatus ||
+        data.filter.includeArchived,
+    ),
+  );
+
+  /* Quem clica num cartão do topo precisa VER o resultado: a tela rola até os filtros.
+     Variável comum, e não `$state`: este componente recebe uma prop chamada `state`, e com ela
+     o compilador lê `$state(...)` como inscrição numa store. */
+  let filtersElement: HTMLElement | null = null;
+
+  function filterByHealth(status: HealthStatus) {
+    actions.onHealthStatusChange(data.filter.healthStatus === status ? '' : status);
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filtersElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -168,10 +197,16 @@
       ui={{ tone: 'success' }}
       state={{ isLoading: state.isSummaryLoading }}
     />
+    <!-- Estes dois são ATALHOS do filtro de saúde: clicar liga o mesmo filtro das pastilhas, e
+         clicar de novo desliga. "Máquinas" e "Online agora" não têm filtro correspondente. -->
     <StatCard
       data={{ label: 'Saúde crítica', value: summary?.critical ?? 0 }}
       ui={{ tone: 'danger' }}
-      state={{ isLoading: state.isSummaryLoading }}
+      state={{
+        isLoading: state.isSummaryLoading,
+        isSelected: data.filter.healthStatus === 'critical',
+      }}
+      actions={{ onClick: () => filterByHealth('critical') }}
     />
     <StatCard
       data={{
@@ -180,13 +215,17 @@
         hint: summary?.neverSeen ? `${summary.neverSeen} sem o agente instalado` : null,
       }}
       ui={{ tone: 'warning' }}
-      state={{ isLoading: state.isSummaryLoading }}
+      state={{
+        isLoading: state.isSummaryLoading,
+        isSelected: data.filter.healthStatus === 'attention',
+      }}
+      actions={{ onClick: () => filterByHealth('attention') }}
     />
   </StatCardGrid>
 
   <!-- Os filtros ficam juntos e acima da lista, para a pessoa ver de uma vez o que está
        limitando o que ela enxerga. -->
-  <div class="flex flex-col gap-3">
+  <div bind:this={filtersElement} class="flex scroll-mt-4 flex-col gap-3">
     <TextField
       data={{
         label: 'Buscar',
@@ -197,8 +236,11 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+    <!-- Uma fileira, cada filtro com o nome em cima. "Arquivadas" era uma caixa de seleção
+         solta embaixo dos outros; agora é um filtro como os demais, com as duas escolhas à
+         vista. À direita, o que age sobre a lista: limpar os filtros. -->
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <FilterField data={{ label: 'Departamento' }}>
         <OptionPicker
           data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
@@ -206,6 +248,8 @@
             onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
           }}
         />
+      </FilterField>
+      <FilterField data={{ label: 'Saúde' }}>
         <OptionPicker
           data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por saúde', allLabel: 'Toda a saúde' }}
@@ -213,16 +257,26 @@
             onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
           }}
         />
-      </div>
-      <label class="text-ink-700 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          class="border-ink-300 size-4 rounded-chip"
-          checked={data.filter.includeArchived}
-          onchange={(event) => actions.onArchivedChange(event.currentTarget.checked)}
+      </FilterField>
+      <FilterField data={{ label: 'Arquivadas' }}>
+        <OptionPicker
+          data={{ value: data.filter.includeArchived ? 'yes' : '', options: ARCHIVED_OPTIONS }}
+          ui={{ ariaLabel: 'Máquinas arquivadas', allLabel: 'Ocultar' }}
+          actions={{ onChange: (value: string) => actions.onArchivedChange(value === 'yes') }}
         />
-        Mostrar máquinas arquivadas
-      </label>
+      </FilterField>
+
+      <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
+           limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. -->
+      {#if hasActiveFilter && !state.isFilteredOut}
+        <div class="ml-auto">
+          <ActionButton
+            data={{ label: 'Limpar filtros' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+            actions={{ onClick: actions.onClearFilters }}
+          />
+        </div>
+      {/if}
     </div>
   </div>
 
