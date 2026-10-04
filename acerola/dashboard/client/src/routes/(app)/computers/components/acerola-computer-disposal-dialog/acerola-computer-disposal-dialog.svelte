@@ -47,10 +47,10 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/acerola-dialog/acerola-dialog';
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import TextAreaField from '$lib/components/acerola-text-area-field/acerola-text-area-field.svelte';
 
   import Trash2 from '@lucide/svelte/icons/trash-2';
 

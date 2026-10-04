@@ -8,7 +8,7 @@ import {
 
 import { readError } from '$lib/api/http-client';
 import { partsApi } from '$lib/api/parts.api';
-import { type PartFormField } from '$lib/components/part-form-dialog/part-form-dialog.svelte';
+import { type PartFormField } from '$lib/components/acerola-part-form-dialog/acerola-part-form-dialog.svelte';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { PARTS_QUERY_KEY } from '$lib/hooks/use-part-list/use-part-list.svelte';

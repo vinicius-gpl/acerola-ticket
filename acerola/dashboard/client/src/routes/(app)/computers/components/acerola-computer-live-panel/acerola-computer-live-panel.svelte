@@ -13,8 +13,8 @@
 </script>
 
 <script lang="ts">
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
-  import UsageMeter from '$lib/components/usage-meter/usage-meter.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
+  import UsageMeter from '$lib/components/acerola-usage-meter/acerola-usage-meter.svelte';
   import { formatBytes, formatPercent } from '$lib/utils/format-machine';
   import MonitorOff from '@lucide/svelte/icons/monitor-off';
 

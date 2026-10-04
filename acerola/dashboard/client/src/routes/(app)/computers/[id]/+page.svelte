@@ -3,11 +3,11 @@
   import { page } from '$app/state';
   import HardDrive from '@lucide/svelte/icons/hard-drive';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ComputerDetailView from '../components/acerola-computer-detail-view/acerola-computer-detail-view.svelte';
   import ComputerTokenDialog from '../components/acerola-computer-token-dialog/acerola-computer-token-dialog.svelte';
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import { useComputerDetailModel } from '$lib/hooks/use-computer-detail/use-computer-detail.svelte';
   import MaintenanceFormSlot from '../../maintenance/maintenance-form-slot.svelte';
   import ComputerFormSlot from '../computer-form-slot.svelte';

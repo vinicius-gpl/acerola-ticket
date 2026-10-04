@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import AppShell from '$lib/components/app-shell/app-shell.svelte';
+  import AppShell from '$lib/components/acerola-app-shell/acerola-app-shell.svelte';
   import { useAppShellModel } from '$lib/hooks/use-app-shell/use-app-shell.svelte';
   import type { LayoutData } from './$types';
 

@@ -67,16 +67,16 @@
   import SearchX from '@lucide/svelte/icons/search-x';
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import StatCard from '$lib/components/stat-card/stat-card.svelte';
-  import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
-  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
+  import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
+  import StatCardGrid from '$lib/components/acerola-stat-card-grid/acerola-stat-card-grid.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
+  import TableViewToggle from '$lib/components/acerola-table-view-toggle/acerola-table-view-toggle.svelte';
   import {
     Table,
     TableActions,
@@ -86,7 +86,7 @@
     TableHeader,
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
-  import TextField from '$lib/components/text-field/text-field.svelte';
+  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDate } from '$lib/utils/format-date';

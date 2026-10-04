@@ -67,12 +67,12 @@
 </script>
 
 <script lang="ts">
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import PersonAvatar from '$lib/components/person-avatar/person-avatar.svelte';
-  import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
-  import Timeline from '$lib/components/timeline/timeline.svelte';
-  import TimelineStep from '$lib/components/timeline-step/timeline-step.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
+  import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
+  import Timeline from '$lib/components/acerola-timeline/acerola-timeline.svelte';
+  import TimelineStep from '$lib/components/acerola-timeline-step/acerola-timeline-step.svelte';
   import {
     Dialog,
     DialogContent,

@@ -77,12 +77,12 @@
 </script>
 
 <script lang="ts">
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
-  import TextAreaField from '$lib/components/text-area-field/text-area-field.svelte';
-  import TextField from '$lib/components/text-field/text-field.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
+  import TextAreaField from '$lib/components/acerola-text-area-field/acerola-text-area-field.svelte';
+  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
     Dialog,
     DialogContent,

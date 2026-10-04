@@ -71,14 +71,14 @@
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
   import { Skeleton } from '$lib/components/acerola-skeleton/acerola-skeleton';
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import ProgressBar from '$lib/components/progress-bar/progress-bar.svelte';
-  import SelectField from '$lib/components/select-field/select-field.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
-  import TextField from '$lib/components/text-field/text-field.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
+  import ProgressBar from '$lib/components/acerola-progress-bar/acerola-progress-bar.svelte';
+  import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
+  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
 
   let { data, state, actions }: AcerolaTaskListViewProps = $props();
 

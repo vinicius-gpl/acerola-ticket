@@ -1,5 +1,5 @@
 <script lang="ts">
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
 </script>
 
 <!-- Endereço que não existe. Não é erro do sistema, então não é tela vermelha: é a mesma

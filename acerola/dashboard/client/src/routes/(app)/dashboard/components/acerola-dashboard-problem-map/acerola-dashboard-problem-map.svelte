@@ -64,9 +64,9 @@
 </script>
 
 <script lang="ts">
-  import DonutChart from '$lib/components/donut-chart/donut-chart.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
+  import DonutChart from '$lib/components/acerola-donut-chart/acerola-donut-chart.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import PanelCard from '$lib/components/acerola-panel-card/acerola-panel-card.svelte';
 
   let { data, state: viewState, ui, actions }: AcerolaDashboardProblemMapProps = $props();
 

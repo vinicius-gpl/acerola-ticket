@@ -11,7 +11,7 @@
 </script>
 
 <script lang="ts">
-  import MovementFormDialog from '$lib/components/movement-form-dialog/movement-form-dialog.svelte';
+  import MovementFormDialog from '$lib/components/acerola-movement-form-dialog/acerola-movement-form-dialog.svelte';
   import { useMovementFormModel } from '$lib/hooks/use-movement-form/use-movement-form.svelte';
 
   let { part, type, onClose }: MovementFormSlotProps = $props();

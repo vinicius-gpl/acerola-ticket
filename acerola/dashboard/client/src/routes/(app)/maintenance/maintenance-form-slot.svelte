@@ -17,7 +17,7 @@
 </script>
 
 <script lang="ts">
-  import MaintenanceFormDialog from '$lib/components/maintenance-form-dialog/maintenance-form-dialog.svelte';
+  import MaintenanceFormDialog from '$lib/components/acerola-maintenance-form-dialog/acerola-maintenance-form-dialog.svelte';
   import { useMaintenanceFormModel } from '$lib/hooks/use-maintenance-form/use-maintenance-form.svelte';
 
   let { maintenance, computerId = null, onClose }: MaintenanceFormSlotProps = $props();

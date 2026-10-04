@@ -2,8 +2,8 @@
   import { type InternalRole } from '@template/shared/schemas/internal-role.schema';
   import { ROLE_CONTEXT_LABELS } from '@template/shared/schemas/user.schema';
 
-  import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
-  import RoleListView from '$lib/components/role-list-view/role-list-view.svelte';
+  import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
+  import RoleListView from '$lib/components/acerola-role-list-view/acerola-role-list-view.svelte';
   import { useRolesModel } from '$lib/hooks/use-roles/use-roles.svelte';
   import RoleFormSlot from './role-form-slot.svelte';
   import type { PageData } from './$types';

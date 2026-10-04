@@ -67,7 +67,7 @@
 </script>
 
 <script lang="ts">
-  import AreaChart from '$lib/components/area-chart/area-chart.svelte';
+  import AreaChart from '$lib/components/acerola-area-chart/acerola-area-chart.svelte';
 
   let { data, state, ui }: AcerolaUsageChartProps = $props();
 

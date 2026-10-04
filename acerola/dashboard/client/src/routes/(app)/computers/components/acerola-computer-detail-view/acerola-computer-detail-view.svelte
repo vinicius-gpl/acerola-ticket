@@ -256,17 +256,17 @@
   import Undo2 from '@lucide/svelte/icons/undo-2';
   import Wrench from '@lucide/svelte/icons/wrench';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
   import ComputerLivePanel from '../acerola-computer-live-panel/acerola-computer-live-panel.svelte';
   import ComputerProcessTable from '../acerola-computer-process-table/acerola-computer-process-table.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
-  import StatCard from '$lib/components/stat-card/stat-card.svelte';
-  import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
-  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
+  import PaginationBar from '$lib/components/acerola-pagination-bar/acerola-pagination-bar.svelte';
+  import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
+  import StatCardGrid from '$lib/components/acerola-stat-card-grid/acerola-stat-card-grid.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
+  import TableViewToggle from '$lib/components/acerola-table-view-toggle/acerola-table-view-toggle.svelte';
   import {
     Table,
     TableBody,

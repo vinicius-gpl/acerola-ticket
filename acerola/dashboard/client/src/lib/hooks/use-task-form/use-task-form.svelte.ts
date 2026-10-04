@@ -8,7 +8,7 @@ import {
 
 import { readError } from '$lib/api/http-client';
 import { tasksApi } from '$lib/api/tasks.api';
-import { type TaskFormField } from '$lib/components/task-form-dialog/task-form-dialog.svelte';
+import { type TaskFormField } from '$lib/components/acerola-task-form-dialog/acerola-task-form-dialog.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';

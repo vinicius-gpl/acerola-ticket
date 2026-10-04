@@ -39,8 +39,8 @@
 <script lang="ts">
   import CalendarCheck from '@lucide/svelte/icons/calendar-check';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
   let { data, state: boardState, actions }: AcerolaPreventiveBoardProps = $props();

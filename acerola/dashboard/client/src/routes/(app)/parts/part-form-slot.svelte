@@ -15,7 +15,7 @@
 </script>
 
 <script lang="ts">
-  import PartFormDialog from '$lib/components/part-form-dialog/part-form-dialog.svelte';
+  import PartFormDialog from '$lib/components/acerola-part-form-dialog/acerola-part-form-dialog.svelte';
   import { usePartFormModel } from '$lib/hooks/use-part-form/use-part-form.svelte';
 
   let { part, onClose }: PartFormSlotProps = $props();

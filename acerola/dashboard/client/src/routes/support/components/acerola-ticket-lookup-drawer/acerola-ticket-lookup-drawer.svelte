@@ -50,10 +50,10 @@
   import MonitorSmartphone from '@lucide/svelte/icons/monitor-smartphone';
   import Wrench from '@lucide/svelte/icons/wrench';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
-  import TextField from '$lib/components/text-field/text-field.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
+  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
     Sheet,
     SheetContent,
