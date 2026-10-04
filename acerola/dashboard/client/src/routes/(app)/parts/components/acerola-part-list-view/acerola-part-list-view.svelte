@@ -71,9 +71,13 @@
     label: PART_CONDITION_LABELS[condition],
     tone: partConditionTone(condition),
   }));
+
+  /** "Estoque": a opção sem valor ("Todas") vem do `allLabel` do seletor. */
+  const IN_STOCK_OPTIONS = [{ value: 'yes', label: 'Só com estoque' }];
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import Package from '@lucide/svelte/icons/package';
   import Plus from '@lucide/svelte/icons/plus';
   import SearchX from '@lucide/svelte/icons/search-x';
@@ -81,6 +85,7 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
@@ -105,6 +110,26 @@
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(
+    Boolean(
+      data.filter.search || data.filter.category || data.filter.condition || data.filter.inStockOnly,
+    ),
+  );
+
+  /* Quem clica num cartão do topo precisa VER o resultado: a tela rola até os filtros. A
+     referência só é usada dentro do clique, então é uma variável comum. */
+  let filtersElement: HTMLElement | null = null;
+
+  function toggleInStockOnly() {
+    actions.onInStockOnlyChange(!data.filter.inStockOnly);
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filtersElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -128,10 +153,14 @@
       ui={{ tone: 'brand' }}
       state={{ isLoading: viewState.isSummaryLoading }}
     />
+    <!-- ATALHO do filtro de estoque: clicar liga "só com estoque", clicar de novo desliga.
+         "Tipos de peça" não tem filtro correspondente, e "Sem estoque" também não: o filtro que
+         existe é o contrário dele (esconder o que está zerado). -->
     <StatCard
       data={{ label: 'Peças na prateleira', value: summary?.items ?? 0 }}
       ui={{ tone: 'success' }}
-      state={{ isLoading: viewState.isSummaryLoading }}
+      state={{ isLoading: viewState.isSummaryLoading, isSelected: data.filter.inStockOnly }}
+      actions={{ onClick: toggleInStockOnly }}
     />
     <StatCard
       data={{
@@ -144,7 +173,7 @@
     />
   </StatCardGrid>
 
-  <div class="flex flex-col gap-3">
+  <div bind:this={filtersElement} class="flex scroll-mt-4 flex-col gap-3">
     <TextField
       data={{
         label: 'Buscar',
@@ -155,8 +184,10 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+    <!-- Uma fileira, cada filtro com o nome em cima. "Estoque" era uma caixa de seleção solta
+         embaixo dos outros; agora é um filtro como os demais, com as duas escolhas à vista. -->
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <FilterField data={{ label: 'Categoria' }}>
         <OptionPicker
           data={{ value: data.filter.category, options: CATEGORY_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por categoria', allLabel: 'Todas as categorias' }}
@@ -164,6 +195,8 @@
             onChange: (value: string) => actions.onCategoryChange(value as PartCategory | ''),
           }}
         />
+      </FilterField>
+      <FilterField data={{ label: 'Condição' }}>
         <OptionPicker
           data={{ value: data.filter.condition, options: CONDITION_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por condição', allLabel: 'Novas e usadas' }}
@@ -171,16 +204,26 @@
             onChange: (value: string) => actions.onConditionChange(value as PartCondition | ''),
           }}
         />
-      </div>
-      <label class="text-ink-700 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          class="border-ink-300 size-4 rounded-chip"
-          checked={data.filter.inStockOnly}
-          onchange={(event) => actions.onInStockOnlyChange(event.currentTarget.checked)}
+      </FilterField>
+      <FilterField data={{ label: 'Estoque' }}>
+        <OptionPicker
+          data={{ value: data.filter.inStockOnly ? 'yes' : '', options: IN_STOCK_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por estoque', allLabel: 'Todas' }}
+          actions={{ onChange: (value: string) => actions.onInStockOnlyChange(value === 'yes') }}
         />
-        Só o que tem na prateleira
-      </label>
+      </FilterField>
+
+      <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
+           limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. -->
+      {#if hasActiveFilter && !viewState.isFilteredOut}
+        <div class="ml-auto">
+          <ActionButton
+            data={{ label: 'Limpar filtros' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+            actions={{ onClick: actions.onClearFilters }}
+          />
+        </div>
+      {/if}
     </div>
   </div>
 
