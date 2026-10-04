@@ -336,6 +336,11 @@ describe('ticketListQuerySchema', () => {
     expect(parsed.status).toBeUndefined();
   });
 
+  it('accepts a whole group of stages as one filter', () => {
+    expect(ticketListQuerySchema.parse({ statusGroup: 'waiting' }).statusGroup).toBe('waiting');
+    expect(ticketListQuerySchema.safeParse({ statusGroup: 'fechados' }).success).toBe(false);
+  });
+
   it('accepts the panel filters together', () => {
     const parsed = ticketListQuerySchema.parse({
       status: 'open',

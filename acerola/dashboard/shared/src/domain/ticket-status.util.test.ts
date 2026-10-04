@@ -7,6 +7,8 @@ import {
   isTicketStatus,
   isWaitingTicketStatus,
   TICKET_PRIORITIES,
+  TICKET_STATUS_GROUPS,
+  ticketStatusesOfGroup,
   TICKET_PRIORITY_LABELS,
   TICKET_STATUS_LABELS,
   TICKET_STATUSES,
@@ -82,6 +84,24 @@ describe('ticket stage groups', () => {
     expect(isSolvedTicketStatus('cancelled')).toBe(false);
     expect(isWaitingTicketStatus('in_progress')).toBe(false);
     expect(isClosedTicketStatus('waiting_requester')).toBe(false);
+  });
+});
+
+describe('ticketStatusesOfGroup', () => {
+  // feliz
+  it('groups the stages the queue filters at once', () => {
+    expect(ticketStatusesOfGroup('waiting')).toEqual(['waiting_requester', 'waiting_third_party']);
+    expect(ticketStatusesOfGroup('solved')).toEqual(['resolved', 'resolved_with_caveats']);
+  });
+
+  // triste
+  /* Um grupo vazio filtraria a fila para nada, e o cartão dele nunca acharia chamado. */
+  it('never leaves a group without a stage, nor counts a cancelled ticket as solved', () => {
+    for (const group of TICKET_STATUS_GROUPS) {
+      expect(ticketStatusesOfGroup(group).length).toBeGreaterThan(0);
+    }
+
+    expect(ticketStatusesOfGroup('solved')).not.toContain('cancelled');
   });
 });
 

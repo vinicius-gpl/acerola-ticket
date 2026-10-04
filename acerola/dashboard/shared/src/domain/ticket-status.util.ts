@@ -160,6 +160,22 @@ export function isSolvedTicketStatus(status: TicketStatus): boolean {
   return TICKET_STATUS_CATALOG[status].isSolved;
 }
 
+/**
+ * Os GRUPOS de estágio que a fila sabe filtrar de uma vez.
+ *
+ * Existem porque duas perguntas do painel não cabem num estágio só: "o que está parado
+ * esperando alguém?" são dois estágios, e "o que foi resolvido?" também (com e sem ressalva).
+ * O cartão do topo conta o grupo inteiro — e o clique nele precisa trazer o grupo inteiro,
+ * senão o número do cartão e o tamanho da lista não batem.
+ */
+export const TICKET_STATUS_GROUPS = ['waiting', 'solved'] as const;
+
+export type TicketStatusGroup = (typeof TICKET_STATUS_GROUPS)[number];
+
+export function ticketStatusesOfGroup(group: TicketStatusGroup): readonly TicketStatus[] {
+  return group === 'waiting' ? WAITING_TICKET_STATUSES : SOLVED_TICKET_STATUSES;
+}
+
 /** Urgência informada por quem abre o chamado. */
 export const TICKET_PRIORITIES = ['low', 'medium', 'high'] as const;
 

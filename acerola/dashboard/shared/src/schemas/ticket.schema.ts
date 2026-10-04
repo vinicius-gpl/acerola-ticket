@@ -12,6 +12,7 @@ import {
 import {
   DEFAULT_TICKET_PRIORITY,
   TICKET_PRIORITIES,
+  TICKET_STATUS_GROUPS,
   TICKET_STATUSES,
 } from '../domain/ticket-status.util';
 import { paginationQuerySchema } from './pagination.schema';
@@ -327,6 +328,11 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
   /** Os chamados DESTA máquina — é a consulta da ficha do computador. */
   computerId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
+  /**
+   * Um GRUPO de estágios de uma vez — "aguardando" (os dois) ou "resolvidos" (com e sem
+   * ressalva). É o filtro dos cartões do topo, que contam o grupo inteiro.
+   */
+  statusGroup: z.enum(TICKET_STATUS_GROUPS, chooseFrom('um grupo de estágios')).optional(),
   priority: ticketPrioritySchema.optional(),
   area: ticketAreaSchema.optional(),
   department: ticketDepartmentSchema.optional(),
