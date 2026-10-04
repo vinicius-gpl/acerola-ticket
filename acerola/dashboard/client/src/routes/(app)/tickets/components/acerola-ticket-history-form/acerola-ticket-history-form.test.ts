@@ -126,6 +126,14 @@ describe('AcerolaTicketHistoryForm', () => {
     expect(given.onVisibilityChange).toHaveBeenCalledWith(false);
   });
 
+  /* O celular abre o teclado de números, e a explicação da caixa acompanha o que está marcado. */
+  it('asks for a numeric keyboard on the time field and explains the visibility box', () => {
+    setup();
+
+    expect(screen.getByLabelText(/tempo gasto/i)).toHaveAttribute('inputmode', 'numeric');
+    expect(screen.getByText('Desmarque para uma anotação interna do time.')).toBeInTheDocument();
+  });
+
   // triste
   it('does not announce a closing for a plain progress note', () => {
     setup();

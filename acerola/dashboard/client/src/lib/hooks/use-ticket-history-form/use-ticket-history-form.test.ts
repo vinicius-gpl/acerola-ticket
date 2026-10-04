@@ -13,6 +13,7 @@ import {
   initialTypeFor,
   initialValuesFor,
   submitLabelFor,
+  toMinutesInput,
   toOptionGroups,
   type TicketHistoryFormModel,
 } from './use-ticket-history-form.svelte';
@@ -138,6 +139,24 @@ describe('initialValuesFor', () => {
   });
 });
 
+describe('toMinutesInput', () => {
+  // feliz
+  it('keeps the digits as they were typed', () => {
+    expect(toMinutesInput('30')).toBe('30');
+  });
+
+  // triste
+  it('drops everything that is not a digit', () => {
+    expect(toMinutesInput('1h30')).toBe('130');
+    expect(toMinutesInput('-5,5e2')).toBe('552');
+    expect(toMinutesInput('meia hora')).toBe('');
+  });
+
+  it('does not let the number grow past the size of the biggest time accepted', () => {
+    expect(toMinutesInput('1234567')).toBe('12345');
+  });
+});
+
 describe('submitLabelFor', () => {
   // feliz
   it('says in words that the button closes the ticket', () => {
@@ -219,15 +238,26 @@ describe('useTicketHistoryFormModel', () => {
     expect(ticketsApi.createHistory).not.toHaveBeenCalled();
   });
 
-  it('refuses a time that is not a whole number of minutes', async () => {
+  /* A letra nem entra no campo: quem digita vê na hora que ali só cabe número. */
+  it('keeps only the digits of what is typed in the time field', async () => {
+    const model = mountModel();
+
+    model.actions.onChange('minutesSpent', 'meia hora');
+    await waitFor(() => expect(model.data.fields.minutesSpent.value).toBe(''));
+
+    model.actions.onChange('minutesSpent', '4x5');
+    await waitFor(() => expect(model.data.fields.minutesSpent.value).toBe('45'));
+  });
+
+  it('refuses a time longer than a whole month', async () => {
     const model = mountModel();
 
     model.actions.onChange('description', 'Testei o cabo.');
-    model.actions.onChange('minutesSpent', 'meia hora');
+    model.actions.onChange('minutesSpent', '99999');
     model.actions.onSubmit();
 
     await waitFor(() =>
-      expect(model.data.fields.minutesSpent.error).toBe('Informe o tempo em minutos inteiros'),
+      expect(model.data.fields.minutesSpent.error).toBe('Esse tempo é maior do que um mês inteiro'),
     );
     expect(ticketsApi.createHistory).not.toHaveBeenCalled();
   });

@@ -176,7 +176,10 @@
     }}
   />
 
-  <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
+  <!-- As duas colunas têm a MESMA forma — um rótulo e, embaixo, um controle de 40px — para o
+       campo e a caixa de marcar ficarem na mesma linha. A explicação da caixa vai embaixo dela,
+       no lugar onde o campo ao lado mostra o erro. -->
+  <div class="grid gap-4 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:items-start">
     <TextField
       data={{
         label: 'Tempo gasto (minutos)',
@@ -184,6 +187,7 @@
         value: data.fields.minutesSpent.value,
         placeholder: 'Opcional — ex: 30',
       }}
+      ui={{ inputMode: 'numeric' }}
       state={{ error: data.fields.minutesSpent.error, isDisabled: formState?.isSubmitting }}
       actions={{
         onChange: (value: string) => actions.onChange('minutesSpent', value),
@@ -191,23 +195,30 @@
       }}
     />
 
-    <label
-      class="rounded-box border-border/80 bg-muted/20 text-ink-700 hover:bg-muted/40 flex cursor-pointer items-start gap-2.5 border px-3.5 py-3 text-sm transition-colors"
-    >
-      <input
-        type="checkbox"
-        class="mt-0.5"
-        checked={data.isVisibleToRequester}
-        disabled={formState?.isSubmitting}
-        onchange={(event) => actions.onVisibilityChange(event.currentTarget.checked)}
-      />
-      <span>
-        Quem abriu o chamado pode ver este histórico
-        <span class="text-muted-foreground block text-xs">
-          Desmarque para uma anotação interna do time.
-        </span>
-      </span>
-    </label>
+    <div class="flex min-w-0 flex-col gap-1.5">
+      <span class="text-ink-700 text-sm font-medium" aria-hidden="true">Visibilidade</span>
+      <label
+        class={cn(
+          'control-lg rounded-control border-input bg-card text-foreground flex cursor-pointer items-center gap-2.5 border text-sm transition-colors',
+          'hover:bg-muted/40 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60',
+        )}
+      >
+        <input
+          type="checkbox"
+          class="shrink-0"
+          checked={data.isVisibleToRequester}
+          disabled={formState?.isSubmitting}
+          aria-describedby="history-visibility-hint"
+          onchange={(event) => actions.onVisibilityChange(event.currentTarget.checked)}
+        />
+        <span class="truncate">Quem abriu o chamado pode ver este histórico</span>
+      </label>
+      <p id="history-visibility-hint" class="text-muted-foreground text-xs">
+        {data.isVisibleToRequester
+          ? 'Desmarque para uma anotação interna do time.'
+          : 'Anotação interna: só o time vê.'}
+      </p>
+    </div>
   </div>
 
   <div class="flex flex-col gap-2">

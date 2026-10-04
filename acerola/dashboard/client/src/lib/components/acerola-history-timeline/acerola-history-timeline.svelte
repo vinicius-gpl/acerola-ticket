@@ -56,10 +56,31 @@
     danger: 'bg-destructive',
     brand: 'bg-primary',
   } as const;
+
+  /** O halo em volta do marco: a mesma cor, quase transparente — destaca sem pesar. */
+  const HALO_TONE_CLASSES = {
+    neutral: 'ring-muted-foreground/15',
+    info: 'ring-info/20',
+    success: 'ring-success/20',
+    warning: 'ring-warning/20',
+    danger: 'ring-destructive/20',
+    brand: 'ring-primary/20',
+  } as const;
+
+  /** "02/10/2026 às 23:30" — sem os segundos, que ninguém lê numa linha do tempo. */
+  export function formatHistoryDateTime(value: string): string {
+    const date = new Date(value);
+    const day = date.toLocaleDateString('pt-BR');
+    const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    return `${day} às ${time}`;
+  }
 </script>
 
 <script lang="ts">
+  import Clock from '@lucide/svelte/icons/clock';
   import EyeOff from '@lucide/svelte/icons/eye-off';
+  import Flag from '@lucide/svelte/icons/flag';
   import Lock from '@lucide/svelte/icons/lock';
 
   import AttachmentList from '$lib/components/acerola-attachment-list/acerola-attachment-list.svelte';
@@ -68,10 +89,6 @@
   import { cn } from '$lib/utils/cn';
 
   let { data, ui, state }: AcerolaHistoryTimelineProps = $props();
-
-  function formatDateTime(value: string): string {
-    return new Date(value).toLocaleString('pt-BR');
-  }
 </script>
 
 <!-- Estados na frente, conteúdo por último e sem aninhamento (CONTRIBUTING §2). -->
@@ -87,28 +104,48 @@
   <ol class={cn('flex flex-col', ui?.className)}>
     {#each data.histories as history, index (history.id)}
       {@const tone = ticketHistoryTone(history.type)}
+      {@const isFirst = index === 0}
       {@const isLast = index === data.histories.length - 1}
-      <li class="flex gap-3">
-        <div class="flex flex-col items-center pt-1.5">
-          <span class={cn('size-2.5 shrink-0 rounded-full', DOT_TONE_CLASSES[tone])} aria-hidden="true"></span>
+      <li class="flex gap-4">
+        <!-- O TRILHO: um traço contínuo de cima a baixo, com o marco de cada histórico no meio.
+             O pedaço de cima some no primeiro e o de baixo no último — a linha começa e termina
+             num marco, e não solta no ar. O marco fica na altura do cabeçalho ao lado (24px). -->
+        <div class="flex w-3 shrink-0 flex-col items-center" aria-hidden="true">
+          <span class={cn('h-0.5 w-px', isFirst ? 'bg-transparent' : 'bg-border')}></span>
+          <span
+            class={cn('my-1 size-3 shrink-0 rounded-full ring-4', DOT_TONE_CLASSES[tone], HALO_TONE_CLASSES[tone])}
+          ></span>
           {#if !isLast}
-            <span class="bg-border mt-1 w-px flex-1" aria-hidden="true"></span>
+            <span class="bg-border w-px flex-1"></span>
           {/if}
         </div>
 
-        <div class={cn('flex min-w-0 flex-1 flex-col gap-1.5', isLast ? 'pb-0' : 'pb-5')}>
-          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div class={cn('flex min-w-0 flex-1 flex-col gap-2', isLast ? 'pb-0' : 'pb-6')}>
+          <!-- Tipo e autor à esquerda, a hora à direita: três tamanhos de letra na mesma fileira
+               só alinham se a fileira tiver altura fixa e cada um se centrar nela. -->
+          <div class="flex min-h-6 flex-wrap items-center gap-x-2.5 gap-y-1">
             <StatusBadge data={{ label: ticketHistoryTypeLabel(history.type) }} ui={{ tone, size: 'sm' }} />
-            <span class="text-foreground text-sm font-medium">{history.authorName}</span>
-            <time class="text-muted-foreground text-xs" datetime={history.createdAt}>
-              {formatDateTime(history.createdAt)}
+            <span class="text-foreground min-w-0 truncate text-sm leading-6 font-medium">
+              {history.authorName}
+            </span>
+            <time
+              class="text-muted-foreground ml-auto text-xs leading-6 tabular-nums"
+              datetime={history.createdAt}
+            >
+              {formatHistoryDateTime(history.createdAt)}
             </time>
           </div>
 
-          <div class="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-            <span>Estágio: {ticketStatusLabel(history.statusAfter)}</span>
+          <div class="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <span class="inline-flex items-center gap-1">
+              <Flag class="size-3" aria-hidden="true" />
+              Estágio: {ticketStatusLabel(history.statusAfter)}
+            </span>
             {#if history.minutesSpent !== undefined && history.minutesSpent !== null}
-              <span>Tempo: {formatMinutesSpent(history.minutesSpent)}</span>
+              <span class="inline-flex items-center gap-1">
+                <Clock class="size-3" aria-hidden="true" />
+                Tempo: {formatMinutesSpent(history.minutesSpent)}
+              </span>
             {/if}
             {#if isClosingTicketHistoryType(history.type)}
               <span class="text-foreground inline-flex items-center gap-1 font-semibold">
@@ -124,7 +161,11 @@
             {/if}
           </div>
 
-          <p class="text-foreground/90 text-sm whitespace-pre-line">{history.description}</p>
+          <p
+            class="rounded-box border-border/70 bg-muted/20 text-foreground/90 border px-3.5 py-2.5 text-sm whitespace-pre-line"
+          >
+            {history.description}
+          </p>
 
           {#if history.attachments.length > 0}
             <AttachmentList data={{ attachments: history.attachments }} ui={{ actor: 'requester' }} />

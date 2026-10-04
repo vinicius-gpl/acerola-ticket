@@ -13,6 +13,7 @@ import {
 } from '@template/shared/domain/ticket-history.util';
 import { type TicketStatus } from '@template/shared/domain/ticket-status.util';
 import {
+  HISTORY_MINUTES_MAX,
   ticketHistoryFormSchema,
   type TicketHistoryFormValues,
 } from '@template/shared/schemas/ticket-history.schema';
@@ -155,7 +156,10 @@ export function useTicketHistoryFormModel({
     },
     actions: {
       onTypeChange: (type) => form.setFieldValue('type', type),
-      onChange: (field, value) => form.setFieldValue(field, value),
+      /* O tempo só aceita dígitos JÁ NA DIGITAÇÃO: a letra nem entra no campo. A validação do
+         contrato continua valendo por baixo — é ela que recusa um tempo absurdo. */
+      onChange: (field, value) =>
+        form.setFieldValue(field, field === 'minutesSpent' ? toMinutesInput(value) : value),
       /* `validateField` só marca "tocado" quando existe um `form.Field` montado — este hook
          chama `setFieldValue`/`validateField` direto. Sem marcar aqui, o erro nunca apareceria
          ao SAIR do campo (ver `toFieldState`). */
@@ -209,6 +213,19 @@ export function initialValuesFor(status: TicketStatus): TicketHistoryFormValues 
     isVisibleToRequester: true,
     minutesSpent: '',
   };
+}
+
+/** Quantos dígitos o campo de tempo guarda — os do maior tempo que o contrato aceita. */
+const MINUTES_INPUT_MAX_LENGTH = String(HISTORY_MINUTES_MAX).length;
+
+/**
+ * O que fica no campo de tempo depois de uma tecla: só os dígitos.
+ *
+ * Colar "1h30" vira "130", e não um erro: quem cola vê na hora que o campo é em minutos, em vez
+ * de descobrir só ao enviar.
+ */
+export function toMinutesInput(value: string): string {
+  return value.replace(/\D/g, '').slice(0, MINUTES_INPUT_MAX_LENGTH);
 }
 
 /** O texto do botão de enviar: encerrar é dito com a palavra, não só com a cor. */

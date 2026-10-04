@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 
 import HistoryTimeline, {
+  formatHistoryDateTime,
   formatMinutesSpent,
   type HistoryTimelineEntry,
 } from './acerola-history-timeline.svelte';
@@ -36,6 +37,13 @@ describe('formatMinutesSpent', () => {
   // triste
   it('keeps zero as zero minutes, not as an empty text', () => {
     expect(formatMinutesSpent(0)).toBe('0 min');
+  });
+});
+
+describe('formatHistoryDateTime', () => {
+  // feliz
+  it('writes day and hour without the seconds', () => {
+    expect(formatHistoryDateTime('2026-09-17T12:00:45.000Z')).toMatch(/^\d{2}\/\d{2}\/2026 às \d{2}:\d{2}$/);
   });
 });
 

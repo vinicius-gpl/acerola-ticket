@@ -121,7 +121,7 @@
     data: dataFor('in_progress', 'resolution', {
       fields: {
         description: { value: '', error: 'Descreva o que aconteceu' },
-        minutesSpent: { value: 'meia hora', error: 'Informe o tempo em minutos inteiros' },
+        minutesSpent: { value: '99999', error: 'Esse tempo é maior do que um mês inteiro' },
       },
     }),
     actions,
