@@ -1,11 +1,14 @@
 import { createHash } from 'node:crypto';
 
 import { type INestApplication } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { internalRoles } from '../src/lib/db/schema/internal-roles.schema';
+import { ticketHistories } from '../src/lib/db/schema/ticket-histories.schema';
 import { ticketServiceOrders } from '../src/lib/db/schema/ticket-service-orders.schema';
+import { tickets } from '../src/lib/db/schema/tickets.schema';
 import { BIA, CAIO, asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
 
 /**
@@ -233,6 +236,30 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const issued = await started.db.select().from(ticketServiceOrders);
 
     expect(issued.map((row) => row.version).sort()).toEqual([1, 2]);
+  });
+
+  /* A regra "registro não se reescreve" vale no BANCO, e não só nas rotas: quem escrever SQL à
+     mão também é recusado. Aqui o teste faz exatamente isso — vai direto ao banco. */
+  it('refuses, in the database itself, to rewrite or erase the records of a ticket', async () => {
+    const created = await openTicket().expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/service-order`)
+      .set(asCaio())
+      .expect(201);
+
+    const { db } = started;
+    const ofTicket = eq(ticketHistories.ticketId, created.body.id);
+
+    await expect(db.update(ticketHistories).set({ description: 'Reescrito.' }).where(ofTicket)).rejects.toThrow();
+    await expect(db.delete(ticketHistories).where(ofTicket)).rejects.toThrow();
+    await expect(db.update(ticketServiceOrders).set({ fileHash: '0'.repeat(64) })).rejects.toThrow();
+    await expect(db.delete(ticketServiceOrders)).rejects.toThrow();
+    await expect(db.delete(tickets).where(eq(tickets.id, created.body.id))).rejects.toThrow();
+
+    const [history] = await db.select().from(ticketHistories).where(ofTicket);
+    expect(history?.description).toBe('Chamado aberto.');
+    expect(await db.select().from(ticketServiceOrders)).toHaveLength(1);
+    await request(app.getHttpServer()).get(`/api/tickets/${created.body.id}`).set(asCaio()).expect(200);
   });
 
   it('does not find a service order that was never issued', async () => {

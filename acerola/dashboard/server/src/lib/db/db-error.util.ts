@@ -131,6 +131,12 @@ const CHECK_MESSAGES: Record<string, string> = {
 const UNIQUE_VIOLATION = '23505';
 const FOREIGN_KEY_VIOLATION = '23503';
 const CHECK_VIOLATION = '23514';
+/**
+ * restrict_violation: o banco recusou mexer num registro permanente — é o código dos gatilhos
+ * de histórico, de ordem de serviço emitida e de chamado (migration `ticket_records_append_only`)
+ * e do vínculo `restrict` entre eles.
+ */
+const RESTRICT_VIOLATION = '23001';
 
 /** not_null_violation, invalid_text_representation, string_data_right_truncation. */
 const REFUSED_VALUE_CODES = new Set(['23502', '22P02', '22001', '22003']);
@@ -169,10 +175,11 @@ function connectionFailure(error: unknown): HttpException | null {
   );
 }
 
-export function toHttpException(error: unknown, context: string): HttpException {
-  const postgresError = findPostgresError(error);
-  if (!postgresError) return connectionFailure(error) ?? unknownFailure(error, context);
-
+/**
+ * A recusa por uma REGRA do banco — registro repetido, valor fora da lista, registro permanente,
+ * vínculo quebrado. Nulo quando a falha não foi de regra nenhuma.
+ */
+function brokenRule(postgresError: PostgresErrorShape): HttpException | null {
   const key = constraintNameOf(postgresError);
 
   if (postgresError.code === UNIQUE_VIOLATION) {
@@ -185,11 +192,25 @@ export function toHttpException(error: unknown, context: string): HttpException 
     );
   }
 
+  if (postgresError.code === RESTRICT_VIOLATION) {
+    return new ConflictException('Este registro é permanente: não pode ser alterado nem apagado.');
+  }
+
   if (postgresError.code === FOREIGN_KEY_VIOLATION) {
     return new UnprocessableEntityException(
       'O registro aponta para algo que não existe mais. Recarregue a tela e tente de novo.',
     );
   }
+
+  return null;
+}
+
+export function toHttpException(error: unknown, context: string): HttpException {
+  const postgresError = findPostgresError(error);
+  if (!postgresError) return connectionFailure(error) ?? unknownFailure(error, context);
+
+  const broken = brokenRule(postgresError);
+  if (broken) return broken;
 
   if (REFUSED_VALUE_CODES.has(postgresError.code)) {
     return new UnprocessableEntityException('O banco recusou o valor enviado.');
