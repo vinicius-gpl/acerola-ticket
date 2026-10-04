@@ -1,7 +1,7 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
 
-  import DashboardPeaking from './dashboard-peaking.svelte';
+  import DashboardPeaking from './acerola-dashboard-peaking.svelte';
 
   const machines = [
     { computerId: 1, computerName: 'CONTABIL-03', today: 6, month: 41, topMetric: 'memory' },
@@ -10,7 +10,7 @@
   ] as const;
 
   const { Story } = defineMeta({
-    title: 'Components/DashboardPeaking',
+    title: 'Features/Dashboard/AcerolaDashboardPeaking',
     component: DashboardPeaking,
     parameters: { layout: 'padded' },
   });

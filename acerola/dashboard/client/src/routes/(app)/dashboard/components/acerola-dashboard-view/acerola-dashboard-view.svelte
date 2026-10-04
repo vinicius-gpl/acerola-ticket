@@ -37,7 +37,7 @@
    * Função pura de props: não busca nada e não navega. Por isso abre no Storybook carregando,
    * com o parque em chamas, com tudo em ordem e recém-instalado.
    */
-  export type DashboardViewProps = {
+  export type AcerolaDashboardViewProps = {
     data: { summary: Dashboard | null; days: number };
     state: {
       isLoading: boolean;
@@ -151,10 +151,10 @@
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import AreaChart from '$lib/components/area-chart/area-chart.svelte';
   import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
-  import DashboardMaintenanceLog from '$lib/components/dashboard-maintenance-log/dashboard-maintenance-log.svelte';
-  import DashboardPeaking from '$lib/components/dashboard-peaking/dashboard-peaking.svelte';
-  import DashboardProblemMap from '$lib/components/dashboard-problem-map/dashboard-problem-map.svelte';
-  import DashboardRecurrence from '$lib/components/dashboard-recurrence/dashboard-recurrence.svelte';
+  import DashboardMaintenanceLog from '../acerola-dashboard-maintenance-log/acerola-dashboard-maintenance-log.svelte';
+  import DashboardPeaking from '../acerola-dashboard-peaking/acerola-dashboard-peaking.svelte';
+  import DashboardProblemMap from '../acerola-dashboard-problem-map/acerola-dashboard-problem-map.svelte';
+  import DashboardRecurrence from '../acerola-dashboard-recurrence/acerola-dashboard-recurrence.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
@@ -173,11 +173,11 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
 
-  let { data, state: viewState, actions }: DashboardViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaDashboardViewProps = $props();
 
   const tableView = useTableViewModel();
 

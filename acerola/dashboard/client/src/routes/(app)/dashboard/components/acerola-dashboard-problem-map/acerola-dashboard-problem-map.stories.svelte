@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { fn } from 'storybook/test';
 
-  import DashboardProblemMap from './dashboard-problem-map.svelte';
+  import DashboardProblemMap from './acerola-dashboard-problem-map.svelte';
 
   const byProblemType = [
     { key: 'printer', count: 9 },
@@ -19,7 +19,7 @@
   ];
 
   const { Story } = defineMeta({
-    title: 'Components/DashboardProblemMap',
+    title: 'Features/Dashboard/AcerolaDashboardProblemMap',
     component: DashboardProblemMap,
     parameters: { layout: 'padded' },
   });

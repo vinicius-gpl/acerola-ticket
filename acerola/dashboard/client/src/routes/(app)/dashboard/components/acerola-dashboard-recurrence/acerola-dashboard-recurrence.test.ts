@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import DashboardRecurrence, {
   machineSlices,
   personSlices,
-} from './dashboard-recurrence.svelte';
+} from './acerola-dashboard-recurrence.svelte';
 
 const byPerson = [
   { requesterName: 'Daniela Prado', department: 'recepcao', problemType: 'printer', count: 4 },
@@ -49,7 +49,7 @@ describe('machineSlices', () => {
   });
 });
 
-describe('DashboardRecurrence', () => {
+describe('AcerolaDashboardRecurrence', () => {
   // feliz
   it('starts on the person, and says what that reading points to', () => {
     renderBlock();

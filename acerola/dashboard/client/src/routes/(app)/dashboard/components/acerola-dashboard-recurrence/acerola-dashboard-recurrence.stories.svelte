@@ -1,7 +1,7 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
 
-  import DashboardRecurrence from './dashboard-recurrence.svelte';
+  import DashboardRecurrence from './acerola-dashboard-recurrence.svelte';
 
   const byPerson = [
     { requesterName: 'Daniela Prado', department: 'recepcao', problemType: 'printer', count: 4 },
@@ -14,7 +14,7 @@
   ];
 
   const { Story } = defineMeta({
-    title: 'Components/DashboardRecurrence',
+    title: 'Features/Dashboard/AcerolaDashboardRecurrence',
     component: DashboardRecurrence,
     parameters: { layout: 'padded' },
   });

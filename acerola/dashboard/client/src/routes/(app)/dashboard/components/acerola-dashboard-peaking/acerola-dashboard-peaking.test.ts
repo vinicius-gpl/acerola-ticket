@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
-import DashboardPeaking, { toSlices } from './dashboard-peaking.svelte';
+import DashboardPeaking, { toSlices } from './acerola-dashboard-peaking.svelte';
 
 function peaking(over: Partial<PeakingMachine> = {}): PeakingMachine {
   return {
@@ -64,7 +64,7 @@ describe('toSlices', () => {
   });
 });
 
-describe('DashboardPeaking', () => {
+describe('AcerolaDashboardPeaking', () => {
   // feliz
   it('starts on today, which is what is happening now', () => {
     render(DashboardPeaking, { props: { data: { machines: [peaking()] } } });

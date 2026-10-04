@@ -10,7 +10,7 @@ import DashboardMaintenanceLog, {
   performerOf,
   summaryOf,
   waitingOf,
-} from './dashboard-maintenance-log.svelte';
+} from './acerola-dashboard-maintenance-log.svelte';
 
 function entry(over: Partial<MaintenanceEntry> = {}): MaintenanceEntry {
   return {
@@ -96,7 +96,7 @@ describe('waitingOf', () => {
   });
 });
 
-describe('DashboardMaintenanceLog', () => {
+describe('AcerolaDashboardMaintenanceLog', () => {
   // feliz
   it('starts on the week and swaps the whole list on each range', async () => {
     const user = userEvent.setup();

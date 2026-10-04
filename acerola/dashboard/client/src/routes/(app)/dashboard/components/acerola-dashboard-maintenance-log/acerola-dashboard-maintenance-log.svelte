@@ -21,7 +21,7 @@
    */
   export type LogPeriod = 'day' | 'week' | 'month';
 
-  export type DashboardMaintenanceLogProps = {
+  export type AcerolaDashboardMaintenanceLogProps = {
     data: {
       log: MaintenanceLog;
       /** O que o plano automático manda abrir hoje, e se já foi feito. */
@@ -74,7 +74,7 @@
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
 
-  let { data, state: viewState, ui }: DashboardMaintenanceLogProps = $props();
+  let { data, state: viewState, ui }: AcerolaDashboardMaintenanceLogProps = $props();
 
   /* Estado puramente visual (CONTRIBUTING §3): qual recorte está na tela. */
   let period = $state<LogPeriod>('week');

@@ -25,7 +25,7 @@
    */
   export type ProblemMapSource = 'tickets' | 'maintenance';
 
-  export type DashboardProblemMapProps = {
+  export type AcerolaDashboardProblemMapProps = {
     data: {
       /** Os tipos de problema dos chamados do período. */
       byProblemType: readonly CountByKey[];
@@ -68,7 +68,7 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
 
-  let { data, state: viewState, ui, actions }: DashboardProblemMapProps = $props();
+  let { data, state: viewState, ui, actions }: AcerolaDashboardProblemMapProps = $props();
 
   /* Estado puramente visual (CONTRIBUTING §3): qual das duas listas está na tela. */
   let source = $state<ProblemMapSource>('tickets');

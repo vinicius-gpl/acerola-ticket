@@ -28,7 +28,7 @@
    */
   export type RecurrenceView = 'person' | 'machine';
 
-  export type DashboardRecurrenceProps = {
+  export type AcerolaDashboardRecurrenceProps = {
     data: {
       byPerson: readonly RecurringByPerson[];
       byMachine: readonly RecurringByMachine[];
@@ -72,7 +72,7 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
 
-  let { data, state: viewState, ui }: DashboardRecurrenceProps = $props();
+  let { data, state: viewState, ui }: AcerolaDashboardRecurrenceProps = $props();
 
   /* Estado puramente visual (CONTRIBUTING §3): qual das duas leituras está na tela. */
   let view = $state<RecurrenceView>('person');

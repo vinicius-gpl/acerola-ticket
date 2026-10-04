@@ -16,7 +16,7 @@
    */
   export type PeakingRange = 'today' | 'month';
 
-  export type DashboardPeakingProps = {
+  export type AcerolaDashboardPeakingProps = {
     data: { machines: readonly PeakingMachine[] };
     state?: { isLoading?: boolean };
     ui?: { className?: string };
@@ -69,7 +69,7 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PanelCard from '$lib/components/panel-card/panel-card.svelte';
 
-  let { data, state: viewState, ui }: DashboardPeakingProps = $props();
+  let { data, state: viewState, ui }: AcerolaDashboardPeakingProps = $props();
 
   /* Estado puramente visual (CONTRIBUTING §3): qual recorte está na tela. */
   let range = $state<PeakingRange>('today');

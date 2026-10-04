@@ -12,7 +12,7 @@ import DashboardView, {
   problemSummaryOf,
   resolutionRateOf,
   toDailyPoints,
-} from './dashboard-view.svelte';
+} from './acerola-dashboard-view.svelte';
 
 function machine(over: Partial<ProblemMachine> = {}): ProblemMachine {
   return {
@@ -249,7 +249,7 @@ describe('resolutionRateOf', () => {
   });
 });
 
-describe('DashboardView', () => {
+describe('AcerolaDashboardView', () => {
   // feliz
   it('puts what needs action today at the top', () => {
     renderView();

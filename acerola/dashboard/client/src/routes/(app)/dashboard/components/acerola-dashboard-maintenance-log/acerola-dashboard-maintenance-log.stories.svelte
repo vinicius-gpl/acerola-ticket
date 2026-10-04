@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type MaintenanceEntry } from '@template/shared/schemas/dashboard.schema';
 
-  import DashboardMaintenanceLog from './dashboard-maintenance-log.svelte';
+  import DashboardMaintenanceLog from './acerola-dashboard-maintenance-log.svelte';
 
   function entry(id: number, computerName: string, over: Partial<MaintenanceEntry> = {}) {
     return {
@@ -39,7 +39,7 @@
   ];
 
   const { Story } = defineMeta({
-    title: 'Components/DashboardMaintenanceLog',
+    title: 'Features/Dashboard/AcerolaDashboardMaintenanceLog',
     component: DashboardMaintenanceLog,
     parameters: { layout: 'padded' },
   });

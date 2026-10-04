@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type Dashboard, type ProblemMachine } from '@template/shared/schemas/dashboard.schema';
 
-  import DashboardView from './dashboard-view.svelte';
+  import DashboardView from './acerola-dashboard-view.svelte';
 
   function machine(over: Partial<ProblemMachine> = {}): ProblemMachine {
     return {
@@ -101,7 +101,7 @@
   const settled = { isLoading: false, isEmpty: false, error: null };
 
   const { Story } = defineMeta({
-    title: 'Components/DashboardView',
+    title: 'Features/Dashboard/AcerolaDashboardView',
     component: DashboardView,
   });
 </script>

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import DashboardProblemMap, { toSlices } from './dashboard-problem-map.svelte';
+import DashboardProblemMap, { toSlices } from './acerola-dashboard-problem-map.svelte';
 
 const byProblemType = [
   { key: 'printer', count: 6 },
@@ -52,7 +52,7 @@ describe('toSlices', () => {
   });
 });
 
-describe('DashboardProblemMap', () => {
+describe('AcerolaDashboardProblemMap', () => {
   // feliz
   it('starts on the tickets, which is the question people ask first', () => {
     renderMap();
