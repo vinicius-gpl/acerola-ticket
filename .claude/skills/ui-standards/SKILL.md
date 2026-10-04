@@ -365,8 +365,10 @@ lista vira cartão (§6).
 **Nada rola para o lado, nunca.**
 
 - **Pastilha de escolha quebra linha, não vira tira rolante.** Grupo de opções usa `flex-wrap`;
-  nunca `overflow-x-auto`. Com mais de 4 opções num espaço estreito (cabeçalho, menu), use
-  `SelectField` em vez de pastilhas.
+  nunca `overflow-x-auto`. O `acerola-option-picker` troca de forma sozinho: em FILTRO são
+  pastilhas até 6 opções; em FORMULÁRIO (`ui.fullWidth`, dentro de diálogo) só até 3, numa
+  linha de colunas iguais — acima disso vira a lista que abre, com busca. Pastilha não escala
+  dentro de um modal: com muitas opções ela quebra em várias fileiras.
 - **Quem rola é a caixa da tabela, não a página.** A área de conteúdo tem `min-w-0` (no
   `SidebarInset` do `app-shell`); sem isso o `overflow-x-auto` da tabela não funciona.
 - **Texto quebra, não corta.** `break-words` em nome, e-mail e descrição.
