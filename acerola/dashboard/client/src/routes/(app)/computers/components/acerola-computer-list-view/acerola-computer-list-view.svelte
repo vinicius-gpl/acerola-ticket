@@ -170,7 +170,6 @@
       description: 'Os computadores da empresa, e como cada um está passando.',
     }}
   >
-    <TableViewToggle />
     <ReportExportActions
       state={{ exportingFormat: state.exportingFormat ?? null }}
       actions={{ onExport: actions.onExportReport }}
@@ -266,17 +265,20 @@
         />
       </FilterField>
 
-      <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
-           limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. -->
-      {#if hasActiveFilter && !state.isFilteredOut}
-        <div class="ml-auto">
+      <!-- À direita, o que age sobre a lista logo abaixo: limpar os filtros e trocar entre
+           tabela e cards (que morava no cabeçalho da página, longe da lista). "Limpar filtros"
+           só aparece quando há o que limpar; quando o filtro escondeu tudo, quem o oferece é o
+           aviso de lista vazia — dois botões iguais só confundem. -->
+      <div class="ml-auto flex items-center gap-2">
+        {#if hasActiveFilter && !state.isFilteredOut}
           <ActionButton
             data={{ label: 'Limpar filtros' }}
             ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
             actions={{ onClick: actions.onClearFilters }}
           />
-        </div>
-      {/if}
+        {/if}
+        <TableViewToggle />
+      </div>
     </div>
   </div>
 

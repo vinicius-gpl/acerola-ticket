@@ -163,7 +163,6 @@
   <PageHeader
     data={{ title: 'Rede', description: 'Quedas e instabilidade do link de internet.' }}
   >
-    <TableViewToggle />
     <OptionPicker
       data={{ value: String(data.filter.days), options: PERIOD_OPTIONS }}
       ui={{ ariaLabel: 'Período' }}
@@ -254,15 +253,18 @@
     <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
          limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. O
          período (no cabeçalho) não conta: ele é o recorte da tela, não um filtro da lista. -->
-    {#if hasActiveFilter && !viewState.isFilteredOut}
-      <div class="ml-auto">
+    <div class="ml-auto flex items-center gap-2">
+      {#if hasActiveFilter && !viewState.isFilteredOut}
         <ActionButton
           data={{ label: 'Limpar filtros' }}
           ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
           actions={{ onClick: actions.onClearFilters }}
         />
-      </div>
-    {/if}
+      {/if}
+      <!-- Trocar entre tabela e cards age sobre a lista logo abaixo: mora aqui, e não no
+           cabeçalho da página. -->
+      <TableViewToggle />
+    </div>
   </div>
 
   <!-- Estados na frente, conteúdo por último e sem aninhamento (CONTRIBUTING §2). -->
