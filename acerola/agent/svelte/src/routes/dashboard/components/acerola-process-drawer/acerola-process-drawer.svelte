@@ -812,9 +812,9 @@
 									<colgroup>
 										<col class="w-auto" />
 										<col class="w-32" />
-										<col class="w-24" />
+										<col class="w-32" />
+										<col class="w-32" />
 										<col class="w-28" />
-										<col class="w-20" />
 									</colgroup>
 									<thead>
 										<tr class="text-left text-xs font-semibold uppercase">
@@ -822,20 +822,20 @@
 											<th class="px-4 py-2.5 text-right">CPU (%)</th>
 											<th class="px-4 py-2.5 text-right">Memória (%)</th>
 											<th class="px-4 py-2.5 text-right">Consumo RAM</th>
-											<th class="px-4 py-2.5 text-center">Ação</th>
+											<th class="px-2 py-2.5 text-center">Ação</th>
 										</tr>
 									</thead>
 								</table>
 							</div>
 
-							<div class="min-h-0 flex-1 overflow-y-auto">
+							<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
 								<table class="w-full table-fixed text-xs tabular-nums">
 									<colgroup>
 										<col class="w-auto" />
 										<col class="w-32" />
-										<col class="w-24" />
+										<col class="w-32" />
+										<col class="w-32" />
 										<col class="w-28" />
-										<col class="w-20" />
 									</colgroup>
 									<tbody class="divide-border/40 divide-y">
 										{#each filteredInstances as instance (instance.pid)}
@@ -868,7 +868,7 @@
 												<td class="text-foreground px-4 py-2.5 text-right font-mono font-semibold">
 													{bytes(instance.memBytes)}
 												</td>
-												<td class="px-4 py-2.5 text-center">
+												<td class="px-2 py-2.5 text-center">
 													<button
 														type="button"
 														onclick={() => copySinglePid(instance.pid)}
