@@ -93,6 +93,7 @@ export class TicketAttachmentsService {
     files: readonly UploadedAttachment[],
     author: string | null,
     origin: AttachmentOrigin,
+    historyId: number | null = null,
   ): Promise<TicketAttachment[]> {
     if (files.length === 0) return [];
 
@@ -101,8 +102,13 @@ export class TicketAttachmentsService {
     const existing = await this.repository.listByTicket(ticketId);
     /* A cota é POR LADO: só conta o que ESTE lado já subiu. Com cota compartilhada, alguém
        que abrisse o chamado com cinco PDFs deixaria o TI sem poder anexar a nota fiscal da
-       peça — e o TI não pode apagar os cinco para abrir espaço, porque não são dele. */
-    const kinds: AttachmentKind[] = kindsUsedBy(existing, origin);
+       peça — e o TI não pode apagar os cinco para abrir espaço, porque não são dele.
+
+       E é POR HISTÓRICO: cada lançamento na linha do tempo tem a própria cota. Um chamado
+       que dura semanas junta mais de cinco fotos, e contar tudo junto travaria o anexo do
+       décimo histórico por causa do que entrou no primeiro. */
+    const sameEntry = existing.filter((row) => row.historyId === historyId);
+    const kinds: AttachmentKind[] = kindsUsedBy(sameEntry, origin);
 
     const accepted = files.map((file) => this.accept(file, kinds));
 
@@ -117,6 +123,7 @@ export class TicketAttachmentsService {
 
       const row = await this.repository.insert({
         ticketId,
+        historyId,
         kind,
         origin,
         fileName,
@@ -130,6 +137,17 @@ export class TicketAttachmentsService {
     }
 
     return saved;
+  }
+
+  /**
+   * Confere os arquivos SEM guardar nada — para quem precisa saber se eles servem antes de
+   * gravar outra coisa (um histórico, por exemplo). Um arquivo fora das regras recusa aqui,
+   * com o mesmo motivo que `attach` daria.
+   */
+  assertAcceptable(files: readonly UploadedAttachment[]): void {
+    const kinds: AttachmentKind[] = [];
+
+    for (const file of files) this.accept(file, kinds);
   }
 
   /**
@@ -229,6 +247,7 @@ export class TicketAttachmentsService {
     return {
       id: row.id,
       ticketId: row.ticketId,
+      historyId: row.historyId,
       kind: row.kind,
       fileName: row.fileName,
       contentType: row.contentType,

@@ -57,7 +57,8 @@ import {
  * socorro significaria não receber o pedido. Toda rota nasce protegida; estas duas abrem a
  * exceção explicitamente, numa linha que aparece na revisão.
  *
- * Não há `@Delete` nenhum: chamado não se apaga. O que sai da fila sai por situação.
+ * Não há `@Delete` de chamado: ele não se apaga. O que sai da fila sai por estágio, e o
+ * estágio só muda por um histórico (ver `TicketHistoriesController`).
  *
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
  * resposta. A documentação fica em http://localhost:3336/docs.
@@ -110,7 +111,7 @@ export class TicketsController {
   @ApiOperation({
     summary: 'Consulta um chamado pelo protocolo (público)',
     description:
-      'Devolve UM chamado, com menos campos que o painel: telefone, responsável e solução ficam de fora. Aceita `CH-0007`, `ch 7` ou `7`.',
+      'Devolve UM chamado, com menos campos que o painel: telefone e responsável ficam de fora, e da linha do tempo só saem os históricos marcados como visíveis para quem abriu. Aceita `CH-0007`, `ch 7` ou `7`.',
   })
   @ApiOkResponse({ type: PublicTicketDto })
   @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
@@ -197,9 +198,9 @@ export class TicketsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Atende um chamado',
+    summary: 'Corrige os dados de um chamado',
     description:
-      'Muda a situação, a urgência, quem assumiu e o que foi feito. As datas de início e de resolução são carimbadas pelo servidor a partir da mudança de situação. Nada que identifique quem abriu pode ser alterado.',
+      'Muda a urgência, a área, o tipo de problema, a máquina e o responsável — e registra a alteração na linha do tempo. O ESTÁGIO não muda por aqui: ele só muda lançando um histórico (`POST /tickets/:id/histories`). Nada que identifique quem abriu pode ser alterado.',
   })
   @ApiOkResponse({ type: TicketDto })
   @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })

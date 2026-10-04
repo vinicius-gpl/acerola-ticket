@@ -26,6 +26,9 @@
     };
     ui?: {
       type?: TextFieldType;
+      /** O teclado que o celular abre. `numeric` para um campo que só recebe dígitos — e não
+       * `type="number"`, que traz setinhas, aceita "e" e "-" e esconde o que foi digitado errado. */
+      inputMode?: 'text' | 'numeric' | 'decimal';
       className?: string;
     };
     state?: {
@@ -104,6 +107,7 @@
       id={inputId}
       name={data.name}
       type={inputType}
+      inputmode={ui?.inputMode}
       bind:value={() => data.value, (value) => actions?.onChange?.(value)}
       placeholder={data.placeholder}
       autocomplete={data.autoComplete}

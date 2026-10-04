@@ -25,6 +25,7 @@ const ticket: PublicTicket = {
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
   attachments: [],
+  histories: [],
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 

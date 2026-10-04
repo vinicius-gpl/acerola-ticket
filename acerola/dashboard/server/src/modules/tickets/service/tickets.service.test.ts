@@ -13,7 +13,10 @@ import {
   type TicketsRepository,
   type TicketWithComputer,
 } from '../repository/tickets.repository';
+import { type TicketHistoriesRepository } from '../repository/ticket-histories.repository';
+import { TicketAccessService } from './ticket-access.service';
 import { type TicketAttachmentsService } from './ticket-attachments.service';
+import { type TicketHistoriesService } from './ticket-histories.service';
 import { TicketsService, type UploadedScreenshot } from './tickets.service';
 
 const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
@@ -74,15 +77,31 @@ const defaultRepository: Partial<TicketsRepository> = {
   listAreasFor: vi.fn().mockResolvedValue(new Map()),
 };
 
+/* A linha do tempo tem serviço e testes próprios (`ticket-histories.service.test`). Aqui só
+   se confere que o chamado a alimenta: a abertura ao nascer, a alteração ao ser corrigido. */
+const historiesStub = {
+  recordOpening: vi.fn().mockResolvedValue(undefined),
+  listPublic: vi.fn().mockResolvedValue([]),
+};
+
+const historiesRepositoryStub = { record: vi.fn().mockResolvedValue({}) };
+
 function makeService(
   repository: Partial<TicketsRepository>,
   storage: Partial<StorageService> = storageStub,
   attachments: Partial<TicketAttachmentsService> = attachmentsStub,
 ) {
+  const tickets = { ...defaultRepository, ...repository } as TicketsRepository;
+
+  /* O acesso por área é o de VERDADE, sobre o mesmo repository fingido: é a regra que estes
+     testes exercitam, e um duplo dela testaria o duplo. */
   return new TicketsService(
-    { ...defaultRepository, ...repository } as TicketsRepository,
+    tickets,
     storage as StorageService,
     attachments as TicketAttachmentsService,
+    new TicketAccessService(tickets),
+    historiesStub as unknown as TicketHistoriesService,
+    historiesRepositoryStub as unknown as TicketHistoriesRepository,
   );
 }
 
@@ -161,6 +180,24 @@ describe('TicketsService.create', () => {
 
     expect(ticket.protocol).toBe('CH-0007');
     expect(insert).toHaveBeenCalledOnce();
+  });
+
+  /* A linha do tempo começa na abertura: sem ela, o primeiro histórico do chamado seria o
+     de quem atendeu, e o relatório não diria quando nem por quem ele foi aberto. */
+  it('starts the timeline with the opening', async () => {
+    historiesStub.recordOpening.mockClear();
+    const service = makeService({ insert: vi.fn().mockResolvedValue(ticketRow()) });
+
+    await service.create({
+      requesterName: 'Bia Costa',
+      area: 'infra' as const,
+      department: 'financeiro',
+      problemType: 'printer',
+      contactPhone: '62999999999',
+      description: 'A impressora não puxa papel.',
+    });
+
+    expect(historiesStub.recordOpening).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }));
   });
 
   it('stores the screenshot and keeps its key on the ticket', async () => {
@@ -258,6 +295,21 @@ describe('TicketsService.findByProtocol', () => {
     expect(ticket).not.toHaveProperty('solution');
   });
 
+  /* O anexo de um histórico sai DENTRO dele; fora ficam só os arquivos do próprio chamado.
+     É o que impede o arquivo de um histórico escondido de vazar pela lista geral. */
+  it('keeps the files of a history out of the ticket own files', async () => {
+    const file = (id: number, historyId: number | null) => ({ id, historyId });
+    const service = makeService(
+      { findById: vi.fn().mockResolvedValue(ticketRow()) },
+      storageStub,
+      { ...attachmentsStub, list: vi.fn().mockResolvedValue([file(1, null), file(2, 31)]) },
+    );
+
+    const ticket = await service.findByProtocol('CH-0007');
+
+    expect(ticket.attachments.map((attachment) => attachment.id)).toEqual([1]);
+  });
+
   it('refuses text with no number without going to the database', async () => {
     const findById = vi.fn();
     const service = makeService({ findById });
@@ -275,35 +327,51 @@ describe('TicketsService.findByProtocol', () => {
 
 describe('TicketsService.update', () => {
   // feliz
-  it('records who attended and stamps the start when the ticket is picked up', async () => {
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'in_progress' }));
+  it('corrects the ticket data and stamps who did it', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ priority: 'high' }));
     const service = makeService({ findById: vi.fn().mockResolvedValue(ticketRow()), update });
 
-    await service.update(ana, 7, { status: 'in_progress', assignee: 'Ana' });
+    await service.update(ana, 7, { priority: 'high' });
 
-    expect(update.mock.calls[0]?.[1]).toMatchObject({
-      status: 'in_progress',
-      assignee: 'Ana',
-      updatedBy: ana.email,
-    });
-    expect(update.mock.calls[0]?.[1].startedAt).toBeInstanceOf(Date);
+    expect(update.mock.calls[0]?.[1]).toMatchObject({ priority: 'high', updatedBy: ana.email });
   });
 
-  it('lets a manager move a ticket forward, since it has no single owner here', async () => {
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'in_progress' }));
+  it('leaves what changed on the timeline, signed by who changed it', async () => {
+    historiesRepositoryStub.record.mockClear();
+    const update = vi.fn().mockResolvedValue(ticketRow({ priority: 'high' }));
     const service = makeService({ findById: vi.fn().mockResolvedValue(ticketRow()), update });
 
-    await expect(service.update(ana, 7, { status: 'in_progress' })).resolves.toMatchObject({
-      status: 'in_progress',
-    });
+    await service.update(ana, 7, { priority: 'high' });
+
+    expect(historiesRepositoryStub.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'update',
+        description: 'Urgência: Média → Alta',
+        authorName: 'Ana',
+        createdBy: ana.email,
+        isVisibleToRequester: false,
+      }),
+    );
   });
 
   // triste
+  /* Salvar sem mudar nada não deixa rastro: uma linha do tempo cheia de "alteração" vazia
+     esconde as que importam. */
+  it('writes nothing on the timeline when nothing really changed', async () => {
+    historiesRepositoryStub.record.mockClear();
+    const update = vi.fn().mockResolvedValue(ticketRow());
+    const service = makeService({ findById: vi.fn().mockResolvedValue(ticketRow()), update });
+
+    await service.update(ana, 7, { priority: 'medium' });
+
+    expect(historiesRepositoryStub.record).not.toHaveBeenCalled();
+  });
+
   it('refuses an unidentified request without touching the repository', async () => {
     const update = vi.fn();
     const service = makeService({ findById: vi.fn(), update });
 
-    await expect(service.update(noRole, 7, { status: 'resolved' })).rejects.toThrow(
+    await expect(service.update(noRole, 7, { priority: 'high' })).rejects.toThrow(
       ForbiddenException,
     );
     expect(update).not.toHaveBeenCalled();
@@ -313,7 +381,7 @@ describe('TicketsService.update', () => {
     const update = vi.fn();
     const service = makeService({ findById: vi.fn().mockResolvedValue(null), update });
 
-    await expect(service.update(ana, 99, { status: 'resolved' })).rejects.toThrow(
+    await expect(service.update(ana, 99, { priority: 'high' })).rejects.toThrow(
       NotFoundException,
     );
     expect(update).not.toHaveBeenCalled();
@@ -521,7 +589,7 @@ describe('TicketsService — acesso por área', () => {
    * `user` só consulta; `manager` contribui mas nunca finaliza; `admin` faz tudo.
    */
   // triste
-  it('refuses a "user" cargo to write anything at all, not even a non-terminal change', async () => {
+  it('refuses a "user" cargo to write anything at all, not even the urgency', async () => {
     const update = vi.fn();
     const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user' });
     const service = makeService({
@@ -530,15 +598,13 @@ describe('TicketsService — acesso por área', () => {
       contextRolesFor,
     });
 
-    await expect(service.update(ana, 7, { status: 'in_progress' })).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(service.update(ana, 7, { priority: 'high' })).rejects.toThrow(ForbiddenException);
     expect(update).not.toHaveBeenCalled();
   });
 
   // feliz
-  it('lets a "manager" cargo contribute with a non-terminal status change', async () => {
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'in_progress' }));
+  it('lets a "manager" cargo correct the ticket data', async () => {
+    const update = vi.fn().mockResolvedValue(ticketRow({ priority: 'high' }));
     const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
     const service = makeService({
       findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
@@ -546,65 +612,17 @@ describe('TicketsService — acesso por área', () => {
       contextRolesFor,
     });
 
-    await expect(service.update(ana, 7, { status: 'in_progress' })).resolves.toMatchObject({
-      status: 'in_progress',
+    await expect(service.update(ana, 7, { priority: 'high' })).resolves.toMatchObject({
+      priority: 'high',
     });
   });
 
-  // triste
-  /* Gestor contribui, mas NUNCA finaliza nem inativa — resolver/cancelar é exclusivo de
-     quem administra a área (#13). */
-  it('refuses a "manager" cargo to resolve a ticket', async () => {
-    const update = vi.fn();
-    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
-    const service = makeService({
-      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
-      update,
-      contextRolesFor,
-    });
-
-    await expect(service.update(ana, 7, { status: 'resolved' })).rejects.toThrow(
-      ForbiddenException,
-    );
-    expect(update).not.toHaveBeenCalled();
-  });
-
-  it('refuses a "manager" cargo to cancel a ticket', async () => {
-    const update = vi.fn();
-    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'manager' });
-    const service = makeService({
-      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
-      update,
-      contextRolesFor,
-    });
-
-    await expect(service.update(ana, 7, { status: 'cancelled' })).rejects.toThrow(
-      ForbiddenException,
-    );
-    expect(update).not.toHaveBeenCalled();
-  });
-
-  // feliz
-  it('lets an "admin" cargo resolve a ticket', async () => {
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
-    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'admin' });
-    const service = makeService({
-      findById: vi.fn().mockResolvedValue(ticketRow({ area: 'infra' })),
-      update,
-      contextRolesFor,
-    });
-
-    await expect(service.update(ana, 7, { status: 'resolved' })).resolves.toMatchObject({
-      status: 'resolved',
-    });
-  });
-
-  /* O super administrador resolve, cancela e reclassifica QUALQUER chamado, mesmo sem
-     nenhuma linha de cargo interno na área — é o único papel sem fronteira (#13). Se
-     `contextRolesFor` fosse chamado aqui, o bypass teria vazado para uma consulta ao banco. */
-  it('lets a superadmin resolve, cancel and reclassify a ticket with zero cargo anywhere', async () => {
+  /* O super administrador corrige e reclassifica QUALQUER chamado, mesmo sem nenhuma linha
+     de cargo interno na área — é o único papel sem fronteira (#13). Se `contextRolesFor`
+     fosse chamado aqui, o bypass teria vazado para uma consulta ao banco. */
+  it('lets a superadmin correct and reclassify a ticket with zero cargo anywhere', async () => {
     const superadmin: RequestUser = { ...ana, role: 'superadmin' };
-    const update = vi.fn().mockResolvedValue(ticketRow({ status: 'resolved' }));
+    const update = vi.fn().mockResolvedValue(ticketRow({ area: 'infra' }));
     const contextRolesFor = vi.fn();
     const service = makeService({
       findById: vi.fn().mockResolvedValue(ticketRow({ area: 'manutencao' })),
@@ -612,15 +630,12 @@ describe('TicketsService — acesso por área', () => {
       contextRolesFor,
     });
 
-    await expect(service.update(superadmin, 7, { status: 'resolved' })).resolves.toMatchObject({
-      status: 'resolved',
+    await expect(service.update(superadmin, 7, { priority: 'high' })).resolves.toMatchObject({
+      id: 7,
     });
-    await expect(
-      service.update(superadmin, 7, { status: 'cancelled' }),
-    ).resolves.toMatchObject({ status: 'resolved' });
-    await expect(
-      service.update(superadmin, 7, { area: 'infra' }),
-    ).resolves.toMatchObject({ status: 'resolved' });
+    await expect(service.update(superadmin, 7, { area: 'infra' })).resolves.toMatchObject({
+      area: 'infra',
+    });
     expect(contextRolesFor).not.toHaveBeenCalled();
   });
 

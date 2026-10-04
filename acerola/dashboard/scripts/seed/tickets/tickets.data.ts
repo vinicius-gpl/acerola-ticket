@@ -525,6 +525,69 @@ const HANDWRITTEN_TICKETS: TicketInsert[] = [
     description: 'A lâmpada da sala de reunião está piscando sem parar.',
     createdAt: at('2026-09-22T14:00:00.000Z'),
   },
+
+  /**
+   * A ORDEM DE SERVIÇO: os estágios que só existem com a linha do tempo. A história de cada um
+   * destes três é escrita à mão em `ticket-histories.data.ts` (`HANDWRITTEN_TIMELINES`) — o
+   * que está aqui é só a leitura do último passo dela.
+   */
+  {
+    id: 27,
+    status: 'waiting_requester',
+    priority: 'medium',
+    requesterName: 'Otávio Brandão',
+    department: 'comercial',
+    problemType: 'internal_system',
+    anydeskId: '321 654 987',
+    contactPhone: '62999990027',
+    notifyWhatsapp: true,
+    description: 'O sistema mostra uma mensagem de erro ao gerar a proposta, mas some antes de eu ler.',
+    assignee: 'Suporte TI',
+    createdAt: at('2026-09-24T12:00:00.000Z'),
+    startedAt: at('2026-09-24T12:30:00.000Z'),
+    updatedAt: at('2026-09-24T14:00:00.000Z'),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 28,
+    status: 'waiting_third_party',
+    priority: 'high',
+    requesterName: 'Priscila Azevedo',
+    department: 'fiscal',
+    problemType: 'other',
+    computerId: 3,
+    anydeskId: null,
+    contactPhone: '62999990028',
+    notifyWhatsapp: true,
+    description: 'O computador não liga. Nem a luz da frente acende.',
+    assignee: 'Suporte TI',
+    createdAt: at('2026-09-23T11:00:00.000Z'),
+    startedAt: at('2026-09-23T11:40:00.000Z'),
+    updatedAt: at('2026-09-23T13:30:00.000Z'),
+    updatedBy: ATTENDANT,
+  },
+  {
+    id: 29,
+    /* Caso limite: encerrado COM RESSALVA — conta como resolvido, mas ficou algo por fazer. */
+    status: 'resolved_with_caveats',
+    priority: 'medium',
+    requesterName: 'Quitéria Sampaio',
+    department: 'pessoal',
+    problemType: 'printer',
+    anydeskId: null,
+    contactPhone: '62999990029',
+    notifyWhatsapp: false,
+    description: 'A impressora do setor não puxa papel de nenhuma das duas bandejas.',
+    assignee: 'Suporte TI',
+    solution:
+      'Troquei o rolete de tração e a impressora voltou a puxar papel. A bandeja 2 continua ' +
+      'sem travar: a peça não é mais fabricada — usar só a bandeja 1.',
+    createdAt: at('2026-09-17T11:00:00.000Z'),
+    startedAt: at('2026-09-17T11:30:00.000Z'),
+    resolvedAt: at('2026-09-22T13:10:00.000Z'),
+    updatedAt: at('2026-09-22T13:10:00.000Z'),
+    updatedBy: ATTENDANT,
+  },
 ];
 
 /**

@@ -1,3 +1,4 @@
+import { ticketAreaLabel } from '@template/shared/domain/ticket-catalog.util';
 import { type PublicTicket } from '@template/shared/schemas/ticket.schema';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
@@ -18,6 +19,7 @@ const ticket: PublicTicket = {
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
   attachments: [],
+  histories: [],
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 
@@ -43,6 +45,47 @@ describe('AcerolaTicketLookupDrawer', () => {
     expect(screen.getByText('Em atendimento')).toBeInTheDocument();
     expect(screen.getByText('FINANCEIRO')).toBeInTheDocument();
     expect(screen.getByText('Impressora')).toBeInTheDocument();
+  });
+
+  /* A grade de dados responde o básico sem a pessoa ler a linha do tempo inteira. */
+  it('shows the area, when it was opened and how much progress was registered', () => {
+    setup({ data: { protocol: 'CH-0007', ticket } });
+
+    expect(screen.getByText(ticketAreaLabel('infra'))).toBeInTheDocument();
+    expect(screen.getByText('Aberto em')).toBeInTheDocument();
+    expect(screen.getByText('Última movimentação')).toBeInTheDocument();
+    expect(screen.getByText('Andamentos').nextElementSibling).toHaveTextContent('0');
+  });
+
+  it('lists the files of the ticket itself, and not the ones that came with a history', () => {
+    const file = {
+      id: 4,
+      ticketId: 7,
+      historyId: null,
+      kind: 'pdf' as const,
+      origin: 'requester' as const,
+      fileName: 'nota-fiscal.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      viewUrl: 'https://example.invalid/abrir',
+      downloadUrl: 'https://example.invalid/baixar',
+      createdAt: '2026-09-15T12:10:00.000Z',
+      createdBy: null,
+    };
+
+    setup({
+      data: {
+        protocol: 'CH-0007',
+        ticket: {
+          ...ticket,
+          attachments: [file, { ...file, id: 5, historyId: 31, fileName: 'orcamento.pdf' }],
+        },
+      },
+    });
+
+    expect(screen.getByText('Arquivos do chamado')).toBeInTheDocument();
+    expect(screen.getByText('nota-fiscal.pdf')).toBeInTheDocument();
+    expect(screen.queryByText('orcamento.pdf')).not.toBeInTheDocument();
   });
 
   it('asks for the search when the button is pressed', async () => {
@@ -74,7 +117,41 @@ describe('AcerolaTicketLookupDrawer', () => {
     expect(screen.getByText('111 222 333')).toBeInTheDocument();
   });
 
+  /* O andamento é o que a pessoa veio buscar: "aguardando a peça chegar" responde mais do que
+     o selo da situação sozinho. */
+  it('shows the timeline the requester is allowed to see', () => {
+    setup({
+      data: {
+        protocol: 'CH-0007',
+        ticket: {
+          ...ticket,
+          histories: [
+            {
+              id: 1,
+              type: 'waiting_third_party',
+              description: 'Peça pedida ao fornecedor.',
+              statusAfter: 'waiting_third_party',
+              authorName: 'Suporte TI',
+              createdAt: '2026-09-15T13:00:00.000Z',
+              attachments: [],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(screen.getByText('Andamento')).toBeInTheDocument();
+    expect(screen.getByText('Peça pedida ao fornecedor.')).toBeInTheDocument();
+    expect(screen.getByText('Aguardando terceiro ou peça')).toBeInTheDocument();
+  });
+
   // triste
+  it('says there is no progress yet instead of showing an empty timeline', () => {
+    setup({ data: { protocol: 'CH-0007', ticket } });
+
+    expect(screen.getByText(/ainda não há andamento registrado/i)).toBeInTheDocument();
+  });
+
   it('stays closed until asked to open', () => {
     setup({ state: { isOpen: false } });
 

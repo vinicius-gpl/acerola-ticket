@@ -83,6 +83,9 @@ const CONFLICT_MESSAGES: Record<string, string> = {
     'Já existe um computador com esse nome. Abra o cadastro existente em vez de criar outro.',
   /* Peça nova e peça usada são linhas diferentes de propósito; duas linhas IGUAIS fariam o
      estoque da mesma peça aparecer dividido em dois lugares. */
+  /* Duas pessoas emitiram a ordem de serviço do mesmo chamado no mesmo instante. */
+  ticket_service_orders_version_unique:
+    'Outra pessoa emitiu esta ordem de serviço agora mesmo. Tente de novo.',
   parts_name_condition_unique:
     'Já existe uma peça com essa descrição e essa condição. Registre uma entrada nela em vez de cadastrar outra.',
 };
@@ -95,6 +98,11 @@ const CHECK_MESSAGES: Record<string, string> = {
   tickets_department_valid: 'O departamento precisa ser um dos da lista.',
   tickets_problem_type_valid: 'O tipo de problema precisa ser um dos da lista.',
   tickets_area_valid: 'A área do chamado precisa ser Infra, Sistema ou Manutenção.',
+  ticket_histories_type_valid: 'O tipo do histórico precisa ser um dos da lista.',
+  ticket_histories_status_after_valid: 'O estágio do chamado precisa ser um dos da lista.',
+  ticket_histories_minutes_not_negative: 'O tempo gasto não pode ser negativo.',
+  ticket_service_orders_version_positive: 'A versão da ordem de serviço precisa ser maior que zero.',
+  ticket_service_orders_status_valid: 'O estágio do chamado precisa ser um dos da lista.',
   ticket_areas_area_valid: 'A área precisa ser Infra, Sistema ou Manutenção.',
   computers_health_status_valid: 'A situação de saúde precisa ser uma das opções da lista.',
   computers_department_valid: 'O departamento precisa ser um dos da lista.',
@@ -123,6 +131,12 @@ const CHECK_MESSAGES: Record<string, string> = {
 const UNIQUE_VIOLATION = '23505';
 const FOREIGN_KEY_VIOLATION = '23503';
 const CHECK_VIOLATION = '23514';
+/**
+ * restrict_violation: o banco recusou mexer num registro permanente — é o código dos gatilhos
+ * de histórico, de ordem de serviço emitida e de chamado (migration `ticket_records_append_only`)
+ * e do vínculo `restrict` entre eles.
+ */
+const RESTRICT_VIOLATION = '23001';
 
 /** not_null_violation, invalid_text_representation, string_data_right_truncation. */
 const REFUSED_VALUE_CODES = new Set(['23502', '22P02', '22001', '22003']);
@@ -161,10 +175,11 @@ function connectionFailure(error: unknown): HttpException | null {
   );
 }
 
-export function toHttpException(error: unknown, context: string): HttpException {
-  const postgresError = findPostgresError(error);
-  if (!postgresError) return connectionFailure(error) ?? unknownFailure(error, context);
-
+/**
+ * A recusa por uma REGRA do banco — registro repetido, valor fora da lista, registro permanente,
+ * vínculo quebrado. Nulo quando a falha não foi de regra nenhuma.
+ */
+function brokenRule(postgresError: PostgresErrorShape): HttpException | null {
   const key = constraintNameOf(postgresError);
 
   if (postgresError.code === UNIQUE_VIOLATION) {
@@ -177,11 +192,25 @@ export function toHttpException(error: unknown, context: string): HttpException 
     );
   }
 
+  if (postgresError.code === RESTRICT_VIOLATION) {
+    return new ConflictException('Este registro é permanente: não pode ser alterado nem apagado.');
+  }
+
   if (postgresError.code === FOREIGN_KEY_VIOLATION) {
     return new UnprocessableEntityException(
       'O registro aponta para algo que não existe mais. Recarregue a tela e tente de novo.',
     );
   }
+
+  return null;
+}
+
+export function toHttpException(error: unknown, context: string): HttpException {
+  const postgresError = findPostgresError(error);
+  if (!postgresError) return connectionFailure(error) ?? unknownFailure(error, context);
+
+  const broken = brokenRule(postgresError);
+  if (broken) return broken;
 
   if (REFUSED_VALUE_CODES.has(postgresError.code)) {
     return new UnprocessableEntityException('O banco recusou o valor enviado.');

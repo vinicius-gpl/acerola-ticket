@@ -21,6 +21,7 @@
     ticketStatusTone,
     type TicketPriority,
     type TicketStatus,
+    type TicketStatusGroup,
   } from '@template/shared/domain/ticket-status.util';
   import { type ReportFormat } from '@template/shared/schemas/report.schema';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
@@ -30,6 +31,11 @@
   export type TicketListFilter = {
     search: string;
     status: TicketStatus | '';
+    /**
+     * Um GRUPO de estágios de uma vez ("aguardando", "resolvidos") — o filtro dos cartões do
+     * topo que contam mais de um estágio. Nunca vale junto com `status`: um limpa o outro.
+     */
+    statusGroup?: TicketStatusGroup | '';
     priority: TicketPriority | '';
     department: TicketDepartment | '';
     problemType: TicketProblemType | '';
@@ -43,7 +49,8 @@
    * só apareceriam desligando o servidor.
    *
    * Não há botão de excluir, e a ausência é a regra do sistema: chamado sai da fila mudando
-   * de situação, nunca sumindo.
+   * de estágio, nunca sumindo. E o estágio muda na FICHA do chamado, lançando um histórico —
+   * daqui só se abre a ficha.
    */
   export type AcerolaTicketListViewProps = {
     data: {
@@ -71,6 +78,7 @@
     actions: {
       onSearchChange: (search: string) => void;
       onStatusChange: (status: TicketStatus | '') => void;
+      onStatusGroupChange?: (group: TicketStatusGroup | '') => void;
       onPriorityChange: (priority: TicketPriority | '') => void;
       onDepartmentChange: (department: TicketDepartment | '') => void;
       onProblemTypeChange: (problemType: TicketProblemType | '') => void;
@@ -180,6 +188,7 @@
     Boolean(
       data.filter.search ||
         data.filter.status ||
+        data.filter.statusGroup ||
         data.filter.priority ||
         data.filter.department ||
         data.filter.problemType,
@@ -196,7 +205,15 @@
 
   function filterByStatus(status: TicketStatus) {
     actions.onStatusChange(data.filter.status === status ? '' : status);
+    scrollToQueue();
+  }
 
+  function filterByGroup(group: TicketStatusGroup) {
+    actions.onStatusGroupChange?.(data.filter.statusGroup === group ? '' : group);
+    scrollToQueue();
+  }
+
+  function scrollToQueue() {
     const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     queueElement?.scrollIntoView?.({
       behavior: prefersLessMotion ? 'auto' : 'smooth',
@@ -220,9 +237,10 @@
     <ErrorState data={{ message: state.exportError }} ui={{ variant: 'inline' }} />
   {/if}
 
-  <!-- Os três primeiros cartões são ATALHOS do filtro de situação: clicar em "Abertos" é o
-       mesmo que escolher "Aberto" nas pastilhas lá embaixo, e clicar de novo tira o filtro.
-       "Tempo médio" não é clicável — não existe um filtro que ele represente. -->
+  <!-- Os quatro primeiros cartões são ATALHOS de filtro: clicar em "Abertos" é o mesmo que
+       escolher "Aberto" no filtro lá embaixo, e clicar de novo tira o filtro. "Aguardando" e
+       "Resolvidos" contam mais de um estágio — e filtram pelo GRUPO inteiro, para o número do
+       cartão e o tamanho da lista baterem. -->
   <StatCardGrid>
     <StatCard
       data={{ label: 'Abertos', value: dashboard?.open ?? 0 }}
@@ -240,24 +258,35 @@
       actions={{ onClick: () => filterByStatus('in_progress') }}
     />
     <StatCard
-      data={{ label: 'Resolvidos', value: dashboard?.resolved ?? 0 }}
-      ui={{ tone: 'success' }}
+      data={{
+        label: 'Aguardando',
+        value: dashboard?.waiting ?? 0,
+        hint: 'solicitante, terceiro ou peça',
+      }}
+      ui={{ tone: 'warning' }}
       state={{
         isLoading: state.isDashboardLoading,
-        isSelected: data.filter.status === 'resolved',
+        isSelected: data.filter.statusGroup === 'waiting',
       }}
-      actions={{ onClick: () => filterByStatus('resolved') }}
+      actions={{ onClick: () => filterByGroup('waiting') }}
     />
     <StatCard
       data={{
-        label: 'Tempo médio de resolução',
-        value: formatAverage(dashboard?.averageResolutionHours),
+        label: 'Resolvidos',
+        value: dashboard?.resolved ?? 0,
+        /* O tempo médio mora AQUI, e não num quinto cartão: quatro por linha é o limite do que
+           se compara de relance (ver `acerola-stat-card-grid`), e a média é uma leitura dos
+           resolvidos — não uma quinta contagem. */
         hint: dashboard?.resolved
-          ? `sobre ${dashboard.resolved} resolvido(s)`
+          ? `tempo médio: ${formatAverage(dashboard.averageResolutionHours)}`
           : 'nada resolvido ainda',
       }}
-      ui={{ tone: 'brand' }}
-      state={{ isLoading: state.isDashboardLoading }}
+      ui={{ tone: 'success' }}
+      state={{
+        isLoading: state.isDashboardLoading,
+        isSelected: data.filter.statusGroup === 'solved',
+      }}
+      actions={{ onClick: () => filterByGroup('solved') }}
     />
   </StatCardGrid>
 
@@ -497,7 +526,7 @@
                   Aberto em {formatDate(ticket.createdAt)}
                 </span>
                 <ActionButton
-                  data={{ label: 'Atender' }}
+                  data={{ label: 'Abrir' }}
                   ui={{ variant: 'secondary', size: 'sm' }}
                   actions={{ onClick: () => actions.onAnswer(ticket) }}
                 />
@@ -575,7 +604,7 @@
                   <TableCell class="text-right whitespace-nowrap">
                     <TableActions>
                       <ActionButton
-                        data={{ label: 'Atender' }}
+                        data={{ label: 'Abrir' }}
                         ui={{ variant: 'secondary', size: 'sm' }}
                         actions={{ onClick: () => actions.onAnswer(ticket) }}
                       />

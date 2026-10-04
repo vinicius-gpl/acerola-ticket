@@ -17,6 +17,7 @@
     description: 'A impressora da sala não puxa papel e trava no meio da folha.',
     screenshotUrl: null,
   attachments: [],
+  histories: [],
     createdAt: '2026-09-15T12:10:00.000Z',
   };
 
@@ -37,6 +38,51 @@
 <Story
   name="Found"
   args={{ data: { protocol: 'CH-0007', ticket }, state: { isOpen: true }, actions }}
+/>
+
+<!-- Com a linha do tempo: o andamento que quem abriu o chamado pode ver. -->
+<Story
+  name="FoundWithTimeline"
+  args={{
+    data: {
+      protocol: 'CH-0007',
+      ticket: {
+        ...ticket,
+        status: 'waiting_third_party',
+        histories: [
+          {
+            id: 1,
+            type: 'opening',
+            description: 'Chamado aberto.',
+            statusAfter: 'open',
+            authorName: 'Bia Costa',
+            createdAt: '2026-09-15T12:10:00.000Z',
+            attachments: [],
+          },
+          {
+            id: 2,
+            type: 'start',
+            description: 'Assumi o chamado. Vou olhar a impressora agora de manhã.',
+            statusAfter: 'in_progress',
+            authorName: 'Suporte TI',
+            createdAt: '2026-09-15T12:40:00.000Z',
+            attachments: [],
+          },
+          {
+            id: 3,
+            type: 'waiting_third_party',
+            description: 'O rolete está gasto. Pedi a peça ao fornecedor.',
+            statusAfter: 'waiting_third_party',
+            authorName: 'Suporte TI',
+            createdAt: '2026-09-15T14:10:00.000Z',
+            attachments: [],
+          },
+        ],
+      },
+    },
+    state: { isOpen: true },
+    actions,
+  }}
 />
 
 <Story

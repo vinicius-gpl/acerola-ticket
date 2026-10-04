@@ -71,15 +71,19 @@ describe('summarizeTickets', () => {
     const summary = summarizeTickets([
       opened(),
       opened({ status: 'in_progress' }),
+      opened({ status: 'waiting_requester' }),
+      opened({ status: 'waiting_third_party' }),
       resolvedAfterTwoHours,
+      opened({ status: 'resolved_with_caveats' }),
       opened({ status: 'cancelled' }),
     ]);
 
     expect(summary).toEqual({
-      total: 4,
+      total: 7,
       open: 1,
       inProgress: 1,
-      resolved: 1,
+      waiting: 2,
+      resolved: 2,
       cancelled: 1,
       averageResolutionHours: 2,
     });
@@ -91,6 +95,7 @@ describe('summarizeTickets', () => {
       total: 0,
       open: 0,
       inProgress: 0,
+      waiting: 0,
       resolved: 0,
       cancelled: 0,
       averageResolutionHours: null,

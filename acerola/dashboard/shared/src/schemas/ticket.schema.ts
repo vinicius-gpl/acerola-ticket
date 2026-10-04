@@ -12,11 +12,13 @@ import {
 import {
   DEFAULT_TICKET_PRIORITY,
   TICKET_PRIORITIES,
+  TICKET_STATUS_GROUPS,
   TICKET_STATUSES,
 } from '../domain/ticket-status.util';
 import { paginationQuerySchema } from './pagination.schema';
 import { reportFormatSchema } from './report.schema';
 import { ticketAttachmentSchema } from './ticket-attachment.schema';
+import { publicTicketHistorySchema } from './ticket-history.schema';
 
 /**
  * O CONTRATO do chamado. Um schema, duas pontas: a API o usa como DTO e Swagger (via
@@ -27,7 +29,6 @@ import { ticketAttachmentSchema } from './ticket-attachment.schema';
  */
 export const REQUESTER_NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 5000;
-export const ASSIGNEE_MAX_LENGTH = 200;
 export const SOLUTION_MAX_LENGTH = 5000;
 
 export { CONTACT_PHONE_MAX_LENGTH } from '../domain/phone.util';
@@ -82,25 +83,6 @@ const descriptionSchema = z
   .trim()
   .min(1, 'Descreva o problema')
   .max(DESCRIPTION_MAX_LENGTH, `A descrição pode ter até ${DESCRIPTION_MAX_LENGTH} caracteres`);
-
-/** Texto opcional: vazio vira nulo, para a busca não tratar "" e nulo como coisas diferentes. */
-const optionalText = (max: number, tooLong: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, tooLong)
-    .transform((value) => (value === '' ? null : value))
-    .nullable();
-
-const assigneeSchema = optionalText(
-  ASSIGNEE_MAX_LENGTH,
-  `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-);
-
-const solutionSchema = optionalText(
-  SOLUTION_MAX_LENGTH,
-  `O que foi feito pode ter até ${SOLUTION_MAX_LENGTH} caracteres`,
-);
 
 /**
  * O chamado como o PAINEL do TI o enxerga — tudo.
@@ -189,6 +171,12 @@ export const publicTicketSchema = ticketSchema
      * pelo painel, com identidade (ver o controller de anexos).
      */
     attachments: z.array(ticketAttachmentSchema),
+    /**
+     * A LINHA DO TEMPO que quem abriu pode ver: só os históricos marcados como visíveis, e
+     * sem o bastidor (identidade de quem escreveu, tempo gasto). É por ela que a pessoa
+     * acompanha o pedido — "aguardando a peça chegar" responde mais do que uma situação.
+     */
+    histories: z.array(publicTicketHistorySchema),
   });
 
 export type PublicTicket = z.infer<typeof publicTicketSchema>;
@@ -249,17 +237,19 @@ export const ticketFormSchema = z
 export type TicketFormValues = z.input<typeof ticketFormSchema>;
 
 /**
- * O que o TI altera no painel. Campo AUSENTE não mexe; campo NULO limpa.
+ * Os DADOS do chamado que o TI corrige no painel. Campo AUSENTE não mexe; campo NULO limpa.
  *
  * Nada que identifique quem abriu entra aqui: corrigir o nome ou o telefone de um chamado
- * alheio apagaria o que a pessoa de fato escreveu. O TI muda a situação, assume o chamado e
- * registra o que fez — só isso.
+ * alheio apagaria o que a pessoa de fato escreveu.
  *
- * Não existe exclusão de chamado em lugar nenhum do contrato: o que sai da fila sai por
- * situação (`resolved`, `cancelled`), e o histórico fica.
+ * **O estágio e a solução NÃO entram aqui, de propósito.** Eles só mudam por um HISTÓRICO
+ * lançado na ordem de serviço (`createTicketHistorySchema`): é o que garante que toda mudança
+ * de estágio tenha quem, quando e por quê na linha do tempo. Aceitar `status` aqui seria uma
+ * porta lateral para encerrar um chamado sem deixar rastro.
+ *
+ * Cada alteração feita por aqui vira, sozinha, um histórico de "Alteração de dados".
  */
 export const updateTicketSchema = z.object({
-  status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
   /**
    * Reclassificar a área — quem abriu escolheu pelo que parecia; quem atende descobre que
@@ -275,22 +265,22 @@ export const updateTicketSchema = z.object({
   problemType: ticketProblemTypeSchema.optional(),
   /** A máquina do chamado. Nulo DESVINCULA — é como se corrige um vínculo errado. */
   computerId: z.number().int().positive().nullable().optional(),
-  assignee: assigneeSchema.optional(),
-  solution: solutionSchema.optional(),
+  /* O RESPONSÁVEL não entra aqui: ele não se troca à mão. Quem assume o chamado vira
+     responsável ao lançar o primeiro histórico (`toTicketMove`). Um `assignee` no corpo é
+     ignorado, como `status` e `solution`. */
 });
 
 export type UpdateTicketInput = z.input<typeof updateTicketSchema>;
 
 /**
- * A forma do formulário de atendimento, no painel.
+ * A forma do formulário de DADOS do chamado, no painel.
  *
  * `area` entra aqui porque reclassificar é parte de atender: quem pegou o chamado é quem
  * percebe que ele é de outra área. A API decide se quem está atendendo PODE mudar — o
  * formulário só manda o valor escolhido.
  */
-export const ticketAnswerFormSchema = z
+export const ticketDataFormSchema = z
   .object({
-    status: ticketStatusSchema,
     priority: ticketPrioritySchema,
     area: ticketAreaSchema,
     problemType: ticketProblemTypeSchema,
@@ -299,19 +289,10 @@ export const ticketAnswerFormSchema = z
      * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
      */
     computerId: z.string(),
-    assignee: z
-      .string()
-      .max(
-        ASSIGNEE_MAX_LENGTH,
-        `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-      ),
-    solution: z
-      .string()
-      .max(SOLUTION_MAX_LENGTH, `O que foi feito pode ter até ${SOLUTION_MAX_LENGTH} caracteres`),
   })
   .superRefine(checkProblemTypeMatchesArea);
 
-export type TicketAnswerFormValues = z.input<typeof ticketAnswerFormSchema>;
+export type TicketDataFormValues = z.input<typeof ticketDataFormSchema>;
 
 /**
  * Somar uma área PARTICIPANTE a um chamado já aberto (#13) — ex.: um chamado de Infra que
@@ -328,6 +309,11 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
   /** Os chamados DESTA máquina — é a consulta da ficha do computador. */
   computerId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
+  /**
+   * Um GRUPO de estágios de uma vez — "aguardando" (os dois) ou "resolvidos" (com e sem
+   * ressalva). É o filtro dos cartões do topo, que contam o grupo inteiro.
+   */
+  statusGroup: z.enum(TICKET_STATUS_GROUPS, chooseFrom('um grupo de estágios')).optional(),
   priority: ticketPrioritySchema.optional(),
   area: ticketAreaSchema.optional(),
   department: ticketDepartmentSchema.optional(),

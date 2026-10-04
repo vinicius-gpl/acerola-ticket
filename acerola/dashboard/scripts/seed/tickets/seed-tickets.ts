@@ -1,48 +1,56 @@
-import { sql } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 
 import { type Database } from '../../../server/src/lib/db/db.type';
+import { ticketHistories } from '../../../server/src/lib/db/schema/ticket-histories.schema';
 import { tickets } from '../../../server/src/lib/db/schema/tickets.schema';
 import { openSeedDatabase, report } from '../seed.util';
+import { timelineOf } from './ticket-histories.data';
 import { TICKETS_SEED } from './tickets.data';
 
+/** Quantas linhas vão por `insert`: o Postgres tem teto de parâmetros por comando. */
+const HISTORY_BATCH_SIZE = 500;
+
 /**
- * Grava os chamados de teste.
+ * Grava os chamados de teste QUE AINDA NÃO EXISTEM.
  *
- * `onConflictDoUpdate` pelo `id` é o que torna o seed idempotente: a segunda execução
- * reescreve as mesmas linhas, e quem atendeu um chamado de teste na tela o vê voltar ao
- * original — que é exatamente o que "rodar o seed" promete.
+ * `onConflictDoNothing`, e não "reescrever": chamado é registro, e a linha do tempo dele não se
+ * altera nem se apaga — o banco recusa (migration `ticket_records_append_only`). Devolver um
+ * chamado de teste ao estágio original deixaria a linha do tempo contando uma história e o
+ * chamado mostrando outra. O seed, então, só CRIA o que falta; para ver tudo de volta ao
+ * original, é `npm run db:reset`, que esvazia as tabelas e grava do zero.
  */
 export async function seedTickets(db: Database): Promise<number> {
-  await db
-    .insert(tickets)
-    .values(TICKETS_SEED)
-    .onConflictDoUpdate({
-      target: tickets.id,
-      set: {
-        status: sql`excluded.status`,
-        priority: sql`excluded.priority`,
-        requesterName: sql`excluded.requester_name`,
-        area: sql`excluded.area`,
-        department: sql`excluded.department`,
-        problemType: sql`excluded.problem_type`,
-        computerId: sql`excluded.computer_id`,
-        anydeskId: sql`excluded.anydesk_id`,
-        contactPhone: sql`excluded.contact_phone`,
-        notifyWhatsapp: sql`excluded.notify_whatsapp`,
-        description: sql`excluded.description`,
-        assignee: sql`excluded.assignee`,
-        solution: sql`excluded.solution`,
-        createdAt: sql`excluded.created_at`,
-        startedAt: sql`excluded.started_at`,
-        resolvedAt: sql`excluded.resolved_at`,
-        updatedAt: sql`excluded.updated_at`,
-        updatedBy: sql`excluded.updated_by`,
-      },
-    });
+  await db.insert(tickets).values(TICKETS_SEED).onConflictDoNothing({ target: tickets.id });
 
   await syncIdSequence(db);
+  await seedTimelines(db);
 
   return TICKETS_SEED.length;
+}
+
+/**
+ * Grava a LINHA DO TEMPO dos chamados de teste que ainda não têm nenhuma.
+ *
+ * Só acrescenta: um chamado que já tem história — a que a migration reconstruiu, ou a que
+ * alguém lançou pela tela — fica como está. É a mesma regra do sistema inteiro: histórico só
+ * entra, nunca sai.
+ */
+async function seedTimelines(db: Database): Promise<void> {
+  const seededIds = TICKETS_SEED.map((ticket) => ticket.id as number);
+
+  const withHistory = await db
+    .selectDistinct({ ticketId: ticketHistories.ticketId })
+    .from(ticketHistories)
+    .where(inArray(ticketHistories.ticketId, seededIds));
+  const alreadyTold = withHistory.map((row) => row.ticketId);
+
+  const histories = TICKETS_SEED.filter((ticket) => !alreadyTold.includes(ticket.id as number)).flatMap(
+    timelineOf,
+  );
+
+  for (let start = 0; start < histories.length; start += HISTORY_BATCH_SIZE) {
+    await db.insert(ticketHistories).values(histories.slice(start, start + HISTORY_BATCH_SIZE));
+  }
 }
 
 /**

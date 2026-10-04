@@ -24,6 +24,7 @@ const file = (over: Partial<UploadedAttachment> = {}): UploadedAttachment => ({
 const row = (over: Record<string, unknown> = {}) => ({
   id: 1,
   ticketId: 7,
+  historyId: null,
   kind: 'pdf' as const,
   origin: 'requester' as const,
   fileName: 'nota.pdf',

@@ -71,6 +71,7 @@
     total: 12,
     open: 5,
     inProgress: 2,
+    waiting: 0,
     resolved: 4,
     cancelled: 1,
     averageResolutionHours: 1.8,

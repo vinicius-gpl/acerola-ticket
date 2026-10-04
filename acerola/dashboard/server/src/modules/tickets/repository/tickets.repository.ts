@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { parseTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
+import { ticketStatusesOfGroup } from '@template/shared/domain/ticket-status.util';
 import { type UserRole } from '@template/shared/schemas/user.schema';
 import {
   type TicketListQuery,
@@ -310,7 +311,14 @@ export class TicketsRepository {
 /** Os filtros que a lista E o relatório têm em comum — nenhum dos dois usa página aqui. */
 type TicketFilter = Pick<
   TicketListQuery,
-  'search' | 'status' | 'priority' | 'area' | 'department' | 'problemType' | 'computerId'
+  | 'search'
+  | 'status'
+  | 'statusGroup'
+  | 'priority'
+  | 'area'
+  | 'department'
+  | 'problemType'
+  | 'computerId'
 >;
 
 /**
@@ -322,29 +330,38 @@ function buildWhere(query: TicketFilter): SQL | undefined {
   const filters: (SQL | undefined)[] = [];
 
   if (query.status) filters.push(eq(tickets.status, query.status));
+  /* O grupo é o filtro dos cartões do topo: os estágios dele saem do domínio, do mesmo lugar
+     de onde sai a contagem do cartão — é o que faz o número e a lista baterem. */
+  if (query.statusGroup) {
+    filters.push(inArray(tickets.status, [...ticketStatusesOfGroup(query.statusGroup)]));
+  }
   if (query.priority) filters.push(eq(tickets.priority, query.priority));
   if (query.area) filters.push(eq(tickets.area, query.area));
   if (query.department) filters.push(eq(tickets.department, query.department));
   if (query.problemType) filters.push(eq(tickets.problemType, query.problemType));
   if (query.computerId) filters.push(eq(tickets.computerId, query.computerId));
 
-  if (query.search) {
-    const term = `%${query.search}%`;
-    /* "CH-0007", "ch 7", "7" — a MESMA leitura lenta que `findByProtocol` já aceita (ver
-       `ticket-protocol.util`). Sem isto, procurar pelo protocolo que a pessoa anotou no
-       papel não achava nada: `protocol` não é coluna, é o `id` vestido de `CH-0007`. */
-    const protocolId = parseTicketProtocol(query.search);
-
-    filters.push(
-      or(
-        ilike(tickets.requesterName, term),
-        ilike(tickets.description, term),
-        ilike(tickets.solution, term),
-        ilike(tickets.assignee, term),
-        ...(protocolId ? [eq(tickets.id, protocolId)] : []),
-      ),
-    );
-  }
+  if (query.search) filters.push(searchFilter(query.search));
 
   return filters.length > 0 ? and(...filters) : undefined;
+}
+
+/**
+ * A busca livre: nome de quem abriu, descrição, solução, responsável — e o protocolo.
+ *
+ * "CH-0007", "ch 7", "7" — a MESMA leitura lenta que `findByProtocol` já aceita (ver
+ * `ticket-protocol.util`). Sem isto, procurar pelo protocolo que a pessoa anotou no papel
+ * não achava nada: `protocol` não é coluna, é o `id` vestido de `CH-0007`.
+ */
+function searchFilter(search: string): SQL | undefined {
+  const term = `%${search}%`;
+  const protocolId = parseTicketProtocol(search);
+
+  return or(
+    ilike(tickets.requesterName, term),
+    ilike(tickets.description, term),
+    ilike(tickets.solution, term),
+    ilike(tickets.assignee, term),
+    ...(protocolId ? [eq(tickets.id, protocolId)] : []),
+  );
 }

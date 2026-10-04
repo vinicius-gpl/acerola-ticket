@@ -1,3 +1,8 @@
+import {
+  isClosedTicketStatus,
+  isSolvedTicketStatus,
+} from '@template/shared/domain/ticket-status.util';
+
 import { type TicketInsert } from '../../../server/src/lib/db/schema/tickets.schema';
 import { between, chance, pick, pickWeighted, timeRuler } from '../volume.util';
 
@@ -158,12 +163,29 @@ function computerOf(position: number): number | null {
   return chance(66, position * 5) ? between(100, 141, position * 7) : between(1, 8, position * 7);
 }
 
+/**
+ * O estágio de cada chamado gerado.
+ *
+ * A maioria resolve; uma parte dos resolvidos fica com ressalva, e uma parte dos que estão em
+ * andamento está parada esperando alguém. Sem essas fatias, o cartão de "Aguardando" do
+ * painel ficaria sempre no zero e o filtro por estágio teria opções que não acham nada.
+ */
 function statusOf(position: number) {
-  if (chance(58, position * 11)) return 'resolved' as const;
-  if (chance(24, position * 13)) return 'in_progress' as const;
+  if (chance(58, position * 11)) {
+    return chance(12, position * 53) ? ('resolved_with_caveats' as const) : ('resolved' as const);
+  }
+
+  if (chance(24, position * 13)) return runningStatusOf(position);
   if (chance(6, position * 17)) return 'cancelled' as const;
 
   return 'open' as const;
+}
+
+function runningStatusOf(position: number) {
+  if (chance(18, position * 59)) return 'waiting_third_party' as const;
+  if (chance(16, position * 61)) return 'waiting_requester' as const;
+
+  return 'in_progress' as const;
 }
 
 function generate(index: number): TicketInsert {
@@ -182,7 +204,7 @@ function generate(index: number): TicketInsert {
   const startedMinutes = between(10, 480, index * 23);
   const resolvedMinutes = startedMinutes + between(15, 2400, index * 29);
 
-  const isDone = status === 'resolved' || status === 'cancelled';
+  const isDone = isClosedTicketStatus(status);
   const startedAt =
     status === 'open' ? null : new Date(createdAt.getTime() + startedMinutes * 60 * 1000);
   const resolvedAt = isDone ? new Date(createdAt.getTime() + resolvedMinutes * 60 * 1000) : null;
@@ -202,7 +224,7 @@ function generate(index: number): TicketInsert {
     notifyWhatsapp: chance(45, index * 41),
     description: pick(DESCRIPTIONS[problemType], index * 43),
     assignee: status === 'open' ? null : 'Suporte TI',
-    solution: status === 'resolved' ? pick(SOLUTIONS, index * 47) : null,
+    solution: isSolvedTicketStatus(status) ? pick(SOLUTIONS, index * 47) : null,
     createdAt,
     startedAt,
     resolvedAt,

@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   CLOSED_TICKET_STATUSES,
   isClosedTicketStatus,
+  isSolvedTicketStatus,
   isTicketStatus,
+  isWaitingTicketStatus,
   TICKET_PRIORITIES,
+  TICKET_STATUS_GROUPS,
+  ticketStatusesOfGroup,
   TICKET_PRIORITY_LABELS,
   TICKET_STATUS_LABELS,
   TICKET_STATUSES,
@@ -38,10 +42,66 @@ describe('ticketStatusTone', () => {
     expect(ticketStatusTone('open')).toBe('danger');
   });
 
-  it('gives each status its own tone, so they can be told apart at a glance', () => {
-    const tones = TICKET_STATUSES.map(ticketStatusTone);
+  /* São sete estágios e cinco tons: não dá para um por estágio. O que não pode se confundir de
+     relance são os quatro momentos do chamado — parado na fila, na mão do TI, resolvido e
+     cancelado. */
+  it('tells the four moments of a ticket apart at a glance', () => {
+    const tones = (['open', 'in_progress', 'resolved', 'cancelled'] as const).map(ticketStatusTone);
 
-    expect(new Set(tones).size).toBe(TICKET_STATUSES.length);
+    expect(new Set(tones).size).toBe(4);
+  });
+
+  /* Esperando alguém, ou encerrado com algo por fazer: os três pedem atenção, e têm o mesmo
+     tom de aviso. */
+  it('paints with the warning tone everything that still asks for attention', () => {
+    expect(ticketStatusTone('waiting_requester')).toBe('warning');
+    expect(ticketStatusTone('waiting_third_party')).toBe('warning');
+    expect(ticketStatusTone('resolved_with_caveats')).toBe('warning');
+  });
+
+  it('has a tone for every stage', () => {
+    for (const status of TICKET_STATUSES) expect(ticketStatusTone(status)).toBeTruthy();
+  });
+});
+
+describe('ticket stage groups', () => {
+  // feliz
+  it('counts the closure with caveats as closed and as solved', () => {
+    expect(isClosedTicketStatus('resolved_with_caveats')).toBe(true);
+    expect(isSolvedTicketStatus('resolved_with_caveats')).toBe(true);
+    expect(isSolvedTicketStatus('resolved')).toBe(true);
+  });
+
+  it('knows the stages where the ticket is stopped waiting for someone', () => {
+    expect(isWaitingTicketStatus('waiting_requester')).toBe(true);
+    expect(isWaitingTicketStatus('waiting_third_party')).toBe(true);
+  });
+
+  // triste
+  /* Cancelado encerra, mas não resolve: não entra no indicador de resolvidos. */
+  it('does not count a cancelled ticket as solved, nor a running one as waiting', () => {
+    expect(isClosedTicketStatus('cancelled')).toBe(true);
+    expect(isSolvedTicketStatus('cancelled')).toBe(false);
+    expect(isWaitingTicketStatus('in_progress')).toBe(false);
+    expect(isClosedTicketStatus('waiting_requester')).toBe(false);
+  });
+});
+
+describe('ticketStatusesOfGroup', () => {
+  // feliz
+  it('groups the stages the queue filters at once', () => {
+    expect(ticketStatusesOfGroup('waiting')).toEqual(['waiting_requester', 'waiting_third_party']);
+    expect(ticketStatusesOfGroup('solved')).toEqual(['resolved', 'resolved_with_caveats']);
+  });
+
+  // triste
+  /* Um grupo vazio filtraria a fila para nada, e o cartão dele nunca acharia chamado. */
+  it('never leaves a group without a stage, nor counts a cancelled ticket as solved', () => {
+    for (const group of TICKET_STATUS_GROUPS) {
+      expect(ticketStatusesOfGroup(group).length).toBeGreaterThan(0);
+    }
+
+    expect(ticketStatusesOfGroup('solved')).not.toContain('cancelled');
   });
 });
 

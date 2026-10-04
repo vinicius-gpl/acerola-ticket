@@ -6,6 +6,7 @@ import {
 import {
   type TicketPriority,
   type TicketStatus,
+  type TicketStatusGroup,
 } from '@template/shared/domain/ticket-status.util';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
@@ -25,6 +26,11 @@ export const TICKETS_PAGE_SIZE = 15;
 export type TicketListFilter = {
   search: string;
   status: TicketStatus | '';
+  /**
+   * Um GRUPO de estágios de uma vez — o filtro dos cartões "Aguardando" e "Resolvidos", que
+   * contam mais de um estágio. Nunca vale junto com `status`: escolher um limpa o outro.
+   */
+  statusGroup: TicketStatusGroup | '';
   priority: TicketPriority | '';
   department: TicketDepartment | '';
   problemType: TicketProblemType | '';
@@ -61,6 +67,7 @@ export type TicketListModel = {
   actions: {
     onSearchChange: (search: string) => void;
     onStatusChange: (status: TicketStatus | '') => void;
+    onStatusGroupChange: (group: TicketStatusGroup | '') => void;
     onPriorityChange: (priority: TicketPriority | '') => void;
     onDepartmentChange: (department: TicketDepartment | '') => void;
     onProblemTypeChange: (problemType: TicketProblemType | '') => void;
@@ -74,6 +81,7 @@ export type TicketListModel = {
 const EMPTY_FILTER: TicketListFilter = {
   search: '',
   status: '',
+  statusGroup: '',
   priority: '',
   department: '',
   problemType: '',
@@ -89,6 +97,7 @@ function scopeOf(filter: TicketListFilter, areaContext: TicketAreaContext) {
   return {
     search: filter.search.trim() || undefined,
     status: filter.status || undefined,
+    statusGroup: filter.statusGroup || undefined,
     priority: filter.priority || undefined,
     area: areaContext === 'all' ? undefined : areaContext,
     department: filter.department || undefined,
@@ -100,8 +109,8 @@ function scopeOf(filter: TicketListFilter, areaContext: TicketAreaContext) {
  * Estado, consultas e handlers da fila de chamados do painel. ZERO marcação — a view recebe
  * tudo por props e não sabe de onde o dado veio (CONTRIBUTING §3).
  *
- * Atender um chamado NÃO está aqui: tem o próprio view-model (`use-ticket-answer`), e a rota
- * compõe os dois.
+ * Atender um chamado NÃO está aqui: ele tem a própria ficha (`/tickets/[id]`), com os
+ * view-models dela (`use-ticket-detail`, `use-ticket-history-form`, `use-ticket-data-form`).
  */
 export function useTicketListModel(): TicketListModel {
   /* O filtro mora numa STORE, e não num `$state`: esta versão do @tanstack/svelte-query
@@ -188,7 +197,13 @@ export function useTicketListModel(): TicketListModel {
       },
       onStatusChange: (status) => {
         pageStore.set(1);
-        filterStore.update((current) => ({ ...current, status }));
+        /* Estágio e grupo são o MESMO filtro em dois tamanhos: os dois juntos pediriam
+           "aberto E aguardando", que não acha nada. */
+        filterStore.update((current) => ({ ...current, status, statusGroup: '' }));
+      },
+      onStatusGroupChange: (statusGroup) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, statusGroup, status: '' }));
       },
       onPriorityChange: (priority) => {
         pageStore.set(1);
@@ -269,6 +284,7 @@ function hasAnyFilter(filter: TicketListFilter): boolean {
 
   return (
     filter.status !== '' ||
+    filter.statusGroup !== '' ||
     filter.priority !== '' ||
     filter.department !== '' ||
     filter.problemType !== ''
