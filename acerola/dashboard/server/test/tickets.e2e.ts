@@ -273,12 +273,13 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const answered = await request(app.getHttpServer())
       .patch(`/api/tickets/${created.body.id}`)
       .set(asCaio())
-      .send({ priority: 'high', assignee: 'Caio' })
+      .send({ priority: 'high', assignee: 'Outra Pessoa' })
       .expect(200);
 
+    /* O responsável não se troca à mão: o `assignee` do corpo é ignorado. */
     expect(answered.body).toMatchObject({
       priority: 'high',
-      assignee: 'Caio',
+      assignee: null,
       updatedBy: 'caio@empresa.com.br',
     });
 

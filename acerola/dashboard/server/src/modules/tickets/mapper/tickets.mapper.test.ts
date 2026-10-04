@@ -154,8 +154,11 @@ describe('toTicketUpdate', () => {
     expect(update.priority).toBe('high');
   });
 
-  it('clears an emptied assignee, so the field can actually be wiped', () => {
-    expect(toTicketUpdate({ assignee: '   ' }, ANA, NOW).assignee).toBeNull();
+  /* O responsável só muda quando alguém assume o chamado por um histórico — nunca por aqui. */
+  it('never changes who is responsible, even when the body tries to', () => {
+    const update = toTicketUpdate({ priority: 'high', assignee: 'Carlos' } as never, ANA, NOW);
+
+    expect(update).not.toHaveProperty('assignee');
   });
 
   it('reclassifies the area when asked to', () => {

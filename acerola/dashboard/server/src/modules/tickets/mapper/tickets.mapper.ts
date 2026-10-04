@@ -130,7 +130,6 @@ export function toTicketUpdate(
   /* Reclassificar a área — a policy (`TicketsService.update`) já confirmou que quem pediu
      pode. Aqui é só gravar. */
   setIfDefined(update, 'area', input.area);
-  setIfDefined(update, 'assignee', normalizeOptional(input.assignee));
   /* Quem abre escolhe o tipo pelo que parece; quem atende descobre o que era. Sem esta
      correção, o mapa de "o que mais dá problema" fica torto para sempre. */
   setIfDefined(update, 'problemType', input.problemType);
