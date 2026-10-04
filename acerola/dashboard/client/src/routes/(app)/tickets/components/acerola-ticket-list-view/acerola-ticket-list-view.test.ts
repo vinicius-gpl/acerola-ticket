@@ -103,6 +103,71 @@ describe('formatAverage', () => {
   });
 });
 
+describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
+  // feliz
+  it('filters the queue by situation when a stat card is clicked', async () => {
+    const onStatusChange = vi.fn();
+    setup({ actions: { ...actions, onStatusChange } });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Abertos: filtrar a lista' }));
+    expect(onStatusChange).toHaveBeenLastCalledWith('open');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Em atendimento: filtrar a lista' }));
+    expect(onStatusChange).toHaveBeenLastCalledWith('in_progress');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Resolvidos: filtrar a lista' }));
+    expect(onStatusChange).toHaveBeenLastCalledWith('resolved');
+  });
+
+  it('marks the card whose filter is on, and clicking it again clears the filter', async () => {
+    const onStatusChange = vi.fn();
+    setup({
+      data: { tickets: [ticket()], total: 1, dashboard, filter: { ...emptyFilter, status: 'open' } },
+      actions: { ...actions, onStatusChange },
+    });
+
+    const card = screen.getByRole('button', { name: 'Abertos: tirar o filtro' });
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(card);
+    expect(onStatusChange).toHaveBeenLastCalledWith('');
+  });
+
+  it('names each filter and offers to clear them once one is on', async () => {
+    const onClearFilters = vi.fn();
+    setup({
+      data: {
+        tickets: [ticket()],
+        total: 1,
+        dashboard,
+        filter: { ...emptyFilter, priority: 'high' },
+      },
+      actions: { ...actions, onClearFilters },
+    });
+
+    /* "Situação" e "Departamento" também são títulos de coluna da tabela: basta existir. */
+    for (const label of ['Situação', 'Urgência', 'Departamento', 'Tipo de problema'])
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+    expect(onClearFilters).toHaveBeenCalled();
+  });
+
+  // triste
+  /* O tempo médio não corresponde a nenhum filtro: não pode parecer clicável. */
+  it('does not turn the average-time card into a shortcut', () => {
+    setup();
+
+    expect(screen.queryByRole('button', { name: /Tempo médio/ })).toBeNull();
+  });
+
+  it('hides the clear button while no filter is on', () => {
+    setup();
+
+    expect(screen.queryByRole('button', { name: 'Limpar filtros' })).toBeNull();
+  });
+});
+
 describe('AcerolaTicketListView', () => {
   // feliz
   it('lists the ticket with its protocol and situation', () => {
