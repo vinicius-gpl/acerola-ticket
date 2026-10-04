@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type FormFieldState } from '$lib/types/form-field.type';
-import TicketAnswerDialog, { type TicketAnswerField } from './ticket-answer-dialog.svelte';
+import TicketAnswerDialog, { type TicketAnswerField } from './acerola-ticket-answer-dialog.svelte';
 
 const field = (value: string, error: string | null = null): FormFieldState => ({ value, error });
 
@@ -83,7 +83,7 @@ function setup(props: Record<string, unknown> = {}) {
   });
 }
 
-describe('TicketAnswerDialog', () => {
+describe('AcerolaTicketAnswerDialog', () => {
   // feliz
   it('shows what the person asked for, so whoever attends can read it while answering', () => {
     setup();

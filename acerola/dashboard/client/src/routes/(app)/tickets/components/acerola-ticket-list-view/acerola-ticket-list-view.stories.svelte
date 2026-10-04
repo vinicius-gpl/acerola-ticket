@@ -3,7 +3,7 @@
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
   import { type TicketDashboard } from '$lib/api/tickets.api';
-  import TicketListView, { type TicketListFilter } from './ticket-list-view.svelte';
+  import TicketListView, { type TicketListFilter } from './acerola-ticket-list-view.svelte';
 
   function ticket(over: Partial<Ticket> = {}): Ticket {
     return {
@@ -116,7 +116,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/TicketListView',
+    title: 'Features/Tickets/AcerolaTicketListView',
     component: TicketListView,
   });
 </script>

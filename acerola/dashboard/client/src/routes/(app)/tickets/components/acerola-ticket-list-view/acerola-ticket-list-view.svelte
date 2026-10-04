@@ -45,7 +45,7 @@
    * Não há botão de excluir, e a ausência é a regra do sistema: chamado sai da fila mudando
    * de situação, nunca sumindo.
    */
-  export type TicketListViewProps = {
+  export type AcerolaTicketListViewProps = {
     data: {
       tickets: Ticket[];
       total: number;
@@ -144,12 +144,12 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
 
-  let { data, state, actions }: TicketListViewProps = $props();
+  let { data, state, actions }: AcerolaTicketListViewProps = $props();
 
   const tableView = useTableViewModel();
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
-  import TicketListView from '$lib/components/ticket-list-view/ticket-list-view.svelte';
+  import TicketListView from './components/acerola-ticket-list-view/acerola-ticket-list-view.svelte';
   import { useTicketListModel } from '$lib/hooks/use-ticket-list/use-ticket-list.svelte';
   import TicketAnswerSlot from './ticket-answer-slot.svelte';
 

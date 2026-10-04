@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type TicketDashboard } from '$lib/api/tickets.api';
-import TicketListView, { formatAverage, type TicketListFilter } from './ticket-list-view.svelte';
+import TicketListView, { formatAverage, type TicketListFilter } from './acerola-ticket-list-view.svelte';
 
 function ticket(over: Partial<Ticket> = {}): Ticket {
   return {
@@ -103,7 +103,7 @@ describe('formatAverage', () => {
   });
 });
 
-describe('TicketListView', () => {
+describe('AcerolaTicketListView', () => {
   // feliz
   it('lists the ticket with its protocol and situation', () => {
     setup();

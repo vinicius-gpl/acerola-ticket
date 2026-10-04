@@ -41,7 +41,7 @@
    * A recusa do servidor aparece DENTRO do modal, e ele continua aberto: fechar jogaria fora
    * o que foi digitado.
    */
-  export type TicketAnswerDialogProps = {
+  export type AcerolaTicketAnswerDialogProps = {
     data: {
       ticket: Ticket;
       fields: Record<TicketAnswerField, FormFieldState>;
@@ -120,7 +120,7 @@
     DialogFooter,
     DialogHeader,
     DialogTitle,
-  } from '$lib/components/ui/dialog';
+  } from '$lib/components/acerola-dialog/acerola-dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
@@ -136,7 +136,7 @@
   import Timeline from '$lib/components/timeline/timeline.svelte';
   import TimelineStep from '$lib/components/timeline-step/timeline-step.svelte';
 
-  let { data, state, actions }: TicketAnswerDialogProps = $props();
+  let { data, state, actions }: AcerolaTicketAnswerDialogProps = $props();
 
   /* "Nenhuma" precisa ser uma opção de verdade: é assim que se desfaz um vínculo errado. O
      valor vazio é o que o view-model traduz de volta para nulo ao salvar. */

@@ -15,7 +15,7 @@
 </script>
 
 <script lang="ts">
-  import TicketAnswerDialog from '$lib/components/ticket-answer-dialog/ticket-answer-dialog.svelte';
+  import TicketAnswerDialog from './components/acerola-ticket-answer-dialog/acerola-ticket-answer-dialog.svelte';
   import { useTicketAnswerModel } from '$lib/hooks/use-ticket-answer/use-ticket-answer.svelte';
 
   let { ticket, onClose }: TicketAnswerSlotProps = $props();

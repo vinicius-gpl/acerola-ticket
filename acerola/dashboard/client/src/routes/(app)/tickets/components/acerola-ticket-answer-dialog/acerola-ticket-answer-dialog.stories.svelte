@@ -4,7 +4,7 @@
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
 
   import { type FormFieldState } from '$lib/types/form-field.type';
-  import TicketAnswerDialog, { type TicketAnswerField } from './ticket-answer-dialog.svelte';
+  import TicketAnswerDialog, { type TicketAnswerField } from './acerola-ticket-answer-dialog.svelte';
 
   const field = (value: string, error: string | null = null): FormFieldState => ({ value, error });
 
@@ -72,7 +72,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/TicketAnswerDialog',
+    title: 'Features/Tickets/AcerolaTicketAnswerDialog',
     component: TicketAnswerDialog,
   });
 </script>
