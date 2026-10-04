@@ -44,7 +44,6 @@
       area: { value: 'infra', error: null },
       problemType: { value: 'other', error: null },
       computerId: { value: '3', error: null },
-      assignee: { value: 'Suporte TI', error: null },
     },
     machines,
     availableParticipantAreas: [
@@ -70,7 +69,7 @@
 
 <Story name="Default" args={{ data, actions }} />
 
-<!-- Chamado recém-aberto: sem máquina e sem responsável ainda. -->
+<!-- Chamado recém-aberto: sem máquina vinculada ainda. -->
 <Story
   name="FreshTicket"
   args={{
@@ -80,7 +79,6 @@
       fields: {
         ...data.fields,
         computerId: { value: '', error: null },
-        assignee: { value: '', error: null },
       },
     },
     actions,
@@ -120,13 +118,6 @@
   args={{
     data: {
       ...data,
-      fields: {
-        ...data.fields,
-        assignee: {
-          value: 'x'.repeat(40),
-          error: 'O nome do responsável pode ter até 200 caracteres',
-        },
-      },
     },
     state: { areaError: 'Não consegui adicionar a área.' },
     actions,

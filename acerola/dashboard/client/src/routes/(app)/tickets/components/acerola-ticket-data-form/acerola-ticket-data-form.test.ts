@@ -1,4 +1,5 @@
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
+import { TICKET_PRIORITY_LABELS } from '@template/shared/domain/ticket-status.util';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -39,7 +40,6 @@ function data(over: Partial<AcerolaTicketDataFormProps['data']> = {}): AcerolaTi
       area: { value: 'infra', error: null },
       problemType: { value: 'other', error: null },
       computerId: { value: '', error: null },
-      assignee: { value: 'Suporte TI', error: null },
     },
     machines: [{ value: '3', label: 'FISCAL-02' }],
     availableParticipantAreas: [
@@ -72,20 +72,19 @@ describe('AcerolaTicketDataForm', () => {
   it('shows the data of the ticket, ready to be corrected', () => {
     setup();
 
-    expect(screen.getByLabelText(/responsável/i)).toHaveValue('Suporte TI');
     expect(screen.getByText('Urgência')).toBeInTheDocument();
+    expect(screen.getByText('Área')).toBeInTheDocument();
+    expect(screen.getByText('Tipo do problema')).toBeInTheDocument();
     expect(screen.getByText('Máquina')).toBeInTheDocument();
   });
 
-  it('passes on what is typed and asks to save on submit', async () => {
-    const { actions: given } = setup({
-      data: data({ fields: { ...data().fields, assignee: { value: '', error: null } } }),
-    });
+  it('passes on what is chosen and asks to save on submit', async () => {
+    const { actions: given } = setup();
 
-    await userEvent.type(screen.getByLabelText(/responsável/i), 'C');
+    await userEvent.click(screen.getByRole('button', { name: TICKET_PRIORITY_LABELS.low }));
     await userEvent.click(screen.getByRole('button', { name: /salvar dados/i }));
 
-    expect(given.onChange).toHaveBeenCalledWith('assignee', 'C');
+    expect(given.onChange).toHaveBeenCalledWith('priority', 'low');
     expect(given.onSubmit).toHaveBeenCalledOnce();
   });
 
@@ -163,16 +162,12 @@ describe('AcerolaTicketDataForm', () => {
     expect(screen.getByText('Não consegui adicionar a área.')).toBeInTheDocument();
   });
 
-  it('shows the error under the field it belongs to', () => {
-    setup({
-      data: data({
-        fields: {
-          ...data().fields,
-          assignee: { value: 'x', error: 'O nome do responsável pode ter até 200 caracteres' },
-        },
-      }),
-    });
+  /* O responsável não se troca à mão: quem assume o chamado vira responsável ao lançar o
+     primeiro histórico. Aqui não há campo para ele. */
+  it('has no field to change who is responsible for the ticket', () => {
+    setup();
 
-    expect(screen.getByText('O nome do responsável pode ter até 200 caracteres')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/responsável/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Responsável')).not.toBeInTheDocument();
   });
 });

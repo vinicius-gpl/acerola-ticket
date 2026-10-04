@@ -20,7 +20,7 @@ import { type FormFieldState } from '$lib/types/form-field.type';
 /** Uma página grande o bastante para caber o parque inteiro num campo de escolha. */
 const MACHINE_OPTIONS_PAGE_SIZE = 200;
 
-export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId' | 'assignee';
+export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId';
 
 export type TicketDataFormModel = {
   data: {
@@ -51,7 +51,7 @@ export type TicketDataFormModel = {
 };
 
 /**
- * Os DADOS do chamado que o TI corrige: urgência, área, tipo de problema, máquina e responsável.
+ * Os DADOS do chamado que o TI corrige: urgência, área, tipo de problema e máquina.
  *
  * O ESTÁGIO não está aqui, de propósito: ele só muda lançando um histórico
  * (`use-ticket-history-form`). Nada que identifique quem abriu é editável — corrigir o nome ou
@@ -152,7 +152,6 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
           area: fieldOf('area'),
           problemType: fieldOf('problemType'),
           computerId: fieldOf('computerId'),
-          assignee: fieldOf('assignee'),
         },
         machines: toMachineOptions(machines.current.data?.items ?? []),
         availableParticipantAreas: toAvailableParticipantAreas(currentTicket),
@@ -204,7 +203,6 @@ export function toFormValues(ticket: Ticket): TicketDataFormValues {
     problemType: ticket.problemType,
     /* Vazio é "nenhuma máquina": no formulário tudo é texto, e é o view-model que traduz. */
     computerId: ticket.computerId === null ? '' : String(ticket.computerId),
-    assignee: ticket.assignee ?? '',
   };
 }
 
@@ -220,7 +218,6 @@ export function toUpdateInput(values: TicketDataFormValues) {
     area: values.area,
     problemType: values.problemType,
     computerId: values.computerId === '' ? null : Number(values.computerId),
-    assignee: values.assignee,
   };
 }
 

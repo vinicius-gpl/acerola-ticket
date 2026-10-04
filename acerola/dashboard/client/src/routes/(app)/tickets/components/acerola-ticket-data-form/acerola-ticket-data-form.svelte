@@ -13,10 +13,13 @@
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
   import { type FormFieldState } from '$lib/types/form-field.type';
 
-  export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId' | 'assignee';
+  export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId';
 
   /**
-   * Os DADOS do chamado que o TI corrige: urgência, área, tipo, máquina e responsável.
+   * Os DADOS do chamado que o TI corrige: urgência, área, tipo e máquina.
+   *
+   * O RESPONSÁVEL não está aqui, de propósito: ele não se troca à mão. Quem assume o chamado
+   * vira responsável ao lançar o primeiro histórico, e a ficha o mostra só para leitura.
    *
    * Função pura de props: o valor e o erro de cada campo chegam prontos (`FormFieldState`).
    *
@@ -67,7 +70,6 @@
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
   import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
-  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: formState, actions }: AcerolaTicketDataFormProps = $props();
@@ -100,20 +102,6 @@
 </script>
 
 <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-  <TextField
-    data={{
-      label: 'Responsável',
-      name: 'assignee',
-      value: fields.assignee.value,
-      placeholder: 'Quem está atendendo',
-    }}
-    state={{ error: fields.assignee.error, isDisabled: formState?.isSubmitting }}
-    actions={{
-      onChange: (value: string) => actions.onChange('assignee', value),
-      onBlur: () => actions.onBlur('assignee'),
-    }}
-  />
-
   <FilterField data={{ label: 'Urgência' }}>
     <OptionPicker
       data={{ value: fields.priority.value, options: PRIORITY_OPTIONS }}

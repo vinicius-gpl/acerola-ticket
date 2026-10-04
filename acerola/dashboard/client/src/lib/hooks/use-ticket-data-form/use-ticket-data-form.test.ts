@@ -69,16 +69,16 @@ describe('toFormValues', () => {
       area: 'infra',
       problemType: 'network',
       computerId: '11',
-      assignee: 'Suporte TI',
     });
   });
 
   // triste
-  it('reads no machine and no assignee as empty text, never as "null"', () => {
-    const values = toFormValues(ticket({ assignee: null }));
+  it('reads no machine as empty text, never as "null"', () => {
+    const values = toFormValues(ticket());
 
     expect(values.computerId).toBe('');
-    expect(values.assignee).toBe('');
+    /* O responsável não se troca por este formulário: nem entra nos valores. */
+    expect(values).not.toHaveProperty('assignee');
   });
 });
 
@@ -163,7 +163,6 @@ describe('useTicketDataFormModel', () => {
       area: 'infra',
       problemType: 'network',
       computerId: 3,
-      assignee: 'Suporte TI',
     });
   });
 
@@ -211,7 +210,7 @@ describe('useTicketDataFormModel', () => {
     model.actions.onSubmit();
     await waitFor(() => expect(model.state.isSaved).toBe(true));
 
-    model.actions.onChange('assignee', 'Carlos');
+    model.actions.onChange('priority', 'low');
 
     expect(model.state.isSaved).toBe(false);
   });
