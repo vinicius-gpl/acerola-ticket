@@ -173,6 +173,32 @@ git push origin --delete feature/<nome>    # só se a branch tinha sido enviada
 
 Sem remoto configurado: pare no merge e diga que está salvo só nesta máquina.
 
+### Quando o caminho é um PR no GitHub
+
+Se a feature foi enviada e virou PR, o merge acontece no GitHub — e **o título do PR vira o
+commit de merge**. O repositório está configurado para isso, e o CI (`.github/workflows/
+pr-title.yml`) reprova título fora do formato. Então:
+
+- **O PR nasce com o título do merge**, no mesmo formato do `-m` acima:
+  ```bash
+  gh pr create --base develop --title "[merge](<escopo>): <o que passou a existir>" --body "<resumo>"
+  ```
+  Não use o tipo do trabalho (`[feat]`, `[fix]`) no título do PR: esses são dos commits de
+  dentro da branch. O PR é o fechamento, e fechamento é `[merge]`.
+- **O merge é sempre com commit de merge** (squash e rebase estão desligados no repositório):
+  ```bash
+  gh pr checks <n> --watch --interval 30
+  gh pr merge <n> --merge
+  ```
+- **Depois do merge, confira a mensagem** antes de dizer que terminou:
+  ```bash
+  git fetch origin && git log -1 --format=%s origin/develop
+  ```
+  Tem de começar com `[merge](`. Se sair `Merge pull request #...`, a configuração do
+  repositório foi desfeita — avise quem administra, em vez de reescrever o histórico por conta.
+- O GitHub apaga a branch remota sozinho depois do merge. Falta só a local:
+  `git switch develop && git pull --ff-only && git branch -d feature/<nome>`.
+
 Para a pessoa: *"Pronto: <o que ela ganhou> já está na develop. Quem administra o projeto
 decide quando isso vai para a versão oficial (main)."*
 
