@@ -77,6 +77,7 @@
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/acerola-app-shell-nav-entry/acerola-app-shell-nav-entry.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
   import EffectsToggle from '$lib/components/acerola-effects-toggle/acerola-effects-toggle.svelte';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 
@@ -201,9 +202,21 @@
            o contexto muda tudo o que a tela mostra, então a pessoa precisa VER em qual está
            sem abrir nada — e trocar com um clique. -->
       {#if data?.areaOptions && data.areaOptions.length > 0}
+        <!-- DOIS DESENHOS do mesmo controle, um por largura. Com espaço (`lg` em diante), as
+             pastilhas: o contexto fica à vista e troca com um clique. No tablet e no celular,
+             quatro pastilhas não cabem ao lado do botão do menu e quebravam em duas linhas —
+             ali ele vira uma lista suspensa, que ocupa o lugar de um botão só e ainda mostra a
+             área atual. Só um dos dois aparece por vez; quem esconde é o CSS. -->
         <OptionPicker
           data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
-          ui={{ ariaLabel: 'Área que você está vendo' }}
+          ui={{ ariaLabel: 'Área que você está vendo', className: 'hidden lg:inline-flex' }}
+          actions={{
+            onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
+          }}
+        />
+        <SelectField
+          data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
+          ui={{ ariaLabel: 'Área que você está vendo', className: 'w-auto min-w-[150px] lg:hidden' }}
           actions={{
             onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
           }}

@@ -67,6 +67,26 @@ describe('AcerolaAppShell', () => {
     expect(onAreaContextChange).toHaveBeenCalledWith('manutencao');
   });
 
+  /* No tablet e no celular as pastilhas não cabem: o mesmo contexto vira uma lista suspensa,
+     que mostra a área atual. Os dois desenhos existem na tela; o CSS mostra um por largura. */
+  it('offers the same context as a compact list for narrow screens', () => {
+    renderShell({
+      data: {
+        areaOptions: [
+          { value: 'all', label: 'Todas' },
+          { value: 'infra', label: 'Infraestrutura' },
+        ],
+      },
+      state: { areaContext: 'infra' },
+    });
+
+    const list = screen.getByRole('combobox', { name: 'Área que você está vendo' });
+
+    expect(list).toHaveTextContent('Infraestrutura');
+    expect(list.className).toContain('lg:hidden');
+    expect(screen.getByRole('group', { name: 'Área que você está vendo' }).className).toContain('hidden');
+  });
+
   // triste
   /* Quem atende uma área só (ou nenhuma) não tem o que escolher: o seletor nem aparece. */
   it('draws no context selector when there is nothing to choose', () => {
