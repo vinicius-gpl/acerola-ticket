@@ -192,13 +192,13 @@
       data-slot="disposal-cards-mobile"
     >
       {#each data.computers as computer (computer.id)}
-        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
-              <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+              <span class="font-medium text-ink-900 break-words">
                 {machineLabelOf(computer)}
               </span>
-              <span class="block text-xs text-neutral-400 break-words">
+              <span class="block text-xs text-ink-500 break-words">
                 {computer.name}
                 {#if computer.department}
                   · {departmentLabel(computer.department)}
@@ -214,14 +214,14 @@
           </div>
 
           <div class="mt-2 text-xs">
-            <span class="text-muted-foreground block text-[11px]">Motivo</span>
-            <p class="text-neutral-700 dark:text-neutral-200 break-words">
+            <span class="text-muted-foreground block text-xs">Motivo</span>
+            <p class="text-ink-700 break-words">
               {computer.disposalReason ?? '—'}
             </p>
           </div>
 
           <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
-            <span class="text-xs text-neutral-400">
+            <span class="text-xs text-ink-500">
               Saiu em {formatDate(computer.disposedAt)}
             </span>
             <div class="flex items-center gap-1">
@@ -264,10 +264,10 @@
           {#each data.computers as computer (computer.id)}
             <TableRow class="align-top">
               <TableCell class="max-w-[240px]">
-                <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                <span class="font-medium text-ink-900 break-words">
                   {machineLabelOf(computer)}
                 </span>
-                <span class="block text-xs text-neutral-400 break-words">
+                <span class="block text-xs text-ink-500 break-words">
                   {computer.name}
                   {#if computer.department}
                     · {departmentLabel(computer.department)}
@@ -282,10 +282,10 @@
                   />
                 {/if}
               </TableCell>
-              <TableCell class="text-neutral-700 dark:text-neutral-200 max-w-[320px] break-words whitespace-normal">
+              <TableCell class="text-ink-700 max-w-[320px] break-words whitespace-normal">
                 {computer.disposalReason ?? '—'}
               </TableCell>
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              <TableCell class="text-ink-500 whitespace-nowrap text-xs">
                 {formatDate(computer.disposedAt)}
               </TableCell>
               <TableCell class="text-right whitespace-nowrap">
