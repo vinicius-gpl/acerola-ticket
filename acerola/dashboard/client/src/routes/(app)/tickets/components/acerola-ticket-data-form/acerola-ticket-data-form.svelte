@@ -31,7 +31,6 @@
       machines: { value: string; label: string }[];
       /** As áreas que ainda podem entrar como participante — todas, menos as que já são. */
       availableParticipantAreas: { value: TicketArea; label: string }[];
-      chosenParticipantArea: TicketArea | '';
     };
     state?: {
       isSubmitting?: boolean;
@@ -45,8 +44,7 @@
       onChange: (field: TicketDataField, value: string) => void;
       onBlur: (field: TicketDataField) => void;
       onSubmit: () => void;
-      onChosenParticipantAreaChange: (area: TicketArea | '') => void;
-      onAddParticipantArea: () => void;
+      onAddParticipantArea: (area: TicketArea) => void;
       onRemoveParticipantArea: (area: TicketArea) => void;
     };
   };
@@ -64,14 +62,13 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import XIcon from '@lucide/svelte/icons/x';
 
-  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
-  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
+  import { cn } from '$lib/utils/cn';
 
   let { data, state: formState, actions }: AcerolaTicketDataFormProps = $props();
 
@@ -182,50 +179,60 @@
   <!-- ÁREAS PARTICIPANTES (#13) — além da área original, de cima. Ex.: um chamado de Infra que
        também precisa de Manutenção. Mudança própria, fora do envio do formulário: adiciona e
        remove na hora, sem esperar o resto ser salvo. -->
-  <div class="border-border/70 flex flex-col gap-2 border-t pt-4">
-    <span class="text-muted-foreground text-xs font-medium">Áreas participantes</span>
+  <div class="border-border/70 flex flex-col gap-3 border-t pt-4">
+    <div>
+      <p class="text-ink-700 text-sm font-medium">Áreas participantes</p>
+      <p class="text-muted-foreground text-xs">Outras áreas que também atendem este chamado.</p>
+    </div>
 
+    <!-- AS QUE JÁ PARTICIPAM: uma pastilha cheia cada, com o X dentro dela. -->
     {#if data.ticket.participantAreas.length === 0}
       <p class="text-muted-foreground/70 text-xs">Nenhuma área participante ainda.</p>
     {:else}
-      <div class="flex flex-wrap items-center gap-1.5">
+      <ul class="flex flex-wrap items-center gap-1.5">
         {#each data.ticket.participantAreas as area (area)}
-          <span class="bg-ink-100 rounded-chip inline-flex items-center gap-1 py-1 pr-1 pl-2.5">
-            <StatusBadge data={{ label: ticketAreaLabel(area) }} ui={{ tone: 'brand', size: 'sm' }} />
+          <li
+            class={cn(
+              'bg-primary/15 text-primary inline-flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-xs font-semibold',
+              formState?.removingAreaArea === area && 'opacity-60',
+            )}
+          >
+            {ticketAreaLabel(area)}
             <button
               type="button"
               onclick={() => actions.onRemoveParticipantArea(area)}
               disabled={formState?.removingAreaArea === area}
               aria-label={`Remover ${ticketAreaLabel(area)} do chamado`}
-              class="text-muted-foreground hover:text-destructive flex size-5 items-center justify-center rounded-full transition-colors"
+              class="hover:bg-primary/20 flex size-5 cursor-pointer items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed"
             >
               <XIcon class="size-3" aria-hidden="true" />
             </button>
-          </span>
+          </li>
         {/each}
-      </div>
+      </ul>
     {/if}
 
+    <!-- AS QUE PODEM ENTRAR: um botão tracejado cada, que adiciona com UM clique. Antes era
+         escolher numa fileira e depois apertar "Adicionar" — dois gestos, e a fileira parecia
+         um seletor do formulário de cima, que só vale ao salvar. O tracejado diz "ainda não
+         está aqui"; a pastilha cheia, acima, diz "já está". -->
     {#if data.availableParticipantAreas.length > 0}
-      <div class="flex flex-wrap items-center gap-2">
-        <OptionPicker
-          data={{ value: data.chosenParticipantArea, options: data.availableParticipantAreas }}
-          ui={{ ariaLabel: 'Adicionar área participante', placeholder: 'Escolher área' }}
-          state={{ isDisabled: formState?.isAddingArea }}
-          actions={{
-            onChange: (value: string) =>
-              actions.onChosenParticipantAreaChange(value as typeof data.chosenParticipantArea),
-          }}
-        />
-        <ActionButton
-          data={{ label: 'Adicionar', loadingLabel: 'Adicionando…' }}
-          ui={{ variant: 'secondary', size: 'lg', icon: PlusIcon }}
-          state={{
-            isDisabled: data.chosenParticipantArea === '',
-            isLoading: formState?.isAddingArea,
-          }}
-          actions={{ onClick: actions.onAddParticipantArea }}
-        />
+      <div class="flex flex-wrap items-center gap-1.5">
+        {#each data.availableParticipantAreas as option (option.value)}
+          <button
+            type="button"
+            onclick={() => actions.onAddParticipantArea(option.value)}
+            disabled={formState?.isAddingArea}
+            aria-label={`Adicionar ${option.label} ao chamado`}
+            class={cn(
+              'control-sm border-border text-muted-foreground inline-flex cursor-pointer items-center gap-1 rounded-full border border-dashed text-xs font-medium transition-colors',
+              'hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60',
+            )}
+          >
+            <PlusIcon class="size-3" aria-hidden="true" />
+            {option.label}
+          </button>
+        {/each}
       </div>
     {/if}
 

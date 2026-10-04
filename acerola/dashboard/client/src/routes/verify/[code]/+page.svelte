@@ -30,7 +30,9 @@
     </div>
   </header>
 
-  <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+  <!-- `flex-1` + `justify-center`: o conteúdo é curto, e sem isso ele nascia colado no topo com
+       a tela inteira vazia embaixo — o mesmo cuidado da tela de abrir chamado. -->
+  <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-4 py-8 sm:px-6">
     <ServiceOrderVerifyView data={verify.data} state={verify.state} actions={verify.actions} />
   </main>
 </div>

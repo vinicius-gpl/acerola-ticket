@@ -1,3 +1,4 @@
+import { ticketAreaLabel } from '@template/shared/domain/ticket-catalog.util';
 import { type PublicTicket } from '@template/shared/schemas/ticket.schema';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
@@ -44,6 +45,47 @@ describe('AcerolaTicketLookupDrawer', () => {
     expect(screen.getByText('Em atendimento')).toBeInTheDocument();
     expect(screen.getByText('FINANCEIRO')).toBeInTheDocument();
     expect(screen.getByText('Impressora')).toBeInTheDocument();
+  });
+
+  /* A grade de dados responde o básico sem a pessoa ler a linha do tempo inteira. */
+  it('shows the area, when it was opened and how much progress was registered', () => {
+    setup({ data: { protocol: 'CH-0007', ticket } });
+
+    expect(screen.getByText(ticketAreaLabel('infra'))).toBeInTheDocument();
+    expect(screen.getByText('Aberto em')).toBeInTheDocument();
+    expect(screen.getByText('Última movimentação')).toBeInTheDocument();
+    expect(screen.getByText('Andamentos').nextElementSibling).toHaveTextContent('0');
+  });
+
+  it('lists the files of the ticket itself, and not the ones that came with a history', () => {
+    const file = {
+      id: 4,
+      ticketId: 7,
+      historyId: null,
+      kind: 'pdf' as const,
+      origin: 'requester' as const,
+      fileName: 'nota-fiscal.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      viewUrl: 'https://example.invalid/abrir',
+      downloadUrl: 'https://example.invalid/baixar',
+      createdAt: '2026-09-15T12:10:00.000Z',
+      createdBy: null,
+    };
+
+    setup({
+      data: {
+        protocol: 'CH-0007',
+        ticket: {
+          ...ticket,
+          attachments: [file, { ...file, id: 5, historyId: 31, fileName: 'orcamento.pdf' }],
+        },
+      },
+    });
+
+    expect(screen.getByText('Arquivos do chamado')).toBeInTheDocument();
+    expect(screen.getByText('nota-fiscal.pdf')).toBeInTheDocument();
+    expect(screen.queryByText('orcamento.pdf')).not.toBeInTheDocument();
   });
 
   it('asks for the search when the button is pressed', async () => {

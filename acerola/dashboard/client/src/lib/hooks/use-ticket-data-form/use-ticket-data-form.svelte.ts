@@ -30,8 +30,6 @@ export type TicketDataFormModel = {
     machines: { value: string; label: string }[];
     /** As áreas que ainda PODEM entrar como participante — todas, menos as que já estão. */
     availableParticipantAreas: { value: TicketArea; label: string }[];
-    /** A área escolhida no seletor de "adicionar área", ainda não enviada. */
-    chosenParticipantArea: TicketArea | '';
   };
   state: {
     isSubmitting: boolean;
@@ -47,8 +45,7 @@ export type TicketDataFormModel = {
     onChange: (field: TicketDataField, value: string) => void;
     onBlur: (field: TicketDataField) => void;
     onSubmit: () => void;
-    onChosenParticipantAreaChange: (area: TicketArea | '') => void;
-    onAddParticipantArea: () => void;
+    onAddParticipantArea: (area: TicketArea) => void;
     onRemoveParticipantArea: (area: TicketArea) => void;
   };
 };
@@ -94,7 +91,6 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
      uma área acontece na hora. `currentTicket` existe porque `ticket` (o parâmetro) é o estado
      de QUANDO o formulário montou — sem ele, a área adicionada não apareceria. */
   let currentTicket = $state(ticket);
-  let chosenParticipantArea = $state<TicketArea | ''>('');
   let removingAreaArea = $state<TicketArea | null>(null);
   let areaError = $state<string | null>(null);
 
@@ -103,7 +99,6 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
       mutationFn: (area: TicketArea) => ticketsApi.addArea(ticket.id, area),
       onSuccess: async (updated) => {
         currentTicket = updated;
-        chosenParticipantArea = '';
         areaError = null;
         await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
       },
@@ -161,7 +156,6 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
         },
         machines: toMachineOptions(machines.current.data?.items ?? []),
         availableParticipantAreas: toAvailableParticipantAreas(currentTicket),
-        chosenParticipantArea,
       };
     },
     get state() {
@@ -185,12 +179,7 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
         void form.validateField(field, 'change');
       },
       onSubmit: () => void form.handleSubmit(),
-      onChosenParticipantAreaChange: (area) => (chosenParticipantArea = area),
-      onAddParticipantArea: () => {
-        if (chosenParticipantArea === '') return;
-
-        addArea.current.mutate(chosenParticipantArea);
-      },
+      onAddParticipantArea: (area) => addArea.current.mutate(area),
       onRemoveParticipantArea: (area) => {
         removingAreaArea = area;
         removeArea.current.mutate(area);

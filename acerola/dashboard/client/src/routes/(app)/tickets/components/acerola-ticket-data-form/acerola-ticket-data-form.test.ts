@@ -46,7 +46,6 @@ function data(over: Partial<AcerolaTicketDataFormProps['data']> = {}): AcerolaTi
       { value: 'sistema', label: 'Sistema' },
       { value: 'manutencao', label: 'Manutenção' },
     ],
-    chosenParticipantArea: '',
     ...over,
   };
 }
@@ -56,7 +55,6 @@ function actions(): AcerolaTicketDataFormProps['actions'] {
     onChange: vi.fn(),
     onBlur: vi.fn(),
     onSubmit: vi.fn(),
-    onChosenParticipantAreaChange: vi.fn(),
     onAddParticipantArea: vi.fn(),
     onRemoveParticipantArea: vi.fn(),
   };
@@ -107,12 +105,13 @@ describe('AcerolaTicketDataForm', () => {
     expect(given.onRemoveParticipantArea).toHaveBeenCalledWith('manutencao');
   });
 
-  it('asks to add the chosen participant area', async () => {
-    const { actions: given } = setup({ data: data({ chosenParticipantArea: 'sistema' }) });
+  /* Um clique na área adiciona — sem escolher primeiro e confirmar depois. */
+  it('adds a participant area with a single click on it', async () => {
+    const { actions: given } = setup();
 
-    await userEvent.click(screen.getByRole('button', { name: /adicionar/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Adicionar Sistema ao chamado' }));
 
-    expect(given.onAddParticipantArea).toHaveBeenCalledOnce();
+    expect(given.onAddParticipantArea).toHaveBeenCalledWith('sistema');
   });
 
   // triste
@@ -125,10 +124,19 @@ describe('AcerolaTicketDataForm', () => {
     expect(screen.queryByLabelText(/o que foi feito/i)).not.toBeInTheDocument();
   });
 
-  it('keeps the add button off until an area is chosen', () => {
-    setup();
+  /* Dois cliques seguidos não podem virar dois pedidos: enquanto uma área entra, as outras
+     esperam. */
+  it('locks the areas that can still be added while one is being added', () => {
+    setup({ state: { isAddingArea: true } });
 
-    expect(screen.getByRole('button', { name: /adicionar/i })).toBeDisabled();
+    for (const button of screen.getAllByRole('button', { name: /adicionar .* ao chamado/i }))
+      expect(button).toBeDisabled();
+  });
+
+  it('offers nothing to add when every area already takes part', () => {
+    setup({ data: data({ availableParticipantAreas: [] }) });
+
+    expect(screen.queryByRole('button', { name: /adicionar .* ao chamado/i })).not.toBeInTheDocument();
   });
 
   it('says there is no participant area instead of showing an empty list', () => {

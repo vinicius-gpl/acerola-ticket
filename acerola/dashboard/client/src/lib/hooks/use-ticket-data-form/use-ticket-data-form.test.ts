@@ -177,12 +177,22 @@ describe('useTicketDataFormModel', () => {
     vi.mocked(ticketsApi.addArea).mockResolvedValue(ticket({ participantAreas: ['manutencao'] }));
     const model = mountModel();
 
-    model.actions.onChosenParticipantAreaChange('manutencao');
-    model.actions.onAddParticipantArea();
+    model.actions.onAddParticipantArea('manutencao');
 
     await waitFor(() => expect(model.data.ticket.participantAreas).toEqual(['manutencao']));
     expect(ticketsApi.addArea).toHaveBeenCalledWith(22, 'manutencao');
-    expect(model.data.chosenParticipantArea).toBe('');
+  });
+
+  /* A área que entrou sai da lista das que ainda podem entrar: o botão dela some. */
+  it('stops offering an area once it became a participant', async () => {
+    vi.mocked(ticketsApi.addArea).mockResolvedValue(ticket({ participantAreas: ['manutencao'] }));
+    const model = mountModel();
+
+    model.actions.onAddParticipantArea('manutencao');
+
+    await waitFor(() =>
+      expect(model.data.availableParticipantAreas.map((area) => area.value)).not.toContain('manutencao'),
+    );
   });
 
   it('removes a participant area', async () => {
@@ -220,20 +230,11 @@ describe('useTicketDataFormModel', () => {
     expect(model.state.isSaved).toBe(false);
   });
 
-  it('does not ask for an area when none was chosen', () => {
-    const model = mountModel();
-
-    model.actions.onAddParticipantArea();
-
-    expect(ticketsApi.addArea).not.toHaveBeenCalled();
-  });
-
   it('says why a participant area could not be added', async () => {
     vi.mocked(ticketsApi.addArea).mockRejectedValue(new ApiError(403, 'Sem cargo nesta área.'));
     const model = mountModel();
 
-    model.actions.onChosenParticipantAreaChange('sistema');
-    model.actions.onAddParticipantArea();
+    model.actions.onAddParticipantArea('sistema');
 
     await waitFor(() => expect(model.state.areaError).toBe('Sem cargo nesta área.'));
   });

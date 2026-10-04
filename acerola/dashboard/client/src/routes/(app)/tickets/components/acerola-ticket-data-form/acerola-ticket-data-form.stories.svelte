@@ -51,14 +51,12 @@
       { value: 'sistema', label: 'Sistema' },
       { value: 'manutencao', label: 'Manutenção' },
     ],
-    chosenParticipantArea: '',
   };
 
   const actions: AcerolaTicketDataFormProps['actions'] = {
     onChange: () => {},
     onBlur: () => {},
     onSubmit: () => {},
-    onChosenParticipantAreaChange: () => {},
     onAddParticipantArea: () => {},
     onRemoveParticipantArea: () => {},
   };
@@ -89,7 +87,7 @@
   }}
 />
 
-<!-- Com áreas participantes, e uma escolhida para adicionar. -->
+<!-- Com uma área já participando (pastilha cheia) e outra que ainda pode entrar (tracejada). -->
 <Story
   name="WithParticipantAreas"
   args={{
@@ -97,7 +95,6 @@
       ...data,
       ticket: { ...ticket, participantAreas: ['manutencao'] },
       availableParticipantAreas: [{ value: 'sistema', label: 'Sistema' }],
-      chosenParticipantArea: 'sistema',
     },
     actions,
   }}
