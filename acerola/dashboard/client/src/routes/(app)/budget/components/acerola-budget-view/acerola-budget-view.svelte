@@ -163,7 +163,7 @@
     </EmptyState>
   {:else if budget}
     {#if viewState.isCovered}
-      <p class="bg-card flex items-center gap-2 rounded-surface border p-4 text-sm text-emerald-700">
+      <p class="bg-card flex items-center gap-2 rounded-surface border p-4 text-sm text-success">
         <PartyPopper class="size-4 shrink-0" aria-hidden="true" />
         Não precisa comprar nada: tudo o que o parque pede já está no depósito.
       </p>
