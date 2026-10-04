@@ -3,7 +3,7 @@
   import { type Task } from '@template/shared/schemas/task.schema';
   import { fn } from 'storybook/test';
 
-  import TaskListView from './task-list-view.svelte';
+  import TaskListView from './acerola-task-list-view.svelte';
 
   function task(overrides: Partial<Task>): Task {
     return {
@@ -56,7 +56,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Composers/TaskListView',
+    title: 'Features/Tasks/AcerolaTaskListView',
     component: TaskListView,
     parameters: { layout: 'fullscreen' },
   });

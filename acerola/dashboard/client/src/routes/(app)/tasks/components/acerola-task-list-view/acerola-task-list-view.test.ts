@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import TaskListView, { type TaskListViewProps } from './task-list-view.svelte';
+import TaskListView, { type AcerolaTaskListViewProps } from './acerola-task-list-view.svelte';
 
 const task: Task = {
   id: 1,
@@ -18,8 +18,8 @@ const task: Task = {
 
 function renderView(
   overrides: {
-    data?: Partial<TaskListViewProps['data']>;
-    state?: Partial<TaskListViewProps['state']>;
+    data?: Partial<AcerolaTaskListViewProps['data']>;
+    state?: Partial<AcerolaTaskListViewProps['state']>;
   } = {},
 ) {
   const actions = {
@@ -56,7 +56,7 @@ function renderView(
   return actions;
 }
 
-describe('TaskListView', () => {
+describe('AcerolaTaskListView', () => {
   // feliz
   it('lists the tasks with their status label in Portuguese', () => {
     renderView();

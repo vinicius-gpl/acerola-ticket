@@ -19,7 +19,7 @@
    *   4. filtro escondeu tudo → o próximo passo é limpar o filtro
    *   5. a lista
    */
-  export type TaskListViewProps = {
+  export type AcerolaTaskListViewProps = {
     data: {
       tasks: Task[];
       total: number;
@@ -70,7 +70,7 @@
 
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
-  import { Skeleton } from '$lib/components/ui/skeleton';
+  import { Skeleton } from '$lib/components/acerola-skeleton/acerola-skeleton';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
@@ -80,7 +80,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
 
-  let { data, state, actions }: TaskListViewProps = $props();
+  let { data, state, actions }: AcerolaTaskListViewProps = $props();
 
   const canEdit = $derived(state.canEdit ?? true);
 </script>
