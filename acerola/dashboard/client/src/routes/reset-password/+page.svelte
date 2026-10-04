@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ResetPasswordScreen from '$lib/components/reset-password-screen/reset-password-screen.svelte';
+  import ResetPasswordScreen from './components/acerola-reset-password-screen/acerola-reset-password-screen.svelte';
   import { useResetPasswordModel } from '$lib/hooks/use-reset-password/use-reset-password.svelte';
 
   /** A rota só compõe. O token do link vem do endereço e é lido pelo hook. */

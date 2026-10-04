@@ -13,7 +13,7 @@
    * Função pura de props (CONTRIBUTING §3) — quem lê o endereço e conversa com o Neon Auth é
    * o hook.
    */
-  export type ResetPasswordScreenProps = {
+  export type AcerolaResetPasswordScreenProps = {
     data: { fields: Record<ResetPasswordField, FormFieldState> };
     state?: { isSubmitting?: boolean; isLinkValid?: boolean; error?: string | null };
     actions: {
@@ -30,7 +30,7 @@
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
 
-  let { data, state, actions }: ResetPasswordScreenProps = $props();
+  let { data, state, actions }: AcerolaResetPasswordScreenProps = $props();
 
   const fields = $derived(data.fields);
   const isSubmitting = $derived(Boolean(state?.isSubmitting));

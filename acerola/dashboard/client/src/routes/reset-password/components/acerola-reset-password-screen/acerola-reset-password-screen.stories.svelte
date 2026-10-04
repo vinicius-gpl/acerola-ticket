@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { fn } from 'storybook/test';
 
-  import ResetPasswordScreen from './reset-password-screen.svelte';
+  import ResetPasswordScreen from './acerola-reset-password-screen.svelte';
 
   const emptyFields = {
     password: { value: '', error: null },
@@ -12,7 +12,7 @@
   const baseActions = { onChange: fn(), onBlur: fn(), onSubmit: fn() };
 
   const { Story } = defineMeta({
-    title: 'Composers/ResetPasswordScreen',
+    title: 'Features/ResetPassword/AcerolaResetPasswordScreen',
     component: ResetPasswordScreen,
   });
 </script>

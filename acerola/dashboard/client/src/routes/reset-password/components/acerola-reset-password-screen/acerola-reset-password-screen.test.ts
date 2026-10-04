@@ -2,14 +2,14 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import ResetPasswordScreen, { type ResetPasswordScreenProps } from './reset-password-screen.svelte';
+import ResetPasswordScreen, { type AcerolaResetPasswordScreenProps } from './acerola-reset-password-screen.svelte';
 
 const fields = {
   password: { value: '', error: null },
   passwordConfirmation: { value: '', error: null },
 };
 
-function renderScreen(overrides: Partial<ResetPasswordScreenProps> = {}) {
+function renderScreen(overrides: Partial<AcerolaResetPasswordScreenProps> = {}) {
   const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn() };
 
   render(ResetPasswordScreen, { props: { data: { fields }, actions, ...overrides } });
@@ -17,7 +17,7 @@ function renderScreen(overrides: Partial<ResetPasswordScreenProps> = {}) {
   return actions;
 }
 
-describe('ResetPasswordScreen', () => {
+describe('AcerolaResetPasswordScreen', () => {
   // feliz
   it('reports what is typed in each field, naming it', async () => {
     const actions = renderScreen();
