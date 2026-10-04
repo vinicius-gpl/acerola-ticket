@@ -2,14 +2,14 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import LoginScreen, { type LoginScreenProps } from './login-screen.svelte';
+import LoginScreen, { type AcerolaLoginScreenProps } from './acerola-login-screen.svelte';
 
 const fields = {
   email: { value: '', error: null },
   password: { value: '', error: null },
 };
 
-function renderScreen(overrides: Partial<LoginScreenProps> = {}) {
+function renderScreen(overrides: Partial<AcerolaLoginScreenProps> = {}) {
   const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn() };
 
   render(LoginScreen, {
@@ -19,7 +19,7 @@ function renderScreen(overrides: Partial<LoginScreenProps> = {}) {
   return actions;
 }
 
-describe('LoginScreen', () => {
+describe('AcerolaLoginScreen', () => {
   // feliz
   it('reports what is typed in each field, naming it', async () => {
     const actions = renderScreen();

@@ -12,7 +12,7 @@
    * campo chegam prontos, o que abre a tela no Storybook preenchida, com erro ou enviando —
    * sem servidor e sem biblioteca de formulário no meio.
    */
-  export type LoginScreenProps = {
+  export type AcerolaLoginScreenProps = {
     data: { fields: Record<LoginField, FormFieldState> };
     state?: { isSubmitting?: boolean; error?: string | null };
     actions: {
@@ -29,7 +29,7 @@
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
 
-  let { data, state, actions }: LoginScreenProps = $props();
+  let { data, state, actions }: AcerolaLoginScreenProps = $props();
 
   const fields = $derived(data.fields);
   const isSubmitting = $derived(Boolean(state?.isSubmitting));

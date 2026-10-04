@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { fn } from 'storybook/test';
 
-  import LoginScreen from './login-screen.svelte';
+  import LoginScreen from './acerola-login-screen.svelte';
 
   const emptyFields = {
     email: { value: '', error: null },
@@ -12,7 +12,7 @@
   const baseActions = { onChange: fn(), onBlur: fn(), onSubmit: fn() };
 
   const { Story } = defineMeta({
-    title: 'Composers/LoginScreen',
+    title: 'Features/Login/AcerolaLoginScreen',
     component: LoginScreen,
   });
 </script>
