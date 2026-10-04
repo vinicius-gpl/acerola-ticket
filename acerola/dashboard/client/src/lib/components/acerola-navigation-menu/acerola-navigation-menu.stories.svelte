@@ -26,7 +26,7 @@
 />
 
 <!-- Caso limite: um item só. -->
-<Story name="SingleItem" args={{ data: { items: [items[0]] } }} />
+<Story name="SingleItem" args={{ data: { items: items.slice(0, 1) } }} />
 
 <!-- Caso limite: muitos itens em coluna estreita — quebra linha, não rola para o lado. -->
 <Story
