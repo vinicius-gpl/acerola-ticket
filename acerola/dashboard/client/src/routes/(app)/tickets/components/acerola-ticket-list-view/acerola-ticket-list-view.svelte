@@ -122,12 +122,12 @@
   import FilterX from '@lucide/svelte/icons/filter-x';
   import Inbox from '@lucide/svelte/icons/inbox';
   import SearchX from '@lucide/svelte/icons/search-x';
-  import type { Snippet } from 'svelte';
 
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ColumnChart from '$lib/components/acerola-column-chart/acerola-column-chart.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import PaginationBar from '$lib/components/acerola-pagination-bar/acerola-pagination-bar.svelte';
@@ -204,15 +204,6 @@
     });
   }
 </script>
-
-<!-- Um filtro com o nome em cima — o mesmo rótulo do campo "Buscar". Sem o nome, quatro
-     controles lado a lado eram uma fileira de pastilhas sem dizer o que cada grupo filtra. -->
-{#snippet filterGroup(label: string, control: Snippet)}
-  <div class="flex min-w-0 flex-col gap-1.5">
-    <span class="text-ink-700 text-sm font-medium">{label}</span>
-    {@render control()}
-  </div>
-{/snippet}
 
 <!-- max-w-7xl, e não 6xl como as outras listas: com 9 colunas (a área entrou com o #13), a
      tabela de chamados é a mais larga do painel, e no 6xl ela não cabia — nascia com rolagem
@@ -329,7 +320,7 @@
            limpar os filtros e trocar entre tabela e cards. Cada fileira ainda quebra sozinha
            no celular (`flex-wrap`). -->
       <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
-        {#snippet statusControl()}
+        <FilterField data={{ label: 'Situação' }}>
           <OptionPicker
             data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
             ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
@@ -337,10 +328,9 @@
               onChange: (value: string) => actions.onStatusChange(value as TicketStatus | ''),
             }}
           />
-        {/snippet}
-        {@render filterGroup('Situação', statusControl)}
+        </FilterField>
 
-        {#snippet priorityControl()}
+        <FilterField data={{ label: 'Urgência' }}>
           <OptionPicker
             data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
             ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
@@ -348,12 +338,11 @@
               onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
             }}
           />
-        {/snippet}
-        {@render filterGroup('Urgência', priorityControl)}
+        </FilterField>
       </div>
 
       <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
-        {#snippet departmentControl()}
+        <FilterField data={{ label: 'Departamento' }}>
           <OptionPicker
             data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
             ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
@@ -362,10 +351,9 @@
                 actions.onDepartmentChange(value as TicketDepartment | ''),
             }}
           />
-        {/snippet}
-        {@render filterGroup('Departamento', departmentControl)}
+        </FilterField>
 
-        {#snippet problemTypeControl()}
+        <FilterField data={{ label: 'Tipo de problema' }}>
           <OptionPicker
             data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
             ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
@@ -374,8 +362,7 @@
                 actions.onProblemTypeChange(value as TicketProblemType | ''),
             }}
           />
-        {/snippet}
-        {@render filterGroup('Tipo de problema', problemTypeControl)}
+        </FilterField>
 
         <div class="ml-auto flex items-center gap-2">
           <!-- Só aparece quando há o que limpar: botão que nunca faz nada é ruído. Divide a
