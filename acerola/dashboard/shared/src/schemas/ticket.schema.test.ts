@@ -282,8 +282,9 @@ describe('updateTicketSchema', () => {
     expect(updateTicketSchema.parse({ priority: 'high' })).toEqual({ priority: 'high' });
   });
 
-  it('turns an emptied assignee into null, so the field is actually cleared', () => {
-    expect(updateTicketSchema.parse({ assignee: '   ' }).assignee).toBeNull();
+  /* O responsável não se troca à mão: quem assume o chamado vira responsável pelo histórico. */
+  it('ignores an assignee sent in the body, which is set only by taking the ticket', () => {
+    expect(updateTicketSchema.parse({ assignee: 'Carlos do TI' })).not.toHaveProperty('assignee');
   });
 
   it('accepts an empty change without touching anything', () => {

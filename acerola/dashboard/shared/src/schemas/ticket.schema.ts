@@ -29,7 +29,6 @@ import { publicTicketHistorySchema } from './ticket-history.schema';
  */
 export const REQUESTER_NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 5000;
-export const ASSIGNEE_MAX_LENGTH = 200;
 export const SOLUTION_MAX_LENGTH = 5000;
 
 export { CONTACT_PHONE_MAX_LENGTH } from '../domain/phone.util';
@@ -84,20 +83,6 @@ const descriptionSchema = z
   .trim()
   .min(1, 'Descreva o problema')
   .max(DESCRIPTION_MAX_LENGTH, `A descrição pode ter até ${DESCRIPTION_MAX_LENGTH} caracteres`);
-
-/** Texto opcional: vazio vira nulo, para a busca não tratar "" e nulo como coisas diferentes. */
-const optionalText = (max: number, tooLong: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, tooLong)
-    .transform((value) => (value === '' ? null : value))
-    .nullable();
-
-const assigneeSchema = optionalText(
-  ASSIGNEE_MAX_LENGTH,
-  `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-);
 
 /**
  * O chamado como o PAINEL do TI o enxerga — tudo.
@@ -280,7 +265,9 @@ export const updateTicketSchema = z.object({
   problemType: ticketProblemTypeSchema.optional(),
   /** A máquina do chamado. Nulo DESVINCULA — é como se corrige um vínculo errado. */
   computerId: z.number().int().positive().nullable().optional(),
-  assignee: assigneeSchema.optional(),
+  /* O RESPONSÁVEL não entra aqui: ele não se troca à mão. Quem assume o chamado vira
+     responsável ao lançar o primeiro histórico (`toTicketMove`). Um `assignee` no corpo é
+     ignorado, como `status` e `solution`. */
 });
 
 export type UpdateTicketInput = z.input<typeof updateTicketSchema>;
@@ -302,12 +289,6 @@ export const ticketDataFormSchema = z
      * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
      */
     computerId: z.string(),
-    assignee: z
-      .string()
-      .max(
-        ASSIGNEE_MAX_LENGTH,
-        `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-      ),
   })
   .superRefine(checkProblemTypeMatchesArea);
 
