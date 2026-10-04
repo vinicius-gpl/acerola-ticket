@@ -103,7 +103,7 @@
 
 <div
 	class={cn(
-		'border-border/80 bg-card flex flex-col overflow-hidden rounded-2xl border shadow-xs',
+		'border-border/80 bg-card rounded-surface flex flex-col overflow-hidden border shadow-xs',
 		ui?.class
 	)}
 >
@@ -118,7 +118,7 @@
 				<col class="hidden sm:table-column sm:w-28" />
 			</colgroup>
 			<thead>
-				<tr class="text-left text-[11px] font-semibold tracking-widest uppercase">
+				<tr class="text-left text-xs font-semibold tracking-widest uppercase">
 					{#each columns as column (column.key)}
 						<th
 							class={cn(
@@ -133,7 +133,7 @@
 							>
 								<span>{column.label}</span>
 								{#if sortColumn === column.key}
-									<span class="text-primary font-mono text-[10px]">
+									<span class="text-primary font-mono text-xs">
 										{sortDescending ? '↓' : '↑'}
 									</span>
 								{/if}
@@ -179,7 +179,7 @@
 								<span class="truncate font-medium">{group.name}</span>
 
 								<span
-									class="bg-muted py-0.2 text-muted-foreground rounded-full px-1.5 text-[10px] font-medium"
+									class="bg-muted py-0.2 text-muted-foreground rounded-full px-1.5 text-xs font-medium"
 								>
 									({group.instanceCount})
 								</span>
@@ -203,9 +203,7 @@
 										style={`width: ${share}%`}
 									></div>
 								</div>
-								<span class="text-muted-foreground w-6 text-right font-mono text-[10px]"
-									>{share}%</span
-								>
+								<span class="text-muted-foreground w-6 text-right font-mono text-xs">{share}%</span>
 							</div>
 						</td>
 					</tr>
@@ -213,16 +211,16 @@
 					{#if isExpanded}
 						{#each sortInstances(group) as instance (instance.pid)}
 							<tr class="bg-muted/20 text-muted-foreground hover:bg-muted/30 transition-colors">
-								<td class="py-1.5 pr-4 pl-9 font-mono text-[11px]">
+								<td class="py-1.5 pr-4 pl-9 font-mono text-xs">
 									PID {instance.pid}
 								</td>
-								<td class="px-4 py-1.5 text-right font-mono text-[11px]">
+								<td class="px-4 py-1.5 text-right font-mono text-xs">
 									{instance.cpuPercent.toFixed(1)}%
 								</td>
-								<td class="px-4 py-1.5 text-right font-mono text-[11px]">
+								<td class="px-4 py-1.5 text-right font-mono text-xs">
 									{instance.memPercent.toFixed(1)}%
 								</td>
-								<td class="px-4 py-1.5 text-right font-mono text-[11px]">
+								<td class="px-4 py-1.5 text-right font-mono text-xs">
 									{bytes(instance.memBytes)}
 								</td>
 								<td class="hidden px-4 py-1.5 sm:table-cell"></td>
@@ -244,7 +242,7 @@
 
 	<!-- Cost Explorer Footnote & Summary Bar -->
 	<div
-		class="border-border/70 bg-muted/20 text-muted-foreground flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5 text-[11px]"
+		class="border-border/70 bg-muted/20 text-muted-foreground flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5 text-xs"
 	>
 		<span>Agrupamento por executável · Amostragem a cada 1s</span>
 		<span class="text-foreground font-medium">{sortedProcesses.length} aplicativos ativos</span>

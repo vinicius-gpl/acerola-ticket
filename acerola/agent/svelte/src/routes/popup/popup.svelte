@@ -135,7 +135,9 @@
 	});
 </script>
 
-<div class="bg-background text-foreground flex h-full w-full flex-col overflow-hidden rounded-2xl">
+<div
+	class="bg-background text-foreground rounded-surface flex h-full w-full flex-col overflow-hidden"
+>
 	<header
 		data-drag-region
 		class="border-border/70 bg-card flex shrink-0 items-center justify-between border-b px-3.5 py-2.5 select-none"
@@ -149,13 +151,13 @@
 		<div class="flex items-center gap-1.5">
 			<AcerolaTooltip data={{ text: metrics.latest ? 'Conectado · Ao vivo' : 'Conectando...' }}>
 				<span
-					class="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+					class="border-success/20 bg-success/10 text-success inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold"
 				>
 					<span class="relative flex h-1.5 w-1.5">
 						<span
-							class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+							class="bg-success absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
 						></span>
-						<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+						<span class="bg-success relative inline-flex h-1.5 w-1.5 rounded-full"></span>
 					</span>
 					{metrics.latest ? 'ao vivo' : 'conectando'}
 				</span>
@@ -231,11 +233,11 @@
 						<div class="flex flex-col gap-1.5 text-xs tabular-nums">
 							{#each snap.processes.slice(0, 4) as proc (proc.name)}
 								<div
-									class="hover:bg-muted/40 hover:border-border/50 flex items-center justify-between gap-2.5 rounded-xl border border-transparent p-1.5 transition-colors"
+									class="hover:bg-muted/40 hover:border-border/50 rounded-box flex items-center justify-between gap-2.5 border border-transparent p-1.5 transition-colors"
 								>
 									<div class="flex min-w-0 items-center gap-2">
 										<span
-											class="bg-muted text-foreground border-border/50 grid h-6 w-6 shrink-0 place-items-center rounded-lg border font-mono text-[10px] font-semibold"
+											class="bg-muted text-foreground border-border/50 rounded-chip grid h-6 w-6 shrink-0 place-items-center border font-mono text-xs font-semibold"
 										>
 											{proc.name
 												.replace(/\.exe$/i, '')
@@ -247,7 +249,7 @@
 										</span>
 									</div>
 									<div
-										class="text-muted-foreground flex shrink-0 items-center gap-2 font-mono text-[11px]"
+										class="text-muted-foreground flex shrink-0 items-center gap-2 font-mono text-xs"
 									>
 										<span class="text-primary font-semibold">{proc.cpuPercent.toFixed(1)}%</span>
 										<span>{bytes(proc.memBytes)}</span>
@@ -272,7 +274,7 @@
 								</span>
 							</div>
 							<span
-								class="bg-muted border-border/60 text-foreground shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium"
+								class="bg-muted border-border/60 text-foreground shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium"
 							>
 								{snap.host.platform || snap.host.os}
 							</span>
@@ -280,18 +282,21 @@
 
 						<!-- Grid de Informações: IP Local e Uptime -->
 						<div class="grid grid-cols-2 gap-2 text-xs">
-							<div class="bg-muted/40 border-border/50 flex flex-col gap-0.5 rounded-xl border p-2">
-								<span
-									class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase"
+							<div
+								class="bg-muted/40 border-border/50 rounded-box flex flex-col gap-0.5 border p-2"
+							>
+								<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase"
 									>IP Local</span
 								>
 								<span class="text-foreground truncate font-mono text-xs font-medium">
 									{snap.host.localIp || '—'}
 								</span>
 							</div>
-							<div class="bg-muted/40 border-border/50 flex flex-col gap-0.5 rounded-xl border p-2">
+							<div
+								class="bg-muted/40 border-border/50 rounded-box flex flex-col gap-0.5 border p-2"
+							>
 								<span
-									class="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold tracking-wider uppercase"
+									class="text-muted-foreground flex items-center gap-1 text-xs font-semibold tracking-wider uppercase"
 								>
 									<ClockIcon size={10} />
 									Ligado há
@@ -309,12 +314,12 @@
 									<div class="flex flex-col gap-1">
 										<div class="flex items-center justify-between text-xs">
 											<span
-												class="text-muted-foreground flex max-w-[140px] items-center gap-1 truncate text-[11px] font-medium"
+												class="text-muted-foreground flex max-w-[140px] items-center gap-1 truncate text-xs font-medium"
 											>
 												<HardDriveIcon size={11} class="shrink-0" />
 												{disk.mountpoint} ({disk.fstype})
 											</span>
-											<span class="text-foreground font-mono text-[11px] font-medium">
+											<span class="text-foreground font-mono text-xs font-medium">
 												{bytes(disk.freeBytes)} livres ({Math.round(100 - disk.usedPercent)}%)
 											</span>
 										</div>
@@ -330,11 +335,11 @@
 							{@const diskPct = Math.round((usedDisk / snap.host.totalDiskBytes) * 100)}
 							<div class="flex flex-col gap-1">
 								<div class="flex items-center justify-between text-xs">
-									<span class="text-muted-foreground flex items-center gap-1 text-[11px]">
+									<span class="text-muted-foreground flex items-center gap-1 text-xs">
 										<HardDriveIcon size={11} />
 										Disco principal
 									</span>
-									<span class="text-foreground font-mono text-[11px] font-medium">
+									<span class="text-foreground font-mono text-xs font-medium">
 										{bytes(snap.host.freeDiskBytes)} livres ({100 - diskPct}%)
 									</span>
 								</div>
@@ -347,7 +352,7 @@
 
 						<!-- Detalhes de Processador e Memória -->
 						<div
-							class="text-muted-foreground border-border/50 flex items-center justify-between border-t pt-1.5 text-[11px]"
+							class="text-muted-foreground border-border/50 flex items-center justify-between border-t pt-1.5 text-xs"
 						>
 							<span class="mr-2 flex items-center gap-1 truncate" title={snap.host.cpuModel}>
 								<CpuIcon size={12} class="shrink-0" />
