@@ -87,8 +87,10 @@
     variants: {
       layout: {
         filter: '',
-        /* Na grade o texto fica centrado na coluna e pode quebrar dentro dela. */
-        form: 'min-h-(--control-sm) justify-center text-center',
+        /* Na grade o texto fica centrado na coluna. Sem altura mínima própria: a pastilha
+           preenche o trilho, e é o trilho que tem os 40px — com um mínimo aqui ele passava a
+           42px e desalinhava do seletor ao lado. */
+        form: 'justify-center text-center',
       },
       isSelected: {
         true: 'shadow-xs font-semibold',
