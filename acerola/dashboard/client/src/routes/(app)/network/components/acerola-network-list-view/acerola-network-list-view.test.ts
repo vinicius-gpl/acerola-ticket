@@ -10,7 +10,7 @@ import NetworkListView, {
   durationLabelOf,
   measuresOf,
   type NetworkFilter,
-} from './network-list-view.svelte';
+} from './acerola-network-list-view.svelte';
 
 function event(over: Partial<NetworkEvent> = {}): NetworkEvent {
   return {
@@ -109,7 +109,7 @@ describe('measuresOf', () => {
   });
 });
 
-describe('NetworkListView', () => {
+describe('AcerolaNetworkListView', () => {
   // feliz
   it('shows what happened, on which link and how bad it was', () => {
     renderView();

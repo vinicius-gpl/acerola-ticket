@@ -35,7 +35,7 @@
    * aqui não aconteceu para ela. Por isso o estado vazio diz de onde vêm os eventos, em vez
    * de afirmar que a rede está bem.
    */
-  export type NetworkListViewProps = {
+  export type AcerolaNetworkListViewProps = {
     data: {
       events: NetworkEvent[];
       total: number;
@@ -121,12 +121,12 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
 
-  let { data, state: viewState, actions }: NetworkListViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaNetworkListViewProps = $props();
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();

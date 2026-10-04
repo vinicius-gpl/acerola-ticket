@@ -5,7 +5,7 @@
     type NetworkSummary,
   } from '@template/shared/schemas/network-event.schema';
 
-  import NetworkListView, { type NetworkFilter } from './network-list-view.svelte';
+  import NetworkListView, { type NetworkFilter } from './acerola-network-list-view.svelte';
 
   const MINUTE = 60 * 1000;
   const HOUR = 60 * MINUTE;
@@ -104,7 +104,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/NetworkListView',
+    title: 'Features/Network/AcerolaNetworkListView',
     component: NetworkListView,
   });
 </script>

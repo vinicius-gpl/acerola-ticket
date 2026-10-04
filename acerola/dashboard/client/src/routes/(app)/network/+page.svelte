@@ -1,5 +1,5 @@
 <script lang="ts">
-  import NetworkListView from '$lib/components/network-list-view/network-list-view.svelte';
+  import NetworkListView from './components/acerola-network-list-view/acerola-network-list-view.svelte';
   import { useNetworkListModel } from '$lib/hooks/use-network-list/use-network-list.svelte';
 
   /**
