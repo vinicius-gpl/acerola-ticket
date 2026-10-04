@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import ForgotPasswordScreen, {
-  type ForgotPasswordScreenProps,
-} from './forgot-password-screen.svelte';
+  type AcerolaForgotPasswordScreenProps,
+} from './acerola-forgot-password-screen.svelte';
 
 const field = { value: '', error: null };
 
-function renderScreen(overrides: Partial<ForgotPasswordScreenProps> = {}) {
+function renderScreen(overrides: Partial<AcerolaForgotPasswordScreenProps> = {}) {
   const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn() };
 
   render(ForgotPasswordScreen, { props: { data: { field }, actions, ...overrides } });
@@ -16,7 +16,7 @@ function renderScreen(overrides: Partial<ForgotPasswordScreenProps> = {}) {
   return actions;
 }
 
-describe('ForgotPasswordScreen', () => {
+describe('AcerolaForgotPasswordScreen', () => {
   // feliz
   it('reports what is typed in the e-mail field', async () => {
     const actions = renderScreen();

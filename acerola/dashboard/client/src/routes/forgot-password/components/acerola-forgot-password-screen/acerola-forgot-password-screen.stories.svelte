@@ -2,14 +2,14 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { fn } from 'storybook/test';
 
-  import ForgotPasswordScreen from './forgot-password-screen.svelte';
+  import ForgotPasswordScreen from './acerola-forgot-password-screen.svelte';
 
   const emptyField = { value: '', error: null };
 
   const baseActions = { onChange: fn(), onBlur: fn(), onSubmit: fn() };
 
   const { Story } = defineMeta({
-    title: 'Composers/ForgotPasswordScreen',
+    title: 'Features/ForgotPassword/AcerolaForgotPasswordScreen',
     component: ForgotPasswordScreen,
   });
 </script>

@@ -9,7 +9,7 @@
    * formulário pelo aviso de "olhe seu e-mail" sem precisar de outra rota — a pessoa continua
    * onde estava, e o botão de voltar ao login fica à mão.
    */
-  export type ForgotPasswordScreenProps = {
+  export type AcerolaForgotPasswordScreenProps = {
     data: { field: FormFieldState };
     state?: { isSubmitting?: boolean; isSent?: boolean; error?: string | null };
     actions: {
@@ -26,7 +26,7 @@
   import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
   import TextField from '$lib/components/text-field/text-field.svelte';
 
-  let { data, state, actions }: ForgotPasswordScreenProps = $props();
+  let { data, state, actions }: AcerolaForgotPasswordScreenProps = $props();
 
   const isSubmitting = $derived(Boolean(state?.isSubmitting));
   const isSent = $derived(Boolean(state?.isSent));

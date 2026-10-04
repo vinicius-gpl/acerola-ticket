@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ForgotPasswordScreen from '$lib/components/forgot-password-screen/forgot-password-screen.svelte';
+  import ForgotPasswordScreen from './components/acerola-forgot-password-screen/acerola-forgot-password-screen.svelte';
   import { useForgotPasswordModel } from '$lib/hooks/use-forgot-password/use-forgot-password.svelte';
 
   /**
