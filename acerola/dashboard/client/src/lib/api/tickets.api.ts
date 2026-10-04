@@ -2,6 +2,7 @@ import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
+import { type PublicServiceOrder } from '@template/shared/schemas/service-order.schema';
 import {
   type TicketHistory,
   type TicketHistoryFormValues,
@@ -146,9 +147,18 @@ export const ticketsApi = {
     });
   },
 
-  /** Baixa a ordem de serviço do chamado, em PDF. */
+  /**
+   * EMITE a ordem de serviço do chamado, em PDF.
+   *
+   * `POST`, e não `GET`: a emissão registra a impressão digital do arquivo, para ele poder ser
+   * conferido depois. Sem mudança no chamado desde a última, volta o mesmo documento.
+   */
   serviceOrder: (ticketId: number): Promise<Downloaded> =>
-    apiDownload(`/tickets/${ticketId}/service-order`),
+    apiDownload(`/tickets/${ticketId}/service-order`, { method: 'POST' }),
+
+  /** A conferência PÚBLICA de uma ordem de serviço emitida — pelo código inteiro ou o curto. */
+  verifyServiceOrder: (reference: string) =>
+    apiRequest<PublicServiceOrder>(`/service-orders/${encodeURIComponent(reference)}`),
 
   /** Consulta pública pelo protocolo. Devolve menos campos que o painel, de propósito. */
   findByProtocol: (protocol: string) =>
