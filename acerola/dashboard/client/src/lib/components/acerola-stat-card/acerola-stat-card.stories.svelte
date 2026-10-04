@@ -25,6 +25,33 @@
   }}
 />
 
+<!-- Atalho de filtro: clicar no cartão filtra a lista pelo que ele conta. O selecionado ganha
+     o contorno; clicar nele de novo tira o filtro. -->
+<Story name="ClickableShortcuts" args={{ data: { label: 'Total', value: 0 } }}>
+  {#snippet template()}
+    <StatCardGrid>
+      <StatCard
+        data={{ label: 'Abertos', value: 99 }}
+        ui={{ tone: 'danger' }}
+        state={{ isSelected: true }}
+        actions={{ onClick: () => {} }}
+      />
+      <StatCard
+        data={{ label: 'Em atendimento', value: 21 }}
+        ui={{ tone: 'info' }}
+        actions={{ onClick: () => {} }}
+      />
+      <StatCard
+        data={{ label: 'Resolvidos', value: 189 }}
+        ui={{ tone: 'success' }}
+        actions={{ onClick: () => {} }}
+      />
+      <!-- Sem `onClick`: continua sendo só um número, sem cursor nem hover. -->
+      <StatCard data={{ label: 'Tempo médio', value: '20,3 h' }} ui={{ tone: 'brand' }} />
+    </StatCardGrid>
+  {/snippet}
+</Story>
+
 <Story name="AllTones" args={{ data: { label: 'Total', value: 0 } }}>
   {#snippet template()}
     <StatCardGrid>
