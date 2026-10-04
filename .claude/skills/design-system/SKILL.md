@@ -198,7 +198,7 @@ aplicado **no `acerola-*`**, nunca no `ui/` (o CLI sobrescreve) e nunca na rota.
 | `acerola-text-field` | `ui/input` |
 | `acerola-select-field` | `ui/select` — no `SelectTrigger` |
 | `acerola-input-group` | `ui/input-group` |
-| `acerola-date-picker` | `ui/date-picker` |
+| `acerola-date-picker` | `ui/button` + `ui/calendar` + `ui/popover` |
 | `acerola-option-picker` | `ui/toggle-group` |
 | `acerola-submit-button` / `acerola-button` com `size` de formulário | `ui/button` |
 
@@ -284,8 +284,9 @@ Storybook (`src/**/*.stories.svelte`) e do Vitest (`src/**/*.test.ts`) já cobre
 O que a migração de design (fases 1 a 7, registro em `acerola/dashboard/docs/design-migration.md`)
 ainda não quitou. Cada linha é um commit separado; mover arquivo não muda conteúdo além de
 import. O que saiu desta lista: prefixo `acerola-`, componente de feature em `lib`, hooks e
-pastas de `lib`, cor/raio/fonte/sombra por token, rota só compõe, nome dos docs do agent e os
-tokens do agent.
+pastas de `lib`, cor/raio/fonte/sombra por token, rota só compõe, nome dos docs do agent, os
+tokens do agent, o `ui/table` e o `ui/date-picker` editados à mão (hoje `acerola-table` e
+`acerola-date-picker`) e os cinco componentes do shadcn que faltavam.
 
 | Local | Violação | Destino |
 |---|---|---|
@@ -294,9 +295,7 @@ tokens do agent.
 | `ui/input` h-8, `ui/select` h-8/h-9, `ui/button` h-7–9 | campo sem `h-10` | `h-10` nos `acerola-*` (§6) |
 | `server/.../tickets.service.test.ts` `const manutencao`, `server/test/computers.e2e.ts` `const descarte` | identificador em pt | inglês |
 | `acerola-option-picker` fora de `fullWidth` usa `control-sm` | pastilha de filtro abaixo de 40px | `control-lg` |
-| `ui/table` (contêiner com raio e borda, snippet `footer`, cores, `table-actions`) | `ui/` editado à mão; some no próximo `add` | levar a customização para o `acerola-table` (hoje só reexporta o `ui/table`) e reinstalar o original; precisa de print antes/depois das 10 listas |
-| `ui/date-picker`; button-group, breadcrumb, collapsible, input-group, navigation-menu | date-picker é nosso e mora em `ui/`; os outros cinco não estão instalados | resolvido no PR #29 (rascunho): `acerola-date-picker` e os cinco `acerola-*` — falta rodar a verificação completa e juntar |
-| `acerola-dialog`, `acerola-table`, `acerola-sheet`, `acerola-popover`, `acerola-skeleton` | são só a porta de entrada do `ui/<x>` para a feature (um `.ts` que reexporta), sem variante nem story | virar componente de verdade quando o projeto precisar de variante própria |
+| `acerola-dialog`, `acerola-sheet`, `acerola-popover`, `acerola-skeleton` | são só a porta de entrada do `ui/<x>` para a feature (um `.ts` que reexporta), sem variante nem story | virar componente de verdade quando o projeto precisar de variante própria |
 | 12 listas com par cartão/tabela à mão | duplicação | `acerola-data-view` (skill `ui-standards` §6.4) |
 | Storybook do dashboard | `storybook build` e `dev` recusam subir: o framework é `svelte-vite` e o projeto é SvelteKit | apontar o builder para um `vite.config` sem o plugin do SvelteKit (com os apelidos `$lib`/`$app` do `vitest.config.ts`) ou trocar para `@storybook/sveltekit` |
 
