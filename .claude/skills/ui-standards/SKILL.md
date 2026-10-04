@@ -182,7 +182,8 @@ colunas, cartão para ler um item por vez. Os dois mostram **os mesmos dados e a
 
 - A troca para cartão **no celular e no tablet é automática e não tem botão para desfazer**: em
   `< xl` tabela nunca aparece.
-- No computador, o `TableViewToggle` (ícone na barra de filtros) liga "ver sempre em cards".
+- No computador, o `TableViewToggle` (na barra de filtros) escolhe entre tabela e cards: dois
+  botões numa moldura, o formato em uso preenchido com a cor principal. Abaixo de `xl` ele some.
   É **preferência do sistema, não da tela**: vale para todas as listas e fica guardada no
   navegador (`acerola-table-view`). Hook: `use-table-view`.
 - A troca é **por CSS**, não por JS: os dois blocos são renderizados e um deles fica `hidden`.
@@ -216,8 +217,10 @@ O par `data-slot` é obrigatório: é por ele que teste e story encontram cada f
 - Corpo tem o resto, **cada valor com rótulo** — o cartão não tem cabeçalho de coluna para
   explicar o número solto.
 - Ações sempre visíveis no rodapé (no toque não existe hover). Ação destrutiva por último.
-- Lista de cartões: `flex flex-col gap-3`. Em `md` pode virar `grid md:grid-cols-2` se o cartão
-  for curto (≤ 4 linhas).
+- Lista de cartões: a utilidade `card-grid` (`tokens.css`) — de 1 a 4 cartões por linha,
+  conforme o ESPAÇO QUE A LISTA TEM (celular 1, tablet 2–3, monitor 3–4; dentro de um diálogo,
+  menos). Nunca `flex flex-col` (vira um cartão gigante por linha no monitor) nem
+  `grid-cols-N` fixo.
 
 ### 6.3 Anatomia da tabela
 
