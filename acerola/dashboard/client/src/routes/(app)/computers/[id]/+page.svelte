@@ -4,8 +4,8 @@
   import HardDrive from '@lucide/svelte/icons/hard-drive';
 
   import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ComputerDetailView from '$lib/components/computer-detail-view/computer-detail-view.svelte';
-  import ComputerTokenDialog from '$lib/components/computer-token-dialog/computer-token-dialog.svelte';
+  import ComputerDetailView from '../components/acerola-computer-detail-view/acerola-computer-detail-view.svelte';
+  import ComputerTokenDialog from '../components/acerola-computer-token-dialog/acerola-computer-token-dialog.svelte';
   import EmptyState from '$lib/components/empty-state/empty-state.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
   import { useComputerDetailModel } from '$lib/hooks/use-computer-detail/use-computer-detail.svelte';
