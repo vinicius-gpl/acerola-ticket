@@ -1,7 +1,7 @@
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
-import { type TicketStatus } from '@template/shared/domain/ticket-status.util';
+import { type PublicTicketHistory } from '@template/shared/schemas/ticket-history.schema';
 import {
   type CreateTicketInput,
   type PublicTicket,
@@ -10,7 +10,7 @@ import {
 } from '@template/shared/schemas/ticket.schema';
 
 import { mapDefined, setIfDefined } from '../../../lib/db/partial-update.util';
-import { type TicketInsert, type TicketRow } from '../../../lib/db/schema/tickets.schema';
+import { type TicketInsert } from '../../../lib/db/schema/tickets.schema';
 import { type TicketWithComputer } from '../repository/tickets.repository';
 
 /**
@@ -66,6 +66,7 @@ export function toPublicTicket(
   row: TicketWithComputer,
   screenshotUrl: string | null,
   attachments: TicketAttachment[] = [],
+  histories: PublicTicketHistory[] = [],
 ): PublicTicket {
   const ticket = toTicket(row, screenshotUrl);
 
@@ -82,6 +83,7 @@ export function toPublicTicket(
     description: ticket.description,
     screenshotUrl: ticket.screenshotUrl,
     attachments,
+    histories,
     createdAt: ticket.createdAt,
   };
 }
@@ -109,16 +111,17 @@ export function toTicketInsert(
 }
 
 /**
- * O atendimento. `updatedBy` e `updatedAt` são SEMPRE recarimbados — mesmo que o corpo tente
- * mandar outro valor.
+ * A correção dos DADOS do chamado. `updatedBy` e `updatedAt` são SEMPRE recarimbados — mesmo
+ * que o corpo tente mandar outro valor.
  *
- * `now` entra por parâmetro para o carimbo não depender de um relógio escondido: é o que
- * permite testar a transição sem que o resultado mude conforme a hora em que o teste rodou.
+ * O estágio, a solução e os carimbos de início e de resolução NÃO passam por aqui: eles só
+ * mudam por um histórico lançado (ver `toTicketMove`, em `ticket-histories.mapper`).
+ *
+ * `now` entra por parâmetro para o carimbo não depender de um relógio escondido.
  */
 export function toTicketUpdate(
   input: UpdateTicketInput,
   actorEmail: string,
-  current: TicketRow,
   now: Date = new Date(),
 ): Partial<TicketInsert> {
   const update: Partial<TicketInsert> = { updatedAt: now, updatedBy: actorEmail };
@@ -128,51 +131,13 @@ export function toTicketUpdate(
      pode. Aqui é só gravar. */
   setIfDefined(update, 'area', input.area);
   setIfDefined(update, 'assignee', normalizeOptional(input.assignee));
-  setIfDefined(update, 'solution', normalizeOptional(input.solution));
-  setIfDefined(update, 'status', input.status);
   /* Quem abre escolhe o tipo pelo que parece; quem atende descobre o que era. Sem esta
      correção, o mapa de "o que mais dá problema" fica torto para sempre. */
   setIfDefined(update, 'problemType', input.problemType);
   /* Nulo aqui DESVINCULA a máquina — é como se desfaz um vínculo errado. */
   setIfDefined(update, 'computerId', input.computerId);
 
-  stampTransition(update, input.status, current, now);
-
   return update;
-}
-
-/**
- * Os carimbos de QUANDO o atendimento começou e terminou.
- *
- * São colunas próprias, e não deduções a partir de `updated_at`, porque qualquer correção de
- * texto move o `updated_at` — e o indicador de tempo médio passaria a medir a última vez que
- * alguém salvou, não quando o problema foi resolvido.
- *
- * Reabrir um chamado limpa a data de resolução: um chamado que voltou para a fila não está
- * resolvido, e mantê-la faria ele entrar na média como se estivesse.
- */
-function stampTransition(
-  update: Partial<TicketInsert>,
-  nextStatus: TicketStatus | undefined,
-  current: TicketRow,
-  now: Date,
-): void {
-  if (!nextStatus) return;
-  if (nextStatus === current.status) return;
-
-  /* Resolver direto de "aberto" também marca o início: sem isso, um chamado rápido ficaria
-     sem registro de quando alguém pegou. */
-  if (!current.startedAt && nextStatus !== 'open' && nextStatus !== 'cancelled') {
-    update.startedAt = now;
-  }
-
-  if (nextStatus === 'resolved') {
-    update.resolvedAt = current.resolvedAt ?? now;
-
-    return;
-  }
-
-  if (current.resolvedAt) update.resolvedAt = null;
 }
 
 /** Texto opcional só com espaço vira nulo: "" e nulo significando a mesma coisa confunde a busca. */

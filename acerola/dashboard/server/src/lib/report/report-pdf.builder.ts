@@ -198,7 +198,7 @@ function ensureSpace(doc: PdfDoc, headers: string[], columnWidth: number): void 
  * cabe e abrir uma página em branco só para o rodapé. Zerar a margem antes de escrever (e
  * devolver o valor depois) é o que evita essa página fantasma.
  */
-function writePageNumbers(doc: PdfDoc): void {
+export function writePageNumbers(doc: PdfDoc): void {
   const range = doc.bufferedPageRange();
 
   for (let i = range.start; i < range.start + range.count; i += 1) {

@@ -1,6 +1,5 @@
-import { ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import {
-  TICKET_AREAS,
   ticketAreaLabel,
   ticketDepartmentLabel,
   ticketProblemTypeLabel,
@@ -31,29 +30,23 @@ import {
   type TicketReportQuery,
   type UpdateTicketInput,
 } from '@template/shared/schemas/ticket.schema';
-import { type UserRole } from '@template/shared/schemas/user.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { canManageAnyRecord, isSuperAdmin } from '../../../lib/policy/access.policy';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
+import { describeTicketChanges, toUpdateHistory } from '../mapper/ticket-histories.mapper';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
+import { TicketHistoriesRepository } from '../repository/ticket-histories.repository';
+import { TICKET_NOT_FOUND, TicketAccessService } from './ticket-access.service';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
+import { TicketHistoriesService } from './ticket-histories.service';
 import {
   TicketsRepository,
   type TicketWithComputer,
 } from '../repository/tickets.repository';
-
-/** O cargo de quem pede, área por área. Área ausente é ausência de cargo — não "cargo mínimo". */
-type AreaAccess = Partial<Record<TicketArea, UserRole>>;
-
-/** As áreas em que a pessoa tem ALGUM cargo — é o que ela enxerga (#13). */
-function accessibleAreas(access: AreaAccess): TicketArea[] {
-  return TICKET_AREAS.filter((area) => access[area] !== undefined);
-}
 
 /** Sem repetir — somar a mesma área participante duas vezes não deve duplicar na resposta. */
 function dedupeAreas(areas: readonly TicketArea[]): TicketArea[] {
@@ -76,7 +69,7 @@ const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
     tone: (row) => ticketPriorityTone(row.priority),
   },
   {
-    header: 'Situação',
+    header: 'Estágio',
     value: (row) => ticketStatusLabel(row.status),
     tone: (row) => ticketStatusTone(row.status),
   },
@@ -86,7 +79,7 @@ const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
   { header: 'Resolvido em', value: (row) => formatReportDate(row.resolvedAt) },
 ];
 
-const NOT_FOUND = 'Chamado não encontrado. Confira o número do protocolo.';
+const NOT_FOUND = TICKET_NOT_FOUND;
 
 /** A pasta do print dentro do bucket. */
 const SCREENSHOT_FOLDER = 'tickets';
@@ -119,7 +112,11 @@ export type TicketDashboard = TicketSummary & {
  *   devolve o chamado podado) e o que cada uma aceita.
  * - `list`, `findById`, `dashboard` e `update` são do painel, e começam pela policy.
  *
- * Não existe método de exclusão, em nenhuma das duas: chamado sai da fila por situação.
+ * Não existe método de exclusão, em nenhuma das duas: chamado sai da fila por estágio.
+ *
+ * **E não existe método que mude o estágio.** Isso é do `TicketHistoriesService`: o estágio só
+ * muda quando alguém lança um histórico na ordem de serviço. `update` corrige os DADOS do
+ * chamado — e deixa na linha do tempo, sozinho, o que foi alterado.
  */
 @Injectable()
 export class TicketsService {
@@ -127,12 +124,15 @@ export class TicketsService {
     private readonly repository: TicketsRepository,
     private readonly storage: StorageService,
     private readonly attachments: TicketAttachmentsService,
+    private readonly access: TicketAccessService,
+    private readonly histories: TicketHistoriesService,
+    private readonly historiesRepository: TicketHistoriesRepository,
   ) {}
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
     assertCanRead(user.role, 'os chamados');
 
-    const areas = accessibleAreas(await this.resolveAreaAccess(user));
+    const areas = await this.access.accessibleAreas(user);
     const page = await this.repository.list(query, areas);
     const items = await this.withAreasAndScreenshots(page.rows);
 
@@ -142,13 +142,9 @@ export class TicketsService {
   async findById(user: RequestUser, id: number): Promise<Ticket> {
     assertCanRead(user.role, 'os chamados');
 
-    const row = await this.repository.findById(id);
-    if (!row) throw new NotFoundException(NOT_FOUND);
+    const { ticket, participantAreas } = await this.access.reach(user, id);
 
-    const participantAreas = await this.repository.listAreasOf(id);
-    this.assertCanSeeTicket(await this.resolveAreaAccess(user), row.area, participantAreas);
-
-    return this.toFullTicket(row, participantAreas);
+    return this.toFullTicket(ticket, participantAreas);
   }
 
   /**
@@ -158,7 +154,7 @@ export class TicketsService {
   async exportList(user: RequestUser, query: TicketReportQuery): Promise<BuiltReport> {
     assertCanRead(user.role, 'os chamados');
 
-    const areas = accessibleAreas(await this.resolveAreaAccess(user));
+    const areas = await this.access.accessibleAreas(user);
     const rows = await this.repository.listAll(query, areas);
 
     return buildReport({
@@ -175,7 +171,7 @@ export class TicketsService {
   async dashboard(user: RequestUser): Promise<TicketDashboard> {
     assertCanRead(user.role, 'os chamados');
 
-    const areas = accessibleAreas(await this.resolveAreaAccess(user));
+    const areas = await this.access.accessibleAreas(user);
     const rows = await this.repository.listForMetrics(areas);
     const measurable = rows.map((row) => ({
       status: row.status,
@@ -195,7 +191,7 @@ export class TicketsService {
   async myAreas(user: RequestUser): Promise<TicketArea[]> {
     assertCanRead(user.role, 'os chamados');
 
-    return accessibleAreas(await this.resolveAreaAccess(user));
+    return this.access.accessibleAreas(user);
   }
 
   /**
@@ -219,6 +215,9 @@ export class TicketsService {
        dois males. Quem envia vê o protocolo e o motivo, e anexa o resto pelo painel. */
     /* `requester`: é a prova de quem pediu socorro, e ela é dela — o TI vê e baixa, mas não
        apaga (ver `attachment-ownership.util`). */
+    /* A linha do tempo começa aqui: a abertura é o primeiro histórico, de quem abriu. */
+    await this.histories.recordOpening(row);
+
     await this.attachments.attach(row.id, attachments, null, 'requester');
 
     /* Chamado nasce sem área participante — só a original, escolhida por quem abriu. */
@@ -242,40 +241,42 @@ export class TicketsService {
       this.screenshotUrl(row),
       this.attachments.list(row.id),
     ]);
+    const histories = await this.histories.listPublic(row.id, attachments);
 
-    return toPublicTicket(row, screenshotUrl, attachments);
+    /* Fora da linha do tempo ficam só os arquivos do PRÓPRIO chamado. Os que entraram junto
+       de um histórico saem dentro dele — e os de um histórico escondido não saem. */
+    const ownFiles = attachments.filter((attachment) => attachment.historyId === null);
+
+    return toPublicTicket(row, screenshotUrl, ownFiles, histories);
   }
 
   async update(user: RequestUser, id: number, input: UpdateTicketInput): Promise<Ticket> {
     assertCanAttendTicket(user.role);
 
-    const current = await this.repository.findById(id);
-    if (!current) throw new NotFoundException(NOT_FOUND);
-
-    const participantAreas = await this.repository.listAreasOf(id);
-    const access = await this.resolveAreaAccess(user);
-    const areasInvolved = [current.area, ...participantAreas];
-
-    this.assertCanSeeTicket(access, current.area, participantAreas);
+    const reach = await this.access.reach(user, id);
+    const current = reach.ticket;
     /* Escrever (qualquer campo) já exige gestor+ — quem só tem o cargo `user` na área só lê. */
-    this.assertCanWriteTicket(access, areasInvolved);
-
-    /* Resolver ou cancelar é o ÚNICO passo exclusivo de administrador — gestor contribui no
-       resto (assume, muda situação, registra solução), mas não encerra nem inativa. */
-    if (input.status === 'resolved' || input.status === 'cancelled') {
-      this.assertCanFinalizeTicket(access, areasInvolved);
-    }
+    this.access.assertCanWrite(reach);
 
     /* Reclassificar É mexer em quem atende — por isso pede gestor, não só "ter cargo". Sem
        esta trava, quem só lê a área de Infra poderia empurrar um chamado para Manutenção e
        nunca mais vê-lo responder por ele. */
     if (input.area !== undefined && input.area !== current.area) {
-      this.assertCanManageTicketArea(access, current.area, participantAreas, 'reclassificar');
+      this.access.assertCanManageArea(reach, 'reclassificar');
     }
 
-    const row = await this.repository.update(id, toTicketUpdate(input, user.email, current));
+    const row = await this.repository.update(id, toTicketUpdate(input, user.email));
 
-    return this.toFullTicket(row, participantAreas);
+    /* O que mudou vai para a linha do tempo, com quem mudou. Salvar sem mudar nada não deixa
+       rastro: uma linha do tempo cheia de "alteração" vazia esconde as que importam. */
+    const changes = describeTicketChanges(current, row);
+    if (changes) {
+      await this.historiesRepository.record(
+        toUpdateHistory(row, changes, { name: user.name, email: user.email }),
+      );
+    }
+
+    return this.toFullTicket(row, reach.participantAreas);
   }
 
   /**
@@ -285,14 +286,10 @@ export class TicketsService {
   async addArea(user: RequestUser, id: number, area: TicketArea): Promise<Ticket> {
     assertCanAttendTicket(user.role);
 
-    const current = await this.repository.findById(id);
-    if (!current) throw new NotFoundException(NOT_FOUND);
+    const reach = await this.access.reach(user, id);
+    this.access.assertCanManageArea(reach, 'somar uma área a');
 
-    const participantAreas = await this.repository.listAreasOf(id);
-    const access = await this.resolveAreaAccess(user);
-    this.assertCanManageTicketArea(access, current.area, participantAreas, 'somar uma área a');
-
-    if (area === current.area) {
+    if (area === reach.ticket.area) {
       throw new UnprocessableEntityException(
         `${ticketAreaLabel(area)} já é a área original deste chamado.`,
       );
@@ -300,99 +297,21 @@ export class TicketsService {
 
     await this.repository.addArea({ ticketId: id, area, createdBy: user.email });
 
-    return this.toFullTicket(current, dedupeAreas([...participantAreas, area]));
+    return this.toFullTicket(reach.ticket, dedupeAreas([...reach.participantAreas, area]));
   }
 
   /** Tira uma área participante — a área original nunca pode ser removida por aqui. */
   async removeArea(user: RequestUser, id: number, area: TicketArea): Promise<Ticket> {
     assertCanAttendTicket(user.role);
 
-    const current = await this.repository.findById(id);
-    if (!current) throw new NotFoundException(NOT_FOUND);
-
-    const participantAreas = await this.repository.listAreasOf(id);
-    const access = await this.resolveAreaAccess(user);
-    this.assertCanManageTicketArea(access, current.area, participantAreas, 'remover uma área de');
+    const reach = await this.access.reach(user, id);
+    this.access.assertCanManageArea(reach, 'remover uma área de');
 
     await this.repository.removeArea(id, area);
 
     return this.toFullTicket(
-      current,
-      participantAreas.filter((candidate) => candidate !== area),
-    );
-  }
-
-  /**
-   * O cargo desta pessoa, área por área — direto do banco, sem o "mínimo `user`" que o cargo
-   * interno (#11) aplica em outros lugares: aqui, sem linha, é SEM ACESSO (ver issue #13).
-   *
-   * Só o SUPER ADMINISTRADOR enxerga tudo por padrão — ele é o único papel sem fronteira
-   * nenhuma no sistema (100%, ponta a ponta). Um administrador GLOBAL (`admin`, sem ser
-   * `superadmin`) não ganha as três áreas de graça: ele "faz tudo no contexto dele", e esse
-   * contexto é o que o cargo interno (#11) diz que é — igual a gestor e a usuário, só que
-   * com o nível mais alto quando o cargo existir.
-   */
-  private async resolveAreaAccess(user: RequestUser): Promise<AreaAccess> {
-    if (isSuperAdmin(user.role)) {
-      return TICKET_AREAS.reduce<AreaAccess>((access, area) => {
-        access[area] = 'admin';
-        return access;
-      }, {});
-    }
-
-    return this.repository.contextRolesFor(user.id, user.email);
-  }
-
-  /** Ler exige cargo (qualquer nível) em alguma área do chamado — a original, ou participante. */
-  private assertCanSeeTicket(
-    access: AreaAccess,
-    area: TicketArea,
-    participantAreas: readonly TicketArea[],
-  ): void {
-    if ([area, ...participantAreas].some((candidate) => access[candidate] !== undefined)) return;
-
-    throw new ForbiddenException(
-      `Você não tem cargo em ${ticketAreaLabel(area)} nem nas áreas participantes deste chamado.`,
-    );
-  }
-
-  /**
-   * Atender (mexer em qualquer campo) exige GESTOR ou ADMINISTRADOR em alguma área do
-   * chamado — quem só tem o cargo `user` numa área só CONSULTA, nunca escreve (ver issue #13).
-   */
-  private assertCanWriteTicket(access: AreaAccess, areasInvolved: readonly TicketArea[]): void {
-    if (areasInvolved.some((candidate) => canManageAnyRecord(access[candidate]))) return;
-
-    throw new ForbiddenException(
-      'Seu cargo nestas áreas só permite consultar — não atender chamados.',
-    );
-  }
-
-  /**
-   * FINALIZAR (resolver ou cancelar) exige ADMINISTRADOR em alguma área — gestor contribui
-   * (muda situação, assume, registra solução), mas nunca encerra nem inativa um chamado.
-   */
-  private assertCanFinalizeTicket(access: AreaAccess, areasInvolved: readonly TicketArea[]): void {
-    if (areasInvolved.some((candidate) => access[candidate] === 'admin')) return;
-
-    throw new ForbiddenException(
-      'Só quem administra alguma área deste chamado pode resolvê-lo ou cancelá-lo.',
-    );
-  }
-
-  /** Mudar a área (reclassificar ou somar/tirar participante) exige GESTOR em alguma área. */
-  private assertCanManageTicketArea(
-    access: AreaAccess,
-    area: TicketArea,
-    participantAreas: readonly TicketArea[],
-    action: string,
-  ): void {
-    if ([area, ...participantAreas].some((candidate) => canManageAnyRecord(access[candidate]))) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      `Só quem gerencia alguma área deste chamado pode ${action} ele.`,
+      reach.ticket,
+      reach.participantAreas.filter((candidate) => candidate !== area),
     );
   }
 
