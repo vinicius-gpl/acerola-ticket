@@ -34,8 +34,15 @@ export function fillFromPointer(node: HTMLElement) {
 
   function place(event: PointerEvent) {
     const box = node.getBoundingClientRect();
-    node.style.setProperty('--fill-x', `${event.clientX - box.left}px`);
-    node.style.setProperty('--fill-y', `${event.clientY - box.top}px`);
+    const x = event.clientX - box.left;
+    const y = event.clientY - box.top;
+
+    node.style.setProperty('--fill-x', `${x}px`);
+    node.style.setProperty('--fill-y', `${y}px`);
+    /* Até onde o círculo precisa crescer para cobrir o item: a distância ao canto mais longe.
+       Quem usa é a variante de linha de tabela (`hover-fill-row`), que anima o raio. */
+    const reach = Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));
+    node.style.setProperty('--fill-reach', `${Math.ceil(reach)}px`);
   }
 
   /* A entrada é quando a animação começa: é a hora de medir se a máquina a entrega lisa. Se
@@ -54,4 +61,15 @@ export function fillFromPointer(node: HTMLElement) {
       node.removeEventListener('pointerleave', place);
     },
   };
+}
+
+/**
+ * A mesma coisa, no formato que atravessa um COMPONENTE (`{@attach attachFillFromPointer}`):
+ * `use:` só existe em elemento, e a linha da tabela (`TableRow`) é um componente que repassa
+ * o que recebe para a `<tr>` de dentro.
+ */
+export function attachFillFromPointer(node: HTMLElement) {
+  const action = fillFromPointer(node);
+
+  return () => action.destroy();
 }

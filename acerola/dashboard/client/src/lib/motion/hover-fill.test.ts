@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fillColorOf, fillFromPointer, type FillTone } from './hover-fill';
+import { attachFillFromPointer, fillColorOf, fillFromPointer, type FillTone } from './hover-fill';
 
 /** Um item de 200×100 pousado em (50, 20) na janela. */
 function makeNode() {
@@ -52,6 +52,29 @@ describe('fillFromPointer', () => {
 
     expect(node.style.getPropertyValue('--fill-x')).toBe('200px');
     expect(node.style.getPropertyValue('--fill-y')).toBe('10px');
+  });
+
+  /* Entrando perto do canto de cima à esquerda de um item de 200×100, o canto mais longe é o
+     de baixo à direita: 190 para o lado, 50 para baixo. */
+  it('writes how far the fill has to grow to reach the farthest corner', () => {
+    const node = makeNode();
+    fillFromPointer(node);
+
+    node.dispatchEvent(pointer('pointerenter', 60, 70));
+
+    expect(node.style.getPropertyValue('--fill-reach')).toBe(`${Math.ceil(Math.hypot(190, 50))}px`);
+  });
+
+  it('works as an attachment and cleans up when the item goes away', () => {
+    const node = makeNode();
+    const detach = attachFillFromPointer(node);
+
+    node.dispatchEvent(pointer('pointerenter', 60, 70));
+    expect(node.style.getPropertyValue('--fill-x')).toBe('10px');
+
+    detach();
+    node.dispatchEvent(pointer('pointerenter', 150, 70));
+    expect(node.style.getPropertyValue('--fill-x')).toBe('10px');
   });
 
   // triste
