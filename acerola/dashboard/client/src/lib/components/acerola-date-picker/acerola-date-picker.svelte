@@ -94,7 +94,7 @@
           {...props}
           variant="outline"
           class={cn(
-            "w-full justify-start text-left font-normal h-10 px-3.5 rounded-xl border-border bg-card hover:bg-accent/40 shadow-xs transition-colors",
+            "w-full justify-start text-left font-normal h-10 px-3.5 rounded-control border-border bg-card hover:bg-accent/40 shadow-xs transition-colors",
             !internalDate && "text-muted-foreground"
           )}
           {disabled}
@@ -104,14 +104,14 @@
         </Button>
       {/snippet}
     </Popover.Trigger>
-    <Popover.Content class="w-auto p-0 rounded-2xl border-border bg-card shadow-xl" align="start">
+    <Popover.Content class="w-auto p-0 rounded-surface border-border bg-card shadow-xl" align="start">
       <Calendar
         type="single"
         value={internalDate}
         onValueChange={handleSelect}
         locale="pt-BR"
         captionLayout="dropdown"
-        class="rounded-xl border-0 p-3"
+        class="rounded-control border-0 p-3"
       />
     </Popover.Content>
   </Popover.Root>
