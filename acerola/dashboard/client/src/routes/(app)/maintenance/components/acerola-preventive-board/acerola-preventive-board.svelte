@@ -71,7 +71,7 @@
       Nenhuma máquina no inventário ainda. Cadastre uma e ela passa a ser cobrada aqui.
     </p>
   {:else if pending.length === 0}
-    <p class="flex items-center gap-2 text-sm text-emerald-700">
+    <p class="flex items-center gap-2 text-sm text-success">
       <CalendarCheck class="size-4" aria-hidden="true" />
       Todas as {data.rows.length} máquinas estão em dia.
     </p>
@@ -92,7 +92,7 @@
                 sem preventiva ou corretiva registrada
               {/if}
               {#if isFrequentlyServiced(row.maintenanceCount)}
-                · <span class="text-amber-700 font-medium">
+                · <span class="text-warning font-medium">
                   já foram {row.maintenanceCount} manutenções nesta máquina
                 </span>
               {/if}

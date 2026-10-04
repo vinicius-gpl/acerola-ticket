@@ -174,7 +174,7 @@
       <label class="text-ink-700 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
-          class="border-ink-300 size-4 rounded"
+          class="border-ink-300 size-4 rounded-chip"
           checked={data.filter.inStockOnly}
           onchange={(event) => actions.onInStockOnlyChange(event.currentTarget.checked)}
         />
@@ -228,17 +228,17 @@
       data-slot="part-cards-mobile"
     >
       {#each data.parts as part (part.id)}
-        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
               <button
                 type="button"
-                class="font-medium text-neutral-900 dark:text-neutral-100 text-left break-words hover:underline"
+                class="font-medium text-ink-900 text-left break-words hover:underline"
                 onclick={() => actions.onOpenLedger(part)}
               >
                 {part.name}
               </button>
-              <span class="text-neutral-400 block text-xs">Ver o histórico</span>
+              <span class="text-ink-500 block text-xs">Ver o histórico</span>
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
               <StatusBadge
@@ -248,7 +248,7 @@
               <span
                 class={cn(
                   'text-base font-semibold tabular-nums',
-                  part.balance === 0 ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100',
+                  part.balance === 0 ? 'text-destructive' : 'text-ink-900',
                 )}
               >
                 {part.balance} <span class="text-xs font-normal text-muted-foreground">na prateleira</span>
@@ -258,7 +258,7 @@
 
           <div class="mt-2 text-xs">
             <span class="text-muted-foreground">Categoria: </span>
-            <span class="text-neutral-700 dark:text-neutral-200 font-medium">{partCategoryLabel(part.category)}</span>
+            <span class="text-ink-700 font-medium">{partCategoryLabel(part.category)}</span>
           </div>
 
           <div class="border-border/60 mt-3 flex items-center justify-end gap-2 border-t pt-2">
@@ -312,14 +312,14 @@
               <TableCell class="max-w-[280px]" style="white-space: normal;">
                 <button
                   type="button"
-                  class="font-medium text-neutral-900 dark:text-neutral-100 text-left break-words hover:underline"
+                  class="font-medium text-ink-900 text-left break-words hover:underline"
                   onclick={() => actions.onOpenLedger(part)}
                 >
                   {part.name}
                 </button>
-                <span class="text-neutral-400 block text-xs">Ver o histórico desta peça</span>
+                <span class="text-ink-500 block text-xs">Ver o histórico desta peça</span>
               </TableCell>
-              <TableCell class="text-neutral-700 dark:text-neutral-200">{partCategoryLabel(part.category)}</TableCell>
+              <TableCell class="text-ink-700">{partCategoryLabel(part.category)}</TableCell>
               <TableCell>
                 <StatusBadge
                   data={{ label: partConditionLabel(part.condition) }}
@@ -329,7 +329,7 @@
               <TableCell
                 class={cn(
                   'text-base font-semibold tabular-nums',
-                  part.balance === 0 ? 'text-red-600 dark:text-red-400' : 'text-neutral-900 dark:text-neutral-100',
+                  part.balance === 0 ? 'text-destructive' : 'text-ink-900',
                 )}
               >
                 {part.balance}

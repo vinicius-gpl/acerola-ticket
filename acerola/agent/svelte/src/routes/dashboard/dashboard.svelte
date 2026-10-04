@@ -68,7 +68,7 @@
 	});
 </script>
 
-<div class="bg-background text-foreground flex h-full flex-col overflow-hidden rounded-2xl">
+<div class="bg-background text-foreground rounded-surface flex h-full flex-col overflow-hidden">
 	<!-- Header Chrome com Estilo Moderno ReUI / VibePrompts -->
 	<header
 		data-drag-region
@@ -85,13 +85,13 @@
 					<h1 class="text-foreground text-sm font-semibold tracking-tight">Acerola Agent</h1>
 
 					<span
-						class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+						class="border-success/20 bg-success/10 text-success inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold"
 					>
 						<span class="relative flex h-1.5 w-1.5">
 							<span
-								class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+								class="bg-success absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
 							></span>
-							<span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+							<span class="bg-success relative inline-flex h-1.5 w-1.5 rounded-full"></span>
 						</span>
 						{metrics.latest ? 'Ao vivo' : 'Conectando'}
 					</span>
@@ -109,12 +109,12 @@
 
 		<!-- Centro: Switcher de Abas / Navegação -->
 		<nav
-			class="border-border/70 bg-muted/30 hidden items-center gap-1 rounded-xl border p-1 md:flex"
+			class="border-border/70 bg-muted/30 rounded-control hidden items-center gap-1 border p-1 md:flex"
 		>
 			<button
 				type="button"
 				class={cn(
-					'flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+					'rounded-chip flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all',
 					activeTab === 'overview'
 						? 'bg-card text-foreground font-semibold shadow-xs'
 						: 'text-muted-foreground hover:text-foreground'
@@ -128,7 +128,7 @@
 			<button
 				type="button"
 				class={cn(
-					'flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+					'rounded-chip flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all',
 					activeTab === 'queue'
 						? 'bg-card text-foreground font-semibold shadow-xs'
 						: 'text-muted-foreground hover:text-foreground'
@@ -139,7 +139,7 @@
 				<span>Fila & Detalhes</span>
 				{#if metrics.latest?.processes}
 					<span
-						class="bg-primary/10 border-primary/20 py-0.2 text-primary rounded-full border px-1.5 text-[10px] font-semibold"
+						class="bg-primary/10 border-primary/20 py-0.2 text-primary rounded-full border px-1.5 text-xs font-semibold"
 					>
 						{metrics.latest.processes.length}
 					</span>
@@ -149,7 +149,7 @@
 			<button
 				type="button"
 				class={cn(
-					'flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+					'rounded-chip flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all',
 					activeTab === 'system'
 						? 'bg-card text-foreground font-semibold shadow-xs'
 						: 'text-muted-foreground hover:text-foreground'
@@ -172,7 +172,7 @@
 			</AcerolaButton>
 
 			<span
-				class="border-border/70 bg-muted/40 text-muted-foreground hidden rounded-full border px-2.5 py-1 font-mono text-[11px] sm:inline-flex"
+				class="border-border/70 bg-muted/40 text-muted-foreground hidden rounded-full border px-2.5 py-1 font-mono text-xs sm:inline-flex"
 			>
 				1000ms
 			</span>
@@ -222,7 +222,7 @@
 
 						<AcerolaSeparator />
 
-						<p class="text-muted-foreground text-[11px] leading-relaxed">
+						<p class="text-muted-foreground text-xs leading-relaxed">
 							Para minimizar, feche esta janela. Para encerrar o agente, selecione <strong
 								>Sair</strong
 							> no menu da bandeja.
@@ -356,9 +356,7 @@
 						/>
 
 						<div class="border-border/60 mt-3 border-t pt-2.5">
-							<div
-								class="text-muted-foreground mb-1.5 flex items-center justify-between text-[11px]"
-							>
+							<div class="text-muted-foreground mb-1.5 flex items-center justify-between text-xs">
 								<span>Carga individual dos núcleos</span>
 								<span>Pico recente</span>
 							</div>
@@ -370,7 +368,7 @@
 										ui={{ side: 'top', class: 'text-xs' }}
 									>
 										<div
-											class="bg-muted/80 border-border/40 h-4 w-full cursor-pointer overflow-hidden rounded-[3px] border"
+											class="bg-muted/80 border-border/40 h-4 w-full cursor-pointer overflow-hidden rounded-none border"
 										>
 											<div
 												class="bg-primary h-full transition-all duration-300"
@@ -503,13 +501,13 @@
 					>
 						<div class="flex flex-col gap-4">
 							{#each snap.disks as disk (disk.mountpoint)}
-								<div class="border-border/70 bg-muted/20 rounded-xl border p-4">
+								<div class="border-border/70 bg-muted/20 rounded-box border p-4">
 									<div class="flex items-center justify-between">
 										<div class="flex items-center gap-2">
 											<HardDriveIcon size={16} class="text-primary" />
 											<span class="text-foreground text-sm font-semibold">{disk.mountpoint}</span>
 											<span
-												class="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[10px]"
+												class="bg-muted text-muted-foreground rounded-chip px-1.5 py-0.5 font-mono text-xs"
 											>
 												{disk.fstype}
 											</span>
@@ -552,16 +550,16 @@
 							/>
 
 							<div class="border-border/60 mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-xs">
-								<div class="border-border/60 bg-muted/20 rounded-lg border p-2.5">
-									<span class="text-muted-foreground block text-[10px] tracking-wider uppercase"
+								<div class="border-border/60 bg-muted/20 rounded-chip border p-2.5">
+									<span class="text-muted-foreground block text-xs tracking-wider uppercase"
 										>IP Local (IPv4)</span
 									>
 									<span class="text-foreground mt-0.5 block font-mono text-xs font-semibold">
 										{snap.host.localIp || '—'}
 									</span>
 								</div>
-								<div class="border-border/60 bg-muted/20 rounded-lg border p-2.5">
-									<span class="text-muted-foreground block text-[10px] tracking-wider uppercase"
+								<div class="border-border/60 bg-muted/20 rounded-chip border p-2.5">
+									<span class="text-muted-foreground block text-xs tracking-wider uppercase"
 										>Endereço Físico (MAC)</span
 									>
 									<span
@@ -577,7 +575,7 @@
 						<!-- Informações do Agente e Conexão -->
 						<AcerolaCard data={{ title: 'Status do Agente e Conexão' }} ui={{ class: 'p-5' }}>
 							<div class="flex items-center gap-3">
-								<div class="bg-primary/10 border-primary/20 text-primary rounded-xl border p-3">
+								<div class="bg-primary/10 border-primary/20 text-primary rounded-box border p-3">
 									<ShieldCheckIcon size={24} />
 								</div>
 								<div>

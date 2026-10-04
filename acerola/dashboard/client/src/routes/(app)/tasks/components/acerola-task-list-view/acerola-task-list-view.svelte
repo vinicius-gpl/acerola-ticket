@@ -177,7 +177,7 @@
       </div>
 
       {#if state.isTruncated}
-        <p class="text-xs text-amber-700">
+        <p class="text-xs text-warning">
           Mostrando só as primeiras {data.tasks.length}. Use a busca para achar as outras.
         </p>
       {/if}
@@ -232,7 +232,7 @@
                       isIconOnly: true,
                       variant: 'ghost',
                       size: 'sm',
-                      className: 'text-red-600 hover:text-red-700',
+                      className: 'text-destructive hover:text-destructive/80',
                     }}
                     actions={{ onClick: () => actions.onAskDelete(task) }}
                   />

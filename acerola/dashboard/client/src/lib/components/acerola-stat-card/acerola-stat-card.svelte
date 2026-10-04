@@ -5,7 +5,7 @@
    * O número que se lê de relance, no alto do painel.
    *
    * Quando o cartão tem um tom (danger, info, success, brand, warning), ele ganha o fundo
-   * sólido da cor correspondente sem borda (bg-rose-100, bg-sky-100, etc.) no espírito
+   * sólido da cor correspondente sem borda (o token `-soft` do tom) no espírito
    * dos cards de dashboard modernos do VibePrompts. Sem tom escolhido (neutral), ele
    * permanece neutro com borda padrão.
    */
@@ -28,39 +28,39 @@
 
   /** O fundo do cartão inteiro — quando colorido, não tem borda; quando neutro, usa bg-card com borda */
   const TONE_CARD: Record<StatCardTone, string> = {
-    brand: 'bg-purple-100 text-purple-950 dark:bg-purple-950 dark:text-purple-100',
+    brand: 'bg-primary-soft text-ink-900',
     neutral: 'bg-card border-border border text-card-foreground',
-    success: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100',
-    warning: 'bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100',
-    danger: 'bg-rose-100 text-rose-950 dark:bg-rose-950 dark:text-rose-100',
-    info: 'bg-sky-100 text-sky-950 dark:bg-sky-950 dark:text-sky-100',
+    success: 'bg-success-soft text-ink-900',
+    warning: 'bg-warning-soft text-ink-900',
+    danger: 'bg-destructive-soft text-ink-900',
+    info: 'bg-info-soft text-ink-900',
   };
 
   const TONE_LABEL: Record<StatCardTone, string> = {
-    brand: 'text-purple-800 dark:text-purple-300',
+    brand: 'text-primary',
     neutral: 'text-ink-500',
-    success: 'text-emerald-800 dark:text-emerald-300',
-    warning: 'text-amber-800 dark:text-amber-300',
-    danger: 'text-rose-800 dark:text-rose-300',
-    info: 'text-sky-800 dark:text-sky-300',
+    success: 'text-success',
+    warning: 'text-warning',
+    danger: 'text-destructive',
+    info: 'text-info',
   };
 
   const TONE_VALUE: Record<StatCardTone, string> = {
-    brand: 'text-purple-950 dark:text-purple-50',
+    brand: 'text-ink-900',
     neutral: 'text-ink-900',
-    success: 'text-emerald-950 dark:text-emerald-50',
-    warning: 'text-amber-950 dark:text-amber-50',
-    danger: 'text-rose-950 dark:text-rose-50',
-    info: 'text-sky-950 dark:text-sky-50',
+    success: 'text-ink-900',
+    warning: 'text-ink-900',
+    danger: 'text-ink-900',
+    info: 'text-ink-900',
   };
 
   const TONE_ICON: Record<StatCardTone, string> = {
-    brand: 'bg-purple-600 text-white',
-    neutral: 'bg-ink-700 text-white',
-    success: 'bg-emerald-600 text-white',
-    warning: 'bg-amber-600 text-white',
-    danger: 'bg-rose-600 text-white',
-    info: 'bg-sky-600 text-white',
+    brand: 'bg-primary text-primary-foreground',
+    neutral: 'bg-ink-700 text-primary-foreground',
+    success: 'bg-success text-primary-foreground',
+    warning: 'bg-warning text-primary-foreground',
+    danger: 'bg-destructive text-destructive-foreground',
+    info: 'bg-info text-primary-foreground',
   };
 </script>
 
@@ -89,12 +89,12 @@
       <span class={cn('flex size-8 shrink-0 items-center justify-center rounded-chip', TONE_ICON[tone])}>
         <Icon size={15} aria-hidden="true" />
       </span>
-      <p class={cn('text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
+      <p class={cn('text-xs font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
         {data.label}
       </p>
     </div>
   {:else}
-    <p class={cn('mb-1 text-[11px] font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
+    <p class={cn('mb-1 text-xs font-semibold tracking-wider uppercase', TONE_LABEL[tone])}>
       {data.label}
     </p>
   {/if}

@@ -255,7 +255,7 @@
     </EmptyState>
   {:else if insights}
     {#if !hasAnything}
-      <p class="flex items-center gap-2 rounded-surface border bg-card p-4 text-sm text-emerald-700">
+      <p class="flex items-center gap-2 rounded-surface border bg-card p-4 text-sm text-success">
         <PartyPopper class="size-4" aria-hidden="true" />
         Nada a recomendar nos últimos {insights.days} dias: nenhuma máquina no limite, nenhuma
         pedindo upgrade e nenhuma dando trabalho demais.
@@ -319,7 +319,7 @@
                 <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                   {departmentOf(machine)} · {overloadSummaryOf(machine)}
                   {#if machine.activeAlerts > 0}
-                    · <span class="text-red-700 font-medium">travada agora</span>
+                    · <span class="text-destructive font-medium">travada agora</span>
                   {/if}
                 </p>
               </div>

@@ -139,32 +139,32 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div class="flex items-start gap-2">
-              <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-ink-100/60 text-ink-700">
                 <Building2 class="size-3.5" aria-hidden="true" />
               </span>
               <div class="min-w-0">
-                <p class="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">Departamento</p>
+                <p class="text-xs font-semibold tracking-wider text-ink-500 uppercase">Departamento</p>
                 <p class="truncate text-xs font-medium text-foreground">{ticketDepartmentLabel(ticket.department)}</p>
               </div>
             </div>
 
             <div class="flex items-start gap-2">
-              <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+              <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-ink-100/60 text-ink-700">
                 <Wrench class="size-3.5" aria-hidden="true" />
               </span>
               <div class="min-w-0">
-                <p class="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">Tipo</p>
+                <p class="text-xs font-semibold tracking-wider text-ink-500 uppercase">Tipo</p>
                 <p class="truncate text-xs font-medium text-foreground">{ticketProblemTypeLabel(ticket.problemType)}</p>
               </div>
             </div>
 
             {#if ticket.anydeskId}
               <div class="col-span-2 flex items-start gap-2">
-                <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-neutral-200/60 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-ink-100/60 text-ink-700">
                   <MonitorSmartphone class="size-3.5" aria-hidden="true" />
                 </span>
                 <div class="min-w-0">
-                  <p class="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase">AnyDesk</p>
+                  <p class="text-xs font-semibold tracking-wider text-ink-500 uppercase">AnyDesk</p>
                   <p class="truncate font-mono text-xs font-medium text-foreground">{ticket.anydeskId}</p>
                 </div>
               </div>
@@ -172,13 +172,13 @@
           </div>
 
           <div class="rounded-box border border-border/80 bg-card p-3.5 text-xs leading-relaxed text-foreground shadow-xs">
-            <p class="mb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Aberto por {ticket.requesterName}</p>
+            <p class="mb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Aberto por {ticket.requesterName}</p>
             <p class="text-sm whitespace-pre-line text-foreground/90">{ticket.description}</p>
           </div>
 
           {#if ticket.screenshotUrl}
             <a
-              class="control-sm inline-flex w-fit items-center gap-1.5 rounded-control border border-border bg-card text-xs font-semibold text-primary shadow-xs transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              class="control-sm inline-flex w-fit items-center gap-1.5 rounded-control border border-border bg-card text-xs font-semibold text-primary shadow-xs transition-colors hover:bg-ink-100"
               href={ticket.screenshotUrl}
               target="_blank"
               rel="noopener"

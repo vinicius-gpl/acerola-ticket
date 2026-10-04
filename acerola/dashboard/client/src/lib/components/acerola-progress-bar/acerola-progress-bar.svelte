@@ -14,10 +14,10 @@
   type ProgressTone = 'emerald' | 'yellow' | 'orange' | 'red';
 
   const TONE_CLASSES: Record<ProgressTone, string> = {
-    emerald: 'bg-emerald-500',
-    yellow: 'bg-yellow-500',
-    orange: 'bg-orange-500',
-    red: 'bg-red-500',
+    emerald: 'bg-chart-4',
+    yellow: 'bg-chart-3',
+    orange: 'bg-chart-2',
+    red: 'bg-chart-1',
   };
 
   /** Cada faixa tem um tom, e é por ele que a lista é lida de relance. */

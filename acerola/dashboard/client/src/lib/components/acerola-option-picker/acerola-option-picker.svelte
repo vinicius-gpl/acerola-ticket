@@ -37,19 +37,19 @@
 
   const TONE_DOT_CLASSES: Record<StatusBadgeTone, string> = {
     neutral: 'bg-muted-foreground',
-    info: 'bg-blue-500',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-red-500',
+    info: 'bg-info',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    danger: 'bg-destructive',
     brand: 'bg-primary',
   };
 
   const TONE_SELECTED_CLASSES: Record<StatusBadgeTone, string> = {
     neutral: 'border-foreground bg-foreground text-background',
-    info: 'border-blue-600 bg-blue-600 text-white',
-    success: 'border-emerald-600 bg-emerald-600 text-white',
-    warning: 'border-amber-500 bg-amber-500 text-white',
-    danger: 'border-red-600 bg-red-600 text-white',
+    info: 'border-info bg-info text-primary-foreground',
+    success: 'border-success bg-success text-primary-foreground',
+    warning: 'border-warning bg-warning text-primary-foreground',
+    danger: 'border-destructive bg-destructive text-destructive-foreground',
     brand: 'border-primary bg-primary text-primary-foreground',
   };
 

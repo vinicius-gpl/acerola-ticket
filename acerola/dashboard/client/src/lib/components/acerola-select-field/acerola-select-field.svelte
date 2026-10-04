@@ -56,7 +56,7 @@
 >
   <!-- O degrau `lg` da RÉGUA DE MEDIDAS (`lib/theme/tokens.css`): este campo fica sempre ao
        lado de um `TextField` ou dentro de um formulário, e vinha 4px mais baixo e com um raio
-       só dele (`rounded-sm`), destoando de tudo em volta.
+       só dele (menor que o dos vizinhos), destoando de tudo em volta.
 
        `min-w-0` + `max-w-full`: sem os dois, uma opção de nome longo faz o gatilho crescer
        além do espaço que ele tem e empurra a largura de quem está em volta — dentro de um

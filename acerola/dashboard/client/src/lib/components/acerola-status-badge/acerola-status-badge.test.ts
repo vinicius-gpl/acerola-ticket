@@ -16,13 +16,13 @@ describe('AcerolaStatusBadge', () => {
       props: { data: { label: 'Concluída' }, ui: { tone: 'success' } },
     });
 
-    expect(container.firstElementChild?.className).toContain('emerald');
+    expect(container.firstElementChild?.className).toContain('success');
   });
 
   it('falls back to neutral when no tone was given, instead of having no color', () => {
     const { container } = render(StatusBadge, { props: { data: { label: 'A fazer' } } });
 
-    expect(container.firstElementChild?.className).toContain('gray');
+    expect(container.firstElementChild?.className).toContain('ink');
   });
 
   // triste
@@ -47,6 +47,6 @@ describe('AcerolaStatusBadge', () => {
     });
 
     expect(container.firstElementChild?.className).toContain('ml-4');
-    expect(container.firstElementChild?.className).toContain('emerald');
+    expect(container.firstElementChild?.className).toContain('success');
   });
 });

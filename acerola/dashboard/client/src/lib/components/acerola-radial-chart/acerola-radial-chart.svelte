@@ -98,7 +98,7 @@
         <span class="text-foreground text-2xl leading-tight font-bold tabular-nums">
           {data.display ?? data.value}
         </span>
-        <span class="text-muted-foreground text-[10px] leading-tight tracking-wide uppercase">
+        <span class="text-muted-foreground text-xs leading-tight tracking-wide uppercase">
           {data.label}
         </span>
       </div>
@@ -108,7 +108,7 @@
          de cem pixels de largura, e uma frase como "7 manutenções feitas no período" atravessa
          o arco e fica ilegível por cima dele. -->
     {#if data.hint}
-      <p class="text-muted-foreground mt-1 text-center text-[11px] leading-tight">{data.hint}</p>
+      <p class="text-muted-foreground mt-1 text-center text-xs leading-tight">{data.hint}</p>
     {/if}
   </div>
 {/if}

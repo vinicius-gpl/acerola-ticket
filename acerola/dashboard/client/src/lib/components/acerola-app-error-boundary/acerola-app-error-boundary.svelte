@@ -31,8 +31,8 @@
 
   {#snippet failed(error)}
     <div class="bg-ink-100 flex min-h-screen items-center justify-center p-6">
-      <div role="alert" class="w-full max-w-lg rounded-surface border border-red-300 bg-white p-6 shadow-sm">
-        <h1 class="text-lg font-bold text-red-800">A tela não carregou</h1>
+      <div role="alert" class="w-full max-w-lg rounded-surface border border-destructive/40 bg-card p-6 shadow-xs">
+        <h1 class="text-lg font-bold text-destructive">A tela não carregou</h1>
         <p class="text-ink-700 mt-2 text-sm">
           O sistema encontrou um erro ao montar esta página. Nada do que você fez foi perdido —
           esta tela simplesmente não chegou a abrir.

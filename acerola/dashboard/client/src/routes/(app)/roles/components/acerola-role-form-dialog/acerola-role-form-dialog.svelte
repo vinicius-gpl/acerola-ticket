@@ -214,7 +214,7 @@
                       {selectedUser?.name || fields.userEmail.value || fields.userId.value}
                     </span>
                     <span
-                      class="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
+                      class="text-xs font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-chip border border-border/60"
                     >
                       Pessoa existente
                     </span>
@@ -224,7 +224,7 @@
                       {fields.userEmail.value}
                     </span>
                   {/if}
-                  <span class="block text-[11px] font-mono text-muted-foreground/80 truncate">
+                  <span class="block text-xs font-mono text-muted-foreground/80 truncate">
                     ID: {fields.userId.value}
                   </span>
                 </div>
@@ -259,13 +259,13 @@
                                 {selectedUser?.name || fields.userEmail.value || fields.userId.value}
                               </span>
                               <span
-                                class="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0"
+                                class="text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-chip border border-primary/20 shrink-0"
                               >
                                 Selecionada
                               </span>
                             </div>
                             {#if fields.userEmail.value}
-                              <span class="block text-[11px] text-muted-foreground truncate">
+                              <span class="block text-xs text-muted-foreground truncate">
                                 {fields.userEmail.value}
                               </span>
                             {/if}
@@ -274,7 +274,7 @@
                         <div class="flex items-center gap-2 shrink-0">
                           {#if selectedUser?.role}
                             <span
-                              class="hidden sm:inline-block text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
+                              class="hidden sm:inline-block text-xs font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-chip border border-border/60"
                             >
                               {USER_ROLE_LABELS[selectedUser.role as UserRole] ?? selectedUser.role}
                             </span>
@@ -392,14 +392,14 @@
                                       <Check class="size-3 text-primary shrink-0" aria-hidden="true" />
                                     {/if}
                                   </div>
-                                  <span class="block text-[11px] text-muted-foreground truncate">
+                                  <span class="block text-xs text-muted-foreground truncate">
                                     {user.email}
                                   </span>
                                 </div>
                               </div>
                               {#if user.role}
                                 <span
-                                  class="shrink-0 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/60"
+                                  class="shrink-0 text-xs font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-chip border border-border/60"
                                 >
                                   {USER_ROLE_LABELS[user.role as UserRole] ?? user.role}
                                 </span>
@@ -448,7 +448,7 @@
                   'flex flex-col items-start gap-1 p-3 rounded-surface border text-left transition-all',
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border/80 bg-card hover:bg-neutral-50 dark:hover:bg-neutral-900',
+                    : 'border-border/80 bg-card hover:bg-ink-100',
                   isEdit && 'opacity-60 cursor-not-allowed',
                 )}
               >
@@ -460,7 +460,7 @@
                     <Check class="size-3.5 text-primary" aria-hidden="true" />
                   {/if}
                 </div>
-                <span class="text-[11px] text-muted-foreground leading-tight">
+                <span class="text-xs text-muted-foreground leading-tight">
                   {CONTEXT_DETAILS[ctx].description}
                 </span>
               </button>
@@ -487,7 +487,7 @@
                   'flex flex-col items-start gap-1 p-3 rounded-surface border text-left transition-all',
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border/80 bg-card hover:bg-neutral-50 dark:hover:bg-neutral-900',
+                    : 'border-border/80 bg-card hover:bg-ink-100',
                 )}
               >
                 <div class="flex w-full items-center justify-between">
@@ -496,7 +496,7 @@
                     <Check class="size-3.5 text-primary" aria-hidden="true" />
                   {/if}
                 </div>
-                <span class="text-[11px] text-muted-foreground leading-tight">{r.description}</span>
+                <span class="text-xs text-muted-foreground leading-tight">{r.description}</span>
               </button>
             {/each}
           </div>
@@ -507,7 +507,7 @@
             <Info class="size-4 shrink-0 text-primary" aria-hidden="true" />
             <span>
               O cargo <strong>Super Admin</strong> é reservado e só pode ser concedido via comando de
-              terminal no servidor (<code class="font-mono text-[11px] bg-background px-1 py-0.5 rounded border border-border">npm run user:promote</code>).
+              terminal no servidor (<code class="font-mono text-xs bg-background px-1 py-0.5 rounded-chip border border-border">npm run user:promote</code>).
             </span>
           </div>
         </TimelineStep>

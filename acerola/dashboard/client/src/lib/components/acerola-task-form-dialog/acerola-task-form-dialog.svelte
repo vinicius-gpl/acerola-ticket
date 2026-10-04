@@ -126,7 +126,7 @@
       <!-- Segmented Status Selector em vez de Select dropdown puro -->
       <div class="flex flex-col gap-2">
         <span class="text-ink-700 text-sm font-medium">Situação da tarefa</span>
-        <div class="grid grid-cols-3 gap-2 p-1 rounded-box bg-neutral-100 dark:bg-neutral-800/60 border border-border/60">
+        <div class="grid grid-cols-3 gap-2 p-1 rounded-box bg-ink-100 border border-border/60">
           {#each STATUS_OPTIONS as opt (opt.value)}
             {@const isSelected = fields.status.value === opt.value}
             <button
@@ -136,16 +136,16 @@
                 "control-sm flex items-center justify-center gap-1.5 rounded-chip text-xs font-semibold transition-all cursor-pointer",
                 isSelected
                   ? "bg-card text-foreground shadow-xs font-semibold border border-border/80"
-                  : "text-muted-foreground hover:text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-ink-100/50"
               )}
               onclick={() => actions.onChange('status', opt.value)}
             >
               {#if opt.value === 'todo'}
-                <CircleDashed class="size-3.5 text-neutral-400" />
+                <CircleDashed class="size-3.5 text-ink-500" />
               {:else if opt.value === 'doing'}
-                <Clock class="size-3.5 text-amber-500" />
+                <Clock class="size-3.5 text-warning" />
               {:else}
-                <CheckCircle2 class="size-3.5 text-emerald-500" />
+                <CheckCircle2 class="size-3.5 text-success" />
               {/if}
               <span class="truncate">{opt.label}</span>
             </button>

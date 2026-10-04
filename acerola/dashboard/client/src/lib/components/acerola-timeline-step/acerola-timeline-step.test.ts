@@ -36,7 +36,7 @@ describe('AcerolaTimelineStep', () => {
       props: { title: 'Pronto', tone: 'success' },
     });
 
-    expect(container.innerHTML).toContain('emerald');
+    expect(container.innerHTML).toContain('success');
   });
 
   // triste
@@ -52,7 +52,7 @@ describe('AcerolaTimelineStep', () => {
   it('falls back to the neutral tone and keeps the line (edge case)', () => {
     const { container } = render(TimelineStepHarness, { props: { title: 'Primeira' } });
 
-    expect(container.innerHTML).not.toContain('emerald');
+    expect(container.innerHTML).not.toContain('success');
     expect(container.querySelector('[aria-hidden="true"].w-px')).not.toBeNull();
   });
 });

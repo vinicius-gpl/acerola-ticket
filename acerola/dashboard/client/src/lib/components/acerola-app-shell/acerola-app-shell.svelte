@@ -152,7 +152,7 @@
             <PersonAvatar name={userName} ui={{ size: 'md' }} />
             <span class="grid flex-1 text-left leading-tight">
               <span class="truncate text-sm font-semibold">{userName}</span>
-              <span class="truncate text-[10px] tracking-wider uppercase opacity-70">
+              <span class="truncate text-xs tracking-wider uppercase opacity-70">
                 {data?.user?.role ?? '—'}
               </span>
             </span>

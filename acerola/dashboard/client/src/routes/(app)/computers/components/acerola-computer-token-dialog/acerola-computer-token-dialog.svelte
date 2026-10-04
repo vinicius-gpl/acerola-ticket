@@ -71,7 +71,7 @@
     </DialogHeader>
 
     <div
-      class="rounded-box border border-border/80 bg-neutral-950 p-4 font-mono text-xs text-neutral-100 shadow-inner break-all select-all flex items-center justify-between gap-3"
+      class="rounded-box border border-border/80 bg-foreground p-4 font-mono text-xs text-background break-all select-all flex items-center justify-between gap-3"
       data-testid="agent-token"
     >
       <span class="tracking-wider">{data.token}</span>

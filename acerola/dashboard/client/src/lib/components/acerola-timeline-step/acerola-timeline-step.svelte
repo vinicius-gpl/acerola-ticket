@@ -22,7 +22,7 @@
   const ICON_TONE_CLASSES: Record<NonNullable<AcerolaTimelineStepProps['ui']>['tone'] & string, string> = {
     neutral: 'border-border bg-card text-foreground',
     brand: 'border-primary/30 bg-primary/10 text-primary',
-    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    success: 'border-success/30 bg-success/10 text-success',
   };
 </script>
 

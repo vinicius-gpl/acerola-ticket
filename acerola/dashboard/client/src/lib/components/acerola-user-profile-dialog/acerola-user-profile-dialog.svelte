@@ -72,7 +72,7 @@
   <DialogContent class="max-w-md">
     <DialogHeader class="items-center text-center pb-2">
       <div class="mb-2">
-        <PersonAvatar name={userName} ui={{ size: 'md', className: 'size-16 text-lg shadow-sm' }} />
+        <PersonAvatar name={userName} ui={{ size: 'md', className: 'size-16 text-lg shadow-xs' }} />
       </div>
       <DialogTitle class="text-xl font-bold">{userName}</DialogTitle>
       <DialogDescription class="text-sm text-muted-foreground">{userEmail}</DialogDescription>
@@ -94,7 +94,7 @@
                 <div class="text-xs font-semibold text-foreground">
                   {ROLE_CONTEXT_LABELS[ctx]}
                 </div>
-                <div class="text-[11px] text-muted-foreground leading-tight">
+                <div class="text-xs text-muted-foreground leading-tight">
                   {CONTEXT_DESCRIPTIONS[ctx]}
                 </div>
               </div>

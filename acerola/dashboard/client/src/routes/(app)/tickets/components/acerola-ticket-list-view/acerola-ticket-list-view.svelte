@@ -256,7 +256,7 @@
        agora é UMA SÓ, que quebra sozinha (`flex-wrap`): no celular e no tablet cada pastilha
        ou balão cai pra próxima linha por conta própria, sem precisar de rolagem nem de uma
        segunda fileira fixa. -->
-  <div class="flex flex-col rounded-2xl border border-border bg-card shadow-xs">
+  <div class="flex flex-col rounded-surface border border-border bg-card shadow-xs">
     <div class="flex flex-col gap-3 p-4">
       <TextField
         data={{
@@ -352,10 +352,10 @@
           data-slot="ticket-cards-mobile"
         >
           {#each data.tickets as ticket (ticket.id)}
-            <div class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
+            <div class="flex flex-col gap-3 rounded-surface border border-border bg-card p-4 shadow-xs">
               <div class="flex items-center justify-between gap-2">
                 <span
-                  class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100"
+                  class="font-mono text-xs font-semibold text-ink-900"
                 >
                   {ticket.protocol}
                 </span>
@@ -372,10 +372,10 @@
               </div>
 
               <div class="flex flex-col gap-0.5">
-                <span class="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+                <span class="font-semibold text-ink-900 text-sm">
                   {ticket.requesterName}
                 </span>
-                <span class="text-xs text-neutral-400">
+                <span class="text-xs text-ink-500">
                   {ticketDepartmentLabel(ticket.department)}
                 </span>
               </div>
@@ -383,35 +383,35 @@
               <div class="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
                 <div class="flex flex-col gap-0.5">
                   <span
-                    class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
+                    class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
                     >Área</span
                   >
-                  <span class="text-neutral-700 dark:text-neutral-200"
+                  <span class="text-ink-700"
                     >{ticketAreaLabel(ticket.area)}</span
                   >
                 </div>
                 <div class="flex flex-col gap-0.5">
                   <span
-                    class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
+                    class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
                     >Tipo</span
                   >
-                  <span class="text-neutral-700 dark:text-neutral-200"
+                  <span class="text-ink-700"
                     >{ticketProblemTypeLabel(ticket.problemType)}</span
                   >
                 </div>
                 <div class="flex flex-col gap-0.5">
                   <span
-                    class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
+                    class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
                     >Máquina</span
                   >
-                  <span class="text-neutral-700 dark:text-neutral-200"
+                  <span class="text-ink-700"
                     >{ticket.computerName ?? '—'}</span
                   >
                 </div>
               </div>
 
               <div class="flex items-center justify-between pt-2 border-t border-border/60">
-                <span class="text-xs text-neutral-500">
+                <span class="text-xs text-ink-500">
                   Aberto em {formatDate(ticket.createdAt)}
                 </span>
                 <ActionButton
@@ -453,26 +453,26 @@
               {#each data.tickets as ticket (ticket.id)}
                 <TableRow>
                   <TableCell
-                    class="font-mono text-xs font-semibold text-neutral-900 dark:text-neutral-100"
+                    class="font-mono text-xs font-semibold text-ink-900"
                     >{ticket.protocol}</TableCell
                   >
                   <TableCell>
-                    <span class="font-medium text-neutral-900 dark:text-neutral-100"
+                    <span class="font-medium text-ink-900"
                       >{ticket.requesterName}</span
                     >
-                    <span class="block text-xs text-neutral-400">
+                    <span class="block text-xs text-ink-500">
                       {ticketDepartmentLabel(ticket.department)}
                     </span>
                   </TableCell>
-                  <TableCell class="text-neutral-600 dark:text-neutral-300"
+                  <TableCell class="text-ink-700"
                     >{ticketAreaLabel(ticket.area)}</TableCell
                   >
-                  <TableCell class="text-neutral-600 dark:text-neutral-300"
+                  <TableCell class="text-ink-700"
                     >{ticketProblemTypeLabel(ticket.problemType)}</TableCell
                   >
                   <!-- A maioria dos chamados não tem máquina: quem atende é que vincula. O traço diz
                    "ainda não vinculado" sem virar um vazio que parece defeito de tela. -->
-                  <TableCell class="text-neutral-600 dark:text-neutral-300">
+                  <TableCell class="text-ink-700">
                     {ticket.computerName ?? '—'}
                   </TableCell>
                   <TableCell>
@@ -487,7 +487,7 @@
                       ui={{ tone: ticketStatusTone(ticket.status), size: 'sm' }}
                     />
                   </TableCell>
-                  <TableCell class="text-xs text-neutral-500 whitespace-nowrap">
+                  <TableCell class="text-xs text-ink-500 whitespace-nowrap">
                     {formatDate(ticket.createdAt)}
                   </TableCell>
                   <TableCell class="text-right whitespace-nowrap">
