@@ -11,7 +11,7 @@ import InsightsView, {
   troubleSummaryOf,
   upgradeSlices,
   upgradeSummaryOf,
-} from './insights-view.svelte';
+} from './acerola-insights-view.svelte';
 
 function insights(over: Partial<Insights> = {}): Insights {
   return {
@@ -227,7 +227,7 @@ describe('spareSummaryOf', () => {
   });
 });
 
-describe('InsightsView', () => {
+describe('AcerolaInsightsView', () => {
   // feliz
   it('shows the four lists, each with the rule it used', () => {
     renderView();

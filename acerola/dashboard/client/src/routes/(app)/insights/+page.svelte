@@ -1,5 +1,5 @@
 <script lang="ts">
-  import InsightsView from '$lib/components/insights-view/insights-view.svelte';
+  import InsightsView from './components/acerola-insights-view/acerola-insights-view.svelte';
   import { useInsightsModel } from '$lib/hooks/use-insights/use-insights.svelte';
 
   /**

@@ -34,7 +34,7 @@
    * uma opinião: quem lê precisa poder discordar dela com conhecimento de causa — e pedir
    * para mudarmos o número.
    */
-  export type InsightsViewProps = {
+  export type AcerolaInsightsViewProps = {
     data: { insights: Insights | null; days: number };
     state: {
       isLoading: boolean;
@@ -154,7 +154,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
-  let { data, state: viewState, actions }: InsightsViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaInsightsViewProps = $props();
 
   const insights = $derived(data.insights);
 

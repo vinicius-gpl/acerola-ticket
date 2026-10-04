@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type Insights } from '@template/shared/schemas/insight.schema';
 
-  import InsightsView from './insights-view.svelte';
+  import InsightsView from './acerola-insights-view.svelte';
 
   function insights(over: Partial<Insights> = {}): Insights {
     return {
@@ -70,7 +70,7 @@
   const settled = { isLoading: false, isEmpty: false, error: null };
 
   const { Story } = defineMeta({
-    title: 'Components/InsightsView',
+    title: 'Features/Insights/AcerolaInsightsView',
     component: InsightsView,
   });
 </script>
