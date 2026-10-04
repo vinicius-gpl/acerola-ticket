@@ -83,6 +83,9 @@ const CONFLICT_MESSAGES: Record<string, string> = {
     'Já existe um computador com esse nome. Abra o cadastro existente em vez de criar outro.',
   /* Peça nova e peça usada são linhas diferentes de propósito; duas linhas IGUAIS fariam o
      estoque da mesma peça aparecer dividido em dois lugares. */
+  /* Duas pessoas emitiram a ordem de serviço do mesmo chamado no mesmo instante. */
+  ticket_service_orders_version_unique:
+    'Outra pessoa emitiu esta ordem de serviço agora mesmo. Tente de novo.',
   parts_name_condition_unique:
     'Já existe uma peça com essa descrição e essa condição. Registre uma entrada nela em vez de cadastrar outra.',
 };
@@ -98,6 +101,8 @@ const CHECK_MESSAGES: Record<string, string> = {
   ticket_histories_type_valid: 'O tipo do histórico precisa ser um dos da lista.',
   ticket_histories_status_after_valid: 'O estágio do chamado precisa ser um dos da lista.',
   ticket_histories_minutes_not_negative: 'O tempo gasto não pode ser negativo.',
+  ticket_service_orders_version_positive: 'A versão da ordem de serviço precisa ser maior que zero.',
+  ticket_service_orders_status_valid: 'O estágio do chamado precisa ser um dos da lista.',
   ticket_areas_area_valid: 'A área precisa ser Infra, Sistema ou Manutenção.',
   computers_health_status_valid: 'A situação de saúde precisa ser uma das opções da lista.',
   computers_department_valid: 'O departamento precisa ser um dos da lista.',

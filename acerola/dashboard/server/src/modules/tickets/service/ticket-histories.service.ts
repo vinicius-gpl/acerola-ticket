@@ -3,7 +3,6 @@ import {
   nextTicketStatus,
   refuseTicketHistory,
 } from '@template/shared/domain/ticket-history.util';
-import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import { isClosedTicketStatus } from '@template/shared/domain/ticket-status.util';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import {
@@ -15,7 +14,6 @@ import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type TicketHistoryRow } from '../../../lib/db/schema/ticket-histories.schema';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
-import { type BuiltReport } from '../../../lib/report/report.types';
 import {
   type HistoryEntry,
   toHistoryInsert,
@@ -24,7 +22,6 @@ import {
   toTicketHistory,
   toTicketMove,
 } from '../mapper/ticket-histories.mapper';
-import { buildServiceOrderPdf } from '../report/ticket-service-order.pdf';
 import { TicketHistoriesRepository } from '../repository/ticket-histories.repository';
 import { TicketAccessService, type TicketInReach } from './ticket-access.service';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
@@ -101,21 +98,6 @@ export class TicketHistoriesService {
     const saved = await this.attachments.attach(ticketId, files, user.email, 'support', row.id);
 
     return toTicketHistory(row, saved);
-  }
-
-  /** O relatório da ordem de serviço: o chamado e a linha do tempo inteira, em PDF. */
-  async serviceOrder(user: RequestUser, ticketId: number): Promise<BuiltReport> {
-    assertCanRead(user.role, 'os chamados');
-
-    const reach = await this.access.reach(user, ticketId);
-    const histories = await this.timelineOf(ticketId);
-    const protocol = formatTicketProtocol(ticketId);
-
-    return {
-      buffer: await buildServiceOrderPdf({ ticket: reach.ticket, protocol, histories }),
-      fileName: `ordem-de-servico-${protocol}.pdf`,
-      contentType: 'application/pdf',
-    };
   }
 
   /**

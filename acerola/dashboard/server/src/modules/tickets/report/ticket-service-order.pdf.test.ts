@@ -1,8 +1,15 @@
+import { createHash } from 'node:crypto';
+
 import { type TicketHistory } from '@template/shared/schemas/ticket-history.schema';
 import { describe, expect, it } from 'vitest';
 
 import { type TicketWithComputer } from '../repository/tickets.repository';
-import { buildServiceOrderPdf, formatMinutes, totalMinutes } from './ticket-service-order.pdf';
+import {
+  buildServiceOrderPdf,
+  formatMinutes,
+  type ServiceOrderIssue,
+  totalMinutes,
+} from './ticket-service-order.pdf';
 
 const ticket: TicketWithComputer = {
   id: 7,
@@ -75,18 +82,31 @@ describe('formatMinutes', () => {
   });
 });
 
+const issue: ServiceOrderIssue = {
+  version: 1,
+  code: 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90',
+  issuedAt: new Date('2026-03-02T11:00:00.000Z'),
+  issuedByName: 'Ana Lima',
+  webOrigin: 'http://localhost:5005',
+};
+
+const fingerprint = (buffer: Buffer) => createHash('sha256').update(buffer).digest('hex');
+
 describe('buildServiceOrderPdf', () => {
   // feliz
   it('builds a PDF with the ticket and its whole timeline', async () => {
-    const buffer = await buildServiceOrderPdf({
-      ticket,
-      protocol: 'CH-0007',
-      histories: [
-        history({ type: 'opening', authorName: 'Bia Costa', description: 'Chamado aberto.' }),
-        history({ id: 2, minutesSpent: 30, isVisibleToRequester: false }),
-        history({ id: 3, type: 'closure_with_caveats', statusAfter: 'resolved_with_caveats' }),
-      ],
-    });
+    const buffer = await buildServiceOrderPdf(
+      {
+        ticket,
+        protocol: 'CH-0007',
+        histories: [
+          history({ type: 'opening', authorName: 'Bia Costa', description: 'Chamado aberto.' }),
+          history({ id: 2, minutesSpent: 30, isVisibleToRequester: false }),
+          history({ id: 3, type: 'closure_with_caveats', statusAfter: 'resolved_with_caveats' }),
+        ],
+      },
+      issue,
+    );
 
     expect(buffer.subarray(0, 4).toString()).toBe('%PDF');
   });
@@ -97,20 +117,54 @@ describe('buildServiceOrderPdf', () => {
       history({ id: index + 1, description: 'Passo do atendimento. '.repeat(12) }),
     );
 
-    const short = await buildServiceOrderPdf({ ticket, protocol: 'CH-0007', histories: [] });
-    const buffer = await buildServiceOrderPdf({ ticket, protocol: 'CH-0007', histories: long });
+    const short = await buildServiceOrderPdf({ ticket, protocol: 'CH-0007', histories: [] }, issue);
+    const buffer = await buildServiceOrderPdf({ ticket, protocol: 'CH-0007', histories: long }, issue);
 
     expect(buffer.length).toBeGreaterThan(short.length);
   });
 
+  /* É o que deixa o sistema conferir um arquivo sem ter guardado o arquivo: a mesma ordem com
+     a mesma emissão dá o mesmo PDF, byte a byte — mesmo desenhado em outro momento. */
+  it('draws the very same file again for the same order and the same issue', async () => {
+    const order = { ticket, protocol: 'CH-0007', histories: [history({ minutesSpent: 30 })] };
+
+    const first = await buildServiceOrderPdf(order, issue);
+    const second = await buildServiceOrderPdf(order, { ...issue, issuedAt: new Date(issue.issuedAt) });
+
+    expect(fingerprint(second)).toBe(fingerprint(first));
+  });
+
+  /* O link de conferência vai dentro do arquivo, com o código INTEIRO da emissão. */
+  it('carries the link to the page that checks it', async () => {
+    const buffer = await buildServiceOrderPdf({ ticket, protocol: 'CH-0007', histories: [] }, issue);
+
+    expect(buffer.toString('latin1')).toContain(`http://localhost:5005/verify/${issue.code}`);
+  });
+
   // triste
   it('still builds the document for a ticket with no history and no solution', async () => {
-    const buffer = await buildServiceOrderPdf({
-      ticket: { ...ticket, solution: null, computerName: null, assignee: null },
-      protocol: 'CH-0007',
-      histories: [],
-    });
+    const buffer = await buildServiceOrderPdf(
+      {
+        ticket: { ...ticket, solution: null, computerName: null, assignee: null },
+        protocol: 'CH-0007',
+        histories: [],
+      },
+      issue,
+    );
 
     expect(buffer.subarray(0, 4).toString()).toBe('%PDF');
+  });
+
+  /* Qualquer diferença no chamado tem de dar OUTRO arquivo — senão a conferência não confere. */
+  it('draws a different file when anything in the ticket changed', async () => {
+    const order = { ticket, protocol: 'CH-0007', histories: [history()] };
+
+    const before = await buildServiceOrderPdf(order, issue);
+    const after = await buildServiceOrderPdf(
+      { ...order, histories: [history({ description: 'Liguei para o fornecedor!' })] },
+      issue,
+    );
+
+    expect(fingerprint(after)).not.toBe(fingerprint(before));
   });
 });

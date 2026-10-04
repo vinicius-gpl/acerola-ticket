@@ -1,8 +1,11 @@
+import { createHash } from 'node:crypto';
+
 import { type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { internalRoles } from '../src/lib/db/schema/internal-roles.schema';
+import { ticketServiceOrders } from '../src/lib/db/schema/ticket-service-orders.schema';
 import { BIA, CAIO, asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
 
 /**
@@ -63,7 +66,13 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
      (anexo, consulta pública, identidade), não a régua fina de cargo — essa já tem suíte
      própria em `tickets.service.test.ts`. */
   beforeEach(async () => {
-    await started.truncate('tickets', 'ticket_attachments', 'ticket_histories', 'internal_roles');
+    await started.truncate(
+      'tickets',
+      'ticket_attachments',
+      'ticket_histories',
+      'ticket_service_orders',
+      'internal_roles',
+    );
     started.storage.files.clear();
 
     await started.db.insert(internalRoles).values([
@@ -170,16 +179,65 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     });
   });
 
-  it('builds the service order of a ticket as a PDF', async () => {
+  /* A emissão registra a impressão digital do arquivo, e a conferência — pública — devolve a
+     MESMA: é o que deixa qualquer pessoa conferir o PDF que tem em mãos. */
+  it('issues the service order as a PDF that anyone can check afterwards', async () => {
     const created = await openTicket().expect(201);
 
     const report = await request(app.getHttpServer())
-      .get(`/api/tickets/${created.body.id}/service-order`)
+      .post(`/api/tickets/${created.body.id}/service-order`)
       .set(asCaio())
-      .expect(200);
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(201);
 
     expect(report.headers['content-type']).toContain('application/pdf');
     expect(report.headers['content-disposition']).toContain('ordem-de-servico-CH-0001.pdf');
+
+    const fileHash = createHash('sha256').update(report.body as Buffer).digest('hex');
+    const [issued] = await started.db.select().from(ticketServiceOrders);
+
+    expect(issued).toMatchObject({ version: 1, fileHash, issuedBy: CAIO.email });
+
+    const checked = await request(app.getHttpServer())
+      .get(`/api/service-orders/${issued!.code.slice(0, 12)}`)
+      .expect(200);
+
+    expect(checked.body).toMatchObject({ protocol: 'CH-0001', version: 1, fileHash, isLatest: true });
+    expect(checked.body).not.toHaveProperty('issuedBy');
+  });
+
+  it('gives the same document again until the ticket changes, then a new version', async () => {
+    const created = await openTicket().expect(201);
+    const issue = () =>
+      request(app.getHttpServer())
+        .post(`/api/tickets/${created.body.id}/service-order`)
+        .set(asCaio())
+        .expect(201);
+
+    await issue();
+    await issue();
+    expect(await started.db.select().from(ticketServiceOrders)).toHaveLength(1);
+
+    await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/histories`)
+      .set(asCaio())
+      .send({ type: 'note', description: 'Liguei para o fornecedor.' })
+      .expect(201);
+
+    await issue();
+    const issued = await started.db.select().from(ticketServiceOrders);
+
+    expect(issued.map((row) => row.version).sort()).toEqual([1, 2]);
+  });
+
+  it('does not find a service order that was never issued', async () => {
+    await request(app.getHttpServer()).get(`/api/service-orders/${'0'.repeat(64)}`).expect(404);
+    await request(app.getHttpServer()).get('/api/service-orders/abc').expect(404);
   });
 
   it('lets the IT side correct the ticket data and attach its own files', async () => {
@@ -509,7 +567,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       .send({ priority: 'high' })
       .expect(401);
     await request(app.getHttpServer()).get('/api/tickets/1/histories').expect(401);
-    await request(app.getHttpServer()).get('/api/tickets/1/service-order').expect(401);
+    await request(app.getHttpServer()).post('/api/tickets/1/service-order').expect(401);
     await request(app.getHttpServer())
       .post('/api/tickets/1/histories')
       .send({ type: 'resolution', description: 'Fechei sem me identificar.' })

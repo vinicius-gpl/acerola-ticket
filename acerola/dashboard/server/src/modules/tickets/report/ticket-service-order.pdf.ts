@@ -13,8 +13,13 @@ import {
   ticketStatusLabel,
   ticketStatusTone,
 } from '@template/shared/domain/ticket-status.util';
+import {
+  serviceOrderVerifyPath,
+  shortServiceOrderCode,
+} from '@template/shared/domain/service-order.util';
 import { type TicketHistory } from '@template/shared/schemas/ticket-history.schema';
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
 import {
   pdfColor,
@@ -34,7 +39,32 @@ export type ServiceOrder = {
   histories: readonly TicketHistory[];
 };
 
+/**
+ * A EMISSÃO deste documento: o que o torna conferível.
+ *
+ * Tudo o que varia de um arquivo para outro entra por aqui — a data, quem emitiu, o código. O
+ * desenho não lê o relógio nem sorteia nada: com a MESMA ordem e a MESMA emissão, o arquivo sai
+ * byte a byte igual, e é isso que deixa o sistema conferir um PDF sem ter guardado o PDF.
+ */
+export type ServiceOrderIssue = {
+  version: number;
+  /** O código inteiro da emissão — vai no link. O papel mostra só o começo dele. */
+  code: string;
+  issuedAt: Date;
+  issuedByName: string;
+  /** O endereço da tela (sem barra no fim), para montar o link de conferência. */
+  webOrigin: string;
+};
+
 const PAGE_MARGIN = 44;
+/** A margem de baixo é maior que as outras: é onde mora o rodapé de conferência. */
+const FOOTER_MARGIN = 84;
+const FOOTER_TOP_GAP = 14;
+const QR_SIZE = 52;
+const QR_GAP = 10;
+/** A largura reservada, à direita, para o "Página X de Y". */
+const PAGE_NUMBER_WIDTH = 80;
+const FOOTER_LINE_HEIGHT = 11;
 const TITLE_SIZE = 18;
 const SECTION_SIZE = 11;
 const BODY_SIZE = 9.5;
@@ -55,31 +85,127 @@ const EMPTY = '—';
  * O texto corre em fluxo (sem posição fixa) de propósito: é o pdfkit que vira a página quando
  * um histórico comprido não cabe, e nenhum chamado some do arquivo por ter história demais.
  */
-export async function buildServiceOrderPdf(order: ServiceOrder): Promise<Buffer> {
+export async function buildServiceOrderPdf(
+  order: ServiceOrder,
+  issue: ServiceOrderIssue,
+): Promise<Buffer> {
+  /* O QR code leva o código CURTO: com o inteiro ele ficaria miúdo demais para a câmera ler
+     num rodapé. É só para o papel impresso — na tela, o link (com o código inteiro) resolve. */
+  const qrCode = await QRCode.toBuffer(verifyUrl(issue, shortServiceOrderCode(issue.code)), {
+    margin: 0,
+    scale: 4,
+    errorCorrectionLevel: 'M',
+  });
+
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: PAGE_MARGIN, bufferPages: true });
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: PAGE_MARGIN, left: PAGE_MARGIN, right: PAGE_MARGIN, bottom: FOOTER_MARGIN },
+      bufferPages: true,
+      /* A data de criação do ARQUIVO é a da emissão, e não a de agora: o pdfkit a escreve
+         dentro do arquivo, e com a hora de agora cada geração sairia diferente da anterior. */
+      info: { Title: `Ordem de serviço ${order.protocol}`, CreationDate: issue.issuedAt },
+    });
     const chunks: Buffer[] = [];
 
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    writeHeader(doc, order);
+    writeHeader(doc, order, issue);
     writeFields(doc, fieldsOf(order));
     writeBlock(doc, 'Descrição do problema', order.ticket.description);
     if (order.ticket.solution) writeBlock(doc, 'O que foi feito', order.ticket.solution);
     writeTimeline(doc, order.histories);
 
+    writeVerificationFooter(doc, order, issue, qrCode);
     writePageNumbers(doc);
     doc.end();
   });
+}
+
+function verifyUrl(issue: ServiceOrderIssue, reference: string): string {
+  return `${issue.webOrigin}${serviceOrderVerifyPath(reference)}`;
+}
+
+/**
+ * O RODAPÉ DE CONFERÊNCIA, em TODAS as páginas: uma folha solta também precisa dizer de onde
+ * veio e como conferir.
+ *
+ * O que vai impresso é o CÓDIGO da emissão, e não a impressão digital do arquivo: escrever a
+ * impressão digital dentro do arquivo mudaria o próprio arquivo — e, com ele, ela.
+ *
+ * Zerar a margem de baixo antes de escrever é o mesmo cuidado do `writePageNumbers`: sem isso
+ * o pdfkit decide que o texto não cabe e abre uma página em branco só para o rodapé.
+ */
+function writeVerificationFooter(
+  doc: PdfDoc,
+  order: ServiceOrder,
+  issue: ServiceOrderIssue,
+  qrCode: Buffer,
+): void {
+  const range = doc.bufferedPageRange();
+  const shortCode = shortServiceOrderCode(issue.code);
+  const lines = [
+    `Emitida em ${formatReportDate(issue.issuedAt)} por ${issue.issuedByName}`,
+    `Código de verificação: ${shortCode}`,
+  ];
+
+  for (let page = range.start; page < range.start + range.count; page += 1) {
+    doc.switchToPage(page);
+
+    const left = doc.page.margins.left;
+    const top = doc.page.height - FOOTER_MARGIN + FOOTER_TOP_GAP;
+    const textLeft = left + QR_SIZE + QR_GAP;
+    const textWidth = usableWidth(doc) - QR_SIZE - QR_GAP - PAGE_NUMBER_WIDTH;
+    const originalBottomMargin = doc.page.margins.bottom;
+
+    doc.page.margins.bottom = 0;
+
+    doc
+      .moveTo(left, top - 6)
+      .lineTo(left + usableWidth(doc), top - 6)
+      .lineWidth(0.6)
+      .strokeColor(pdfColor(REPORT_PALETTE.border))
+      .stroke();
+
+    doc.image(qrCode, left, top, { width: QR_SIZE, height: QR_SIZE });
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(SMALL_SIZE)
+      .fillColor(pdfColor(REPORT_PALETTE.foreground))
+      .text(`Ordem de serviço ${order.protocol} · versão ${issue.version}`, textLeft, top, {
+        width: textWidth,
+        lineBreak: false,
+      });
+
+    doc.font('Helvetica').fillColor(pdfColor(REPORT_PALETTE.subtext));
+    lines.forEach((line, index) => {
+      doc.text(line, textLeft, top + (index + 1) * FOOTER_LINE_HEIGHT, {
+        width: textWidth,
+        lineBreak: false,
+      });
+    });
+
+    /* O texto mostra o endereço curto; o clique leva ao código inteiro. */
+    doc
+      .fillColor(pdfColor(REPORT_PALETTE.primary))
+      .text(`Confira em ${verifyUrl(issue, shortCode)}`, textLeft, top + 3 * FOOTER_LINE_HEIGHT, {
+        width: textWidth,
+        lineBreak: false,
+        link: verifyUrl(issue, issue.code),
+      });
+
+    doc.page.margins.bottom = originalBottomMargin;
+  }
 }
 
 function usableWidth(doc: PdfDoc): number {
   return doc.page.width - doc.page.margins.left - doc.page.margins.right;
 }
 
-function writeHeader(doc: PdfDoc, order: ServiceOrder): void {
+function writeHeader(doc: PdfDoc, order: ServiceOrder, issue: ServiceOrderIssue): void {
   const top = doc.y;
 
   doc
@@ -92,7 +218,7 @@ function writeHeader(doc: PdfDoc, order: ServiceOrder): void {
     .font('Helvetica-Oblique')
     .fontSize(SMALL_SIZE)
     .fillColor(pdfColor(REPORT_PALETTE.subtext))
-    .text(`Gerada em ${formatReportDate(new Date())}`);
+    .text(`Versão ${issue.version} · emitida em ${formatReportDate(issue.issuedAt)}`);
 
   /* O estágio atual no canto, como selo: é a primeira coisa que quem pega o papel quer saber. */
   const after = doc.y;

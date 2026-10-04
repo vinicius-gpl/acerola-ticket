@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 
 import { TicketAttachmentsController } from './controller/ticket-attachments.controller';
 import { TicketHistoriesController } from './controller/ticket-histories.controller';
+import { TicketServiceOrdersController } from './controller/ticket-service-orders.controller';
 import { TicketsController } from './controller/tickets.controller';
+import { TicketServiceOrdersRepository } from './repository/ticket-service-orders.repository';
+import { TicketServiceOrdersService } from './service/ticket-service-orders.service';
 import { TicketAttachmentsRepository } from './repository/ticket-attachments.repository';
 import { TicketHistoriesRepository } from './repository/ticket-histories.repository';
 import { TicketsRepository } from './repository/tickets.repository';
@@ -16,8 +19,15 @@ import { TicketsService } from './service/tickets.service';
  * Módulo novo precisa ser registrado em `app.module.ts`.
  */
 @Module({
-  controllers: [TicketsController, TicketAttachmentsController, TicketHistoriesController],
+  controllers: [
+    TicketServiceOrdersController,
+    TicketsController,
+    TicketAttachmentsController,
+    TicketHistoriesController,
+  ],
   providers: [
+    TicketServiceOrdersService,
+    TicketServiceOrdersRepository,
     TicketsService,
     TicketsRepository,
     TicketAttachmentsService,

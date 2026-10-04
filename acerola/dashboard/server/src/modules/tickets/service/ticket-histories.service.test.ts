@@ -303,23 +303,3 @@ describe('TicketHistoriesService.listPublic', () => {
     expect(history).not.toHaveProperty('minutesSpent');
   });
 });
-
-describe('TicketHistoriesService.serviceOrder', () => {
-  // feliz
-  it('builds the service order as a PDF named after the protocol', async () => {
-    const { service } = setup({ listByTicket: vi.fn().mockResolvedValue([historyRow()]) });
-
-    const report = await service.serviceOrder(ana, 7);
-
-    expect(report.fileName).toBe('ordem-de-servico-CH-0007.pdf');
-    expect(report.contentType).toBe('application/pdf');
-    expect(report.buffer.subarray(0, 4).toString()).toBe('%PDF');
-  });
-
-  // triste
-  it('refuses the service order of a ticket the person cannot see', async () => {
-    const { service } = setup({ roles: {} });
-
-    await expect(service.serviceOrder(ana, 7)).rejects.toThrow(ForbiddenException);
-  });
-});

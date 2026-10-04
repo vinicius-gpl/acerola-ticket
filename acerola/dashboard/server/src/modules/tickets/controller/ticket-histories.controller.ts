@@ -5,8 +5,6 @@ import {
   Param,
   ParseIntPipe,
   Post,
-  Res,
-  StreamableFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -20,11 +18,9 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiProduces,
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
@@ -86,28 +82,5 @@ export class TicketHistoriesController {
     @UploadedFiles() attachments?: UploadedAttachment[],
   ): Promise<TicketHistoryDto> {
     return this.service.create(user, id, body, attachments ?? []);
-  }
-
-  @Get('service-order')
-  @ApiOperation({
-    summary: 'Baixa a ordem de serviço do chamado',
-    description: 'Um PDF com os dados do chamado e a linha do tempo inteira.',
-  })
-  @ApiProduces('application/pdf')
-  @ApiOkResponse({ description: 'O PDF da ordem de serviço, pronto para baixar.' })
-  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
-  async serviceOrder(
-    @CurrentUser() user: RequestUser,
-    @Param('id', ParseIntPipe) id: number,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile> {
-    const report = await this.service.serviceOrder(user, id);
-
-    res.set({
-      'Content-Type': report.contentType,
-      'Content-Disposition': `attachment; filename="${report.fileName}"`,
-    });
-
-    return new StreamableFile(report.buffer);
   }
 }
