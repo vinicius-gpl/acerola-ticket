@@ -199,7 +199,7 @@ aplicado **no `acerola-*`**, nunca no `ui/` (o CLI sobrescreve) e nunca na rota.
 | `acerola-select-field` | `ui/select` — no `SelectTrigger` |
 | `acerola-input-group` | `ui/input-group` |
 | `acerola-date-picker` | `ui/button` + `ui/calendar` + `ui/popover` |
-| `acerola-option-picker` | `ui/toggle-group` |
+| `acerola-option-picker` | `ui/popover` — os 40px são do trilho inteiro (pastilhas) ou do gatilho (combo) |
 | `acerola-submit-button` / `acerola-button` com `size` de formulário | `ui/button` |
 
 `acerola-text-area-field` não tem altura fixa (é multilinha): usa `min-h-*`.
@@ -294,7 +294,6 @@ tokens do agent, o `ui/table` e o `ui/date-picker` editados à mão (hoje `acero
 | `acerola-role-list-view` (usado por `profile` e `roles`) | 2 rotas, mas de domínio | decidir: genérico sem domínio ou feature `roles` exportando para `profile` (proibido) → extrair parte genérica |
 | `ui/input` h-8, `ui/select` h-8/h-9, `ui/button` h-7–9 | campo sem `h-10` | `h-10` nos `acerola-*` (§6) |
 | `server/.../tickets.service.test.ts` `const manutencao`, `server/test/computers.e2e.ts` `const descarte` | identificador em pt | inglês |
-| `acerola-option-picker` fora de `fullWidth` usa `control-sm` | pastilha de filtro abaixo de 40px | `control-lg` |
 | `acerola-dialog`, `acerola-sheet`, `acerola-popover`, `acerola-skeleton` | são só a porta de entrada do `ui/<x>` para a feature (um `.ts` que reexporta), sem variante nem story | virar componente de verdade quando o projeto precisar de variante própria |
 | 12 listas com par cartão/tabela à mão | duplicação | `acerola-data-view` (skill `ui-standards` §6.4) |
 | Storybook do dashboard | `storybook build` e `dev` recusam subir: o framework é `svelte-vite` e o projeto é SvelteKit | apontar o builder para um `vite.config` sem o plugin do SvelteKit (com os apelidos `$lib`/`$app` do `vitest.config.ts`) ou trocar para `@storybook/sveltekit` |
