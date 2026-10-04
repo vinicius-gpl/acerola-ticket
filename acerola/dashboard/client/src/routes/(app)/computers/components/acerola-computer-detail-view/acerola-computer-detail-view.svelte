@@ -462,7 +462,7 @@
   {/if}
 
   {#if computer.isBlocked && computer.blockReason}
-    <p class="text-ink-700 rounded-box border border-red-300 bg-red-50 px-3 py-2 text-sm">
+    <p class="text-ink-700 rounded-box border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
       <span class="font-semibold">Motivo do bloqueio:</span>
       {computer.blockReason}
     </p>
@@ -575,13 +575,13 @@
         data-slot="alert-cards-mobile"
       >
         {#each data.alerts as alert (alert.id)}
-          <div class="border-border/70 bg-card rounded-lg border p-3 shadow-xs">
+          <div class="border-border/70 bg-card rounded-surface border p-3 shadow-xs">
             <div class="flex items-start justify-between gap-2">
-              <span class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">
+              <span class="font-medium text-ink-900 text-sm">
                 {metricLabel(alert.metric)}
               </span>
               {#if alert.recoveredAt}
-                <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+                <span class="text-ink-700 text-xs">{alertDurationLabel(alert)}</span>
               {:else}
                 <StatusBadge
                   data={{ label: 'Acontecendo agora' }}
@@ -592,21 +592,21 @@
 
             <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span class="text-muted-foreground block text-[11px]">Pico</span>
-                <span class="tabular-nums font-medium text-neutral-700 dark:text-neutral-200">
+                <span class="text-muted-foreground block text-xs">Pico</span>
+                <span class="tabular-nums font-medium text-ink-700">
                   {formatPercent(alert.peakValue)}
                 </span>
               </div>
               <div>
-                <span class="text-muted-foreground block text-[11px]">Começou</span>
-                <span class="text-neutral-500">{formatDateTime(alert.startedAt)}</span>
+                <span class="text-muted-foreground block text-xs">Começou</span>
+                <span class="text-ink-500">{formatDateTime(alert.startedAt)}</span>
               </div>
             </div>
 
             {#if alert.causeProcess}
               <div class="border-border/60 mt-2 border-t pt-1.5 text-xs">
-                <span class="text-muted-foreground text-[11px]">Causa provável: </span>
-                <span class="text-neutral-600 dark:text-neutral-300 font-mono text-[11px] break-words">{alert.causeProcess}</span>
+                <span class="text-muted-foreground text-xs">Causa provável: </span>
+                <span class="text-ink-700 font-mono text-xs break-words">{alert.causeProcess}</span>
               </div>
             {/if}
           </div>
@@ -631,16 +631,16 @@
           <TableBody>
             {#each data.alerts as alert (alert.id)}
               <TableRow>
-                <TableCell class="font-medium text-neutral-900 dark:text-neutral-100">{metricLabel(alert.metric)}</TableCell>
-                <TableCell class="tabular-nums text-neutral-700 dark:text-neutral-200">
+                <TableCell class="font-medium text-ink-900">{metricLabel(alert.metric)}</TableCell>
+                <TableCell class="tabular-nums text-ink-700">
                   {formatPercent(alert.peakValue)}
                 </TableCell>
-                <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+                <TableCell class="text-ink-500 whitespace-nowrap text-xs">
                   {formatDateTime(alert.startedAt)}
                 </TableCell>
                 <TableCell>
                   {#if alert.recoveredAt}
-                    <span class="text-neutral-700 dark:text-neutral-200 text-xs">{alertDurationLabel(alert)}</span>
+                    <span class="text-ink-700 text-xs">{alertDurationLabel(alert)}</span>
                   {:else}
                     <StatusBadge
                       data={{ label: 'Acontecendo agora' }}
@@ -648,7 +648,7 @@
                     />
                   {/if}
                 </TableCell>
-                <TableCell class="text-neutral-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+                <TableCell class="text-ink-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
               </TableRow>
             {/each}
           </TableBody>

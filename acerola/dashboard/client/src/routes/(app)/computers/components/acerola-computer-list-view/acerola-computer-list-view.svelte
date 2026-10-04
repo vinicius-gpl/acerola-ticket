@@ -216,7 +216,7 @@
       <label class="text-ink-700 flex items-center gap-2 text-sm">
         <input
           type="checkbox"
-          class="border-ink-300 size-4 rounded"
+          class="border-ink-300 size-4 rounded-chip"
           checked={data.filter.includeArchived}
           onchange={(event) => actions.onArchivedChange(event.currentTarget.checked)}
         />
@@ -270,20 +270,20 @@
       data-slot="computer-cards-mobile"
     >
       {#each data.computers as computer (computer.id)}
-        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
-              <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+              <span class="block font-medium text-ink-900 break-words leading-snug">
                 {displayNameOf(computer)}
               </span>
-              <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">{computer.name}</span>
+              <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5">{computer.name}</span>
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
               <StatusBadge
                 data={{ label: healthStatusLabel(computer.healthStatus) }}
                 ui={{ tone: healthStatusTone(computer.healthStatus), size: 'sm' }}
               />
-              <span class="text-xs text-neutral-400 tabular-nums">
+              <span class="text-xs text-ink-500 tabular-nums">
                 {computer.healthScore}/100
               </span>
             </div>
@@ -291,14 +291,14 @@
 
           <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span class="text-muted-foreground block text-[11px]">Responsável</span>
-              <span class="font-medium text-neutral-700 dark:text-neutral-200 break-words">{computer.responsibleName ?? '—'}</span>
-              <span class="block text-neutral-400 text-[11px]">
+              <span class="text-muted-foreground block text-xs">Responsável</span>
+              <span class="font-medium text-ink-700 break-words">{computer.responsibleName ?? '—'}</span>
+              <span class="block text-ink-500 text-xs">
                 {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
               </span>
             </div>
             <div>
-              <span class="text-muted-foreground block text-[11px]">Situação</span>
+              <span class="text-muted-foreground block text-xs">Situação</span>
               {#if computer.isArchived}
                 <StatusBadge data={{ label: 'Arquivada' }} ui={{ tone: 'neutral', size: 'sm' }} />
               {:else if computer.isBlocked}
@@ -308,14 +308,14 @@
               {:else}
                 <StatusBadge data={{ label: 'Offline' }} ui={{ tone: 'neutral', size: 'sm' }} />
               {/if}
-              <span class="block text-neutral-400 text-[11px] mt-1">
+              <span class="block text-ink-500 text-xs mt-1">
                 {formatTimeAgo(computer.lastSeenAt)}
               </span>
             </div>
           </div>
 
           <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
-            <span class="text-xs text-neutral-500">
+            <span class="text-xs text-ink-500">
               Chamados no mês: <strong class="text-foreground">{computer.ticketsThisMonth}</strong>
             </span>
             <ActionButton
@@ -353,14 +353,14 @@
           {#each data.computers as computer (computer.id)}
             <TableRow>
               <TableCell class="max-w-[280px]">
-                <span class="block font-medium text-neutral-900 dark:text-neutral-100 break-words leading-snug">
+                <span class="block font-medium text-ink-900 break-words leading-snug">
                   {displayNameOf(computer)}
                 </span>
-                <span class="block text-xs text-neutral-400 break-words leading-tight mt-0.5">{computer.name}</span>
+                <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5">{computer.name}</span>
               </TableCell>
               <TableCell class="max-w-[220px]">
-                <span class="block text-neutral-700 dark:text-neutral-200 break-words leading-snug">{computer.responsibleName ?? '—'}</span>
-                <span class="block text-xs text-neutral-400 mt-0.5">
+                <span class="block text-ink-700 break-words leading-snug">{computer.responsibleName ?? '—'}</span>
+                <span class="block text-xs text-ink-500 mt-0.5">
                   {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
                 </span>
               </TableCell>
@@ -369,7 +369,7 @@
                   data={{ label: healthStatusLabel(computer.healthStatus) }}
                   ui={{ tone: healthStatusTone(computer.healthStatus), size: 'sm' }}
                 />
-                <span class="block text-xs text-neutral-400 tabular-nums">
+                <span class="block text-xs text-ink-500 tabular-nums">
                   {computer.healthScore}/100
                 </span>
               </TableCell>
@@ -378,8 +378,8 @@
               <TableCell class="tabular-nums">
                 <span
                   class={computer.ticketsThisMonth > 0
-                    ? 'text-neutral-900 dark:text-neutral-100 font-medium'
-                    : 'text-neutral-400'}
+                    ? 'text-ink-900 font-medium'
+                    : 'text-ink-500'}
                 >
                   {computer.ticketsThisMonth}
                 </span>
@@ -397,7 +397,7 @@
                   <StatusBadge data={{ label: 'Offline' }} ui={{ tone: 'neutral', size: 'sm' }} />
                 {/if}
               </TableCell>
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              <TableCell class="text-ink-500 whitespace-nowrap text-xs">
                 {formatTimeAgo(computer.lastSeenAt)}
               </TableCell>
               <TableCell class="text-right whitespace-nowrap">
