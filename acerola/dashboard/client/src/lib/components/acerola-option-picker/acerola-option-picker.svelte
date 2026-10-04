@@ -22,11 +22,10 @@
       /** Prefixa uma opção "Todos os X", representando o valor ''. Só faz sentido em filtro. */
       allLabel?: string;
       placeholder?: string;
-      /** Veste o campo de formulário: o degrau `lg` da régua de medidas
-       * (`lib/theme/tokens.css`), a mesma altura do `TextField`, do `SelectField` e do
-       * `DatePicker`, e o combo esticando até a largura do campo ao lado. Numa barra de
-       * filtro isso não vale — lá o controle usa o degrau `sm`, o mesmo do botão que mora
-       * dentro de uma linha — por isso o padrão é `false`. */
+      /** Estica o combo até a largura do campo ao lado, como num formulário. A ALTURA não
+       * depende disto: pastilha ou combo, filtro ou formulário, o controle tem sempre os 40px
+       * de todo campo (`control-lg`), a mesma do `TextField`, do `SelectField` e do
+       * `DatePicker`. */
       fullWidth?: boolean;
     };
     state?: { isDisabled?: boolean };
@@ -96,7 +95,11 @@
     class={cn(
       /* No celular as opções QUEBRAM em mais de uma linha em vez de virarem uma tira que rola
          para o lado: escolher a situação ou o filtro não pode exigir arrastar a tela. */
-      'inline-flex flex-wrap items-center gap-1 rounded-control border border-border/70 bg-muted/50 p-1',
+      'inline-flex flex-wrap items-stretch gap-1 rounded-control border border-border/70 bg-muted/50 p-1',
+      /* A altura de campo é a do TRILHO inteiro (40px, com a borda e o respiro dele), não a
+         de cada pastilha: com a pastilha em 32px o trilho somava 42px e ficava mais alto que
+         o seletor ao lado. `min-h`, e não `h`: no celular as opções quebram em duas linhas. */
+      'min-h-(--control-lg)',
       ui?.className,
     )}
     role="group"
@@ -109,11 +112,9 @@
         disabled={fieldState?.isDisabled}
         onclick={() => select(option.value)}
         class={cn(
-          /* A RÉGUA DE MEDIDAS decide altura, respiro e raio (`lib/theme/tokens.css`):
-             `lg` quando a pastilha veste campo de formulário, `sm` na barra de filtro.
-             Pastilha, campo e botão precisam parecer a mesma família de controle. */
-          ui?.fullWidth ? 'control-lg' : 'control-sm',
-          'rounded-control inline-flex cursor-pointer items-center gap-1.5 border text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
+          /* A pastilha preenche a altura do trilho (que é quem tem os 40px de campo). O raio é
+             `box`, um degrau abaixo do `control` do trilho: filho menor que o pai. */
+          'rounded-box inline-flex cursor-pointer items-center gap-1.5 border px-3 py-1 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
           isSelected
             ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
             : 'border-transparent text-muted-foreground hover:bg-card/70 hover:text-foreground',
@@ -132,8 +133,10 @@
       disabled={fieldState?.isDisabled}
       aria-label={ui?.ariaLabel}
       class={cn(
-        ui?.fullWidth ? 'control-lg' : 'control-sm',
-        'rounded-control inline-flex w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+        /* Os mesmos 40px do trilho de pastilhas e de todo campo: os dois modos deste componente
+           moram lado a lado numa barra de filtro e têm de alinhar. */
+        'control-lg',
+        'rounded-control inline-flex w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
         ui?.fullWidth ? 'sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}

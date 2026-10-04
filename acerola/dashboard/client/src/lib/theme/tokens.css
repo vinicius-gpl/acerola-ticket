@@ -300,9 +300,9 @@
 
    | classe       | altura | onde                                                          |
    |--------------|--------|---------------------------------------------------------------|
-   | `control-sm` | 32px   | dentro de outra coisa: linha de tabela, pastilha e busca de filtro |
+   | `control-sm` | 32px   | dentro de outra coisa: linha de tabela, rodapé de cartão, paginação |
    | `control-md` | 36px   | a ação da tela: cabeçalho e rodapé de diálogo, botão de enviar |
-   | `control-lg` | 40px   | campo de formulário: texto, data, seletor, combobox            |
+   | `control-lg` | 40px   | campo de formulário E de filtro: texto, data, seletor, combobox, trilho de pastilhas |
 
    A regra que decide: **o que divide fileira tem que ter a mesma altura**. Um botão ao lado
    de um campo é `control-lg`; o mesmo botão sozinho num cabeçalho é `control-md`.
