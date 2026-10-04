@@ -121,6 +121,41 @@ describe('feature-component-in-lib', () => {
       `${DASHBOARD_LIB}/acerola-button só usado por routes/tickets`,
     ]);
   });
+
+  // feliz
+  it('ignores generic-by-design primitives with a single consumer, prefixed or not', () => {
+    const files = [
+      file(`${DASHBOARD_LIB}/radar-chart/radar-chart.svelte`),
+      file(`${DASHBOARD_LIB}/acerola-chart-legend/acerola-chart-legend.svelte`),
+      file(`${DASHBOARD_LIB}/acerola-dialog/acerola-dialog.ts`),
+      file(
+        `${DASHBOARD_ROUTES}/(app)/tickets/+page.svelte`,
+        `components/radar-chart/radar-chart components/acerola-chart-legend/acerola-chart-legend components/acerola-dialog/acerola-dialog`,
+      ),
+      file(`${AGENT_LIB}/acerola-separator/acerola-separator.svelte`),
+      file(
+        `${AGENT_ROUTES}/dashboard/dashboard.svelte`,
+        `components/acerola-separator/acerola-separator`,
+      ),
+    ];
+
+    assert.deepEqual(run('feature-component-in-lib', files), []);
+  });
+
+  // triste
+  it('still flags a domain component whose name only resembles a generic one', () => {
+    const files = [
+      file(`${DASHBOARD_LIB}/acerola-usage-chart/acerola-usage-chart.svelte`),
+      file(
+        `${DASHBOARD_ROUTES}/(app)/computers/+page.svelte`,
+        `components/acerola-usage-chart/acerola-usage-chart`,
+      ),
+    ];
+
+    assert.deepEqual(run('feature-component-in-lib', files), [
+      `${DASHBOARD_LIB}/acerola-usage-chart só usado por routes/computers`,
+    ]);
+  });
 });
 
 describe('hook-location', () => {

@@ -3,8 +3,8 @@
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
-	import AcerolaProcessTable from '$lib/components/acerola-process-table/acerola-process-table.svelte';
-	import AcerolaProcessDrawer from '$lib/components/acerola-process-drawer/acerola-process-drawer.svelte';
+	import AcerolaProcessTable from './components/acerola-process-table/acerola-process-table.svelte';
+	import AcerolaProcessDrawer from './components/acerola-process-drawer/acerola-process-drawer.svelte';
 	import AcerolaPopover from '$lib/components/acerola-popover/acerola-popover.svelte';
 	import AcerolaSegmentedBar from '$lib/components/acerola-segmented-bar/acerola-segmented-bar.svelte';
 	import AcerolaSeparator from '$lib/components/acerola-separator/acerola-separator.svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import DashboardView from '$lib/components/dashboard-view/dashboard-view.svelte';
+  import DashboardView from './components/acerola-dashboard-view/acerola-dashboard-view.svelte';
   import { useDashboardModel } from '$lib/hooks/use-dashboard/use-dashboard.svelte';
 
   /**

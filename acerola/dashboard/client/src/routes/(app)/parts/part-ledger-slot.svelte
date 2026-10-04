@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-  import PartLedgerDialog from '$lib/components/part-ledger-dialog/part-ledger-dialog.svelte';
+  import PartLedgerDialog from './components/acerola-part-ledger-dialog/acerola-part-ledger-dialog.svelte';
   import { usePartLedgerModel } from '$lib/hooks/use-part-ledger/use-part-ledger.svelte';
 
   let { part, onClose }: PartLedgerSlotProps = $props();

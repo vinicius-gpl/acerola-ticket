@@ -1,6 +1,6 @@
 <script lang="ts">
-  import ComputerListView from '$lib/components/computer-list-view/computer-list-view.svelte';
-  import ComputerTokenDialog from '$lib/components/computer-token-dialog/computer-token-dialog.svelte';
+  import ComputerListView from './components/acerola-computer-list-view/acerola-computer-list-view.svelte';
+  import ComputerTokenDialog from './components/acerola-computer-token-dialog/acerola-computer-token-dialog.svelte';
   import { type CreatedAgentToken } from '$lib/hooks/use-computer-form/use-computer-form.svelte';
   import { useComputerListModel } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
   import ComputerFormSlot from './computer-form-slot.svelte';

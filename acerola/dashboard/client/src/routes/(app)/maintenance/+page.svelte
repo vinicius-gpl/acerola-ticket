@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
 
-  import MaintenanceListView from '$lib/components/maintenance-list-view/maintenance-list-view.svelte';
+  import MaintenanceListView from './components/acerola-maintenance-list-view/acerola-maintenance-list-view.svelte';
   import { useMaintenanceListModel } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';
   import MaintenanceFormSlot from './maintenance-form-slot.svelte';
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import DisposalListView from '$lib/components/disposal-list-view/disposal-list-view.svelte';
+  import DisposalListView from './components/acerola-disposal-list-view/acerola-disposal-list-view.svelte';
   import { useDisposalListModel } from '$lib/hooks/use-disposal-list/use-disposal-list.svelte';
 
   /**

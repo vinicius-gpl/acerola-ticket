@@ -15,7 +15,7 @@
 </script>
 
 <script lang="ts">
-  import TransferDialog from '$lib/components/transfer-dialog/transfer-dialog.svelte';
+  import TransferDialog from '../components/acerola-transfer-dialog/acerola-transfer-dialog.svelte';
   import { useTransferFormModel } from '$lib/hooks/use-transfer-form/use-transfer-form.svelte';
 
   let { computer, onClose }: TransferFormSlotProps = $props();

@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-  import RoleFormDialog from '$lib/components/role-form-dialog/role-form-dialog.svelte';
+  import RoleFormDialog from './components/acerola-role-form-dialog/acerola-role-form-dialog.svelte';
   import { useRoleFormModel } from '$lib/hooks/use-role-form/use-role-form.svelte';
 
   let { role, onClose }: RoleFormSlotProps = $props();
