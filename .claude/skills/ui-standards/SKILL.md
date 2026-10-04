@@ -224,7 +224,8 @@ O par `data-slot` é obrigatório: é por ele que teste e story encontram cada f
 - Lista de cartões: a utilidade `card-grid` (`tokens.css`) — de 1 a 4 cartões por linha,
   conforme o ESPAÇO QUE A LISTA TEM (celular 1, tablet 2–3, monitor 3–4; dentro de um diálogo,
   menos). Nunca `flex flex-col` (vira um cartão gigante por linha no monitor) nem
-  `grid-cols-N` fixo.
+  `grid-cols-N` fixo. A grade já empurra o ÚLTIMO bloco de cada cartão (o rodapé) para o
+  fundo, para os rodapés de uma fileira alinharem: o rodapé tem de ser o último filho do cartão.
 
 ### 6.3 Anatomia da tabela
 
