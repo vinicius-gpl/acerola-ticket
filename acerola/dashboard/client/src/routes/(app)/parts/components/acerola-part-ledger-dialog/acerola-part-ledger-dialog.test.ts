@@ -7,7 +7,7 @@ import PartLedgerDialog, {
   currentBalanceOf,
   destinationOf,
   signedQuantity,
-} from './part-ledger-dialog.svelte';
+} from './acerola-part-ledger-dialog.svelte';
 
 function part(over: Partial<Part> = {}): Part {
   return {
@@ -96,7 +96,7 @@ describe('currentBalanceOf', () => {
   });
 });
 
-describe('PartLedgerDialog', () => {
+describe('AcerolaPartLedgerDialog', () => {
   // feliz
   it('shows the balance after each line, like a bank statement', () => {
     render(PartLedgerDialog, {

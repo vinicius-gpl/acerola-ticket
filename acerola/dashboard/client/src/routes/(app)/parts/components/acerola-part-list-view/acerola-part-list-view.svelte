@@ -31,7 +31,7 @@
    * comprar. Ela aparece com o saldo em vermelho, e o filtro "só com estoque" é quem a
    * esconde — quando a pergunta for outra.
    */
-  export type PartListViewProps = {
+  export type AcerolaPartListViewProps = {
     data: {
       parts: Part[];
       total: number;
@@ -95,12 +95,12 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
 
-  let { data, state: viewState, actions }: PartListViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaPartListViewProps = $props();
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();

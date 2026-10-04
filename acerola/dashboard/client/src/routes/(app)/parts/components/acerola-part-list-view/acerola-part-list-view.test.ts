@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import PartListView, { type PartListFilter, type PartSummary } from './part-list-view.svelte';
+import PartListView, { type PartListFilter, type PartSummary } from './acerola-part-list-view.svelte';
 
 function part(over: Partial<Part> = {}): Part {
   return {
@@ -73,7 +73,7 @@ function renderView(
   });
 }
 
-describe('PartListView', () => {
+describe('AcerolaPartListView', () => {
   // feliz
   it('shows the part with its condition and what is on the shelf', () => {
     renderView();

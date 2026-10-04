@@ -2,7 +2,7 @@
   import { type MovementType } from '@template/shared/domain/part-catalog.util';
   import { type Part } from '@template/shared/schemas/part.schema';
 
-  import PartListView from '$lib/components/part-list-view/part-list-view.svelte';
+  import PartListView from './components/acerola-part-list-view/acerola-part-list-view.svelte';
   import { usePartListModel } from '$lib/hooks/use-part-list/use-part-list.svelte';
   import MovementFormSlot from './movement-form-slot.svelte';
   import PartFormSlot from './part-form-slot.svelte';

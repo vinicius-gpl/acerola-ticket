@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type Part } from '@template/shared/schemas/part.schema';
 
-  import PartListView, { type PartListFilter, type PartSummary } from './part-list-view.svelte';
+  import PartListView, { type PartListFilter, type PartSummary } from './acerola-part-list-view.svelte';
 
   function part(over: Partial<Part> = {}): Part {
     return {
@@ -72,7 +72,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/PartListView',
+    title: 'Features/Parts/AcerolaPartListView',
     component: PartListView,
   });
 </script>

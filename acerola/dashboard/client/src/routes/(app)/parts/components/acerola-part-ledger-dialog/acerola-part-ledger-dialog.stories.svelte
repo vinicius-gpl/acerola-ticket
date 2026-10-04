@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type Part, type PartMovement } from '@template/shared/schemas/part.schema';
 
-  import PartLedgerDialog from './part-ledger-dialog.svelte';
+  import PartLedgerDialog from './acerola-part-ledger-dialog.svelte';
 
   const DAY = 24 * 60 * 60 * 1000;
   const daysAgo = (days: number) => new Date(Date.now() - days * DAY).toISOString();
@@ -81,7 +81,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/PartLedgerDialog',
+    title: 'Features/Parts/AcerolaPartLedgerDialog',
     component: PartLedgerDialog,
   });
 </script>

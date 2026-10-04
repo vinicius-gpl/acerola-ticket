@@ -16,7 +16,7 @@
    *
    * Função pura de props: não busca nada e não apaga nada — avisa quem pediu.
    */
-  export type PartLedgerDialogProps = {
+  export type AcerolaPartLedgerDialogProps = {
     data: {
       part: Part;
       movements: PartMovement[];
@@ -78,7 +78,7 @@
     DialogFooter,
     DialogHeader,
     DialogTitle,
-  } from '$lib/components/ui/dialog';
+  } from '$lib/components/acerola-dialog/acerola-dialog';
   import ActionButton from '$lib/components/action-button/action-button.svelte';
   import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
   import ErrorState from '$lib/components/error-state/error-state.svelte';
@@ -92,12 +92,12 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
 
-  let { data, state: dialogState, actions }: PartLedgerDialogProps = $props();
+  let { data, state: dialogState, actions }: AcerolaPartLedgerDialogProps = $props();
 
   const balance = $derived(currentBalanceOf(data));
   const tableView = useTableViewModel();
