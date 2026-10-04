@@ -477,7 +477,16 @@ export const RULES = [
   {
     id: 'shadow-scale',
     description: 'Sombra só `shadow-xs` (repouso) e `shadow-xl` (flutuante).',
-    check: (files) => classViolations(files, 'shadow-scale', OFF_SCALE_SHADOW),
+    /* A única exceção da skill `ui-standards` §3.3: a gaveta de baixo do celular, que é o
+       `ResponsiveDialogContent`, usa `shadow-2xl`. */
+    check: (files) =>
+      classViolations(
+        files,
+        'shadow-scale',
+        OFF_SCALE_SHADOW,
+        (match, file) =>
+          match === 'shadow-2xl' && file.path.includes('/acerola-responsive-dialog-content/'),
+      ),
   },
   {
     id: 'data-view-pair',

@@ -238,6 +238,23 @@ describe('class rules', () => {
     assert.equal(run('shadow-scale', files).length, 1);
   });
 
+  // feliz
+  it('lets the mobile bottom drawer keep its shadow-2xl', () => {
+    const files = [
+      file(
+        `${DASHBOARD_LIB}/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte`,
+        `<div class="rounded-t-3xl shadow-2xl"></div>`,
+      ),
+    ];
+
+    assert.deepEqual(run('shadow-scale', files), []);
+  });
+
+  // triste
+  it('flags shadow-2xl anywhere else', () => {
+    assert.equal(run('shadow-scale', [component('shadow-2xl')]).length, 1);
+  });
+
   // triste
   it('flags the same violations in the agent app', () => {
     const files = [component('rounded-2xl text-neutral-400', AGENT_LIB)];
