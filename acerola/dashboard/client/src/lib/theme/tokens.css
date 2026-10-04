@@ -422,8 +422,19 @@
     pointer-events: none;
   }
 
-  &:hover::before {
-    transform: translate(-50%, -50%) scale(1);
+  /* Só onde existe mouse de verdade: no toque não há hover, e o "hover preso" depois de um
+     toque deixaria o item pintado até o próximo toque em outro lugar. */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover::before {
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  /* Modo LEVE (`data-effects='lite'` no <html>, decidido por `lib/hooks/use-effects`): a cor
+     aparece e some de uma vez, sem crescer. O mesmo para quem pediu menos movimento ao sistema
+     operacional. O resultado é igual; só a animação sai. */
+  :root[data-effects='lite'] &::before {
+    transition: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

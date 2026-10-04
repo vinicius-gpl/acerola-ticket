@@ -77,6 +77,7 @@
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/acerola-app-shell-nav-entry/acerola-app-shell-nav-entry.svelte';
   import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
+  import EffectsToggle from '$lib/components/acerola-effects-toggle/acerola-effects-toggle.svelte';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 
   /* `state` (o prop) precisa de outro nome aqui dentro: um binding local chamado `state` faz
@@ -138,6 +139,15 @@
       >
         <span class="text-xs font-medium group-data-[collapsible=icon]:hidden">Tema</span>
         <ThemeToggle />
+      </div>
+
+      <!-- Efeitos visuais completos ou leves: o sistema escolhe sozinho pela máquina, e aqui a
+           pessoa pode mandar. Mesma linha discreta do tema, pelo mesmo motivo. -->
+      <div
+        class="text-sidebar-foreground/70 flex items-center justify-between px-2 py-1 group-data-[collapsible=icon]:justify-center"
+      >
+        <span class="text-xs font-medium group-data-[collapsible=icon]:hidden">Efeitos</span>
+        <EffectsToggle />
       </div>
 
       <!-- A mesma folga do menu de cima: aqui são o cartão de quem entrou e o Sair. -->

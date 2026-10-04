@@ -7,6 +7,8 @@
  * passagem do mouse.
  */
 
+import { useEffectsModel } from '$lib/hooks/use-effects/use-effects.svelte';
+
 /** Os tons de situação do `StatusBadge`, aqui só para escolher a cor do preenchimento. */
 export type FillTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand';
 
@@ -24,19 +26,31 @@ export function fillColorOf(tone: FillTone | null | undefined): string {
   return FILL_COLORS[tone ?? 'neutral'] ?? FILL_COLORS.neutral;
 }
 
+/** Quanto dura o crescimento do círculo — o mesmo valor do `transition` em `tokens.css`. */
+const FILL_DURATION_MS = 450;
+
 export function fillFromPointer(node: HTMLElement) {
+  const effects = useEffectsModel();
+
   function place(event: PointerEvent) {
     const box = node.getBoundingClientRect();
     node.style.setProperty('--fill-x', `${event.clientX - box.left}px`);
     node.style.setProperty('--fill-y', `${event.clientY - box.top}px`);
   }
 
-  node.addEventListener('pointerenter', place);
+  /* A entrada é quando a animação começa: é a hora de medir se a máquina a entrega lisa. Se
+     não entregar, o nível de efeitos cai para o leve sozinho (`lib/hooks/use-effects`). */
+  function enter(event: PointerEvent) {
+    place(event);
+    effects.actions.onAnimationStart(FILL_DURATION_MS);
+  }
+
+  node.addEventListener('pointerenter', enter);
   node.addEventListener('pointerleave', place);
 
   return {
     destroy() {
-      node.removeEventListener('pointerenter', place);
+      node.removeEventListener('pointerenter', enter);
       node.removeEventListener('pointerleave', place);
     },
   };
