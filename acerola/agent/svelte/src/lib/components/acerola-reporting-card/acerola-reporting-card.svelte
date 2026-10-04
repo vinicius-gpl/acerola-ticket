@@ -74,7 +74,7 @@
 	const canSave = $derived(!isSaving && serverUrl.trim() !== '' && token.trim() !== '');
 
 	const fieldClass =
-		'bg-muted/40 border-border/60 text-foreground placeholder:text-muted-foreground/70 focus:border-ring focus:outline-hidden w-full rounded-xl border px-2.5 py-1.5 font-mono text-xs transition-colors';
+		'bg-muted/40 border-border/60 text-foreground placeholder:text-muted-foreground/70 focus:border-ring focus:outline-hidden w-full rounded-control border px-2.5 py-1.5 font-mono text-xs transition-colors';
 
 	function save() {
 		if (!canSave) return;
@@ -95,10 +95,10 @@
 	{/snippet}
 
 	<div class="flex flex-col gap-2.5">
-		<p class="text-muted-foreground text-[11px] leading-snug">{STATE_HINT[data.state]}</p>
+		<p class="text-muted-foreground text-xs leading-snug">{STATE_HINT[data.state]}</p>
 
 		<label class="flex flex-col gap-1">
-			<span class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+			<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
 				Endereço do painel
 			</span>
 			<input
@@ -112,7 +112,7 @@
 		</label>
 
 		<label class="flex flex-col gap-1">
-			<span class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+			<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
 				Chave desta máquina
 			</span>
 			<!-- `password`: a chave não fica à mostra para quem passa atrás de quem digita. -->
@@ -129,7 +129,7 @@
 		</label>
 
 		{#if cardState?.error}
-			<p class="text-destructive text-[11px] leading-snug">{cardState.error}</p>
+			<p class="text-destructive text-xs leading-snug">{cardState.error}</p>
 		{/if}
 
 		<AcerolaButton
@@ -139,7 +139,7 @@
 			{isSaving ? 'Salvando…' : 'Salvar'}
 		</AcerolaButton>
 
-		<p class="text-muted-foreground text-[10px] leading-snug">
+		<p class="text-muted-foreground text-xs leading-snug">
 			A chave é guardada cifrada nesta máquina, para este usuário do Windows. Copiar o arquivo para
 			outro computador não abre.
 		</p>
