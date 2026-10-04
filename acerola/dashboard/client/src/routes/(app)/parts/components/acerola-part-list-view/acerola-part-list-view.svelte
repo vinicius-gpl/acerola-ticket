@@ -17,6 +17,7 @@
     category: PartCategory | '';
     condition: PartCondition | '';
     inStockOnly: boolean;
+    outOfStockOnly: boolean;
   };
 
   export type PartSummary = { kinds: number; items: number; outOfStock: number };
@@ -52,6 +53,7 @@
       onCategoryChange: (category: PartCategory | '') => void;
       onConditionChange: (condition: PartCondition | '') => void;
       onInStockOnlyChange: (inStockOnly: boolean) => void;
+      onOutOfStockOnlyChange: (outOfStockOnly: boolean) => void;
       onClearFilters: () => void;
       onRetry: () => void;
       onRegister: () => void;
@@ -73,7 +75,17 @@
   }));
 
   /** "Estoque": a opção sem valor ("Todas") vem do `allLabel` do seletor. */
-  const IN_STOCK_OPTIONS = [{ value: 'yes', label: 'Só com estoque' }];
+  const STOCK_OPTIONS = [
+    { value: 'in', label: 'Com estoque', tone: 'success' as const },
+    { value: 'out', label: 'Sem estoque', tone: 'danger' as const },
+  ];
+
+  /** As duas chaves do filtro (`inStockOnly`/`outOfStockOnly`) como UMA escolha de três. */
+  function stockValueOf(filter: PartListFilter): string {
+    if (filter.inStockOnly) return 'in';
+
+    return filter.outOfStockOnly ? 'out' : '';
+  }
 </script>
 
 <script lang="ts">
@@ -113,7 +125,11 @@
 
   const hasActiveFilter = $derived(
     Boolean(
-      data.filter.search || data.filter.category || data.filter.condition || data.filter.inStockOnly,
+      data.filter.search ||
+        data.filter.category ||
+        data.filter.condition ||
+        data.filter.inStockOnly ||
+        data.filter.outOfStockOnly,
     ),
   );
 
@@ -121,8 +137,20 @@
      referência só é usada dentro do clique, então é uma variável comum. */
   let filtersElement: HTMLElement | null = null;
 
-  function toggleInStockOnly() {
-    actions.onInStockOnlyChange(!data.filter.inStockOnly);
+  /* O filtro de estoque, vindo das pastilhas ou de um cartão do topo. Escolher o que já está
+     valendo (clicar de novo no cartão) tira o filtro. */
+  function chooseStock(value: string) {
+    const next = value === stockValueOf(data.filter) ? '' : value;
+
+    if (next === 'in') return actions.onInStockOnlyChange(true);
+    if (next === 'out') return actions.onOutOfStockOnlyChange(true);
+
+    actions.onInStockOnlyChange(false);
+    actions.onOutOfStockOnlyChange(false);
+  }
+
+  function chooseStockFromCard(value: 'in' | 'out') {
+    chooseStock(value);
 
     const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     filtersElement?.scrollIntoView?.({
@@ -139,7 +167,6 @@
       description: 'As peças de reposição que a TI tem em mãos.',
     }}
   >
-    <TableViewToggle />
     <ActionButton
       data={{ label: 'Cadastrar peça' }}
       ui={{ icon: Plus }}
@@ -153,14 +180,14 @@
       ui={{ tone: 'brand' }}
       state={{ isLoading: viewState.isSummaryLoading }}
     />
-    <!-- ATALHO do filtro de estoque: clicar liga "só com estoque", clicar de novo desliga.
-         "Tipos de peça" não tem filtro correspondente, e "Sem estoque" também não: o filtro que
-         existe é o contrário dele (esconder o que está zerado). -->
+    <!-- Estes dois são ATALHOS do filtro de estoque: "Peças na prateleira" mostra só o que tem
+         saldo, "Sem estoque" só o que está zerado. Clicar de novo desliga. "Tipos de peça" é o
+         total do cadastro — não filtra nada. -->
     <StatCard
       data={{ label: 'Peças na prateleira', value: summary?.items ?? 0 }}
       ui={{ tone: 'success' }}
       state={{ isLoading: viewState.isSummaryLoading, isSelected: data.filter.inStockOnly }}
-      actions={{ onClick: toggleInStockOnly }}
+      actions={{ onClick: () => chooseStockFromCard('in') }}
     />
     <StatCard
       data={{
@@ -169,7 +196,8 @@
         hint: summary?.outOfStock ? 'são as que podem precisar de compra' : null,
       }}
       ui={{ tone: 'danger' }}
-      state={{ isLoading: viewState.isSummaryLoading }}
+      state={{ isLoading: viewState.isSummaryLoading, isSelected: data.filter.outOfStockOnly }}
+      actions={{ onClick: () => chooseStockFromCard('out') }}
     />
   </StatCardGrid>
 
@@ -207,23 +235,25 @@
       </FilterField>
       <FilterField data={{ label: 'Estoque' }}>
         <OptionPicker
-          data={{ value: data.filter.inStockOnly ? 'yes' : '', options: IN_STOCK_OPTIONS }}
+          data={{ value: stockValueOf(data.filter), options: STOCK_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por estoque', allLabel: 'Todas' }}
-          actions={{ onChange: (value: string) => actions.onInStockOnlyChange(value === 'yes') }}
+          actions={{ onChange: chooseStock }}
         />
       </FilterField>
 
-      <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
-           limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. -->
-      {#if hasActiveFilter && !viewState.isFilteredOut}
-        <div class="ml-auto">
+      <!-- À direita, o que age sobre a lista logo abaixo. "Limpar filtros" só aparece quando há
+           o que limpar; quando o filtro escondeu tudo, quem o oferece é o aviso de lista vazia
+           — dois botões iguais só confundem. -->
+      <div class="ml-auto flex items-center gap-2">
+        {#if hasActiveFilter && !viewState.isFilteredOut}
           <ActionButton
             data={{ label: 'Limpar filtros' }}
             ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
             actions={{ onClick: actions.onClearFilters }}
           />
-        </div>
-      {/if}
+        {/if}
+        <TableViewToggle />
+      </div>
     </div>
   </div>
 

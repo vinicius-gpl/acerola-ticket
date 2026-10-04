@@ -48,6 +48,7 @@
     category: '',
     condition: '',
     inStockOnly: false,
+    outOfStockOnly: false,
   };
 
   const actions = {
@@ -55,6 +56,7 @@
     onCategoryChange: () => {},
     onConditionChange: () => {},
     onInStockOnlyChange: () => {},
+    onOutOfStockOnlyChange: () => {},
     onClearFilters: () => {},
     onRetry: () => {},
     onRegister: () => {},

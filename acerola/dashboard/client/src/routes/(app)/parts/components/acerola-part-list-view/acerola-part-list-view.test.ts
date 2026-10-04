@@ -27,6 +27,7 @@ const emptyFilter: PartListFilter = {
   category: '',
   condition: '',
   inStockOnly: false,
+  outOfStockOnly: false,
 };
 
 const actions = {
@@ -34,6 +35,7 @@ const actions = {
   onCategoryChange: vi.fn(),
   onConditionChange: vi.fn(),
   onInStockOnlyChange: vi.fn(),
+  onOutOfStockOnlyChange: vi.fn(),
   onClearFilters: vi.fn(),
   onRetry: vi.fn(),
   onRegister: vi.fn(),
@@ -95,7 +97,15 @@ describe('AcerolaPartListView — stat card shortcuts and filter bar', () => {
     expect(actions.onInStockOnlyChange).toHaveBeenLastCalledWith(true);
   });
 
-  it('marks the card while the filter is on, and clears it on a second click', async () => {
+  it('turns "out of stock" into a shortcut for the out-of-stock filter', async () => {
+    renderWithFilter();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sem estoque: filtrar a lista' }));
+
+    expect(actions.onOutOfStockOnlyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('marks the card while the filter is on, and clears both on a second click', async () => {
     renderWithFilter({ inStockOnly: true });
 
     const card = screen.getByRole('button', { name: 'Peças na prateleira: tirar o filtro' });
@@ -103,6 +113,7 @@ describe('AcerolaPartListView — stat card shortcuts and filter bar', () => {
 
     await userEvent.click(card);
     expect(actions.onInStockOnlyChange).toHaveBeenLastCalledWith(false);
+    expect(actions.onOutOfStockOnlyChange).toHaveBeenLastCalledWith(false);
   });
 
   it('offers the stock choice as a named filter, not a loose checkbox', async () => {
@@ -111,8 +122,11 @@ describe('AcerolaPartListView — stat card shortcuts and filter bar', () => {
     expect(screen.getByText('Estoque')).toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).toBeNull();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Só com estoque' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Com estoque' }));
     expect(actions.onInStockOnlyChange).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sem estoque' }));
+    expect(actions.onOutOfStockOnlyChange).toHaveBeenLastCalledWith(true);
   });
 
   // triste
@@ -125,11 +139,10 @@ describe('AcerolaPartListView — stat card shortcuts and filter bar', () => {
     expect(screen.getByRole('button', { name: 'Limpar filtros' })).toBeInTheDocument();
   });
 
-  it('does not turn the cards without a matching filter into shortcuts', () => {
+  it('does not turn the total card into a shortcut', () => {
     renderWithFilter();
 
     expect(screen.queryByRole('button', { name: /Tipos de peça/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Sem estoque/ })).toBeNull();
   });
 });
 
