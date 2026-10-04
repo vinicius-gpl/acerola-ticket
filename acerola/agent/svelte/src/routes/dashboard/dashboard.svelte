@@ -3,6 +3,10 @@
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 	import AcerolaMetricTile from '$lib/components/acerola-metric-tile/acerola-metric-tile.svelte';
+	import AcerolaAgentIdentity from './components/acerola-agent-identity/acerola-agent-identity.svelte';
+	import AcerolaDashboardTabs, {
+		type DashboardTab
+	} from './components/acerola-dashboard-tabs/acerola-dashboard-tabs.svelte';
 	import AcerolaProcessTable from './components/acerola-process-table/acerola-process-table.svelte';
 	import AcerolaProcessDrawer from './components/acerola-process-drawer/acerola-process-drawer.svelte';
 	import AcerolaPopover from '$lib/components/acerola-popover/acerola-popover.svelte';
@@ -17,8 +21,6 @@
 	import CpuIcon from '@lucide/svelte/icons/cpu';
 	import HardDriveIcon from '@lucide/svelte/icons/hard-drive';
 	import InfoIcon from '@lucide/svelte/icons/info';
-	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
-	import LayoutPanelLeftIcon from '@lucide/svelte/icons/layout-panel-left';
 	import NetworkIcon from '@lucide/svelte/icons/network';
 	import ServerIcon from '@lucide/svelte/icons/server';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
@@ -28,13 +30,17 @@
 	import { useMetrics } from '$lib/hooks/use-metrics/use-metrics.svelte';
 	import { bytes, bytesPerSec, percent, uptime } from '$lib/utils/format';
 	import { trend } from '$lib/utils/trend';
-	import { cn } from '$lib/utils/cn';
 
 	import { HideWindow, ShowSettings } from '../../../wailsjs/go/main/App';
 
 	const metrics = useMetrics();
-	type DashboardTab = 'overview' | 'queue' | 'system';
 	let activeTab = $state<DashboardTab>('overview');
+
+	const identitySubtitle = $derived(
+		metrics.latest
+			? `${metrics.latest.host.hostname} · ${metrics.latest.host.platform} · online há ${uptime(metrics.latest.host.uptimeSeconds)}`
+			: undefined
+	);
 
 	const timestamps = $derived(metrics.history.map((_, index) => index));
 
@@ -75,91 +81,13 @@
 		class="border-border/70 bg-card flex shrink-0 items-center justify-between border-b px-5 py-2.5 select-none"
 	>
 		<!-- Lado Esquerdo: Identidade do Agente & Host -->
-		<div class="flex items-center gap-3">
-			<div class="relative flex items-center justify-center">
-				<img src="/favicon.svg" alt="Acerola" class="h-8 w-8" />
-			</div>
-
-			<div>
-				<div class="flex items-center gap-2">
-					<h1 class="text-foreground text-sm font-semibold tracking-tight">Acerola Agent</h1>
-
-					<span
-						class="border-success/20 bg-success/10 text-success inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold"
-					>
-						<span class="relative flex h-1.5 w-1.5">
-							<span
-								class="bg-success absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
-							></span>
-							<span class="bg-success relative inline-flex h-1.5 w-1.5 rounded-full"></span>
-						</span>
-						{metrics.latest ? 'Ao vivo' : 'Conectando'}
-					</span>
-				</div>
-
-				{#if metrics.latest}
-					<p class="text-muted-foreground text-[11px]">
-						{metrics.latest.host.hostname} · {metrics.latest.host.platform} · online há {uptime(
-							metrics.latest.host.uptimeSeconds
-						)}
-					</p>
-				{/if}
-			</div>
-		</div>
+		<AcerolaAgentIdentity data={{ isLive: Boolean(metrics.latest), subtitle: identitySubtitle }} />
 
 		<!-- Centro: Switcher de Abas / Navegação -->
-		<nav
-			class="border-border/70 bg-muted/30 rounded-control hidden items-center gap-1 border p-1 md:flex"
-		>
-			<button
-				type="button"
-				class={cn(
-					'rounded-chip flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all',
-					activeTab === 'overview'
-						? 'bg-card text-foreground font-semibold shadow-xs'
-						: 'text-muted-foreground hover:text-foreground'
-				)}
-				onclick={() => (activeTab = 'overview')}
-			>
-				<LayoutDashboardIcon size={14} />
-				<span>Visão Geral</span>
-			</button>
-
-			<button
-				type="button"
-				class={cn(
-					'rounded-chip flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all',
-					activeTab === 'queue'
-						? 'bg-card text-foreground font-semibold shadow-xs'
-						: 'text-muted-foreground hover:text-foreground'
-				)}
-				onclick={() => (activeTab = 'queue')}
-			>
-				<LayoutPanelLeftIcon size={14} />
-				<span>Fila & Detalhes</span>
-				{#if metrics.latest?.processes}
-					<span
-						class="bg-primary/10 border-primary/20 py-0.2 text-primary rounded-full border px-1.5 text-xs font-semibold"
-					>
-						{metrics.latest.processes.length}
-					</span>
-				{/if}
-			</button>
-
-			<button
-				type="button"
-				class={cn(
-					'rounded-chip flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all',
-					activeTab === 'system'
-						? 'bg-card text-foreground font-semibold shadow-xs'
-						: 'text-muted-foreground hover:text-foreground'
-				)}
-				onclick={() => (activeTab = 'system')}
-			>
-				<HardDriveIcon size={14} />
-				<span>Armazenamento & SO</span>
-			</button>
-		</nav>
+		<AcerolaDashboardTabs
+			data={{ activeTab, queueCount: metrics.latest?.processes?.length }}
+			events={{ onChange: (tab) => (activeTab = tab) }}
+		/>
 
 		<!-- Lado Direito: Ações & Controles -->
 		<div class="flex items-center gap-2">
