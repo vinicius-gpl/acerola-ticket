@@ -2,14 +2,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   availableTicketHistoryTypes,
+  CLOSING_TICKET_HISTORY_TYPES,
   isClosingTicketHistoryType,
   isSystemTicketHistoryType,
   MANUAL_TICKET_HISTORY_TYPES,
   nextTicketStatus,
   refuseTicketHistory,
+  SYSTEM_TICKET_HISTORY_TYPES,
+  TICKET_HISTORY_CATALOG,
   TICKET_HISTORY_TYPE_LABELS,
   TICKET_HISTORY_TYPES,
+  ticketHistoryEffect,
+  ticketHistoryEffectLabel,
   ticketHistoryTone,
+  ticketHistoryTypeGroups,
   ticketHistoryTypeLabel,
 } from './ticket-history.util';
 import { isClosedTicketStatus } from './ticket-status.util';
@@ -30,6 +36,92 @@ describe('ticket history vocabulary', () => {
     expect(isSystemTicketHistoryType('update')).toBe(true);
     expect(MANUAL_TICKET_HISTORY_TYPES).not.toContain('opening');
     expect(MANUAL_TICKET_HISTORY_TYPES).not.toContain('update');
+  });
+});
+
+describe('TICKET_HISTORY_CATALOG', () => {
+  // feliz
+  /* A lista escrita (que o schema Zod usa como tipo) e o catálogo têm de dizer a mesma coisa:
+     um tipo novo esquecido numa das duas reprova aqui, não some calado do formulário. */
+  it('lists as manual exactly the types a person launches', () => {
+    const launchedByPerson = TICKET_HISTORY_TYPES.filter(
+      (type) => TICKET_HISTORY_CATALOG[type].origin === 'person',
+    );
+
+    expect([...MANUAL_TICKET_HISTORY_TYPES].sort()).toEqual([...launchedByPerson].sort());
+    expect(SYSTEM_TICKET_HISTORY_TYPES).toEqual(['opening', 'update']);
+  });
+
+  /* "Encerra" não é uma marca da ficha: é levar o chamado para um estágio encerrado. */
+  it('closes the ticket exactly with the types that lead to a closed stage', () => {
+    expect(CLOSING_TICKET_HISTORY_TYPES).toEqual(['resolution', 'closure_with_caveats', 'cancellation']);
+
+    for (const type of TICKET_HISTORY_TYPES) {
+      const leadsTo = TICKET_HISTORY_CATALOG[type].leadsTo;
+
+      expect(isClosingTicketHistoryType(type), type).toBe(
+        leadsTo !== null && isClosedTicketStatus(leadsTo),
+      );
+    }
+  });
+
+  it('gives every type a refusal sentence, and a moment to every type a person launches', () => {
+    for (const type of TICKET_HISTORY_TYPES) {
+      expect(TICKET_HISTORY_CATALOG[type].refusal).toBeTruthy();
+    }
+
+    for (const type of MANUAL_TICKET_HISTORY_TYPES) {
+      expect(TICKET_HISTORY_CATALOG[type].allowedIn.length, type).toBeGreaterThan(0);
+    }
+  });
+
+  // triste
+  /* Um tipo que encerra e pudesse ser lançado num chamado encerrado encerraria duas vezes. */
+  it('never lets a closing type be launched on a ticket that is already closed', () => {
+    for (const type of CLOSING_TICKET_HISTORY_TYPES) {
+      expect(TICKET_HISTORY_CATALOG[type].allowedIn, type).not.toContain('closed');
+    }
+  });
+});
+
+describe('ticketHistoryEffect', () => {
+  // feliz
+  it('tells apart what closes, what moves the stage and what only adds to the timeline', () => {
+    expect(ticketHistoryEffect('resolution')).toBe('closes');
+    expect(ticketHistoryEffect('cancellation')).toBe('closes');
+    expect(ticketHistoryEffect('waiting_requester')).toBe('moves');
+    expect(ticketHistoryEffect('reopening')).toBe('moves');
+    expect(ticketHistoryEffect('note')).toBe('keeps');
+  });
+
+  it('says in one sentence what the history will do to the ticket', () => {
+    expect(ticketHistoryEffectLabel('closure_with_caveats')).toBe(
+      'Encerra o chamado. Ele sai da fila como "Encerrado com ressalva".',
+    );
+    expect(ticketHistoryEffectLabel('start')).toBe(
+      'Muda o estágio do chamado para "Em atendimento".',
+    );
+  });
+
+  // triste
+  it('does not announce a closing for a history that only adds to the timeline', () => {
+    expect(ticketHistoryEffectLabel('note')).not.toMatch(/Encerra/);
+    expect(ticketHistoryEffectLabel('note')).toMatch(/Não muda o estágio/);
+  });
+});
+
+describe('ticketHistoryTypeGroups', () => {
+  // feliz
+  it('separates what keeps the ticket running from what closes it', () => {
+    const groups = ticketHistoryTypeGroups('in_progress');
+
+    expect(groups.continuing).toEqual(['note', 'waiting_requester', 'waiting_third_party']);
+    expect(groups.closing).toEqual(['resolution', 'closure_with_caveats', 'cancellation']);
+  });
+
+  // triste
+  it('offers nothing that closes on a ticket that is already closed', () => {
+    expect(ticketHistoryTypeGroups('resolved')).toEqual({ continuing: ['reopening'], closing: [] });
   });
 });
 
