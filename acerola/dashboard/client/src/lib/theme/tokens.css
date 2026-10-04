@@ -82,6 +82,22 @@
   --input: #e2e8f0;
   --ring: #7c3aed;
 
+  /* Os tons de ESTADO. `danger` é o `destructive` acima; estes três não existem na paleta
+     do agente, então nascem aqui. No claro são os tons 700 (texto pequeno legível sobre
+     branco); no escuro, os 400.
+
+     `-soft` é o fundo SÓLIDO do tom (selo, cartão de indicador): os tons 100 no claro e 950
+     no escuro. Sólido de propósito — com opacidade, o cartão de indicador mudava de cor
+     conforme o que estivesse atrás dele. */
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --info: #1d4ed8;
+  --info-soft: #dbeafe;
+  --destructive-soft: #ffe4e6;
+  --primary-soft: #ede9fe;
+
   /* As cores de categoria dos gráficos. Ver utils/chart-slice.ts. */
   --chart-1: #e11d48;
   --chart-2: #f97316;
@@ -156,6 +172,15 @@
   --input: #222332;
   --ring: #cba6f7;
 
+  --success: #34d399;
+  --success-soft: #022c22;
+  --warning: #fbbf24;
+  --warning-soft: #451a03;
+  --info: #60a5fa;
+  --info-soft: #172554;
+  --destructive-soft: #4c0519;
+  --primary-soft: #2e1065;
+
   --chart-1: #f38ba8;
   --chart-2: #fab387;
   --chart-3: #f9e2af;
@@ -212,6 +237,15 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-primary-soft: var(--primary-soft);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
