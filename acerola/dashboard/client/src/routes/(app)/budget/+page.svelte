@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BudgetView from '$lib/components/budget-view/budget-view.svelte';
+  import BudgetView from './components/acerola-budget-view/acerola-budget-view.svelte';
   import { useBudgetModel } from '$lib/hooks/use-budget/use-budget.svelte';
 
   /**

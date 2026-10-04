@@ -30,7 +30,7 @@
    * conferir de onde o número veio, que é justamente o que se pergunta numa reunião de
    * compra.
    */
-  export type BudgetViewProps = {
+  export type AcerolaBudgetViewProps = {
     data: { budget: Budget | null };
     state: {
       isLoading: boolean;
@@ -100,7 +100,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
-  let { data, state: viewState, actions }: BudgetViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaBudgetViewProps = $props();
 
   const budget = $derived(data.budget);
 

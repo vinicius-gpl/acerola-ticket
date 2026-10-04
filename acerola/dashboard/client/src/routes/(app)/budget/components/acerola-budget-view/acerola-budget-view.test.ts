@@ -8,7 +8,7 @@ import BudgetView, {
   machineLabelOf,
   machineValueOf,
   needSummaryOf,
-} from './budget-view.svelte';
+} from './acerola-budget-view.svelte';
 
 const machine: BudgetMachine = {
   computerId: 2,
@@ -100,7 +100,7 @@ describe('machineValueOf', () => {
   });
 });
 
-describe('BudgetView', () => {
+describe('AcerolaBudgetView', () => {
   // feliz
   it('shows the whole account, not only what to buy', () => {
     renderView();

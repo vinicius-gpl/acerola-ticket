@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type Budget, type BudgetNeed } from '@template/shared/schemas/budget.schema';
 
-  import BudgetView from './budget-view.svelte';
+  import BudgetView from './acerola-budget-view.svelte';
 
   function need(over: Partial<BudgetNeed> = {}): BudgetNeed {
     return { key: 'memory', needed: 0, inStock: 0, toBuy: 0, machines: [], ...over };
@@ -62,7 +62,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/BudgetView',
+    title: 'Features/Budget/AcerolaBudgetView',
     component: BudgetView,
   });
 </script>
