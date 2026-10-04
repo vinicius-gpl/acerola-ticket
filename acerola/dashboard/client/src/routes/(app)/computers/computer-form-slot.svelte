@@ -21,7 +21,7 @@
 </script>
 
 <script lang="ts">
-  import ComputerFormDialog from '$lib/components/computer-form-dialog/computer-form-dialog.svelte';
+  import ComputerFormDialog from '$lib/components/acerola-computer-form-dialog/acerola-computer-form-dialog.svelte';
   import { useComputerFormModel } from '$lib/hooks/use-computer-form/use-computer-form.svelte';
 
   let { computer, onSaved, onClose }: ComputerFormSlotProps = $props();

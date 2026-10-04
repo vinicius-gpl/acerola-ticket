@@ -142,16 +142,16 @@
   import Lightbulb from '@lucide/svelte/icons/lightbulb';
   import PartyPopper from '@lucide/svelte/icons/party-popper';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
-  import DonutChart from '$lib/components/donut-chart/donut-chart.svelte';
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
-  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ColumnChart from '$lib/components/acerola-column-chart/acerola-column-chart.svelte';
+  import DonutChart from '$lib/components/acerola-donut-chart/acerola-donut-chart.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
+  import PaginationBar from '$lib/components/acerola-pagination-bar/acerola-pagination-bar.svelte';
+  import PanelCard from '$lib/components/acerola-panel-card/acerola-panel-card.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
   let { data, state: viewState, actions }: AcerolaInsightsViewProps = $props();

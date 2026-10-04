@@ -28,7 +28,7 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/acerola-dialog/acerola-dialog';
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
 
   import KeyRound from '@lucide/svelte/icons/key-round';
 

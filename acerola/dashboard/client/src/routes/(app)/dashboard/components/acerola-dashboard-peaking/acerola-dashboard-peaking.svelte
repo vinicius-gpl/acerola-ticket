@@ -65,9 +65,9 @@
 </script>
 
 <script lang="ts">
-  import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
+  import ColumnChart from '$lib/components/acerola-column-chart/acerola-column-chart.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import PanelCard from '$lib/components/acerola-panel-card/acerola-panel-card.svelte';
 
   let { data, state: viewState, ui }: AcerolaDashboardPeakingProps = $props();
 

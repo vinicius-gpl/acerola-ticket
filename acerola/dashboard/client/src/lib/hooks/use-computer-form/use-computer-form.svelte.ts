@@ -9,7 +9,7 @@ import {
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
-import { type ComputerFormField } from '$lib/components/computer-form-dialog/computer-form-dialog.svelte';
+import { type ComputerFormField } from '$lib/components/acerola-computer-form-dialog/acerola-computer-form-dialog.svelte';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';

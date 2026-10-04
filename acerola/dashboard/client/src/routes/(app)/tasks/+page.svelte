@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type Task } from '@template/shared/schemas/task.schema';
 
-  import ConfirmDialog from '$lib/components/confirm-dialog/confirm-dialog.svelte';
+  import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
   import TaskListView from './components/acerola-task-list-view/acerola-task-list-view.svelte';
   import { useTaskListModel } from '$lib/hooks/use-task-list/use-task-list.svelte';
   import TaskFormSlot from './task-form-slot.svelte';

@@ -13,7 +13,7 @@ import { writable } from 'svelte/store';
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { partsApi } from '$lib/api/parts.api';
-import { type MovementFormField } from '$lib/components/movement-form-dialog/movement-form-dialog.svelte';
+import { type MovementFormField } from '$lib/components/acerola-movement-form-dialog/acerola-movement-form-dialog.svelte';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';

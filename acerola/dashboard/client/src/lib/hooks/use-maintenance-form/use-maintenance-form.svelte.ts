@@ -12,7 +12,7 @@ import { writable } from 'svelte/store';
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
 import { maintenancesApi } from '$lib/api/maintenances.api';
-import { type MaintenanceFormField } from '$lib/components/maintenance-form-dialog/maintenance-form-dialog.svelte';
+import { type MaintenanceFormField } from '$lib/components/acerola-maintenance-form-dialog/acerola-maintenance-form-dialog.svelte';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { MAINTENANCES_QUERY_KEY } from '$lib/hooks/use-maintenance-list/use-maintenance-list.svelte';

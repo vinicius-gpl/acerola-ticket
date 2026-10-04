@@ -24,10 +24,10 @@
 </script>
 
 <script lang="ts">
-  import BrandMark from '$lib/components/brand-mark/brand-mark.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import SubmitButton from '$lib/components/submit-button/submit-button.svelte';
-  import TextField from '$lib/components/text-field/text-field.svelte';
+  import BrandMark from '$lib/components/acerola-brand-mark/acerola-brand-mark.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
+  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
 
   let { data, state, actions }: AcerolaLoginScreenProps = $props();
 

@@ -70,9 +70,9 @@
   import CalendarCheck from '@lucide/svelte/icons/calendar-check';
   import CalendarClock from '@lucide/svelte/icons/calendar-clock';
 
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import PanelCard from '$lib/components/acerola-panel-card/acerola-panel-card.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
 
   let { data, state: viewState, ui }: AcerolaDashboardMaintenanceLogProps = $props();
 

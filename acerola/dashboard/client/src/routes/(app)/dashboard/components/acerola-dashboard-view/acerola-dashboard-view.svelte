@@ -148,23 +148,23 @@
   import PartyPopper from '@lucide/svelte/icons/party-popper';
   import Rocket from '@lucide/svelte/icons/rocket';
 
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import AreaChart from '$lib/components/area-chart/area-chart.svelte';
-  import ColumnChart from '$lib/components/column-chart/column-chart.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import AreaChart from '$lib/components/acerola-area-chart/acerola-area-chart.svelte';
+  import ColumnChart from '$lib/components/acerola-column-chart/acerola-column-chart.svelte';
   import DashboardMaintenanceLog from '../acerola-dashboard-maintenance-log/acerola-dashboard-maintenance-log.svelte';
   import DashboardPeaking from '../acerola-dashboard-peaking/acerola-dashboard-peaking.svelte';
   import DashboardProblemMap from '../acerola-dashboard-problem-map/acerola-dashboard-problem-map.svelte';
   import DashboardRecurrence from '../acerola-dashboard-recurrence/acerola-dashboard-recurrence.svelte';
-  import EmptyState from '$lib/components/empty-state/empty-state.svelte';
-  import ErrorState from '$lib/components/error-state/error-state.svelte';
-  import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
-  import PageHeader from '$lib/components/page-header/page-header.svelte';
-  import PanelCard from '$lib/components/panel-card/panel-card.svelte';
-  import RadialChart from '$lib/components/radial-chart/radial-chart.svelte';
-  import StatCard from '$lib/components/stat-card/stat-card.svelte';
-  import StatCardGrid from '$lib/components/stat-card-grid/stat-card-grid.svelte';
-  import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
-  import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
+  import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
+  import PanelCard from '$lib/components/acerola-panel-card/acerola-panel-card.svelte';
+  import RadialChart from '$lib/components/acerola-radial-chart/acerola-radial-chart.svelte';
+  import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
+  import StatCardGrid from '$lib/components/acerola-stat-card-grid/acerola-stat-card-grid.svelte';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
+  import TableViewToggle from '$lib/components/acerola-table-view-toggle/acerola-table-view-toggle.svelte';
   import {
     Table,
     TableActions,

@@ -2,7 +2,7 @@
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
   import type { Snippet } from 'svelte';
 
-  import AppErrorBoundary from '$lib/components/app-error-boundary/app-error-boundary.svelte';
+  import AppErrorBoundary from '$lib/components/acerola-app-error-boundary/acerola-app-error-boundary.svelte';
   import '$lib/theme/tokens.css';
 
   /**
