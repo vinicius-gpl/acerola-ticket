@@ -19,7 +19,7 @@
    * pendente; mostrar quarenta máquinas em dia para achar três vencidas é esconder a
    * resposta dentro do ruído. O total em dia aparece como uma linha de texto.
    */
-  export type PreventiveBoardProps = {
+  export type AcerolaPreventiveBoardProps = {
     data: { rows: PreventiveDue[] };
     state?: { isLoading?: boolean };
     actions: { onRegister: (row: PreventiveDue) => void };
@@ -43,7 +43,7 @@
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import { formatDate } from '$lib/utils/format-date';
 
-  let { data, state: boardState, actions }: PreventiveBoardProps = $props();
+  let { data, state: boardState, actions }: AcerolaPreventiveBoardProps = $props();
 
   const pending = $derived(pendingOf(data.rows));
   const upToDate = $derived(data.rows.length - pending.length);

@@ -7,7 +7,7 @@
 
   import MaintenanceListView, {
     type MaintenanceListFilter,
-  } from './maintenance-list-view.svelte';
+  } from './acerola-maintenance-list-view.svelte';
 
   const DAY = 24 * 60 * 60 * 1000;
   const daysAgo = (days: number) => new Date(Date.now() - days * DAY).toISOString();
@@ -114,7 +114,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/MaintenanceListView',
+    title: 'Features/Maintenance/AcerolaMaintenanceListView',
     component: MaintenanceListView,
   });
 </script>

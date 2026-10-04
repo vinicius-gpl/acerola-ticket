@@ -29,7 +29,7 @@
    * fazer", e a lista responde "o que já foi feito". Quem abre a tela de manhã está atrás da
    * primeira pergunta.
    */
-  export type MaintenanceListViewProps = {
+  export type AcerolaMaintenanceListViewProps = {
     data: {
       maintenances: Maintenance[];
       total: number;
@@ -102,7 +102,7 @@
   import OptionPicker from '$lib/components/option-picker/option-picker.svelte';
   import PageHeader from '$lib/components/page-header/page-header.svelte';
   import PaginationBar from '$lib/components/pagination-bar/pagination-bar.svelte';
-  import PreventiveBoard from '$lib/components/preventive-board/preventive-board.svelte';
+  import PreventiveBoard from '../acerola-preventive-board/acerola-preventive-board.svelte';
   import StatusBadge from '$lib/components/status-badge/status-badge.svelte';
   import TableViewToggle from '$lib/components/table-view-toggle/table-view-toggle.svelte';
   import {
@@ -113,13 +113,13 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDate } from '$lib/utils/format-date';
 
-  let { data, state: viewState, actions }: MaintenanceListViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaMaintenanceListViewProps = $props();
 
   const tableView = useTableViewModel();
 </script>

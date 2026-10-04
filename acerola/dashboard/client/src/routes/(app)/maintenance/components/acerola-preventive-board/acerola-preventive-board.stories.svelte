@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type PreventiveDue } from '@template/shared/schemas/maintenance.schema';
 
-  import PreventiveBoard from './preventive-board.svelte';
+  import PreventiveBoard from './acerola-preventive-board.svelte';
 
   const DAY = 24 * 60 * 60 * 1000;
   const daysAgo = (days: number) => new Date(Date.now() - days * DAY).toISOString();
@@ -45,7 +45,7 @@
   const actions = { onRegister: () => {} };
 
   const { Story } = defineMeta({
-    title: 'Components/PreventiveBoard',
+    title: 'Features/Maintenance/AcerolaPreventiveBoard',
     component: PreventiveBoard,
   });
 </script>

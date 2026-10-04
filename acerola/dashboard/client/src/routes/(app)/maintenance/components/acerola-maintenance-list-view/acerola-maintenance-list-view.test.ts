@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import MaintenanceListView, {
   machineLabelOf,
   type MaintenanceListFilter,
-} from './maintenance-list-view.svelte';
+} from './acerola-maintenance-list-view.svelte';
 
 function maintenance(over: Partial<Maintenance> = {}): Maintenance {
   return {
@@ -117,7 +117,7 @@ describe('machineLabelOf', () => {
   });
 });
 
-describe('MaintenanceListView', () => {
+describe('AcerolaMaintenanceListView', () => {
   // feliz
   it('lists what was done, on which machine and by whom', () => {
     renderView();
