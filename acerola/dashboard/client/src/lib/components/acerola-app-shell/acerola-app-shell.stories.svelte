@@ -52,6 +52,26 @@
   </AppShell>
 </Story>
 
+<!-- Quem atende mais de uma área: as pastilhas de contexto ficam no cabeçalho, ao lado do
+     botão do menu, com a área atual acesa. -->
+<Story name="WithAreaContext">
+  <AppShell
+    data={{
+      user,
+      areaOptions: [
+        { value: 'all', label: 'Todas' },
+        { value: 'infra', label: 'Infraestrutura' },
+        { value: 'sistema', label: 'Sistema' },
+        { value: 'manutencao', label: 'Manutenção' },
+      ],
+    }}
+    state={{ activeKey: 'tasks', areaContext: 'manutencao' }}
+    {actions}
+  >
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
+  </AppShell>
+</Story>
+
 <!-- Sem identidade: o rodapé não quebra. -->
 <Story name="WithoutUser">
   <AppShell>

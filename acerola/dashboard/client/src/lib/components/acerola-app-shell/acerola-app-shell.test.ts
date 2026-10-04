@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import BarChart3 from '@lucide/svelte/icons/chart-column';
 import ListChecks from '@lucide/svelte/icons/list-checks';
@@ -43,7 +43,39 @@ describe('AcerolaAppShell', () => {
     expect(screen.getByText('Administrador')).toBeInTheDocument();
   });
 
+  /* O contexto fica À VISTA, em pastilhas no cabeçalho: a pessoa vê em qual área está e troca
+     com um clique, sem abrir lista nenhuma. */
+  it('shows the area contexts as pills and asks to switch on a click', async () => {
+    const onAreaContextChange = vi.fn();
+    renderShell({
+      data: {
+        areaOptions: [
+          { value: 'all', label: 'Todas' },
+          { value: 'infra', label: 'Infraestrutura' },
+          { value: 'manutencao', label: 'Manutenção' },
+        ],
+      },
+      state: { areaContext: 'infra' },
+      actions: { onAreaContextChange },
+    });
+
+    const group = screen.getByRole('group', { name: 'Área que você está vendo' });
+    expect(within(group).getAllByRole('button')).toHaveLength(3);
+
+    await userEvent.click(within(group).getByRole('button', { name: 'Manutenção' }));
+
+    expect(onAreaContextChange).toHaveBeenCalledWith('manutencao');
+  });
+
   // triste
+  /* Quem atende uma área só (ou nenhuma) não tem o que escolher: o seletor nem aparece. */
+  it('draws no context selector when there is nothing to choose', () => {
+    renderShell({ data: { areaOptions: [] } });
+
+    expect(screen.queryByRole('group', { name: 'Área que você está vendo' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Contexto')).not.toBeInTheDocument();
+  });
+
   /* Zero não vira selo: um "0" ao lado de cada item seria ruído. */
   it('draws no badge for a zero counter', () => {
     renderShell({ ui: { items }, data: { badges: { reports: 0 } } });

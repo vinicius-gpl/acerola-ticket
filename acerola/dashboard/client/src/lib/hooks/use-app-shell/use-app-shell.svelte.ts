@@ -94,7 +94,9 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         const allOptions = ticketAreaOptions();
 
         return [
-          { value: 'all' as const, label: 'Todas as áreas' },
+          /* "Todas", e não "Todas as áreas": é uma pastilha ao lado das outras, e o rótulo
+             "Contexto" na frente já diz do que se trata. */
+          { value: 'all' as const, label: 'Todas' },
           ...mine.map((area) => ({
             value: area,
             label: allOptions.find((option) => option.value === area)?.label ?? area,
