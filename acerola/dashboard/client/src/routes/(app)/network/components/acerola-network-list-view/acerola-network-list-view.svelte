@@ -200,7 +200,7 @@
     <label class="text-ink-700 flex items-center gap-2 text-sm">
       <input
         type="checkbox"
-        class="border-ink-300 size-4 rounded"
+        class="border-ink-300 size-4 rounded-chip"
         checked={data.filter.onlyOpen}
         onchange={(event) => actions.onOnlyOpenChange(event.currentTarget.checked)}
       />
@@ -248,42 +248,42 @@
       data-slot="network-cards-mobile"
     >
       {#each data.events as event (event.id)}
-        <div class="border-border/70 bg-card rounded-lg border p-4 shadow-xs">
+        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
           <div class="flex items-start justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
               <StatusBadge
                 data={{ label: networkSeverityLabel(event.severity) }}
                 ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
               />
-              <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words text-sm">
+              <span class="font-medium text-ink-900 break-words text-sm">
                 {networkEventTypeLabel(event.type)}
               </span>
             </div>
             {#if event.resolvedAt}
-              <span class="text-neutral-700 dark:text-neutral-200 text-xs shrink-0">{durationLabelOf(event)}</span>
+              <span class="text-ink-700 text-xs shrink-0">{durationLabelOf(event)}</span>
             {:else}
               <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
             {/if}
           </div>
 
-          <span class="text-neutral-400 block text-xs break-words mt-1">{event.title}</span>
+          <span class="text-ink-500 block text-xs break-words mt-1">{event.title}</span>
           {#if event.message}
-            <span class="text-neutral-500 block text-xs break-words mt-0.5">{event.message}</span>
+            <span class="text-ink-500 block text-xs break-words mt-0.5">{event.message}</span>
           {/if}
 
           <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span class="text-muted-foreground block text-[11px]">Link</span>
-              <span class="text-neutral-700 dark:text-neutral-200 font-medium break-words">{event.linkName ?? '—'}</span>
+              <span class="text-muted-foreground block text-xs">Link</span>
+              <span class="text-ink-700 font-medium break-words">{event.linkName ?? '—'}</span>
             </div>
             <div>
-              <span class="text-muted-foreground block text-[11px]">Medidas</span>
-              <span class="text-neutral-700 dark:text-neutral-200">{measuresOf(event) || '—'}</span>
+              <span class="text-muted-foreground block text-xs">Medidas</span>
+              <span class="text-ink-700">{measuresOf(event) || '—'}</span>
             </div>
           </div>
 
           <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
-            <span class="text-neutral-400 text-xs">
+            <span class="text-ink-500 text-xs">
               {formatDateTime(event.occurredAt)}
             </span>
             {#if event.resolvedAt}
@@ -329,7 +329,7 @@
         <TableBody>
           {#each data.events as event (event.id)}
             <TableRow class="align-top">
-              <TableCell class="text-neutral-400 whitespace-nowrap text-xs">
+              <TableCell class="text-ink-500 whitespace-nowrap text-xs">
                 {formatDateTime(event.occurredAt)}
               </TableCell>
               <TableCell class="max-w-[320px]">
@@ -338,20 +338,20 @@
                     data={{ label: networkSeverityLabel(event.severity) }}
                     ui={{ tone: networkSeverityTone(event.severity), size: 'sm' }}
                   />
-                  <span class="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                  <span class="font-medium text-ink-900 break-words">
                     {networkEventTypeLabel(event.type)}
                   </span>
                 </div>
-                <span class="text-neutral-400 block text-xs break-words">{event.title}</span>
+                <span class="text-ink-500 block text-xs break-words">{event.title}</span>
                 {#if event.message}
-                  <span class="text-neutral-500 block text-xs break-words">{event.message}</span>
+                  <span class="text-ink-500 block text-xs break-words">{event.message}</span>
                 {/if}
               </TableCell>
-              <TableCell class="text-neutral-700 dark:text-neutral-200 break-words">{event.linkName ?? '—'}</TableCell>
-              <TableCell class="text-neutral-700 dark:text-neutral-200 whitespace-nowrap text-xs">{measuresOf(event) || '—'}</TableCell>
+              <TableCell class="text-ink-700 break-words">{event.linkName ?? '—'}</TableCell>
+              <TableCell class="text-ink-700 whitespace-nowrap text-xs">{measuresOf(event) || '—'}</TableCell>
               <TableCell>
                 {#if event.resolvedAt}
-                  <span class="text-neutral-700 dark:text-neutral-200 text-xs">{durationLabelOf(event)}</span>
+                  <span class="text-ink-700 text-xs">{durationLabelOf(event)}</span>
                 {:else}
                   <StatusBadge data={{ label: 'Em aberto' }} ui={{ tone: 'danger', size: 'sm' }} />
                 {/if}
