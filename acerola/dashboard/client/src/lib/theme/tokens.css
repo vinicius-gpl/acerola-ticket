@@ -384,6 +384,28 @@
   & > * {
     min-width: 0;
   }
+
+  /* O RODAPÉ DO CARTÃO FICA NO FUNDO. Os cartões de uma mesma fileira têm a altura do maior;
+     sem isto, o que tem menos texto termina antes e o rodapé dele sobe, desalinhado dos
+     vizinhos, com um vazio embaixo. O cartão vira uma coluna e o último bloco é empurrado
+     para o fim — a sobra de altura fica entre o conteúdo e o rodapé.
+
+     `.col-span-full` é a legenda da lista, que mora na grade mas não é cartão. */
+  & > :not(.col-span-full) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  & > :not(.col-span-full) > :last-child {
+    margin-top: auto;
+  }
+
+  /* `margin-top: auto` toma o lugar do respiro que o rodapé tinha (`mt-3`). Nos cartões sem
+     `gap` próprio, quem devolve esse respiro mínimo é o bloco de cima. Os que já usam `gap`
+     (a classe do cartão tem `gap-`) não precisam: o `gap` continua valendo. */
+  & > :not(.col-span-full):not([class*='gap-']) > :nth-last-child(2) {
+    margin-bottom: 0.75rem;
+  }
 }
 
 /* ==========================================================================
