@@ -221,13 +221,13 @@ O par `data-slot` é obrigatório: é por ele que teste e story encontram cada f
 
 ### 6.3 Anatomia da tabela
 
-- Contêiner: o `ui/table` já entrega `rounded-surface border bg-card shadow-xs overflow-hidden`;
+- Contêiner: o `acerola-table` já entrega `rounded-surface border bg-card shadow-xs overflow-hidden`;
   envolva em `overflow-x-auto` e dê `min-w-[…]` à tabela para a **caixa** rolar, não a página.
 - Cabeçalho: `text-xs font-medium text-muted-foreground`; cada coluna com `min-w-*` fixo.
 - Primeira coluna = identificador, em `font-medium`, com linha secundária `text-xs` embaixo.
 - Coluna de ações por último, `text-right`, cabeçalho `sr-only` "Ações", botões `control-sm`
   ou `control-icon-sm` `ghost` com `aria-label`.
-- Linha: `border-b border-border/60` e hover já vêm do `ui/table-row`. Sem zebra.
+- Linha: `border-b border-border/60` e hover já vêm do `acerola-table-row`. Sem zebra.
 - Rodapé (snippet `footer` do `Table`): fonte do dado à esquerda, contagem à direita.
 
 ### 6.4 Componente

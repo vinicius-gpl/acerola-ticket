@@ -70,7 +70,7 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/ui/dialog';
-  import { DatePicker } from '$lib/components/ui/date-picker';
+  import DatePicker from '$lib/components/acerola-date-picker/acerola-date-picker.svelte';
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';

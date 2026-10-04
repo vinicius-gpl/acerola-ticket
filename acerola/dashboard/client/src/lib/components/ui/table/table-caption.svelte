@@ -1,21 +1,20 @@
 <script lang="ts">
-  import { cn } from '$lib/utils/cn';
-  import type { HTMLAttributes } from 'svelte/elements';
-  import type { Snippet } from 'svelte';
+	import { cn, type WithElementRef } from "$lib/utils/cn.js";
+	import type { HTMLAttributes } from "svelte/elements";
 
-  let {
-    class: className,
-    ref = $bindable(null),
-    children,
-    ...restProps
-  }: HTMLAttributes<HTMLElement> & { ref?: HTMLElement | null; children?: Snippet } = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLElement>> = $props();
 </script>
 
 <caption
-  bind:this={ref}
-  data-slot="table-caption"
-  class={cn("mt-4 text-sm text-muted-foreground", className)}
-  {...restProps}
+	bind:this={ref}
+	data-slot="table-caption"
+	class={cn("text-muted-foreground mt-4 text-sm", className)}
+	{...restProps}
 >
-  {@render children?.()}
+	{@render children?.()}
 </caption>

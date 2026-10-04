@@ -42,7 +42,9 @@ jobs:
       - run: npm run typecheck
       # Regras das skills design-system e ui-standards, para os dois apps Svelte. Só reprova
       # violação NOVA (fora da baseline em .claude/hooks/design/design-baseline.json).
-      - run: npm run check:design
+      # O atalho `check:design` saiu do package.json (hoje é `mise run design:check`, na raiz);
+      # aqui chama-se o script direto. Ele acha a raiz do repositório pelo próprio caminho.
+      - run: node ../../.claude/hooks/design/check-design.mjs
       - run: npm test
       - run: npm run test:e2e -w server
       - run: npm run build
