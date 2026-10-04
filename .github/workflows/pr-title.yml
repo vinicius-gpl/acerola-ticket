@@ -1,0 +1,45 @@
+# O TÍTULO DO PR É O COMMIT DE MERGE.
+#
+# O repositório está configurado para o commit de merge levar o título do PR (Settings →
+# General → Pull Requests → "Default to pull request title"). Antes disso o GitHub escrevia
+# "Merge pull request #32 from ..." sozinho, e o padrão da casa só saía certo quando alguém
+# lembrava de digitar o título na hora do merge.
+#
+# Aqui o título é conferido ANTES do merge, pela MESMA regra dos commits
+# (`acerola/dashboard/commitlint.config.js`) — e precisa ser do tipo `merge`, porque é isso
+# que ele vai virar no histórico:
+#
+#   [merge](web): Chamado vira ordem de serviço — linha do tempo e PDF conferível
+name: Título do PR
+
+on:
+  pull_request:
+    # `edited` é o que faz a conferência rodar de novo quando alguém corrige o título.
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # O título entra por variável de ambiente, e não colado no comando: título de PR é texto
+      # de quem abriu o PR, e colado no script ele poderia virar comando.
+      - name: O título segue o formato [merge](local) Mensagem
+        working-directory: acerola/dashboard
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | npx --yes @commitlint/cli@19 --config commitlint.config.js
+
+          case "$PR_TITLE" in
+            "[merge]("*) ;;
+            *)
+              echo "::error::O título do PR vira o commit de merge, então precisa começar com [merge](local): — por exemplo: [merge](web): Tela de clientes ganha filtro por cidade"
+              exit 1
+              ;;
+          esac
