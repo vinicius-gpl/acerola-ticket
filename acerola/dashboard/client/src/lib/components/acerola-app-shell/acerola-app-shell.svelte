@@ -187,21 +187,10 @@
 
   <!-- `min-w-0`: sem isto a área de conteúdo não encolhe abaixo da largura natural da tabela,
        e quem rola para o lado é a PÁGINA inteira, em vez da tabela dentro da caixa dela. -->
-  <!-- A MOLDURA e o CARTÃO são duas coisas. O `SidebarInset` é só a coluna da direita, sem
-       fundo nem borda próprios: em cima dela vai a faixa da casca (o botão do menu e o
-       contexto), direto sobre a cor da moldura; embaixo, o cartão arredondado onde a rota
-       desenha. Antes o cartão era o próprio `SidebarInset`, e o que é DA CASCA ficava dentro
-       da página, disputando o topo com o título de cada tela.
-
-       As classes com `md:peer-data-[variant=inset]:` repetem o prefixo do componente baixado
-       de propósito: só com o mesmo prefixo o `cn` troca a sombra e o raio de lá pelos daqui. -->
-  <SidebarInset
-    class="min-w-0 bg-transparent md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none"
-  >
-    <!-- Sem fundo, sem borda e sem altura de barra: são controles soltos na moldura, e não uma
-         barra de topo. `flex-wrap`: no celular as pastilhas descem para a linha de baixo em vez
-         de vazar pela lateral. -->
-    <header class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 px-2 pt-2 pb-2 md:px-1 md:pt-0">
+  <SidebarInset class="border-sidebar-border bg-background border min-w-0">
+    <!-- `min-h` e `flex-wrap`, e não altura fixa: no celular as pastilhas de contexto quebram
+         para a linha de baixo em vez de vazar pela lateral. -->
+    <header class="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1">
       <SidebarTrigger />
 
       <!-- Seletor de contexto (#13): só aparece para quem atende mais de uma área — ver
@@ -222,14 +211,8 @@
       {/if}
     </header>
 
-    <!-- O CARTÃO do conteúdo. A animação de troca de tela fica no miolo, e não no cartão: a
-         moldura dele não pisca a cada navegação. -->
-    <div
-      class="border-sidebar-border bg-background flex min-w-0 flex-1 flex-col border-t md:rounded-xl md:border md:shadow-sm"
-    >
-      <div bind:this={contentEl} class="min-w-0 flex-1">
-        {@render children()}
-      </div>
+    <div bind:this={contentEl} class="min-w-0 flex-1">
+      {@render children()}
     </div>
   </SidebarInset>
 </SidebarProvider>

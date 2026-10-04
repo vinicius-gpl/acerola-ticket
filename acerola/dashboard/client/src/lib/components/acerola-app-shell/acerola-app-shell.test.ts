@@ -75,23 +75,6 @@ describe('AcerolaAppShell', () => {
     expect(screen.queryByRole('group', { name: 'Área que você está vendo' })).not.toBeInTheDocument();
   });
 
-  /* O contexto é DA CASCA: mora na moldura, fora do cartão onde a rota desenha a tela. */
-  it('keeps the context selector out of the card where the route is drawn', () => {
-    renderShell({
-      data: {
-        areaOptions: [
-          { value: 'all', label: 'Todas' },
-          { value: 'infra', label: 'Infraestrutura' },
-        ],
-      },
-    });
-
-    const group = screen.getByRole('group', { name: 'Área que você está vendo' });
-    const routeCard = screen.getByText('Conteúdo da rota').parentElement?.parentElement;
-
-    expect(routeCard).not.toContainElement(group);
-  });
-
   /* Zero não vira selo: um "0" ao lado de cada item seria ruído. */
   it('draws no badge for a zero counter', () => {
     renderShell({ ui: { items }, data: { badges: { reports: 0 } } });
