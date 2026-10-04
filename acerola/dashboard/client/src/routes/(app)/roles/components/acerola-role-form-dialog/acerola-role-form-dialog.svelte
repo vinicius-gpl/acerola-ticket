@@ -10,7 +10,7 @@
   import { type FormFieldState } from '$lib/types/form-field.type';
   import { type RoleFormField } from '$lib/hooks/use-role-form/use-role-form.svelte';
 
-  export type RoleFormDialogProps = {
+  export type AcerolaRoleFormDialogProps = {
     data: {
       mode: 'create' | 'edit';
       users?: DirectoryUser[];
@@ -80,12 +80,12 @@
     DialogFooter,
     DialogHeader,
     DialogTitle,
-  } from '$lib/components/ui/dialog';
+  } from '$lib/components/acerola-dialog/acerola-dialog';
   import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-  } from '$lib/components/ui/popover';
+  } from '$lib/components/acerola-popover/acerola-popover';
   import { cn } from '$lib/utils/cn';
 
   import Check from '@lucide/svelte/icons/check';
@@ -97,7 +97,7 @@
   import User from '@lucide/svelte/icons/user';
   import { staggerIn } from '$lib/motion/motion';
 
-  let { data, state: formState, actions }: RoleFormDialogProps = $props();
+  let { data, state: formState, actions }: AcerolaRoleFormDialogProps = $props();
 
   const isEdit = $derived(data.mode === 'edit');
   const fields = $derived(data.fields);

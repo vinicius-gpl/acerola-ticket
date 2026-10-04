@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import RoleFormDialog, { type RoleFormDialogProps } from './role-form-dialog.svelte';
+import RoleFormDialog, { type AcerolaRoleFormDialogProps } from './acerola-role-form-dialog.svelte';
 
 const fields = {
   userId: { value: '', error: null },
@@ -11,7 +11,7 @@ const fields = {
   role: { value: 'user', error: null },
 };
 
-function renderDialog(overrides: Partial<RoleFormDialogProps> = {}) {
+function renderDialog(overrides: Partial<AcerolaRoleFormDialogProps> = {}) {
   const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn(), onClose: vi.fn() };
 
   render(RoleFormDialog, {
@@ -26,7 +26,7 @@ function renderDialog(overrides: Partial<RoleFormDialogProps> = {}) {
   return actions;
 }
 
-describe('RoleFormDialog', () => {
+describe('AcerolaRoleFormDialog', () => {
   // feliz
   it('renders title for create mode and triggers submit', async () => {
     const actions = renderDialog();

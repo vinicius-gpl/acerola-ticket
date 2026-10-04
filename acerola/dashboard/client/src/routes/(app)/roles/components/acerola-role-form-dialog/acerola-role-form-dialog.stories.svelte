@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { fn } from 'storybook/test';
 
-  import RoleFormDialog from './role-form-dialog.svelte';
+  import RoleFormDialog from './acerola-role-form-dialog.svelte';
 
   const emptyFields = {
     userId: { value: '', error: null },
@@ -14,7 +14,7 @@
   const baseActions = { onChange: fn(), onBlur: fn(), onSubmit: fn(), onClose: fn() };
 
   const { Story } = defineMeta({
-    title: 'Components/RoleFormDialog',
+    title: 'Features/Roles/AcerolaRoleFormDialog',
     component: RoleFormDialog,
   });
 </script>
