@@ -217,6 +217,10 @@ O par `data-slot` é obrigatório: é por ele que teste e story encontram cada f
 - Corpo tem o resto, **cada valor com rótulo** — o cartão não tem cabeçalho de coluna para
   explicar o número solto.
 - Ações sempre visíveis no rodapé (no toque não existe hover). Ação destrutiva por último.
+- **Hover do cartão**: a cor suave da situação do item entra por onde o mouse entrou — classe
+  `hover-fill` + `use:fillFromPointer` + `style:--fill-color={fillColorOf(<tom>)}`
+  (`lib/motion/hover-fill.ts`). Item sem situação usa `'neutral'`. **Só em cartão**: em linha de
+  tabela a camada estica a área de rolagem (a `<tr>` não corta o que sai dela).
 - Lista de cartões: a utilidade `card-grid` (`tokens.css`) — de 1 a 4 cartões por linha,
   conforme o ESPAÇO QUE A LISTA TEM (celular 1, tablet 2–3, monitor 3–4; dentro de um diálogo,
   menos). Nunca `flex flex-col` (vira um cartão gigante por linha no monitor) nem
@@ -325,6 +329,12 @@ verbo. Enquanto confirma, nada fecha.
 Só pelas funções de `lib/motion/motion.ts` (`fadeInUp`, `staggerIn`, `countTo`…): curtas
 (< 350ms) e **desligadas** quando o sistema operacional pede menos movimento. Animação explica o
 que mudou de lugar; não é enfeite. Popover/combobox abrem com a animação do próprio componente.
+
+**Nível de efeitos** (`lib/hooks/use-effects`): o sistema marca o `<html>` com
+`data-effects="full"` ou `"lite"` — pelo que a máquina aguenta (sem aceleração de vídeo ou
+máquina modesta abre em `lite`; animação medindo abaixo de 30 quadros por segundo rebaixa
+sozinha) ou pelo que a pessoa escolheu no botão **Efeitos** do menu. Efeito visual novo tem de
+ter a versão `lite` (o mesmo resultado, sem a animação) e só animar `transform`/`opacity`.
 
 ---
 
