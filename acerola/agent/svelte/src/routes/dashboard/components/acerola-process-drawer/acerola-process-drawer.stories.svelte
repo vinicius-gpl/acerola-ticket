@@ -3,7 +3,7 @@
 	import AcerolaProcessDrawer from './acerola-process-drawer.svelte';
 
 	const { Story } = defineMeta({
-		title: 'Components/AcerolaProcessDrawer',
+		title: 'Features/Dashboard/AcerolaProcessDrawer',
 		component: AcerolaProcessDrawer
 	});
 

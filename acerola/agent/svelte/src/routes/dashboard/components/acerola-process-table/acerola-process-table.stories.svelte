@@ -3,7 +3,7 @@
 	import AcerolaProcessTable from './acerola-process-table.svelte';
 
 	const { Story } = defineMeta({
-		title: 'Components/AcerolaProcessTable',
+		title: 'Features/Dashboard/AcerolaProcessTable',
 		component: AcerolaProcessTable
 	});
 
