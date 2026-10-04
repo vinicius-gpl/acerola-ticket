@@ -1,9 +1,3 @@
 {
-  "arbitrary-font-size|acerola/agent/svelte/src/routes/dashboard/components/acerola-agent-identity/acerola-agent-identity.svelte|text-[11px]": 1,
-  "doc-file-name|acerola/agent/docs/ARQUITETURA.md|nome fora de kebab-case": 1,
-  "doc-file-name|acerola/agent/docs/ENVIO-REMOTO.md|nome fora de kebab-case": 1,
-  "doc-file-name|acerola/agent/docs/ICONES.md|nome fora de kebab-case": 1,
-  "doc-file-name|acerola/agent/docs/METRICAS.md|nome fora de kebab-case": 1,
-  "doc-file-name|acerola/agent/docs/REAPROVEITAMENTO.md|nome fora de kebab-case": 1,
-  "doc-file-name|acerola/agent/docs/ROADMAP.md|nome fora de kebab-case": 1
+  "arbitrary-font-size|acerola/agent/svelte/src/routes/dashboard/components/acerola-agent-identity/acerola-agent-identity.svelte|text-[11px]": 1
 }
