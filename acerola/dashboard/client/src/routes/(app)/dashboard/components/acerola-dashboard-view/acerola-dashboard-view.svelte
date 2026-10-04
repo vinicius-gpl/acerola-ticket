@@ -175,7 +175,7 @@
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
-  import { attachFillFromPointer, fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: viewState, actions }: AcerolaDashboardViewProps = $props();
@@ -520,12 +520,7 @@
             </TableHeader>
             <TableBody>
               {#each summary.worstMachines as machine (machine.computerId)}
-                <!-- PROTÓTIPO do preenchimento no hover, agora na linha da tabela. -->
-                <TableRow
-                  {@attach attachFillFromPointer}
-                  class="hover-fill-row"
-                  style={`--fill-color: ${fillColorOf(healthStatusTone(machine.healthStatus))}`}
-                >
+                <TableRow>
                   <TableCell>
                     <p class="text-foreground font-medium break-words">
                       {machineLabelOf(machine)}

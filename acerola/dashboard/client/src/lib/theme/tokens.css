@@ -398,8 +398,8 @@
    navegador entrega à placa de vídeo sem redesenhar o conteúdo — nada de animar cor de fundo,
    sombra ou tamanho. E só o item sob o mouse anima, então 50 itens custam o mesmo que 5.
 
-   O círculo tem 3× a largura do item: de qualquer ponto de entrada ele alcança o canto mais
-   distante. `isolation` + `z-index: -1` o deixam ACIMA do fundo do item e ABAIXO do texto.
+   O círculo tem o tamanho exato para alcançar o canto mais distante a partir do ponto de
+   entrada. `isolation` + `z-index: -1` o deixam ACIMA do fundo do item e ABAIXO do texto.
    Quem pediu menos movimento ao sistema vê a cor aparecer e sumir, sem crescer.
    ========================================================================== */
 @utility hover-fill {
@@ -413,7 +413,9 @@
     z-index: -1;
     top: var(--fill-y, 50%);
     left: var(--fill-x, 50%);
-    width: 300%;
+    /* O dobro da distância até o canto mais longe (a action mede em `--fill-reach`); sem a
+       medida, 3× a largura do item cobre qualquer ponto de entrada. */
+    width: calc(var(--fill-reach, 150%) * 2);
     aspect-ratio: 1;
     border-radius: 9999px;
     background-color: var(--fill-color, var(--muted));
@@ -444,49 +446,9 @@
   }
 }
 
-/* ---- O mesmo preenchimento, para LINHA DE TABELA ----
-
-   Uma `<tr>` não aceita a camada por cima que o cartão usa: ela não corta o que sai das bordas
-   e não ancora um filho posicionado de forma confiável entre navegadores. Aqui o círculo é o
-   próprio FUNDO da linha — um degradê radial com borda dura, centrado onde o mouse entrou —,
-   e o que se anima é o RAIO dele (`--fill-r`).
-
-   Para o navegador conseguir animar um número dentro de um degradê, a variável precisa ser
-   registrada com tipo (`@property`); sem isso ela é só texto e o raio pularia de 0 ao final.
-
-   Custa um pouco mais que o do cartão: a linha é repintada a cada quadro, em vez de só mudar
-   de escala. Continua leve porque é UMA linha por vez, e uma faixa baixa. `--fill-reach` (a
-   distância até o canto mais longe) vem da action; sem ela, 100vw cobre qualquer linha. */
-@property --fill-r {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
-@utility hover-fill-row {
-  --fill-r: 0px;
-  background-image: radial-gradient(
-    circle at var(--fill-x, 50%) var(--fill-y, 50%),
-    var(--fill-color, var(--muted)) var(--fill-r),
-    transparent var(--fill-r)
-  );
-  background-repeat: no-repeat;
-  transition: --fill-r 450ms cubic-bezier(0.22, 1, 0.36, 1);
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      --fill-r: var(--fill-reach, 100vw);
-    }
-  }
-
-  :root[data-effects='lite'] & {
-    transition: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
+/* SÓ PARA CARTÃO (e outros blocos que cortam o próprio conteúdo). Em LINHA DE TABELA não:
+   uma `<tr>` ignora `overflow: hidden`, então a camada circular conta como conteúdo da tabela,
+   estica a área de rolagem e a tabela ganha barra para os lados. Foi testado e retirado. */
 
 @layer base {
   * {

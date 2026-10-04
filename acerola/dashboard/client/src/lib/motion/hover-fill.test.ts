@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attachFillFromPointer, fillColorOf, fillFromPointer, type FillTone } from './hover-fill';
+import { fillColorOf, fillFromPointer, type FillTone } from './hover-fill';
 
 /** Um item de 200×100 pousado em (50, 20) na janela. */
 function makeNode() {
@@ -63,18 +63,6 @@ describe('fillFromPointer', () => {
     node.dispatchEvent(pointer('pointerenter', 60, 70));
 
     expect(node.style.getPropertyValue('--fill-reach')).toBe(`${Math.ceil(Math.hypot(190, 50))}px`);
-  });
-
-  it('works as an attachment and cleans up when the item goes away', () => {
-    const node = makeNode();
-    const detach = attachFillFromPointer(node);
-
-    node.dispatchEvent(pointer('pointerenter', 60, 70));
-    expect(node.style.getPropertyValue('--fill-x')).toBe('10px');
-
-    detach();
-    node.dispatchEvent(pointer('pointerenter', 150, 70));
-    expect(node.style.getPropertyValue('--fill-x')).toBe('10px');
   });
 
   // triste
