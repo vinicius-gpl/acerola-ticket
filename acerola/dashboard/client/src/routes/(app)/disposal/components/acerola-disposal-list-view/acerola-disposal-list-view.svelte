@@ -22,7 +22,7 @@
    * Aqui não se descarta nada — isso acontece na FICHA da máquina, que é onde a pessoa está
    * olhando quando decide. Esta tela é o histórico, e a única escrita dela é desfazer.
    */
-  export type DisposalListViewProps = {
+  export type AcerolaDisposalListViewProps = {
     data: {
       computers: Computer[];
       total: number;
@@ -85,13 +85,13 @@
     TableHead,
     TableHeader,
     TableRow,
-  } from '$lib/components/ui/table';
+  } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/text-field/text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
   import { cn } from '$lib/utils/cn';
   import { formatDate } from '$lib/utils/format-date';
 
-  let { data, state: viewState, actions }: DisposalListViewProps = $props();
+  let { data, state: viewState, actions }: AcerolaDisposalListViewProps = $props();
 
   const tableView = useTableViewModel();
 </script>

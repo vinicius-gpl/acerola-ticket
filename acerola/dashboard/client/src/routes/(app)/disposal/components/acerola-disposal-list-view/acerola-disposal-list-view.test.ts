@@ -7,7 +7,7 @@ import DisposalListView, {
   machineLabelOf,
   type DisposalFilter,
   type DisposalSummary,
-} from './disposal-list-view.svelte';
+} from './acerola-disposal-list-view.svelte';
 
 const GB = 1024 ** 3;
 
@@ -111,7 +111,7 @@ describe('machineLabelOf', () => {
   });
 });
 
-describe('DisposalListView', () => {
+describe('AcerolaDisposalListView', () => {
   // feliz
   /* A tela existe para responder "o que saiu, e por quê" — o motivo é a coluna principal. */
   it('shows why each machine left, and when', () => {

@@ -5,7 +5,7 @@
   import DisposalListView, {
     type DisposalFilter,
     type DisposalSummary,
-  } from './disposal-list-view.svelte';
+  } from './acerola-disposal-list-view.svelte';
 
   const GB = 1024 ** 3;
 
@@ -93,7 +93,7 @@
   const settled = { isLoading: false, isEmpty: false, isFilteredOut: false, error: null };
 
   const { Story } = defineMeta({
-    title: 'Components/DisposalListView',
+    title: 'Features/Disposal/AcerolaDisposalListView',
     component: DisposalListView,
   });
 </script>
