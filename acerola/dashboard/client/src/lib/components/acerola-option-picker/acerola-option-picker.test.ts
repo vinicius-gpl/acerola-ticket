@@ -15,6 +15,56 @@ const many = Array.from({ length: 7 }, (_value, index) => ({
   label: `Opção ${index}`,
 }));
 
+/** Seis opções: ainda são pastilhas numa barra de filtro, mas não cabem num campo de formulário. */
+const six = Array.from({ length: 6 }, (_value, index) => ({
+  value: `type-${index}`,
+  label: `Tipo ${index}`,
+}));
+
+describe('AcerolaOptionPicker — in a form', () => {
+  // feliz
+  /* Num campo de formulário, pastilha só serve enquanto cabe em uma linha. */
+  it('keeps up to three options as pills, one column each', () => {
+    const three = six.slice(0, 3);
+    render(OptionPicker, {
+      props: {
+        data: { value: 'type-0', options: three },
+        ui: { ariaLabel: 'Tipo', fullWidth: true },
+        actions: { onChange: vi.fn() },
+      },
+    });
+
+    for (const option of three)
+      expect(screen.getByRole('button', { name: option.label })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Tipo' }).className).toContain('grid-cols-3');
+  });
+
+  /* Com mais de três, vira a lista que abre: as opções não ficam espalhadas pelo diálogo. */
+  it('turns into the dropdown when there are more than three options', () => {
+    render(OptionPicker, {
+      props: {
+        data: { value: 'type-4', options: six },
+        ui: { ariaLabel: 'Tipo', fullWidth: true },
+        actions: { onChange: vi.fn() },
+      },
+    });
+
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tipo 0' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tipo' })).toHaveTextContent('Tipo 4');
+  });
+
+  // triste
+  /* A mesma lista de seis, numa barra de filtro, continua em pastilhas: lá há largura. */
+  it('still shows six options as pills in a filter bar', () => {
+    render(OptionPicker, {
+      props: { data: { value: '', options: six }, actions: { onChange: vi.fn() } },
+    });
+
+    expect(screen.getByRole('button', { name: 'Tipo 5' })).toBeInTheDocument();
+  });
+});
+
 describe('AcerolaOptionPicker', () => {
   // feliz
   /* Com poucas opções a pessoa compara e troca com um clique, sem abrir nada. */

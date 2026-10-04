@@ -34,7 +34,16 @@
     actions: { onChange: (value: string) => void };
   };
 
-  const PILL_MAX_OPTIONS = 6;
+  /**
+   * Até quantas opções o controle é uma fileira de pastilhas; acima disso vira a lista que abre.
+   *
+   * Em FILTRO a barra tem a largura da tela e as pastilhas podem quebrar linha: seis ainda se
+   * leem de relance. Em FORMULÁRIO (dentro de um diálogo) a largura é a de um campo, e pastilha
+   * só serve enquanto cabe em UMA linha — com mais de três, elas quebram em duas ou três
+   * fileiras e o campo passa a ocupar mais altura do que todos os outros juntos. Ali a lista
+   * que abre escala para qualquer quantidade, e ainda tem busca.
+   */
+  const PILL_MAX_OPTIONS = { filter: 6, form: 3 } as const;
 
   /**
    * O TRILHO das pastilhas.
@@ -44,10 +53,9 @@
    * lado. `min-h`, e não `h`: no celular as opções quebram em mais de uma linha.
    *
    * `layout` é onde o controle mora. Em FILTRO as pastilhas seguem em fileira, cada uma do
-   * tamanho do próprio texto, e quebram linha em vez de rolar para o lado. Em FORMULÁRIO formam
-   * uma grade de colunas iguais, da largura do campo: com seis opções a fileira solta quebrava
-   * onde o texto mandasse, uma linha com três e outra com duas e meia, cada pastilha de um
-   * tamanho.
+   * tamanho do próprio texto, e quebram linha em vez de rolar para o lado. Em FORMULÁRIO são
+   * no máximo três (ver `PILL_MAX_OPTIONS`) e dividem a largura do campo em colunas iguais,
+   * numa linha só.
    */
   const optionTrack = tv({
     base: 'items-stretch gap-1 rounded-control border border-border/70 bg-muted/50 p-1 min-h-(--control-lg)',
@@ -56,13 +64,13 @@
         filter: 'inline-flex flex-wrap',
         form: 'grid w-full',
       },
-      /* Só vale na grade do formulário. No celular são sempre duas colunas. */
+      /* Só vale na grade do formulário: uma coluna por opção. */
       columns: { 1: '', 2: '', 3: '' },
     },
     compoundVariants: [
       { layout: 'form', columns: 1, class: 'grid-cols-1' },
       { layout: 'form', columns: 2, class: 'grid-cols-2' },
-      { layout: 'form', columns: 3, class: 'grid-cols-2 sm:grid-cols-3' },
+      { layout: 'form', columns: 3, class: 'grid-cols-3' },
     ],
     defaultVariants: { layout: 'filter', columns: 3 },
   });
@@ -119,13 +127,11 @@
     defaultVariants: { tone: 'neutral' },
   });
 
-  /* Quantas colunas a grade do formulário tem: até três opções, uma coluna para cada; quatro
-     ficam em 2×2; cinco ou seis, três por linha. */
+  /* Uma coluna por opção. Em formulário nunca passam de três — acima disso não há pastilhas. */
   function resolveGridColumns(count: number): 1 | 2 | 3 {
     if (count <= 1) return 1;
-    if (count === 2 || count === 4) return 2;
 
-    return 3;
+    return count === 2 ? 2 : 3;
   }
 
   function resolveOptions(data: AcerolaOptionPickerProps['data'], allLabel: string | undefined): OptionPickerOption[] {
@@ -147,9 +153,9 @@
   let query = $state('');
 
   const options = $derived(resolveOptions(data, ui?.allLabel));
-  const isPillMode = $derived(options.length <= PILL_MAX_OPTIONS);
-  const gridColumns = $derived(resolveGridColumns(options.length));
   const layout = $derived(ui?.fullWidth ? 'form' : 'filter');
+  const isPillMode = $derived(options.length <= PILL_MAX_OPTIONS[layout]);
+  const gridColumns = $derived(resolveGridColumns(options.length));
   const selectedOption = $derived(options.find((option) => option.value === data.value) ?? null);
 
   const filteredOptions = $derived(
@@ -203,7 +209,14 @@
         ui?.className,
       )}
     >
-      <span class="truncate">{selectedOption?.label ?? ui?.placeholder ?? 'Selecione'}</span>
+      <!-- A bolinha do tom acompanha a opção escolhida: sem ela, ao virar lista o tipo perderia
+           a cor que tinha como pastilha. -->
+      <span class="flex min-w-0 items-center gap-2">
+        {#if selectedOption?.tone}
+          <span class={optionDot({ tone: selectedOption.tone })} aria-hidden="true"></span>
+        {/if}
+        <span class="truncate">{selectedOption?.label ?? ui?.placeholder ?? 'Selecione'}</span>
+      </span>
       <ChevronDownIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
     </PopoverTrigger>
     <!-- A LARGURA DO BALÃO É AMARRADA À DO BOTÃO, entre um piso e um teto.
