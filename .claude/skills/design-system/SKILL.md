@@ -81,7 +81,7 @@ acerola/agent/
 ```
 
 **Pasta que não está neste mapa não é criada.** Precisa de uma pasta nova em `lib/`? Pare e
-pergunte. `lib/table-view/`, `lib/context/` e similares são violação (§10).
+pergunte. Pasta fora deste mapa (um `lib/table-view/`, um `lib/context/`) é violação — o check reprova.
 
 ---
 
@@ -148,7 +148,7 @@ Depois:
 
 1. Não toque no que chegou em `lib/components/ui/<nome>/` nem em `lib/hooks/ui/`.
 2. Crie `lib/components/acerola-<nome>/` envolvendo o baixado (modelo: `acerola-button` do agent
-   e o `action-button` do dashboard): variantes com `tv()`, cores por token, `h-10` se for campo
+   e o `acerola-action-button` do dashboard): variantes com `tv()`, cores por token, `h-10` se for campo
    (§6).
 3. Story + teste (§8).
 
@@ -196,7 +196,7 @@ aplicado **no `acerola-*`**, nunca no `ui/` (o CLI sobrescreve) e nunca na rota.
 | Componente próprio | Envolve |
 |---|---|
 | `acerola-text-field` | `ui/input` |
-| `acerola-select` (o `select-field` atual) | `ui/select` — no `SelectTrigger` |
+| `acerola-select-field` | `ui/select` — no `SelectTrigger` |
 | `acerola-input-group` | `ui/input-group` |
 | `acerola-date-picker` | `ui/date-picker` |
 | `acerola-option-picker` | `ui/toggle-group` |
@@ -279,36 +279,26 @@ Storybook (`src/**/*.stories.svelte`) e do Vitest (`src/**/*.test.ts`) já cobre
 
 ---
 
-## 10. Violações conhecidas (develop `e58179c`)
+## 10. Violações conhecidas
 
-Backlog de correção. Cada linha é um commit separado; mover arquivo não muda conteúdo além de
-import.
+O que a migração de design (fases 1 a 7, registro em `acerola/dashboard/docs/design-migration.md`)
+ainda não quitou. Cada linha é um commit separado; mover arquivo não muda conteúdo além de
+import. O que saiu desta lista: prefixo `acerola-`, componente de feature em `lib`, hooks e
+pastas de `lib`, cor/raio/fonte/sombra por token, rota só compõe, nome dos docs do agent e os
+tokens do agent.
 
 | Local | Violação | Destino |
 |---|---|---|
-| `lib/components/*` (76 pastas) | sem prefixo `acerola-` | `acerola-<nome>` |
-| `lib/components/dashboard-{maintenance-log,peaking,problem-map,recurrence,view}` | feature em `lib` | `routes/(app)/dashboard/components/acerola-*` |
-| `lib/components/{computer-*,transfer-dialog}` | feature em `lib` | `routes/(app)/computers/components/` |
-| `lib/components/{part-*,movement-form-dialog}` | feature em `lib` | `routes/(app)/parts/components/` |
-| `lib/components/{ticket-*,open-ticket-form}` | feature em `lib` | `routes/(app)/tickets/` · `routes/support/components/` |
-| `lib/components/{maintenance-*,preventive-board}` | feature em `lib` | `routes/(app)/maintenance/components/` |
-| `lib/components/{role-*,task-*,budget-view,insights-view,network-list-view,disposal-list-view}` | feature em `lib` | `routes/(app)/<feature>/components/` |
-| `lib/components/{login,forgot-password,reset-password}-screen` | feature em `lib` | `routes/<tela>/components/` |
-| `role-list-view` (usado por `profile` e `roles`) | 2 rotas, mas de domínio | decidir: genérico sem domínio ou feature `roles` exportando para `profile` (proibido) → extrair parte genérica |
-| `lib/hooks/is-mobile.svelte.ts` | hook do CLI solto | `lib/hooks/ui/` via `components.json` |
-| `lib/hooks/use-mobile.svelte.ts` | hook próprio solto; classe `IsMobile` homônima à do CLI | `lib/hooks/use-media-query/` com breakpoint por parâmetro |
-| `lib/hooks/form-projection/` | sem `use-` | `lib/hooks/use-form-projection/` |
-| `lib/hooks/mirror-store/` | sem `use-` | `lib/hooks/use-mirror-store/` |
-| `lib/table-view/` | hook fora de `hooks/` | `lib/hooks/use-table-view/` |
-| `lib/context/ticket-area-context.svelte.ts` | pasta fora do mapa | `lib/hooks/use-ticket-area/` |
+| `agent/svelte/src/routes/dashboard/components/acerola-agent-identity` | `text-[11px]` na linha da estação (único item da baseline) | fica: em 12px a linha quebra em duas na janela de 1100px e empurra as abas |
+| `acerola-role-list-view` (usado por `profile` e `roles`) | 2 rotas, mas de domínio | decidir: genérico sem domínio ou feature `roles` exportando para `profile` (proibido) → extrair parte genérica |
 | `ui/input` h-8, `ui/select` h-8/h-9, `ui/button` h-7–9 | campo sem `h-10` | `h-10` nos `acerola-*` (§6) |
 | `server/.../tickets.service.test.ts` `const manutencao`, `server/test/computers.e2e.ts` `const descarte` | identificador em pt | inglês |
-| `agent/docs/{ARQUITETURA,ENVIO-REMOTO,ICONES,METRICAS,REAPROVEITAMENTO,ROADMAP}.md` | nome de arquivo em pt/MAIÚSCULO | `architecture.md`, `remote-reporting.md`, `icons.md`, `metrics.md`, `reuse.md`, `roadmap.md` |
-| `option-picker` fora de `fullWidth` usa `control-sm` | pastilha de filtro abaixo de 40px | `control-lg` |
-| `ui/date-picker` (h-10, rounded-xl), `ui/table` (snippet `footer`, cores `neutral-*`) | `ui/` editado à mão; some no próximo `add` | mover a customização para `acerola-date-picker` / `acerola-table` |
-| 12 listas com par cartão/tabela à mão, raios diferentes | duplicação | `acerola-data-view` (skill `ui-standards` §6.4) |
-| button-group, breadcrumb, collapsible, input-group, navigation-menu | não instalados | `npx shadcn-svelte@latest add …` + `acerola-*` |
-| `agent/svelte` sem os tokens de raio por papel nem a régua `control-*` | tema do agent solto do `tokens.css` do dashboard | igualar o `theme` do agent ao do dashboard (raio por papel, régua de altura) |
+| `acerola-option-picker` fora de `fullWidth` usa `control-sm` | pastilha de filtro abaixo de 40px | `control-lg` |
+| `ui/table` (contêiner com raio e borda, snippet `footer`, cores, `table-actions`) | `ui/` editado à mão; some no próximo `add` | levar a customização para o `acerola-table` (hoje só reexporta o `ui/table`) e reinstalar o original; precisa de print antes/depois das 10 listas |
+| `ui/date-picker`; button-group, breadcrumb, collapsible, input-group, navigation-menu | date-picker é nosso e mora em `ui/`; os outros cinco não estão instalados | resolvido no PR #29 (rascunho): `acerola-date-picker` e os cinco `acerola-*` — falta rodar a verificação completa e juntar |
+| `acerola-dialog`, `acerola-table`, `acerola-sheet`, `acerola-popover`, `acerola-skeleton` | são só a porta de entrada do `ui/<x>` para a feature (um `.ts` que reexporta), sem variante nem story | virar componente de verdade quando o projeto precisar de variante própria |
+| 12 listas com par cartão/tabela à mão | duplicação | `acerola-data-view` (skill `ui-standards` §6.4) |
+| Storybook do dashboard | `storybook build` e `dev` recusam subir: o framework é `svelte-vite` e o projeto é SvelteKit | apontar o builder para um `vite.config` sem o plugin do SvelteKit (com os apelidos `$lib`/`$app` do `vitest.config.ts`) ou trocar para `@storybook/sveltekit` |
 
 ---
 
