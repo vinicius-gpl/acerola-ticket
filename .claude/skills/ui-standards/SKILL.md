@@ -45,9 +45,12 @@ componente é violação (`design-system` I1).
 | Situação | só via `StatusBadge` com tom: `neutral`, `info`, `success`, `warning`, `danger`, `brand` |
 
 **Proibido no componente:** paleta crua do Tailwind (`text-neutral-400`, `bg-red-50`,
-`border-emerald-500`) e hex. Ela não acompanha o tema escuro nem a troca de marca. Hoje são ~300
-ocorrências em `lib/components` — legado, não modelo. Ao tocar numa linha que tem uma, troque
-pelo token equivalente; não saia trocando o arquivo inteiro.
+`border-emerald-500`) e hex. Ela não acompanha o tema escuro nem a troca de marca. O check
+reprova qualquer ocorrência nova.
+
+Tons de estado, quando não é um `StatusBadge`: `text-success` / `text-warning` / `text-info` /
+`text-destructive`; fundo suave sólido com `bg-<tom>-soft`; fundo forte com `bg-<tom>` e texto
+`text-primary-foreground`. Barras e medidores usam `bg-chart-1…5`.
 
 Ícones: **Lucide, sempre**; emoji não é ícone. Ícone de 16px (`size-4`) em controle e 14px
 (`size-3.5`) em controle `sm`.
@@ -129,7 +132,7 @@ Regra que decide: **o que divide fileira tem a mesma altura.** Campo de formulá
 | Rótulo de campo no cartão, legenda, contagem | `text-xs text-muted-foreground` |
 | Número | `tabular-nums` |
 
-**Proibido** `text-[10px]`/`text-[11px]` (hoje ~50 ocorrências): menor texto é `text-xs`.
+**Proibido** `text-[10px]`/`text-[11px]`: menor texto é `text-xs`.
 Texto longo quebra (`break-words`); `truncate` só com o valor completo no `title`.
 
 ---
@@ -229,8 +232,8 @@ O par `data-slot` é obrigatório: é por ele que teste e story encontram cada f
 
 ### 6.4 Componente
 
-As 12 listas de hoje repetem o par cartão/tabela à mão, cada uma com um raio (7 com
-`rounded-lg`, 1 `rounded-2xl`, 1 `rounded-box`). O alvo é um genérico
+As 12 listas de hoje repetem o par cartão/tabela à mão (já com o mesmo raio,
+`rounded-surface`). O alvo é um genérico
 `acerola-data-view` que recebe `data.items`, um snippet `card(item)` e um snippet `row(item)` +
 `columns`, e cuida sozinho de `data-slot`, troca por largura, preferência e contêiner.
 Lista nova usa ele; lista antiga migra quando for tocada.
