@@ -43,7 +43,7 @@
    * pessoa precisa guardar, e mostrá-lo num aviso ao lado do formulário preenchido é a forma
    * mais certa de ela fechar a página sem anotar.
    */
-  export type OpenTicketFormProps = {
+  export type AcerolaOpenTicketFormProps = {
     data: {
       fields: Record<OpenTicketField, FormFieldState>;
       notifyWhatsapp: boolean;
@@ -157,7 +157,7 @@
   import { fadeInUp } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
-  let { data, state: formState, actions }: OpenTicketFormProps = $props();
+  let { data, state: formState, actions }: AcerolaOpenTicketFormProps = $props();
 
   const fields = $derived(data.fields);
 

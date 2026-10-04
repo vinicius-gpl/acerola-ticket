@@ -24,7 +24,7 @@
    * O chamado que chega aqui já vem podado pelo servidor — sem telefone, sem responsável e
    * sem a solução. Esta tela não esconde nada: ela simplesmente não recebe.
    */
-  export type TicketLookupDrawerProps = {
+  export type AcerolaTicketLookupDrawerProps = {
     data: {
       protocol: string;
       ticket: PublicTicket | null;
@@ -60,9 +60,9 @@
     SheetDescription,
     SheetHeader,
     SheetTitle,
-  } from '$lib/components/ui/sheet';
+  } from '$lib/components/acerola-sheet/acerola-sheet';
 
-  let { data, state, actions }: TicketLookupDrawerProps = $props();
+  let { data, state, actions }: AcerolaTicketLookupDrawerProps = $props();
 
   const ticket = $derived(data.ticket);
 

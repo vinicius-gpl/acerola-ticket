@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
 
   import { type FormFieldState } from '$lib/types/form-field.type';
-  import OpenTicketForm, { type OpenTicketField } from './open-ticket-form.svelte';
+  import OpenTicketForm, { type OpenTicketField } from './acerola-open-ticket-form.svelte';
 
   const field = (value: string, error: string | null = null): FormFieldState => ({ value, error });
 
@@ -41,7 +41,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Components/OpenTicketForm',
+    title: 'Features/Support/AcerolaOpenTicketForm',
     component: OpenTicketForm,
   });
 </script>

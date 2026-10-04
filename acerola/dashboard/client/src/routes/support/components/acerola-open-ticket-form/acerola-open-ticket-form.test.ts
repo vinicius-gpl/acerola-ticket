@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type FormFieldState } from '$lib/types/form-field.type';
-import OpenTicketForm, { type OpenTicketField } from './open-ticket-form.svelte';
+import OpenTicketForm, { type OpenTicketField } from './acerola-open-ticket-form.svelte';
 
 const field = (value: string, error: string | null = null): FormFieldState => ({ value, error });
 
@@ -48,7 +48,7 @@ async function advanceTo(user: ReturnType<typeof userEvent.setup>, index: number
   }
 }
 
-describe('OpenTicketForm', () => {
+describe('AcerolaOpenTicketForm', () => {
   // feliz
   it('opens on the area step, with the three cards to choose from', () => {
     setup();

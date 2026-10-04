@@ -1,7 +1,7 @@
 <script lang="ts">
   import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import OpenTicketForm from '$lib/components/open-ticket-form/open-ticket-form.svelte';
-  import TicketLookupDrawer from '$lib/components/ticket-lookup-drawer/ticket-lookup-drawer.svelte';
+  import OpenTicketForm from './components/acerola-open-ticket-form/acerola-open-ticket-form.svelte';
+  import TicketLookupDrawer from './components/acerola-ticket-lookup-drawer/acerola-ticket-lookup-drawer.svelte';
   import { useOpenTicketModel } from '$lib/hooks/use-open-ticket/use-open-ticket.svelte';
   import { useTicketLookupModel } from '$lib/hooks/use-ticket-lookup/use-ticket-lookup.svelte';
 

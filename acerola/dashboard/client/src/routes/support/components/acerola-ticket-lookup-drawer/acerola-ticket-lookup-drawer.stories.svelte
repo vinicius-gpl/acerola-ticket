@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type PublicTicket } from '@template/shared/schemas/ticket.schema';
 
-  import TicketLookupDrawer from './ticket-lookup-drawer.svelte';
+  import TicketLookupDrawer from './acerola-ticket-lookup-drawer.svelte';
 
   const ticket: PublicTicket = {
     id: 7,
@@ -23,7 +23,7 @@
   const actions = { onProtocolChange: () => {}, onSearch: () => {}, onClose: () => {} };
 
   const { Story } = defineMeta({
-    title: 'Components/TicketLookupDrawer',
+    title: 'Features/Support/AcerolaTicketLookupDrawer',
     component: TicketLookupDrawer,
   });
 </script>

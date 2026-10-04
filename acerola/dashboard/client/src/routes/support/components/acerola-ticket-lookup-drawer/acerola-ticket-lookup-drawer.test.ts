@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import TicketLookupDrawer from './ticket-lookup-drawer.svelte';
+import TicketLookupDrawer from './acerola-ticket-lookup-drawer.svelte';
 
 const ticket: PublicTicket = {
   id: 7,
@@ -34,7 +34,7 @@ function setup(props: Record<string, unknown> = {}) {
   });
 }
 
-describe('TicketLookupDrawer', () => {
+describe('AcerolaTicketLookupDrawer', () => {
   // feliz
   it('shows the ticket it was given, in words the requester understands', () => {
     setup({ data: { protocol: 'CH-0007', ticket } });
