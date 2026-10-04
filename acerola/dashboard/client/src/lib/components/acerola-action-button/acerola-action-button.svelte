@@ -56,7 +56,12 @@
       isIconOnly?: boolean;
       className?: string;
     };
-    state?: { isLoading?: boolean; isDisabled?: boolean };
+    state?: {
+      isLoading?: boolean;
+      isDisabled?: boolean;
+      /** Para botão que liga/desliga ou faz parte de uma escolha: anuncia qual está valendo. */
+      isPressed?: boolean;
+    };
     actions?: { onClick?: () => void };
   };
 
@@ -115,6 +120,7 @@
   size={buttonSize(ui)}
   disabled={isBusy || isDisabled}
   aria-busy={isBusy}
+  aria-pressed={state?.isPressed}
   aria-label={accessibleName}
   title={accessibleName}
   onclick={actions?.onClick}

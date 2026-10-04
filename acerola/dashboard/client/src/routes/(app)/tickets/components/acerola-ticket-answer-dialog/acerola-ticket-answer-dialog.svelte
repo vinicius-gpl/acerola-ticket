@@ -392,7 +392,7 @@
 
             <!-- ÁREAS PARTICIPANTES (#13) — além da área original, de cima. Ex.: um chamado
                  de Infra que também precisa de Manutenção. Mudança própria, fora do envio do
-                 formulário: soma/remove na hora, sem esperar o resto ser salvo. -->
+                 formulário: adiciona/remove na hora, sem esperar o resto ser salvo. -->
             <div class="mt-4 flex flex-col gap-1.5 border-t border-border/70 pt-4">
               <span class="text-xs font-medium text-muted-foreground">Áreas participantes</span>
 
@@ -421,7 +421,7 @@
                 <div class="mt-1 flex items-center gap-2">
                   <OptionPicker
                     data={{ value: data.chosenParticipantArea, options: data.availableParticipantAreas }}
-                    ui={{ ariaLabel: 'Somar área participante', placeholder: 'Escolher área' }}
+                    ui={{ ariaLabel: 'Adicionar área participante', placeholder: 'Escolher área' }}
                     state={{ isDisabled: state.isAddingArea }}
                     actions={{
                       onChange: (value: string) =>
@@ -429,8 +429,8 @@
                     }}
                   />
                   <ActionButton
-                    data={{ label: 'Somar', loadingLabel: 'Somando…' }}
-                    ui={{ variant: 'secondary', size: 'sm', icon: PlusIcon }}
+                    data={{ label: 'Adicionar', loadingLabel: 'Adicionando…' }}
+                    ui={{ variant: 'secondary', size: 'lg', icon: PlusIcon }}
                     state={{
                       isDisabled: data.chosenParticipantArea === '',
                       isLoading: state.isAddingArea,

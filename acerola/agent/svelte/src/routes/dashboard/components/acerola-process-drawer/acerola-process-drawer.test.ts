@@ -116,6 +116,69 @@ describe('AcerolaProcessDrawer', () => {
 		expect(getAllByText('PID 8120').length).toBe(1);
 	});
 
+	/** Abre a gaveta de PIDs e devolve a língua (o puxador do topo). */
+	async function openPidDrawer() {
+		const view = render(AcerolaProcessDrawer, {
+			props: { data: { processes: [chrome, explorer] } }
+		});
+		await fireEvent.click(view.getAllByText('Expandir PIDs')[0]);
+
+		return { ...view, handle: view.getByRole('button', { name: /Recolher gaveta — arraste/ }) };
+	}
+
+	// feliz
+	it('closes the PID drawer from the footer button', async () => {
+		const { getByText, queryByText } = await openPidDrawer();
+
+		await fireEvent.click(getByText('Fechar Gaveta'));
+
+		expect(queryByText('Instâncias e Threads de chrome.exe')).not.toBeInTheDocument();
+	});
+
+	// feliz
+	it('closes the PID drawer when the handle is clicked', async () => {
+		const { handle, queryByText } = await openPidDrawer();
+
+		await fireEvent.click(handle);
+
+		expect(queryByText('Instâncias e Threads de chrome.exe')).not.toBeInTheDocument();
+	});
+
+	// feliz
+	it('closes the PID drawer when the handle is dragged down past the limit', async () => {
+		const { handle, queryByText } = await openPidDrawer();
+
+		await fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 });
+		await fireEvent.pointerMove(handle, { clientY: 260, pointerId: 1 });
+		await fireEvent.pointerUp(handle, { clientY: 260, pointerId: 1 });
+
+		expect(queryByText('Instâncias e Threads de chrome.exe')).not.toBeInTheDocument();
+	});
+
+	// triste
+	it('keeps the PID drawer open after a short drag, even with the click that follows it', async () => {
+		const { handle, getByText } = await openPidDrawer();
+
+		await fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 });
+		await fireEvent.pointerMove(handle, { clientY: 130, pointerId: 1 });
+		await fireEvent.pointerUp(handle, { clientY: 130, pointerId: 1 });
+		await fireEvent.click(handle);
+
+		expect(getByText('Instâncias e Threads de chrome.exe')).toBeInTheDocument();
+	});
+
+	// triste
+	it('ignores an upward drag on the handle', async () => {
+		const { handle, getByText } = await openPidDrawer();
+
+		await fireEvent.pointerDown(handle, { clientY: 300, pointerId: 1 });
+		await fireEvent.pointerMove(handle, { clientY: 40, pointerId: 1 });
+		await fireEvent.pointerUp(handle, { clientY: 40, pointerId: 1 });
+		await fireEvent.click(handle);
+
+		expect(getByText('Instâncias e Threads de chrome.exe')).toBeInTheDocument();
+	});
+
 	it('closes expanded drawer on Escape key', async () => {
 		const { getByText, queryByText, getAllByText } = render(AcerolaProcessDrawer, {
 			props: { data: { processes: [chrome, explorer] } }

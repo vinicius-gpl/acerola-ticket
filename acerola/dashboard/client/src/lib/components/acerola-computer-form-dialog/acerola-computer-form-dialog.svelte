@@ -116,6 +116,9 @@
           />
         {/if}
 
+        <!-- Ao EDITAR, o bloco de cima (o nome informado pela máquina) ocupa as duas colunas, e
+             o apelido sobrava sozinho em meia largura, com o texto de exemplo cortado. Ali ele
+             ocupa a linha inteira também; ao CADASTRAR, divide a linha com o nome. -->
         <TextField
           data={{
             label: 'Apelido',
@@ -123,6 +126,7 @@
             value: fields.displayName.value,
             placeholder: 'Como o pessoal chama essa máquina',
           }}
+          ui={{ className: isEdit ? 'sm:col-span-2' : undefined }}
           state={{
             error: fields.displayName.error,
             isDisabled: state.isSubmitting,

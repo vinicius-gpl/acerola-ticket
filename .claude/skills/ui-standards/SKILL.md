@@ -147,6 +147,17 @@ Corpo (visão de dados)
 PaginationBar, quando a lista é paginada
 ```
 
+**Barra de filtros** — cada filtro tem o NOME em cima (`acerola-filter-field` envolvendo o
+`acerola-option-picker`), numa fileira `flex flex-wrap items-end gap-x-4 gap-y-3`. Um
+liga/desliga ("mostrar arquivadas", "só com estoque") também é um filtro com nome e duas
+pastilhas — nunca uma caixa de seleção solta embaixo dos outros. À direita (`ml-auto`), "Limpar
+filtros" (`ghost`, `lg`), que só aparece quando há filtro ativo e some quando o aviso de lista
+vazia já o oferece.
+
+**Cartão de indicador como atalho** — quando o número do `StatCard` corresponde a um filtro da
+lista, ele recebe `actions.onClick` (liga o filtro; de novo, desliga) e `state.isSelected`, e a
+tela rola até os filtros. Cartão sem filtro correspondente (uma medida, um total) não é clicável.
+
 Largura: `mx-auto w-full max-w-5xl px-4 sm:px-6`. Espaço entre blocos: `gap-5`; dentro de um
 cartão: `gap-3`; padding de superfície: `p-4` (cartão de lista) ou `p-5` (painel).
 Uma ação principal por tela (`primary`). As outras são `secondary` ou `ghost`.
@@ -182,7 +193,8 @@ colunas, cartão para ler um item por vez. Os dois mostram **os mesmos dados e a
 
 - A troca para cartão **no celular e no tablet é automática e não tem botão para desfazer**: em
   `< xl` tabela nunca aparece.
-- No computador, o `TableViewToggle` (ícone na barra de filtros) liga "ver sempre em cards".
+- No computador, o `TableViewToggle` (na barra de filtros) escolhe entre tabela e cards: dois
+  botões numa moldura, o formato em uso preenchido com a cor principal. Abaixo de `xl` ele some.
   É **preferência do sistema, não da tela**: vale para todas as listas e fica guardada no
   navegador (`acerola-table-view`). Hook: `use-table-view`.
 - A troca é **por CSS**, não por JS: os dois blocos são renderizados e um deles fica `hidden`.
@@ -216,8 +228,15 @@ O par `data-slot` é obrigatório: é por ele que teste e story encontram cada f
 - Corpo tem o resto, **cada valor com rótulo** — o cartão não tem cabeçalho de coluna para
   explicar o número solto.
 - Ações sempre visíveis no rodapé (no toque não existe hover). Ação destrutiva por último.
-- Lista de cartões: `flex flex-col gap-3`. Em `md` pode virar `grid md:grid-cols-2` se o cartão
-  for curto (≤ 4 linhas).
+- **Hover do cartão**: a cor suave da situação do item entra por onde o mouse entrou — classe
+  `hover-fill` + `use:fillFromPointer` + `style:--fill-color={fillColorOf(<tom>)}`
+  (`lib/motion/hover-fill.ts`). Item sem situação usa `'neutral'`. **Só em cartão**: em linha de
+  tabela a camada estica a área de rolagem (a `<tr>` não corta o que sai dela).
+- Lista de cartões: a utilidade `card-grid` (`tokens.css`) — de 1 a 4 cartões por linha,
+  conforme o ESPAÇO QUE A LISTA TEM (celular 1, tablet 2–3, monitor 3–4; dentro de um diálogo,
+  menos). Nunca `flex flex-col` (vira um cartão gigante por linha no monitor) nem
+  `grid-cols-N` fixo. A grade já empurra o ÚLTIMO bloco de cada cartão (o rodapé) para o
+  fundo, para os rodapés de uma fileira alinharem: o rodapé tem de ser o último filho do cartão.
 
 ### 6.3 Anatomia da tabela
 
@@ -323,6 +342,12 @@ Só pelas funções de `lib/motion/motion.ts` (`fadeInUp`, `staggerIn`, `countTo
 (< 350ms) e **desligadas** quando o sistema operacional pede menos movimento. Animação explica o
 que mudou de lugar; não é enfeite. Popover/combobox abrem com a animação do próprio componente.
 
+**Nível de efeitos** (`lib/hooks/use-effects`): o sistema marca o `<html>` com
+`data-effects="full"` ou `"lite"` — pelo que a máquina aguenta (sem aceleração de vídeo ou
+máquina modesta abre em `lite`; animação medindo abaixo de 30 quadros por segundo rebaixa
+sozinha) ou pelo que a pessoa escolheu no botão **Efeitos** do menu. Efeito visual novo tem de
+ter a versão `lite` (o mesmo resultado, sem a animação) e só animar `transform`/`opacity`.
+
 ---
 
 ## 13. Responsivo
@@ -340,8 +365,10 @@ lista vira cartão (§6).
 **Nada rola para o lado, nunca.**
 
 - **Pastilha de escolha quebra linha, não vira tira rolante.** Grupo de opções usa `flex-wrap`;
-  nunca `overflow-x-auto`. Com mais de 4 opções num espaço estreito (cabeçalho, menu), use
-  `SelectField` em vez de pastilhas.
+  nunca `overflow-x-auto`. O `acerola-option-picker` troca de forma sozinho: em FILTRO são
+  pastilhas até 6 opções; em FORMULÁRIO (`ui.fullWidth`, dentro de diálogo) só até 3, numa
+  linha de colunas iguais — acima disso vira a lista que abre, com busca. Pastilha não escala
+  dentro de um modal: com muitas opções ela quebra em várias fileiras.
 - **Quem rola é a caixa da tabela, não a página.** A área de conteúdo tem `min-w-0` (no
   `SidebarInset` do `app-shell`); sem isso o `overflow-x-auto` da tabela não funciona.
 - **Texto quebra, não corta.** `break-words` em nome, e-mail e descrição.

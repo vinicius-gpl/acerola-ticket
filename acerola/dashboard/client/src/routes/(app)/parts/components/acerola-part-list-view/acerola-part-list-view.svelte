@@ -17,6 +17,7 @@
     category: PartCategory | '';
     condition: PartCondition | '';
     inStockOnly: boolean;
+    outOfStockOnly: boolean;
   };
 
   export type PartSummary = { kinds: number; items: number; outOfStock: number };
@@ -52,6 +53,7 @@
       onCategoryChange: (category: PartCategory | '') => void;
       onConditionChange: (condition: PartCondition | '') => void;
       onInStockOnlyChange: (inStockOnly: boolean) => void;
+      onOutOfStockOnlyChange: (outOfStockOnly: boolean) => void;
       onClearFilters: () => void;
       onRetry: () => void;
       onRegister: () => void;
@@ -71,9 +73,23 @@
     label: PART_CONDITION_LABELS[condition],
     tone: partConditionTone(condition),
   }));
+
+  /** "Estoque": a opção sem valor ("Todas") vem do `allLabel` do seletor. */
+  const STOCK_OPTIONS = [
+    { value: 'in', label: 'Com estoque', tone: 'success' as const },
+    { value: 'out', label: 'Sem estoque', tone: 'danger' as const },
+  ];
+
+  /** As duas chaves do filtro (`inStockOnly`/`outOfStockOnly`) como UMA escolha de três. */
+  function stockValueOf(filter: PartListFilter): string {
+    if (filter.inStockOnly) return 'in';
+
+    return filter.outOfStockOnly ? 'out' : '';
+  }
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import Package from '@lucide/svelte/icons/package';
   import Plus from '@lucide/svelte/icons/plus';
   import SearchX from '@lucide/svelte/icons/search-x';
@@ -81,6 +97,7 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
@@ -98,12 +115,49 @@
   } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: viewState, actions }: AcerolaPartListViewProps = $props();
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(
+    Boolean(
+      data.filter.search ||
+        data.filter.category ||
+        data.filter.condition ||
+        data.filter.inStockOnly ||
+        data.filter.outOfStockOnly,
+    ),
+  );
+
+  /* Quem clica num cartão do topo precisa VER o resultado: a tela rola até os filtros. A
+     referência só é usada dentro do clique, então é uma variável comum. */
+  let filtersElement: HTMLElement | null = null;
+
+  /* O filtro de estoque, vindo das pastilhas ou de um cartão do topo. Escolher o que já está
+     valendo (clicar de novo no cartão) tira o filtro. */
+  function chooseStock(value: string) {
+    const next = value === stockValueOf(data.filter) ? '' : value;
+
+    if (next === 'in') return actions.onInStockOnlyChange(true);
+    if (next === 'out') return actions.onOutOfStockOnlyChange(true);
+
+    actions.onInStockOnlyChange(false);
+    actions.onOutOfStockOnlyChange(false);
+  }
+
+  function chooseStockFromCard(value: 'in' | 'out') {
+    chooseStock(value);
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filtersElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -113,7 +167,6 @@
       description: 'As peças de reposição que a TI tem em mãos.',
     }}
   >
-    <TableViewToggle />
     <ActionButton
       data={{ label: 'Cadastrar peça' }}
       ui={{ icon: Plus }}
@@ -127,10 +180,14 @@
       ui={{ tone: 'brand' }}
       state={{ isLoading: viewState.isSummaryLoading }}
     />
+    <!-- Estes dois são ATALHOS do filtro de estoque: "Peças na prateleira" mostra só o que tem
+         saldo, "Sem estoque" só o que está zerado. Clicar de novo desliga. "Tipos de peça" é o
+         total do cadastro — não filtra nada. -->
     <StatCard
       data={{ label: 'Peças na prateleira', value: summary?.items ?? 0 }}
       ui={{ tone: 'success' }}
-      state={{ isLoading: viewState.isSummaryLoading }}
+      state={{ isLoading: viewState.isSummaryLoading, isSelected: data.filter.inStockOnly }}
+      actions={{ onClick: () => chooseStockFromCard('in') }}
     />
     <StatCard
       data={{
@@ -139,11 +196,12 @@
         hint: summary?.outOfStock ? 'são as que podem precisar de compra' : null,
       }}
       ui={{ tone: 'danger' }}
-      state={{ isLoading: viewState.isSummaryLoading }}
+      state={{ isLoading: viewState.isSummaryLoading, isSelected: data.filter.outOfStockOnly }}
+      actions={{ onClick: () => chooseStockFromCard('out') }}
     />
   </StatCardGrid>
 
-  <div class="flex flex-col gap-3">
+  <div bind:this={filtersElement} class="flex scroll-mt-4 flex-col gap-3">
     <TextField
       data={{
         label: 'Buscar',
@@ -154,8 +212,10 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+    <!-- Uma fileira, cada filtro com o nome em cima. "Estoque" era uma caixa de seleção solta
+         embaixo dos outros; agora é um filtro como os demais, com as duas escolhas à vista. -->
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <FilterField data={{ label: 'Categoria' }}>
         <OptionPicker
           data={{ value: data.filter.category, options: CATEGORY_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por categoria', allLabel: 'Todas as categorias' }}
@@ -163,6 +223,8 @@
             onChange: (value: string) => actions.onCategoryChange(value as PartCategory | ''),
           }}
         />
+      </FilterField>
+      <FilterField data={{ label: 'Condição' }}>
         <OptionPicker
           data={{ value: data.filter.condition, options: CONDITION_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por condição', allLabel: 'Novas e usadas' }}
@@ -170,16 +232,28 @@
             onChange: (value: string) => actions.onConditionChange(value as PartCondition | ''),
           }}
         />
-      </div>
-      <label class="text-ink-700 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          class="border-ink-300 size-4 rounded-chip"
-          checked={data.filter.inStockOnly}
-          onchange={(event) => actions.onInStockOnlyChange(event.currentTarget.checked)}
+      </FilterField>
+      <FilterField data={{ label: 'Estoque' }}>
+        <OptionPicker
+          data={{ value: stockValueOf(data.filter), options: STOCK_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por estoque', allLabel: 'Todas' }}
+          actions={{ onChange: chooseStock }}
         />
-        Só o que tem na prateleira
-      </label>
+      </FilterField>
+
+      <!-- À direita, o que age sobre a lista logo abaixo. "Limpar filtros" só aparece quando há
+           o que limpar; quando o filtro escondeu tudo, quem o oferece é o aviso de lista vazia
+           — dois botões iguais só confundem. -->
+      <div class="ml-auto flex items-center gap-2">
+        {#if hasActiveFilter && !viewState.isFilteredOut}
+          <ActionButton
+            data={{ label: 'Limpar filtros' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+            actions={{ onClick: actions.onClearFilters }}
+          />
+        {/if}
+        <TableViewToggle />
+      </div>
     </div>
   </div>
 
@@ -224,11 +298,16 @@
   {:else}
     <!-- Lista de cartões para mobile (< xl) -->
     <div
-      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
       data-slot="part-cards-mobile"
     >
       {#each data.parts as part (part.id)}
-        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
+        <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+        <div
+          use:fillFromPointer
+          style:--fill-color={fillColorOf(partConditionTone(part.condition))}
+          class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+        >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
               <button
@@ -281,7 +360,8 @@
           </div>
         </div>
       {/each}
-      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+      <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
+      <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
         <span>Controle de estoque</span>
         <span>{data.parts.length} item(ns)</span>
       </div>

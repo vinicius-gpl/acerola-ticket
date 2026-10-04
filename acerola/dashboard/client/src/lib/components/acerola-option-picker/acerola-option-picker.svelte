@@ -1,4 +1,6 @@
 <script lang="ts" module>
+  import { tv } from 'tailwind-variants';
+
   import type { StatusBadgeTone } from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
 
   /**
@@ -22,36 +24,117 @@
       /** Prefixa uma opção "Todos os X", representando o valor ''. Só faz sentido em filtro. */
       allLabel?: string;
       placeholder?: string;
-      /** Veste o campo de formulário: o degrau `lg` da régua de medidas
-       * (`lib/theme/tokens.css`), a mesma altura do `TextField`, do `SelectField` e do
-       * `DatePicker`, e o combo esticando até a largura do campo ao lado. Numa barra de
-       * filtro isso não vale — lá o controle usa o degrau `sm`, o mesmo do botão que mora
-       * dentro de uma linha — por isso o padrão é `false`. */
+      /** Estica o combo até a largura do campo ao lado, como num formulário. A ALTURA não
+       * depende disto: pastilha ou combo, filtro ou formulário, o controle tem sempre os 40px
+       * de todo campo (`control-lg`), a mesma do `TextField`, do `SelectField` e do
+       * `DatePicker`. */
       fullWidth?: boolean;
     };
     state?: { isDisabled?: boolean };
     actions: { onChange: (value: string) => void };
   };
 
-  const PILL_MAX_OPTIONS = 6;
+  /**
+   * Até quantas opções o controle é uma fileira de pastilhas; acima disso vira a lista que abre.
+   *
+   * Em FILTRO a barra tem a largura da tela e as pastilhas podem quebrar linha: seis ainda se
+   * leem de relance. Em FORMULÁRIO (dentro de um diálogo) a largura é a de um campo, e pastilha
+   * só serve enquanto cabe em UMA linha — com mais de três, elas quebram em duas ou três
+   * fileiras e o campo passa a ocupar mais altura do que todos os outros juntos. Ali a lista
+   * que abre escala para qualquer quantidade, e ainda tem busca.
+   */
+  const PILL_MAX_OPTIONS = { filter: 6, form: 3 } as const;
 
-  const TONE_DOT_CLASSES: Record<StatusBadgeTone, string> = {
-    neutral: 'bg-muted-foreground',
-    info: 'bg-info',
-    success: 'bg-success',
-    warning: 'bg-warning',
-    danger: 'bg-destructive',
-    brand: 'bg-primary',
-  };
+  /**
+   * O TRILHO das pastilhas.
+   *
+   * A altura de campo é a do trilho inteiro (40px, com a borda e o respiro dele), não a de cada
+   * pastilha: com a pastilha em 32px o trilho somava 42px e ficava mais alto que o seletor ao
+   * lado. `min-h`, e não `h`: no celular as opções quebram em mais de uma linha.
+   *
+   * `layout` é onde o controle mora. Em FILTRO as pastilhas seguem em fileira, cada uma do
+   * tamanho do próprio texto, e quebram linha em vez de rolar para o lado. Em FORMULÁRIO são
+   * no máximo três (ver `PILL_MAX_OPTIONS`) e dividem a largura do campo em colunas iguais,
+   * numa linha só.
+   */
+  const optionTrack = tv({
+    base: 'items-stretch gap-1 rounded-control border border-border/70 bg-muted/50 p-1 min-h-(--control-lg)',
+    variants: {
+      layout: {
+        filter: 'inline-flex flex-wrap',
+        form: 'grid w-full',
+      },
+      /* Só vale na grade do formulário: uma coluna por opção. */
+      columns: { 1: '', 2: '', 3: '' },
+    },
+    compoundVariants: [
+      { layout: 'form', columns: 1, class: 'grid-cols-1' },
+      { layout: 'form', columns: 2, class: 'grid-cols-2' },
+      { layout: 'form', columns: 3, class: 'grid-cols-3' },
+    ],
+    defaultVariants: { layout: 'filter', columns: 3 },
+  });
 
-  const TONE_SELECTED_CLASSES: Record<StatusBadgeTone, string> = {
-    neutral: 'border-foreground bg-foreground text-background',
-    info: 'border-info bg-info text-primary-foreground',
-    success: 'border-success bg-success text-primary-foreground',
-    warning: 'border-warning bg-warning text-primary-foreground',
-    danger: 'border-destructive bg-destructive text-destructive-foreground',
-    brand: 'border-primary bg-primary text-primary-foreground',
-  };
+  /**
+   * A PASTILHA. Preenche a altura do trilho (que é quem tem os 40px de campo), e o raio é
+   * `box`, um degrau abaixo do `control` do trilho: filho menor que o pai.
+   *
+   * A cor só entra quando a pastilha está escolhida, e aí é a do tom — o mesmo cuidado do
+   * `StatusBadge`, para a cor de uma situação nunca variar de tela para tela.
+   */
+  const optionPill = tv({
+    base: 'rounded-box inline-flex cursor-pointer items-center gap-1.5 border px-3 py-1 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
+    variants: {
+      layout: {
+        filter: '',
+        /* Na grade o texto fica centrado na coluna. Sem altura mínima própria: a pastilha
+           preenche o trilho, e é o trilho que tem os 40px — com um mínimo aqui ele passava a
+           42px e desalinhava do seletor ao lado. */
+        form: 'justify-center text-center',
+      },
+      isSelected: {
+        true: 'shadow-xs font-semibold',
+        false: 'border-transparent text-muted-foreground hover:bg-card/70 hover:text-foreground',
+      },
+      tone: { neutral: '', info: '', success: '', warning: '', danger: '', brand: '' },
+    },
+    compoundVariants: [
+      { isSelected: true, tone: 'neutral', class: 'border-foreground bg-foreground text-background' },
+      { isSelected: true, tone: 'info', class: 'border-info bg-info text-primary-foreground' },
+      { isSelected: true, tone: 'success', class: 'border-success bg-success text-primary-foreground' },
+      { isSelected: true, tone: 'warning', class: 'border-warning bg-warning text-primary-foreground' },
+      {
+        isSelected: true,
+        tone: 'danger',
+        class: 'border-destructive bg-destructive text-destructive-foreground',
+      },
+      { isSelected: true, tone: 'brand', class: 'border-primary bg-primary text-primary-foreground' },
+    ],
+    defaultVariants: { layout: 'filter', isSelected: false, tone: 'neutral' },
+  });
+
+  /** A bolinha do tom, ao lado do texto de uma opção que não está escolhida. */
+  const optionDot = tv({
+    base: 'size-1.5 shrink-0 rounded-full',
+    variants: {
+      tone: {
+        neutral: 'bg-muted-foreground',
+        info: 'bg-info',
+        success: 'bg-success',
+        warning: 'bg-warning',
+        danger: 'bg-destructive',
+        brand: 'bg-primary',
+      },
+    },
+    defaultVariants: { tone: 'neutral' },
+  });
+
+  /* Uma coluna por opção. Em formulário nunca passam de três — acima disso não há pastilhas. */
+  function resolveGridColumns(count: number): 1 | 2 | 3 {
+    if (count <= 1) return 1;
+
+    return count === 2 ? 2 : 3;
+  }
 
   function resolveOptions(data: AcerolaOptionPickerProps['data'], allLabel: string | undefined): OptionPickerOption[] {
     return allLabel ? [{ value: '', label: allLabel }, ...data.options] : data.options;
@@ -72,7 +155,9 @@
   let query = $state('');
 
   const options = $derived(resolveOptions(data, ui?.allLabel));
-  const isPillMode = $derived(options.length <= PILL_MAX_OPTIONS);
+  const layout = $derived(ui?.fullWidth ? 'form' : 'filter');
+  const isPillMode = $derived(options.length <= PILL_MAX_OPTIONS[layout]);
+  const gridColumns = $derived(resolveGridColumns(options.length));
   const selectedOption = $derived(options.find((option) => option.value === data.value) ?? null);
 
   const filteredOptions = $derived(
@@ -93,12 +178,7 @@
      fundo próprio, em vez de cada opção ser um botão bordado e solto. É o que faz ler como
      UM controle com vários estados, não uma fileira de botões separados. -->
   <div
-    class={cn(
-      /* No celular as opções QUEBRAM em mais de uma linha em vez de virarem uma tira que rola
-         para o lado: escolher a situação ou o filtro não pode exigir arrastar a tela. */
-      'inline-flex flex-wrap items-center gap-1 rounded-control border border-border/70 bg-muted/50 p-1',
-      ui?.className,
-    )}
+    class={cn(optionTrack({ layout, columns: gridColumns }), ui?.className)}
     role="group"
     aria-label={ui?.ariaLabel}
   >
@@ -108,19 +188,10 @@
         type="button"
         disabled={fieldState?.isDisabled}
         onclick={() => select(option.value)}
-        class={cn(
-          /* A RÉGUA DE MEDIDAS decide altura, respiro e raio (`lib/theme/tokens.css`):
-             `lg` quando a pastilha veste campo de formulário, `sm` na barra de filtro.
-             Pastilha, campo e botão precisam parecer a mesma família de controle. */
-          ui?.fullWidth ? 'control-lg' : 'control-sm',
-          'rounded-control inline-flex cursor-pointer items-center gap-1.5 border text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
-          isSelected
-            ? cn('shadow-xs font-semibold', TONE_SELECTED_CLASSES[option.tone ?? 'neutral'])
-            : 'border-transparent text-muted-foreground hover:bg-card/70 hover:text-foreground',
-        )}
+        class={optionPill({ layout, isSelected, tone: option.tone })}
       >
         {#if option.tone && !isSelected}
-          <span class={cn('size-1.5 rounded-full', TONE_DOT_CLASSES[option.tone])} aria-hidden="true"></span>
+          <span class={optionDot({ tone: option.tone })} aria-hidden="true"></span>
         {/if}
         {option.label}
       </button>
@@ -132,13 +203,22 @@
       disabled={fieldState?.isDisabled}
       aria-label={ui?.ariaLabel}
       class={cn(
-        ui?.fullWidth ? 'control-lg' : 'control-sm',
-        'rounded-control inline-flex w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+        /* Os mesmos 40px do trilho de pastilhas e de todo campo: os dois modos deste componente
+           moram lado a lado numa barra de filtro e têm de alinhar. */
+        'control-lg',
+        'rounded-control inline-flex w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
         ui?.fullWidth ? 'sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}
     >
-      <span class="truncate">{selectedOption?.label ?? ui?.placeholder ?? 'Selecione'}</span>
+      <!-- A bolinha do tom acompanha a opção escolhida: sem ela, ao virar lista o tipo perderia
+           a cor que tinha como pastilha. -->
+      <span class="flex min-w-0 items-center gap-2">
+        {#if selectedOption?.tone}
+          <span class={optionDot({ tone: selectedOption.tone })} aria-hidden="true"></span>
+        {/if}
+        <span class="truncate">{selectedOption?.label ?? ui?.placeholder ?? 'Selecione'}</span>
+      </span>
       <ChevronDownIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
     </PopoverTrigger>
     <!-- A LARGURA DO BALÃO É AMARRADA À DO BOTÃO, entre um piso e um teto.
@@ -183,8 +263,7 @@
             )}
           >
             {#if option.tone}
-              <span class={cn('size-1.5 shrink-0 rounded-full', TONE_DOT_CLASSES[option.tone])} aria-hidden="true"
-              ></span>
+              <span class={optionDot({ tone: option.tone })} aria-hidden="true"></span>
             {/if}
             <span class="flex-1 truncate">{option.label}</span>
             {#if isSelected}

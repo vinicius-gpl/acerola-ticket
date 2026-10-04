@@ -27,6 +27,7 @@ const emptyFilter: PartListFilter = {
   category: '',
   condition: '',
   inStockOnly: false,
+  outOfStockOnly: false,
 };
 
 const actions = {
@@ -34,6 +35,7 @@ const actions = {
   onCategoryChange: vi.fn(),
   onConditionChange: vi.fn(),
   onInStockOnlyChange: vi.fn(),
+  onOutOfStockOnlyChange: vi.fn(),
   onClearFilters: vi.fn(),
   onRetry: vi.fn(),
   onRegister: vi.fn(),
@@ -72,6 +74,77 @@ function renderView(
     },
   });
 }
+
+describe('AcerolaPartListView — stat card shortcuts and filter bar', () => {
+  function renderWithFilter(filter: Partial<PartListFilter> = {}) {
+    return render(PartListView, {
+      props: {
+        data: { parts: [part()], total: 1, summary, filter: { ...emptyFilter, ...filter } },
+        state: settled,
+        actions,
+      },
+    });
+  }
+
+  // feliz
+  it('turns "on the shelf" into a shortcut for the in-stock filter', async () => {
+    renderWithFilter();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Peças na prateleira: filtrar a lista' }),
+    );
+
+    expect(actions.onInStockOnlyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('turns "out of stock" into a shortcut for the out-of-stock filter', async () => {
+    renderWithFilter();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sem estoque: filtrar a lista' }));
+
+    expect(actions.onOutOfStockOnlyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('marks the card while the filter is on, and clears both on a second click', async () => {
+    renderWithFilter({ inStockOnly: true });
+
+    const card = screen.getByRole('button', { name: 'Peças na prateleira: tirar o filtro' });
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(card);
+    expect(actions.onInStockOnlyChange).toHaveBeenLastCalledWith(false);
+    expect(actions.onOutOfStockOnlyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('offers the stock choice as a named filter, not a loose checkbox', async () => {
+    renderWithFilter();
+
+    expect(screen.getByText('Estoque')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Com estoque' }));
+    expect(actions.onInStockOnlyChange).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sem estoque' }));
+    expect(actions.onOutOfStockOnlyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  // triste
+  it('hides the clear button while no filter is on, and shows it once one is', () => {
+    const view = renderWithFilter();
+    expect(screen.queryByRole('button', { name: 'Limpar filtros' })).toBeNull();
+    view.unmount();
+
+    renderWithFilter({ category: 'memory' as PartListFilter['category'] });
+    expect(screen.getByRole('button', { name: 'Limpar filtros' })).toBeInTheDocument();
+  });
+
+  it('does not turn the total card into a shortcut', () => {
+    renderWithFilter();
+
+    expect(screen.queryByRole('button', { name: /Tipos de peça/ })).toBeNull();
+  });
+});
 
 describe('AcerolaPartListView', () => {
   // feliz

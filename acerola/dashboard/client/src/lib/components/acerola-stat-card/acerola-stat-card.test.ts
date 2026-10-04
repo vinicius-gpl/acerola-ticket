@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import Building2 from '@lucide/svelte/icons/building-2';
 
@@ -90,5 +90,41 @@ describe('AcerolaStatCard', () => {
     });
 
     expect(container.firstElementChild?.className).toContain('bg-card');
+  });
+
+  it('com onClick, vira um atalho: um botão que diz o que o clique faz', () => {
+    const onClick = vi.fn();
+    render(StatCard, {
+      props: { data: { label: 'Abertos', value: 5 }, actions: { onClick } },
+    });
+
+    const button = screen.getByRole('button', { name: 'Abertos: filtrar a lista' });
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+
+    button.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('selecionado, avisa que o clique tira o filtro e ganha o contorno', () => {
+    const { container } = render(StatCard, {
+      props: {
+        data: { label: 'Abertos', value: 5 },
+        state: { isSelected: true },
+        actions: { onClick: vi.fn() },
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Abertos: tirar o filtro' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(container.firstElementChild?.className).toContain('ring-2');
+  });
+
+  // triste
+  it('sem onClick, continua sendo só um número: nenhum botão', () => {
+    render(StatCard, { props: { data: { label: 'Clientes', value: 560 } } });
+
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

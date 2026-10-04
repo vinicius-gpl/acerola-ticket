@@ -119,6 +119,7 @@
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import Inbox from '@lucide/svelte/icons/inbox';
   import SearchX from '@lucide/svelte/icons/search-x';
 
@@ -126,6 +127,7 @@
   import ColumnChart from '$lib/components/acerola-column-chart/acerola-column-chart.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import PaginationBar from '$lib/components/acerola-pagination-bar/acerola-pagination-bar.svelte';
@@ -147,6 +149,7 @@
   } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state, actions }: AcerolaTicketListViewProps = $props();
@@ -172,6 +175,34 @@
   function formatDate(value: string): string {
     return new Date(value).toLocaleDateString('pt-BR');
   }
+
+  const hasActiveFilter = $derived(
+    Boolean(
+      data.filter.search ||
+        data.filter.status ||
+        data.filter.priority ||
+        data.filter.department ||
+        data.filter.problemType,
+    ),
+  );
+
+  /* A fila fica abaixo dos gráficos: quem clica num cartão lá em cima precisa VER o resultado.
+     Só rolagem — é estado visual, não navegação.
+
+     Variável comum, e não `$state`: este componente recebe uma prop chamada `state`, e com ela
+     o compilador lê `$state(...)` como inscrição numa store. A referência só é usada dentro do
+     clique, então não precisa ser reativa. */
+  let queueElement: HTMLElement | null = null;
+
+  function filterByStatus(status: TicketStatus) {
+    actions.onStatusChange(data.filter.status === status ? '' : status);
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    queueElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <!-- max-w-7xl, e não 6xl como as outras listas: com 9 colunas (a área entrou com o #13), a
@@ -189,21 +220,33 @@
     <ErrorState data={{ message: state.exportError }} ui={{ variant: 'inline' }} />
   {/if}
 
+  <!-- Os três primeiros cartões são ATALHOS do filtro de situação: clicar em "Abertos" é o
+       mesmo que escolher "Aberto" nas pastilhas lá embaixo, e clicar de novo tira o filtro.
+       "Tempo médio" não é clicável — não existe um filtro que ele represente. -->
   <StatCardGrid>
     <StatCard
       data={{ label: 'Abertos', value: dashboard?.open ?? 0 }}
       ui={{ tone: 'danger' }}
-      state={{ isLoading: state.isDashboardLoading }}
+      state={{ isLoading: state.isDashboardLoading, isSelected: data.filter.status === 'open' }}
+      actions={{ onClick: () => filterByStatus('open') }}
     />
     <StatCard
       data={{ label: 'Em atendimento', value: dashboard?.inProgress ?? 0 }}
       ui={{ tone: 'info' }}
-      state={{ isLoading: state.isDashboardLoading }}
+      state={{
+        isLoading: state.isDashboardLoading,
+        isSelected: data.filter.status === 'in_progress',
+      }}
+      actions={{ onClick: () => filterByStatus('in_progress') }}
     />
     <StatCard
       data={{ label: 'Resolvidos', value: dashboard?.resolved ?? 0 }}
       ui={{ tone: 'success' }}
-      state={{ isLoading: state.isDashboardLoading }}
+      state={{
+        isLoading: state.isDashboardLoading,
+        isSelected: data.filter.status === 'resolved',
+      }}
+      actions={{ onClick: () => filterByStatus('resolved') }}
     />
     <StatCard
       data={{
@@ -256,7 +299,11 @@
        agora é UMA SÓ, que quebra sozinha (`flex-wrap`): no celular e no tablet cada pastilha
        ou balão cai pra próxima linha por conta própria, sem precisar de rolagem nem de uma
        segunda fileira fixa. -->
-  <div class="flex flex-col rounded-surface border border-border bg-card shadow-xs">
+  <!-- `scroll-mt-4`: quando um cartão de indicador rola a tela até aqui, sobra um respiro acima. -->
+  <div
+    bind:this={queueElement}
+    class="flex scroll-mt-4 flex-col rounded-surface border border-border bg-card shadow-xs"
+  >
     <div class="flex flex-col gap-3 p-4">
       <TextField
         data={{
@@ -268,39 +315,69 @@
         actions={{ onChange: actions.onSearchChange }}
       />
 
-      <div class="flex flex-wrap items-center gap-2">
-        <OptionPicker
-          data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
-          actions={{
-            onChange: (value: string) => actions.onStatusChange(value as TicketStatus | ''),
-          }}
-        />
-        <OptionPicker
-          data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
-          actions={{
-            onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
-          }}
-        />
-        <OptionPicker
-          data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
-          actions={{
-            onChange: (value: string) => actions.onDepartmentChange(value as TicketDepartment | ''),
-          }}
-        />
-        <OptionPicker
-          data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
-          ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
-          actions={{
-            onChange: (value: string) =>
-              actions.onProblemTypeChange(value as TicketProblemType | ''),
-          }}
-        />
-        <!-- Ver em cards/tabela mora NESTE contexto — é sobre o que vem logo abaixo, não
-             sobre a tela inteira (por isso saiu do cabeçalho da página). -->
-        <div class="ml-auto">
+      <!-- DUAS FILEIRAS, cada filtro com o nome em cima. A de cima tem as escolhas diretas
+           (pastilhas); a de baixo, as listas que abrem, e à direita o que age sobre a fila:
+           limpar os filtros e trocar entre tabela e cards. Cada fileira ainda quebra sozinha
+           no celular (`flex-wrap`). -->
+      <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+        <FilterField data={{ label: 'Situação' }}>
+          <OptionPicker
+            data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por situação', allLabel: 'Todas' }}
+            actions={{
+              onChange: (value: string) => actions.onStatusChange(value as TicketStatus | ''),
+            }}
+          />
+        </FilterField>
+
+        <FilterField data={{ label: 'Urgência' }}>
+          <OptionPicker
+            data={{ value: data.filter.priority, options: PRIORITY_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por urgência', allLabel: 'Qualquer urgência' }}
+            actions={{
+              onChange: (value: string) => actions.onPriorityChange(value as TicketPriority | ''),
+            }}
+          />
+        </FilterField>
+      </div>
+
+      <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+        <FilterField data={{ label: 'Departamento' }}>
+          <OptionPicker
+            data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
+            actions={{
+              onChange: (value: string) =>
+                actions.onDepartmentChange(value as TicketDepartment | ''),
+            }}
+          />
+        </FilterField>
+
+        <FilterField data={{ label: 'Tipo de problema' }}>
+          <OptionPicker
+            data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
+            ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
+            actions={{
+              onChange: (value: string) =>
+                actions.onProblemTypeChange(value as TicketProblemType | ''),
+            }}
+          />
+        </FilterField>
+
+        <div class="ml-auto flex items-center gap-2">
+          <!-- Só aparece quando há o que limpar: botão que nunca faz nada é ruído. Divide a
+               fileira com campos, então tem a altura deles (`lg`). Quando o filtro escondeu
+               tudo, quem oferece a limpeza é o aviso de lista vazia, logo abaixo — dois botões
+               iguais na mesma tela só confundem. -->
+          {#if hasActiveFilter && !state.isFilteredOut}
+            <ActionButton
+              data={{ label: 'Limpar filtros' }}
+              ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+              actions={{ onClick: actions.onClearFilters }}
+            />
+          {/if}
+          <!-- Ver em cards/tabela mora NESTE contexto — é sobre o que vem logo abaixo, não
+               sobre a tela inteira (por isso saiu do cabeçalho da página). -->
           <TableViewToggle />
         </div>
       </div>
@@ -348,11 +425,16 @@
         <!-- 1. Visualização em Cards: sempre que a tela é estreita (< xl), ou quando a pessoa
          pediu para ver sempre assim (`TableViewToggle`, no cabeçalho dos filtros). -->
         <div
-          class={cn('flex flex-col gap-3 p-4', !tableView.forceCards && 'xl:hidden')}
+          class={cn('card-grid p-4', !tableView.forceCards && 'xl:hidden')}
           data-slot="ticket-cards-mobile"
         >
           {#each data.tickets as ticket (ticket.id)}
-            <div class="flex flex-col gap-3 rounded-surface border border-border bg-card p-4 shadow-xs">
+            <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+            <div
+              use:fillFromPointer
+              style:--fill-color={fillColorOf(ticketStatusTone(ticket.status))}
+              class="hover-fill flex flex-col gap-3 rounded-surface border border-border bg-card p-4 shadow-xs"
+            >
               <div class="flex items-center justify-between gap-2">
                 <span
                   class="font-mono text-xs font-semibold text-ink-900"

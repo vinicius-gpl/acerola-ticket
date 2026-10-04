@@ -94,6 +94,7 @@
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
   import { formatDateTime } from '$lib/utils/format-date';
 
@@ -140,13 +141,18 @@
       <!-- 1. Visualização Mobile (< xl) -->
       <div
         class={cn(
-          'flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto pr-1',
+          'card-grid max-h-[60vh] overflow-y-auto pr-1',
           !tableView.forceCards && 'xl:hidden',
         )}
         data-slot="part-ledger-cards-mobile"
       >
         {#each data.movements as movement (movement.id)}
-          <div class="flex flex-col gap-2 rounded-box border border-border bg-card p-3 shadow-xs">
+          <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+          <div
+            use:fillFromPointer
+            style:--fill-color={fillColorOf(movementTypeTone(movement.type))}
+            class="hover-fill flex flex-col gap-2 rounded-box border border-border bg-card p-3 shadow-xs"
+          >
             <div class="flex items-start justify-between gap-2">
               <div class="flex flex-col gap-1 min-w-0">
                 <span class="text-xs text-muted-foreground">{formatDateTime(movement.createdAt)}</span>

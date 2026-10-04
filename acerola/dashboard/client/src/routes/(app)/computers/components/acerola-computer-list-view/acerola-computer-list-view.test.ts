@@ -106,6 +106,66 @@ describe('displayNameOf', () => {
   });
 });
 
+describe('AcerolaComputerListView — stat card shortcuts and filter bar', () => {
+  function renderWithFilter(filter: Partial<ComputerListFilter> = {}) {
+    return render(ComputerListView, {
+      props: {
+        data: { computers: [computer()], total: 1, summary, filter: { ...emptyFilter, ...filter } },
+        state: settled,
+        actions,
+      },
+    });
+  }
+
+  // feliz
+  it('turns the health cards into shortcuts for the health filter', async () => {
+    renderWithFilter();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Saúde crítica: filtrar a lista' }));
+    expect(actions.onHealthStatusChange).toHaveBeenLastCalledWith('critical');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Em atenção: filtrar a lista' }));
+    expect(actions.onHealthStatusChange).toHaveBeenLastCalledWith('attention');
+  });
+
+  it('marks the card while its filter is on, and clears it on a second click', async () => {
+    renderWithFilter({ healthStatus: 'critical' });
+
+    const card = screen.getByRole('button', { name: 'Saúde crítica: tirar o filtro' });
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(card);
+    expect(actions.onHealthStatusChange).toHaveBeenLastCalledWith('');
+  });
+
+  it('offers the archived choice as a named filter, not a loose checkbox', async () => {
+    renderWithFilter();
+
+    expect(screen.getByText('Arquivadas')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar' }));
+    expect(actions.onArchivedChange).toHaveBeenLastCalledWith(true);
+  });
+
+  // triste
+  it('hides the clear button while no filter is on, and shows it once one is', () => {
+    const view = renderWithFilter();
+    expect(screen.queryByRole('button', { name: 'Limpar filtros' })).toBeNull();
+    view.unmount();
+
+    renderWithFilter({ includeArchived: true });
+    expect(screen.getByRole('button', { name: 'Limpar filtros' })).toBeInTheDocument();
+  });
+
+  it('does not turn the cards without a matching filter into shortcuts', () => {
+    renderWithFilter();
+
+    expect(screen.queryByRole('button', { name: /Máquinas:/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Online agora/ })).toBeNull();
+  });
+});
+
 describe('AcerolaComputerListView', () => {
   // feliz
   it('lists the machines with the nickname and the technical name', () => {

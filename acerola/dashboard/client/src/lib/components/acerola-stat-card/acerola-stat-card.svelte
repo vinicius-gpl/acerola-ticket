@@ -23,7 +23,13 @@
       className?: string;
       icon?: LucideIcon;
     };
-    state?: { isLoading?: boolean };
+    state?: {
+      isLoading?: boolean;
+      /** O filtro que este cartão liga já está valendo. Só faz sentido com `actions.onClick`. */
+      isSelected?: boolean;
+    };
+    /** Com `onClick` o cartão vira um atalho: clicar nele filtra a lista pelo que ele conta. */
+    actions?: { onClick?: () => void };
   };
 
   /** O fundo do cartão inteiro — quando colorido, não tem borda; quando neutro, usa bg-card com borda */
@@ -68,10 +74,11 @@
   import { cn } from '$lib/utils/cn';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
-  let { data, ui, state }: AcerolaStatCardProps = $props();
+  let { data, ui, state, actions }: AcerolaStatCardProps = $props();
 
   const tone = $derived(ui?.tone ?? 'neutral');
   const Icon = $derived(ui?.icon);
+  const isClickable = $derived(Boolean(actions?.onClick));
 </script>
 
 <div
@@ -81,9 +88,28 @@
        botões em volta. */
     'rounded-surface py-4 pr-4 pl-5 transition-all shadow-xs',
     TONE_CARD[tone],
+    /* Clicável: sobe um pouco no hover, para avisar que responde ao clique. Selecionado: um
+       anel em volta — o fundo já é a cor do tom, então quem marca o estado é o contorno. */
+    isClickable && 'relative cursor-pointer hover:-translate-y-0.5 hover:shadow-xl',
+    state?.isSelected && 'ring-ring ring-offset-background ring-2 ring-offset-2',
     ui?.className,
   )}
 >
+  <!-- O clique é um BOTÃO de verdade, estendido por cima do cartão inteiro: alcançável pelo
+       teclado e anunciado pelo leitor de tela, sem trocar a marcação do cartão (parágrafo
+       dentro de botão não é HTML válido). -->
+  {#if isClickable}
+    <button
+      type="button"
+      class="rounded-surface absolute inset-0 cursor-pointer"
+      aria-pressed={Boolean(state?.isSelected)}
+      aria-label={state?.isSelected
+        ? `${data.label}: tirar o filtro`
+        : `${data.label}: filtrar a lista`}
+      onclick={actions?.onClick}
+    ></button>
+  {/if}
+
   {#if Icon}
     <div class="mb-2 flex items-center gap-2.5">
       <span class={cn('flex size-8 shrink-0 items-center justify-center rounded-chip', TONE_ICON[tone])}>

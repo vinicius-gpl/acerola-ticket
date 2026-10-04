@@ -102,6 +102,7 @@
   } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state, actions }: AcerolaRoleListViewProps = $props();
@@ -306,13 +307,18 @@
   {:else}
     <!-- 1. Visualização em Cards para Dispositivos Móveis (< xl) -->
     <div
-      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
       data-slot="role-cards-mobile"
     >
       {#each data.roles as item (item.id)}
         {@const user = resolveUser(item)}
         {@const displayName = user?.name || item.userEmail || item.userId}
-        <div class="flex flex-col gap-3 rounded-box border border-border bg-card p-4 shadow-xs">
+        <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+        <div
+          use:fillFromPointer
+          style:--fill-color={fillColorOf(roleTone(item.role))}
+          class="hover-fill flex flex-col gap-3 rounded-box border border-border bg-card p-4 shadow-xs"
+        >
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <PersonAvatar

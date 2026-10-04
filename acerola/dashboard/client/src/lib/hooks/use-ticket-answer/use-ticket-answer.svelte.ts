@@ -89,9 +89,12 @@ export type TicketAnswerModel = {
  */
 export function useTicketAnswerModel({
   ticket,
+  attendantName,
   onSaved,
 }: {
   ticket: Ticket;
+  /** O nome de quem está logado: preenche "quem está atendendo" quando ninguém assumiu ainda. */
+  attendantName?: string;
   onSaved: () => void;
 }): TicketAnswerModel {
   const queryClient = useQueryClient();
@@ -172,7 +175,7 @@ export function useTicketAnswerModel({
         await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
       },
       onError: (error: unknown) => {
-        areaError = readError(error) ?? 'Não consegui somar a área.';
+        areaError = readError(error) ?? 'Não consegui adicionar a área.';
       },
     }),
   );
@@ -195,7 +198,7 @@ export function useTicketAnswerModel({
   );
 
   const form = createForm(() => ({
-    defaultValues: toFormValues(ticket),
+    defaultValues: toFormValues(ticket, attendantName),
     /* As MESMAS regras que o servidor usa para validar o corpo. UM validador só, em
        `onChange`: com o schema também em `onSubmit`, o erro de um envio ficaria preso no
        campo mesmo depois de corrigido — ver o comentário em `use-task-form`. */
@@ -325,7 +328,19 @@ function buildNotice(ticket: Ticket, status: string): string | null {
   );
 }
 
-function toFormValues(ticket: Ticket): TicketAnswerFormValues {
+/**
+ * Com que nome o campo "quem está atendendo" nasce.
+ *
+ * Quem já assumiu continua lá — abrir o chamado de um colega não pode trocar o responsável sem
+ * ninguém perceber. Só quando ainda não há ninguém é que entra o nome de quem está logado: é
+ * essa pessoa que abriu o chamado para atender, e digitar o próprio nome toda vez era o passo
+ * que mais se esquecia. O campo continua editável.
+ */
+export function initialAssigneeOf(ticket: Ticket, attendantName?: string): string {
+  return ticket.assignee?.trim() || attendantName?.trim() || '';
+}
+
+function toFormValues(ticket: Ticket, attendantName?: string): TicketAnswerFormValues {
   return {
     status: ticket.status,
     priority: ticket.priority,
@@ -333,7 +348,7 @@ function toFormValues(ticket: Ticket): TicketAnswerFormValues {
     problemType: ticket.problemType,
     /* Vazio é "nenhuma máquina": no formulário tudo é texto, e é o view-model que traduz. */
     computerId: ticket.computerId === null ? '' : String(ticket.computerId),
-    assignee: ticket.assignee ?? '',
+    assignee: initialAssigneeOf(ticket, attendantName),
     solution: ticket.solution ?? '',
   };
 }

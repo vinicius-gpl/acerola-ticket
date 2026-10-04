@@ -86,6 +86,9 @@
     tone: healthStatusTone(status),
   }));
 
+  /** "Arquivadas": a opção sem valor ("Ocultar") vem do `allLabel` do seletor. */
+  const ARCHIVED_OPTIONS = [{ value: 'yes', label: 'Mostrar' }];
+
   /**
    * O nome que a pessoa reconhece.
    *
@@ -99,6 +102,7 @@
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import HardDrive from '@lucide/svelte/icons/hard-drive';
   import Plus from '@lucide/svelte/icons/plus';
   import SearchX from '@lucide/svelte/icons/search-x';
@@ -106,6 +110,7 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import ReportExportActions from '$lib/components/acerola-report-export-actions/acerola-report-export-actions.svelte';
@@ -124,6 +129,7 @@
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
   import { formatTimeAgo } from '$lib/utils/format-machine';
 
@@ -131,6 +137,30 @@
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(
+    Boolean(
+      data.filter.search ||
+        data.filter.department ||
+        data.filter.healthStatus ||
+        data.filter.includeArchived,
+    ),
+  );
+
+  /* Quem clica num cartão do topo precisa VER o resultado: a tela rola até os filtros.
+     Variável comum, e não `$state`: este componente recebe uma prop chamada `state`, e com ela
+     o compilador lê `$state(...)` como inscrição numa store. */
+  let filtersElement: HTMLElement | null = null;
+
+  function filterByHealth(status: HealthStatus) {
+    actions.onHealthStatusChange(data.filter.healthStatus === status ? '' : status);
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filtersElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -140,7 +170,6 @@
       description: 'Os computadores da empresa, e como cada um está passando.',
     }}
   >
-    <TableViewToggle />
     <ReportExportActions
       state={{ exportingFormat: state.exportingFormat ?? null }}
       actions={{ onExport: actions.onExportReport }}
@@ -167,10 +196,16 @@
       ui={{ tone: 'success' }}
       state={{ isLoading: state.isSummaryLoading }}
     />
+    <!-- Estes dois são ATALHOS do filtro de saúde: clicar liga o mesmo filtro das pastilhas, e
+         clicar de novo desliga. "Máquinas" e "Online agora" não têm filtro correspondente. -->
     <StatCard
       data={{ label: 'Saúde crítica', value: summary?.critical ?? 0 }}
       ui={{ tone: 'danger' }}
-      state={{ isLoading: state.isSummaryLoading }}
+      state={{
+        isLoading: state.isSummaryLoading,
+        isSelected: data.filter.healthStatus === 'critical',
+      }}
+      actions={{ onClick: () => filterByHealth('critical') }}
     />
     <StatCard
       data={{
@@ -179,13 +214,17 @@
         hint: summary?.neverSeen ? `${summary.neverSeen} sem o agente instalado` : null,
       }}
       ui={{ tone: 'warning' }}
-      state={{ isLoading: state.isSummaryLoading }}
+      state={{
+        isLoading: state.isSummaryLoading,
+        isSelected: data.filter.healthStatus === 'attention',
+      }}
+      actions={{ onClick: () => filterByHealth('attention') }}
     />
   </StatCardGrid>
 
   <!-- Os filtros ficam juntos e acima da lista, para a pessoa ver de uma vez o que está
        limitando o que ela enxerga. -->
-  <div class="flex flex-col gap-3">
+  <div bind:this={filtersElement} class="flex scroll-mt-4 flex-col gap-3">
     <TextField
       data={{
         label: 'Buscar',
@@ -196,8 +235,11 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+    <!-- Uma fileira, cada filtro com o nome em cima. "Arquivadas" era uma caixa de seleção
+         solta embaixo dos outros; agora é um filtro como os demais, com as duas escolhas à
+         vista. À direita, o que age sobre a lista: limpar os filtros. -->
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <FilterField data={{ label: 'Departamento' }}>
         <OptionPicker
           data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por departamento', allLabel: 'Todos os departamentos' }}
@@ -205,6 +247,8 @@
             onChange: (value: string) => actions.onDepartmentChange(value as Department | ''),
           }}
         />
+      </FilterField>
+      <FilterField data={{ label: 'Saúde' }}>
         <OptionPicker
           data={{ value: data.filter.healthStatus, options: HEALTH_FILTER_OPTIONS }}
           ui={{ ariaLabel: 'Filtrar por saúde', allLabel: 'Toda a saúde' }}
@@ -212,16 +256,29 @@
             onChange: (value: string) => actions.onHealthStatusChange(value as HealthStatus | ''),
           }}
         />
-      </div>
-      <label class="text-ink-700 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          class="border-ink-300 size-4 rounded-chip"
-          checked={data.filter.includeArchived}
-          onchange={(event) => actions.onArchivedChange(event.currentTarget.checked)}
+      </FilterField>
+      <FilterField data={{ label: 'Arquivadas' }}>
+        <OptionPicker
+          data={{ value: data.filter.includeArchived ? 'yes' : '', options: ARCHIVED_OPTIONS }}
+          ui={{ ariaLabel: 'Máquinas arquivadas', allLabel: 'Ocultar' }}
+          actions={{ onChange: (value: string) => actions.onArchivedChange(value === 'yes') }}
         />
-        Mostrar máquinas arquivadas
-      </label>
+      </FilterField>
+
+      <!-- À direita, o que age sobre a lista logo abaixo: limpar os filtros e trocar entre
+           tabela e cards (que morava no cabeçalho da página, longe da lista). "Limpar filtros"
+           só aparece quando há o que limpar; quando o filtro escondeu tudo, quem o oferece é o
+           aviso de lista vazia — dois botões iguais só confundem. -->
+      <div class="ml-auto flex items-center gap-2">
+        {#if hasActiveFilter && !state.isFilteredOut}
+          <ActionButton
+            data={{ label: 'Limpar filtros' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+            actions={{ onClick: actions.onClearFilters }}
+          />
+        {/if}
+        <TableViewToggle />
+      </div>
     </div>
   </div>
 
@@ -266,11 +323,16 @@
   {:else}
     <!-- Lista de cartões para mobile (< xl) -->
     <div
-      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
       data-slot="computer-cards-mobile"
     >
       {#each data.computers as computer (computer.id)}
-        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
+        <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+        <div
+          use:fillFromPointer
+          style:--fill-color={fillColorOf(healthStatusTone(computer.healthStatus))}
+          class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+        >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
               <span class="block font-medium text-ink-900 break-words leading-snug">
@@ -326,7 +388,8 @@
           </div>
         </div>
       {/each}
-      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+      <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
+      <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
         <span>Parque de computadores sincronizado</span>
         <span>{data.computers.length} computador(es) listado(s)</span>
       </div>

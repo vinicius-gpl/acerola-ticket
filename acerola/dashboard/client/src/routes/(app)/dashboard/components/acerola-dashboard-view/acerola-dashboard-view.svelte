@@ -175,6 +175,7 @@
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: viewState, actions }: AcerolaDashboardViewProps = $props();
@@ -457,11 +458,16 @@
       {:else}
         <!-- Lista de cartões para mobile (< xl) -->
         <div
-          class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+          class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
           data-slot="worst-machines-cards-mobile"
         >
           {#each summary.worstMachines as machine (machine.computerId)}
-            <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
+            <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+            <div
+              use:fillFromPointer
+              style:--fill-color={fillColorOf(healthStatusTone(machine.healthStatus))}
+              class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+            >
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0 flex-1">
                   <p class="text-foreground font-medium break-words">
@@ -490,7 +496,8 @@
               </div>
             </div>
           {/each}
-          <div class="text-muted-foreground flex justify-between px-1 text-xs">
+          <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
+          <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
             <span>Triagem automática por gravidade</span>
             <span>{summary.worstMachines.length} máquina(s) com pendência</span>
           </div>

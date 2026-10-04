@@ -90,6 +90,7 @@
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import Plus from '@lucide/svelte/icons/plus';
   import SearchX from '@lucide/svelte/icons/search-x';
   import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -99,6 +100,7 @@
   import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import PaginationBar from '$lib/components/acerola-pagination-bar/acerola-pagination-bar.svelte';
@@ -116,12 +118,15 @@
   } from '$lib/components/acerola-table/acerola-table';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import { useTableViewModel } from '$lib/hooks/use-table-view/use-table-view.svelte';
+  import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { cn } from '$lib/utils/cn';
   import { formatDate } from '$lib/utils/format-date';
 
   let { data, state: viewState, actions }: AcerolaMaintenanceListViewProps = $props();
 
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(Boolean(data.filter.search || data.filter.type));
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -131,7 +136,6 @@
       description: 'O que já foi feito em cada máquina, e o que está para vencer.',
     }}
   >
-    <TableViewToggle />
     <ActionButton
       data={{ label: 'Registrar manutenção' }}
       ui={{ icon: Plus }}
@@ -161,12 +165,31 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-      <OptionPicker
-        data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
-        ui={{ ariaLabel: 'Filtrar por tipo', allLabel: 'Todos os tipos' }}
-        actions={{ onChange: (value: string) => actions.onTypeChange(value as MaintenanceType | '') }}
-      />
+    <!-- O filtro com o nome em cima e, à direita, o que age sobre o histórico logo abaixo:
+         limpar os filtros e trocar entre tabela e cards. O seletor de formato morava no
+         cabeçalho da página, ao lado de "Registrar manutenção" e acima do quadro de
+         preventivas — longe da lista que ele controla. -->
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <FilterField data={{ label: 'Tipo' }}>
+        <OptionPicker
+          data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
+          ui={{ ariaLabel: 'Filtrar por tipo', allLabel: 'Todos os tipos' }}
+          actions={{
+            onChange: (value: string) => actions.onTypeChange(value as MaintenanceType | ''),
+          }}
+        />
+      </FilterField>
+
+      <div class="ml-auto flex items-center gap-2">
+        {#if hasActiveFilter && !viewState.isFilteredOut}
+          <ActionButton
+            data={{ label: 'Limpar filtros' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+            actions={{ onClick: actions.onClearFilters }}
+          />
+        {/if}
+        <TableViewToggle />
+      </div>
     </div>
   </div>
 
@@ -211,11 +234,16 @@
   {:else}
     <!-- Lista de cartões para mobile (< xl) -->
     <div
-      class={cn('flex flex-col gap-3', !tableView.forceCards && 'xl:hidden')}
+      class={cn('card-grid', !tableView.forceCards && 'xl:hidden')}
       data-slot="maintenance-cards-mobile"
     >
       {#each data.maintenances as maintenance (maintenance.id)}
-        <div class="border-border/70 bg-card rounded-surface border p-4 shadow-xs">
+        <!-- A cor da situação entra por onde o mouse entrou (`hover-fill`, em tokens.css). -->
+        <div
+          use:fillFromPointer
+          style:--fill-color={fillColorOf(maintenanceTypeTone(maintenance.type))}
+          class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+        >
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
               <span class="block font-medium text-ink-900 break-words leading-snug">
@@ -269,7 +297,8 @@
           </div>
         </div>
       {/each}
-      <div class="text-muted-foreground flex justify-between px-1 text-xs">
+      <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
+      <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
         <span>Histórico de manutenções</span>
         <span>{data.maintenances.length} registro(s)</span>
       </div>

@@ -80,6 +80,21 @@ describe('AcerolaActionButton', () => {
   });
 
   /* `type="button"` impede que um botão dentro de formulário o envie sem querer. */
+  it('announces whether it is pressed when it is part of a choice', () => {
+    render(ActionButton, { props: { data: { label: 'Ver em cards' }, state: { isPressed: true } } });
+
+    expect(screen.getByRole('button', { name: 'Ver em cards' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('says nothing about being pressed when it is a plain action', () => {
+    render(ActionButton, { props: { data: { label: 'Salvar' } } });
+
+    expect(screen.getByRole('button', { name: 'Salvar' })).not.toHaveAttribute('aria-pressed');
+  });
+
   it('never submits a form by accident', () => {
     render(ActionButton, { props: { data: { label: 'Cancelar' } } });
 
