@@ -27,16 +27,21 @@ function valuesFor(values: readonly string[]) {
  *
  * **Não existe edição nem exclusão de histórico**, e a ausência é a regra: uma linha do tempo
  * que se reescreve não prova nada. Errou? Lance outro histórico corrigindo — os dois ficam.
+ *
+ * Isso é garantido pelo BANCO, e não só pelo código: um gatilho recusa `update` e `delete`
+ * nesta tabela (migration `ticket_records_append_only`), mesmo para quem escrever SQL à mão.
  */
 export const ticketHistories = pgTable(
   'ticket_histories',
   {
     id: serial('id').primaryKey(),
 
-    /* `cascade`: chamado não se apaga neste sistema — é rede de segurança, como nos anexos. */
+    /* `restrict`: um chamado com história NÃO se apaga — nem levando a história junto. O banco
+       recusa também por gatilho (ver a migration `ticket_records_append_only`); este vínculo é
+       a segunda trava, para o caso de alguém desligar a primeira. */
     ticketId: integer('ticket_id')
       .notNull()
-      .references(() => tickets.id, { onDelete: 'cascade' }),
+      .references(() => tickets.id, { onDelete: 'restrict' }),
 
     type: text('type', { enum: TICKET_HISTORY_TYPES }).notNull(),
     description: text('description').notNull(),

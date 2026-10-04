@@ -26,17 +26,18 @@ function valuesFor(values: readonly string[]) {
  * muda a impressão digital inteira.
  *
  * Como os históricos, uma emissão **não se edita nem se apaga**: um registro de "isto foi
- * emitido assim" que se reescreve não prova nada.
+ * emitido assim" que se reescreve não prova nada. Quem garante é o BANCO: um gatilho recusa
+ * `update` e `delete` nesta tabela (migration `ticket_records_append_only`).
  */
 export const ticketServiceOrders = pgTable(
   'ticket_service_orders',
   {
     id: serial('id').primaryKey(),
 
-    /* `cascade`: chamado não se apaga neste sistema — é rede de segurança, como nos históricos. */
+    /* `restrict`: um chamado com documento emitido NÃO se apaga — ver `ticket-histories.schema`. */
     ticketId: integer('ticket_id')
       .notNull()
-      .references(() => tickets.id, { onDelete: 'cascade' }),
+      .references(() => tickets.id, { onDelete: 'restrict' }),
 
     /* 1 na primeira emissão do chamado; sobe quando o chamado mudou desde a última. */
     version: integer('version').notNull(),
