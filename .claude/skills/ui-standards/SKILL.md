@@ -147,6 +147,17 @@ Corpo (visão de dados)
 PaginationBar, quando a lista é paginada
 ```
 
+**Barra de filtros** — cada filtro tem o NOME em cima (`acerola-filter-field` envolvendo o
+`acerola-option-picker`), numa fileira `flex flex-wrap items-end gap-x-4 gap-y-3`. Um
+liga/desliga ("mostrar arquivadas", "só com estoque") também é um filtro com nome e duas
+pastilhas — nunca uma caixa de seleção solta embaixo dos outros. À direita (`ml-auto`), "Limpar
+filtros" (`ghost`, `lg`), que só aparece quando há filtro ativo e some quando o aviso de lista
+vazia já o oferece.
+
+**Cartão de indicador como atalho** — quando o número do `StatCard` corresponde a um filtro da
+lista, ele recebe `actions.onClick` (liga o filtro; de novo, desliga) e `state.isSelected`, e a
+tela rola até os filtros. Cartão sem filtro correspondente (uma medida, um total) não é clicável.
+
 Largura: `mx-auto w-full max-w-5xl px-4 sm:px-6`. Espaço entre blocos: `gap-5`; dentro de um
 cartão: `gap-3`; padding de superfície: `p-4` (cartão de lista) ou `p-5` (painel).
 Uma ação principal por tela (`primary`). As outras são `secondary` ou `ghost`.

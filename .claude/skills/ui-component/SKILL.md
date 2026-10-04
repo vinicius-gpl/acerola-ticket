@@ -37,6 +37,7 @@ Catálogo genérico (nome-alvo; o backlog de renomeação está em `design-syste
 | `acerola-submit-button` | O botão que envia formulário (`h-10`) |
 | `acerola-text-field` / `acerola-text-area-field` / `acerola-select` | Campos com rótulo e erro colados (`h-10`; textarea usa `min-h`) |
 | `acerola-option-picker` | Grupo de pastilhas de escolha (`h-10`, `flex-wrap`) |
+| `acerola-filter-field` | O nome em cima de um filtro da barra de filtros |
 | `acerola-status-badge` | Selo de situação (o tom vem do domínio) |
 | `acerola-stat-card` + `acerola-stat-card-grid` | Número grande de painel |
 | `acerola-progress-bar` | Andamento |
