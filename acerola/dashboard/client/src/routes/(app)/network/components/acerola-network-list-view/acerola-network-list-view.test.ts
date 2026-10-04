@@ -109,6 +109,64 @@ describe('measuresOf', () => {
   });
 });
 
+describe('AcerolaNetworkListView — stat card shortcuts and filter bar', () => {
+  function renderWithFilter(filter: Partial<NetworkFilter> = {}) {
+    return render(NetworkListView, {
+      props: {
+        data: { events: [event()], total: 1, summary, filter: { ...emptyFilter, ...filter } },
+        state: settled,
+        actions,
+      },
+    });
+  }
+
+  // feliz
+  it('turns "open now" into a shortcut for the only-open filter', async () => {
+    renderWithFilter();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Em aberto agora: filtrar a lista' }));
+
+    expect(actions.onOnlyOpenChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('turns "outages" into a shortcut for the outage type, and clears it on a second click', async () => {
+    renderWithFilter({ type: 'wan_down' });
+
+    const card = screen.getByRole('button', { name: 'Quedas no período: tirar o filtro' });
+    expect(card).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(card);
+    expect(actions.onTypeChange).toHaveBeenLastCalledWith('');
+  });
+
+  it('offers the only-open choice as a named filter, not a loose checkbox', async () => {
+    renderWithFilter();
+
+    expect(screen.getByText('Andamento')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Só em aberto' }));
+    expect(actions.onOnlyOpenChange).toHaveBeenLastCalledWith(true);
+  });
+
+  // triste
+  it('hides the clear button while no filter is on, and shows it once one is', () => {
+    const view = renderWithFilter();
+    expect(screen.queryByRole('button', { name: 'Limpar filtros' })).toBeNull();
+    view.unmount();
+
+    renderWithFilter({ onlyOpen: true });
+    expect(screen.getByRole('button', { name: 'Limpar filtros' })).toBeInTheDocument();
+  });
+
+  it('does not turn the measurement cards into shortcuts', () => {
+    renderWithFilter();
+
+    expect(screen.queryByRole('button', { name: /Tempo fora do ar/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Pior latência/ })).toBeNull();
+  });
+});
+
 describe('AcerolaNetworkListView', () => {
   // feliz
   it('shows what happened, on which link and how bad it was', () => {

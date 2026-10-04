@@ -80,6 +80,12 @@
     label: `Últimos ${days} dias`,
   }));
 
+  /** "Andamento": a opção sem valor ("Todos") vem do `allLabel` do seletor. */
+  const ONLY_OPEN_OPTIONS = [{ value: 'yes', label: 'Só em aberto' }];
+
+  /** O tipo de aviso que o cartão "Quedas no período" conta (a queda do link de internet). */
+  const OUTAGE_TYPE: NetworkEventType = 'wan_down';
+
   /** Quanto durou, em palavras — ou que ainda está acontecendo. */
   export function durationLabelOf(event: NetworkEvent): string {
     const seconds = outageDurationSeconds(event.occurredAt, event.resolvedAt);
@@ -101,12 +107,14 @@
 </script>
 
 <script lang="ts">
+  import FilterX from '@lucide/svelte/icons/filter-x';
   import SearchX from '@lucide/svelte/icons/search-x';
   import Wifi from '@lucide/svelte/icons/wifi';
 
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import EmptyState from '$lib/components/acerola-empty-state/acerola-empty-state.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import StatCard from '$lib/components/acerola-stat-card/acerola-stat-card.svelte';
@@ -131,6 +139,24 @@
 
   const summary = $derived(data.summary);
   const tableView = useTableViewModel();
+
+  const hasActiveFilter = $derived(
+    Boolean(data.filter.type || data.filter.severity || data.filter.onlyOpen),
+  );
+
+  /* Quem clica num cartão do topo precisa VER o resultado: a tela rola até os filtros. A
+     referência só é usada dentro do clique, então é uma variável comum. */
+  let filtersElement: HTMLElement | null = null;
+
+  function applyShortcut(change: () => void) {
+    change();
+
+    const prefersLessMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    filtersElement?.scrollIntoView?.({
+      behavior: prefersLessMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 </script>
 
 <div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
@@ -146,15 +172,30 @@
   </PageHeader>
 
   <StatCardGrid>
+    <!-- Estes dois são ATALHOS de filtro: "Em aberto agora" liga "só em aberto", e "Quedas no
+         período" filtra pelo tipo de aviso de queda (o mesmo que o número conta). Clicar de
+         novo desliga. Os outros dois são medidas, sem filtro correspondente. -->
     <StatCard
       data={{ label: 'Em aberto agora', value: summary?.open ?? 0 }}
       ui={{ tone: 'danger' }}
-      state={{ isLoading: viewState.isSummaryLoading }}
+      state={{ isLoading: viewState.isSummaryLoading, isSelected: data.filter.onlyOpen }}
+      actions={{
+        onClick: () => applyShortcut(() => actions.onOnlyOpenChange(!data.filter.onlyOpen)),
+      }}
     />
     <StatCard
       data={{ label: 'Quedas no período', value: summary?.outages ?? 0 }}
       ui={{ tone: 'warning' }}
-      state={{ isLoading: viewState.isSummaryLoading }}
+      state={{
+        isLoading: viewState.isSummaryLoading,
+        isSelected: data.filter.type === OUTAGE_TYPE,
+      }}
+      actions={{
+        onClick: () =>
+          applyShortcut(() =>
+            actions.onTypeChange(data.filter.type === OUTAGE_TYPE ? '' : OUTAGE_TYPE),
+          ),
+      }}
     />
     <StatCard
       data={{
@@ -183,13 +224,17 @@
     <ErrorState data={{ title: 'Não consegui salvar', message: viewState.actionError }} />
   {/if}
 
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-3">
+  <!-- Uma fileira, cada filtro com o nome em cima. "Andamento" era uma caixa de seleção solta
+       embaixo dos outros; agora é um filtro como os demais, com as duas escolhas à vista. -->
+  <div bind:this={filtersElement} class="flex scroll-mt-4 flex-wrap items-end gap-x-4 gap-y-3">
+    <FilterField data={{ label: 'Tipo de aviso' }}>
       <OptionPicker
         data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
         ui={{ ariaLabel: 'Filtrar por tipo de aviso', allLabel: 'Todos os avisos' }}
         actions={{ onChange: (value: string) => actions.onTypeChange(value as NetworkEventType | '') }}
       />
+    </FilterField>
+    <FilterField data={{ label: 'Gravidade' }}>
       <OptionPicker
         data={{ value: data.filter.severity, options: SEVERITY_FILTER_OPTIONS }}
         ui={{ ariaLabel: 'Filtrar por gravidade', allLabel: 'Qualquer gravidade' }}
@@ -197,16 +242,27 @@
           onChange: (value: string) => actions.onSeverityChange(value as NetworkSeverity | ''),
         }}
       />
-    </div>
-    <label class="text-ink-700 flex items-center gap-2 text-sm">
-      <input
-        type="checkbox"
-        class="border-ink-300 size-4 rounded-chip"
-        checked={data.filter.onlyOpen}
-        onchange={(event) => actions.onOnlyOpenChange(event.currentTarget.checked)}
+    </FilterField>
+    <FilterField data={{ label: 'Andamento' }}>
+      <OptionPicker
+        data={{ value: data.filter.onlyOpen ? 'yes' : '', options: ONLY_OPEN_OPTIONS }}
+        ui={{ ariaLabel: 'Filtrar por andamento', allLabel: 'Todos' }}
+        actions={{ onChange: (value: string) => actions.onOnlyOpenChange(value === 'yes') }}
       />
-      Só o que está em aberto
-    </label>
+    </FilterField>
+
+    <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
+         limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. O
+         período (no cabeçalho) não conta: ele é o recorte da tela, não um filtro da lista. -->
+    {#if hasActiveFilter && !viewState.isFilteredOut}
+      <div class="ml-auto">
+        <ActionButton
+          data={{ label: 'Limpar filtros' }}
+          ui={{ variant: 'ghost', size: 'lg', icon: FilterX }}
+          actions={{ onClick: actions.onClearFilters }}
+        />
+      </div>
+    {/if}
   </div>
 
   <!-- Estados na frente, conteúdo por último e sem aninhamento (CONTRIBUTING §2). -->
