@@ -21,6 +21,7 @@ import {
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type TicketAttachmentRow } from '../../../lib/db/schema/ticket-attachments.schema';
+import { decodeUploadedFileName } from '../../../lib/http/uploaded-file-name.util';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { TicketAttachmentsRepository } from '../repository/ticket-attachments.repository';
@@ -187,7 +188,9 @@ export class TicketAttachmentsService {
    * teto de dois, porque cada um seria julgado contra o mesmo estado inicial.
    */
   private accept(file: UploadedAttachment, kinds: AttachmentKind[]) {
-    const parsed = fileNameSchema.safeParse(file.originalname);
+    /* O nome chega com os acentos embaralhados (ver `decodeUploadedFileName`): é o nome
+       corrigido que se valida, se guarda e se mostra. */
+    const parsed = fileNameSchema.safeParse(decodeUploadedFileName(file.originalname));
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues[0]?.message ?? 'Nome de arquivo inválido.');
     }
