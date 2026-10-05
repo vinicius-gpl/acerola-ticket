@@ -332,7 +332,9 @@ mise run licenses:list     # mostra a licença de cada dependência
 
 Dependência com licença que não está na lista **reprova o PR**. O caminho é trocar a dependência ou, depois de avaliar, registrar uma exceção com o motivo escrito no próprio `license-policy.json`.
 
-Dois pontos para quem for redistribuir:
+> **Aviso:** a licença MIT cobre só o código deste repositório, **não as dependências**. Em
+> especial, o **GSAP** (as animações da tela) **não é código aberto**: é distribuído sob a
+> licença própria da Webflow, e este projeto não o relicencia. Leia
+> [`THIRD-PARTY-NOTICES.md`](./THIRD-PARTY-NOTICES.md) antes de redistribuir.
 
-- **GSAP** (as animações da tela) **não é código aberto**: tem licença própria, gratuita inclusive para uso comercial. Ela não muda a licença do nosso código, mas acompanha a biblioteca.
-- A biblioteca de login da Neon instala, sem que o sistema use, um kit de telas React com dependências **AGPL**. Elas não entram no que é entregue, e o verificador impede que alguém passe a importá-las.
+O mesmo arquivo explica as dependências **AGPL** que a biblioteca de login da Neon instala sem que o sistema use, e o pacote sem licença declarada que vem do `exceljs`.
