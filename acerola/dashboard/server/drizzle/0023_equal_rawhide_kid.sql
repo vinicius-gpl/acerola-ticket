@@ -1,0 +1,2 @@
+ALTER TABLE "inventory_movements" DROP CONSTRAINT "inventory_movements_reason_matches_type";--> statement-breakpoint
+ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_reason_matches_type" CHECK (("inventory_movements"."type" = 'disposal' and "inventory_movements"."reason" is not null and "inventory_movements"."reason" in ('broken', 'expired', 'obsolete', 'lost', 'other')) or ("inventory_movements"."type" <> 'disposal' and "inventory_movements"."reason" is null));

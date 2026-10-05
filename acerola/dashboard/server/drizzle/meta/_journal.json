@@ -155,6 +155,20 @@
       "when": 1791223836075,
       "tag": "0021_ordinary_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791239215996,
+      "tag": "0022_moaning_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791241477241,
+      "tag": "0023_equal_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }
