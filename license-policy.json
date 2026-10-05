@@ -1,0 +1,96 @@
+{
+  "about": [
+    "A POLÍTICA DE LICENÇAS das dependências — o equivalente, aqui, ao deny.toml do Rust.",
+    "O projeto é MIT (ver LICENSE). Uma dependência só entra se a licença dela estiver em 'allow', ou se tiver sido AVALIADA e registrada em 'exceptions' com o motivo.",
+    "Quem confere é .github/scripts/licenses/check-licenses.mjs (mise run licenses:check), no CI a cada PR.",
+    "Tudo o que não está em 'allow' é recusado — inclusive GPL, AGPL, LGPL, SSPL, licenças 'não comercial' e pacote sem licença declarada."
+  ],
+  "allow": [
+    "MIT",
+    "MIT-0",
+    "ISC",
+    "0BSD",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "BlueOak-1.0.0",
+    "CC0-1.0",
+    "Unlicense",
+    "Zlib",
+    "Python-2.0",
+    "MPL-2.0",
+    "CC-BY-4.0"
+  ],
+  "allowNotes": {
+    "MPL-2.0": "Copyleft por ARQUIVO: só obriga a publicar mudanças feitas nos arquivos da própria dependência. Usamos sem modificar (lightningcss e axe-core, ferramentas de build e de teste).",
+    "CC-BY-4.0": "Licença de DADOS, não de código: é a tabela de compatibilidade de navegadores (caniuse-lite), usada só na hora do build.",
+    "Python-2.0": "Permissiva. É o argparse, portado do Python."
+  },
+  "exceptions": [
+    {
+      "ecosystem": "node",
+      "package": "@triplit/client",
+      "license": "AGPL-3.0-only",
+      "reason": "INSTALADO, MAS NÃO USADO. Vem de @neondatabase/neon-js -> @neondatabase/auth-ui -> @daveyplate/better-auth-ui, o kit de telas React da Neon. Este sistema importa só '@neondatabase/neon-js/auth' (cliente de sessão), que não alcança esse kit. Conferido em 2026-10-04 seguindo os imports e procurando no build de produção: zero ocorrências. A lista 'forbiddenImports' impede que alguém passe a importá-lo."
+    },
+    {
+      "ecosystem": "node",
+      "package": "@triplit/db",
+      "license": "UNKNOWN",
+      "reason": "Mesma família e mesmo caminho de @triplit/client; o package.json não declara licença, e o repositório de origem (aspen-cloud/triplit) é AGPL-3.0. Tratado como AGPL: instalado, não importado, coberto por 'forbiddenImports'."
+    },
+    {
+      "ecosystem": "node",
+      "package": "@triplit/logger",
+      "license": "UNKNOWN",
+      "reason": "Mesma família e mesmo caminho de @triplit/client. Tratado como AGPL: instalado, não importado, coberto por 'forbiddenImports'."
+    },
+    {
+      "ecosystem": "node",
+      "package": "@triplit/react",
+      "license": "UNKNOWN",
+      "reason": "Mesma família e mesmo caminho de @triplit/client. Tratado como AGPL: instalado, não importado, coberto por 'forbiddenImports'."
+    },
+    {
+      "ecosystem": "node",
+      "package": "ua-parser-js",
+      "license": "AGPL-3.0-or-later",
+      "reason": "INSTALADO, MAS NÃO USADO. Dependência direta de @neondatabase/auth-ui (o kit de telas React da Neon), que este sistema não importa. Conferido em 2026-10-04 no build de produção: zero ocorrências. Coberto por 'forbiddenImports'."
+    },
+    {
+      "ecosystem": "node",
+      "package": "gsap",
+      "license": "Standard 'no charge' license: https://gsap.com/standard-license.",
+      "reason": "USADO (animações da tela, em client/src/lib/motion). NÃO é código aberto: é a licença própria da GSAP, gratuita inclusive para uso comercial, que proíbe usar a biblioteca em ferramentas concorrentes da Webflow — o que este sistema não é. Não contamina o nosso código, que segue MIT; mas quem redistribuir o projeto leva o GSAP sob a licença DELE. Se o projeto precisar ser 100% código aberto, é a dependência a trocar."
+    },
+    {
+      "ecosystem": "node",
+      "package": "buffers",
+      "license": "UNKNOWN",
+      "reason": "Pacote de 2011 sem licença declarada no package.json nem arquivo LICENSE. Vem de exceljs -> unzipper -> binary (exportação de relatório em Excel, no servidor). É do mesmo autor de traverse e chainsaw, publicados como MIT/X11, mas a licença DESTE pacote não está escrita em lugar nenhum: risco residual aceito, a rever se o exceljs for trocado."
+    }
+  ],
+  "forbiddenImports": [
+    {
+      "pattern": "@neondatabase/neon-js/auth/react",
+      "reason": "é a entrada do kit de telas React da Neon, que puxa código AGPL (@triplit, ua-parser-js). Use '@neondatabase/neon-js/auth'."
+    },
+    {
+      "pattern": "@neondatabase/auth/react",
+      "reason": "é a entrada do kit de telas React da Neon, que puxa código AGPL (@triplit, ua-parser-js)."
+    },
+    {
+      "pattern": "@neondatabase/auth-ui",
+      "reason": "é o kit de telas React da Neon, que puxa código AGPL (@triplit, ua-parser-js)."
+    },
+    {
+      "pattern": "@daveyplate/better-auth-ui",
+      "reason": "depende de @triplit/client, que é AGPL-3.0."
+    },
+    { "pattern": "@triplit/client", "reason": "licença AGPL-3.0-only." },
+    { "pattern": "@triplit/react", "reason": "família @triplit, tratada como AGPL-3.0." },
+    { "pattern": "@triplit/db", "reason": "família @triplit, tratada como AGPL-3.0." },
+    { "pattern": "@triplit/logger", "reason": "família @triplit, tratada como AGPL-3.0." },
+    { "pattern": "ua-parser-js", "reason": "licença AGPL-3.0-or-later (a partir da versão 2)." }
+  ]
+}

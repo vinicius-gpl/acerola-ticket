@@ -1,0 +1,51 @@
+# A LICENÇA DE CADA DEPENDÊNCIA, conferida a cada mudança.
+#
+# O projeto é MIT (ver LICENSE). Uma dependência com licença que obriga a abrir o código de
+# quem a usa (GPL, AGPL...) ou sem licença declarada não pode entrar calada: aqui ela reprova
+# o PR até alguém avaliar e, se for o caso, registrar uma exceção COM MOTIVO em
+# `license-policy.json` — o equivalente, neste repositório, ao `deny.toml` do Rust.
+#
+# Roda separado do CI principal porque precisa das DUAS instalações de Node (painel e tela do
+# agente) e do Go, que o `verify` não usa.
+name: Licenças
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            acerola/dashboard/package-lock.json
+            acerola/agent/svelte/package-lock.json
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: acerola/agent/go.mod
+          cache-dependency-path: acerola/agent/go.sum
+
+      - name: Testes da regra de licenças
+        run: node --test .github/scripts/licenses/license-policy.test.mjs
+
+      # `--ignore-scripts`: só os arquivos interessam aqui. Nenhum script de instalação de
+      # dependência precisa rodar para se ler a licença dela.
+      - name: Instala as dependências do painel
+        working-directory: acerola/dashboard
+        run: npm ci --ignore-scripts
+
+      - name: Instala as dependências da tela do agente
+        working-directory: acerola/agent/svelte
+        run: npm ci --ignore-scripts
+
+      # `--strict`: aqui, o que não dá para conferir reprova — não vira aviso.
+      - name: Confere as licenças (Node e Go)
+        run: node .github/scripts/licenses/check-licenses.mjs --strict
