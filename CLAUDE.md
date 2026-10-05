@@ -95,7 +95,7 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
    mudar? Envolva num `acerola-*`. Existe no shadcn-svelte? Instale, não recrie.
    **Nunca reescreva um componente existente** — mude só o que foi pedido.
    **Todo componente próprio tem prefixo `acerola-*`**: genérico em `lib/components/acerola-*`,
-   de feature em `routes/(app)/<feature>/components/acerola-*`.
+   de feature em `routes/(app)/<context>/<feature>/components/acerola-*`.
    **Todo campo de formulário tem `h-10`**, definido no `acerola-*`, nunca na tela.
    Detalhes e checagens: skill **`design-system`**.
 6. **Todo componente tem `.stories.svelte`** (default, variantes, estados, caso limite).
@@ -142,14 +142,26 @@ acerola/dashboard/shared/src/{domain,schemas}/        contrato e regra pura
 acerola/dashboard/server/src/lib/db/schema/           tabelas (Drizzle, Postgres/Neon)
 acerola/dashboard/server/src/modules/<feature>/       API
 acerola/dashboard/server/drizzle/                     migrations (geradas — não edite à mão)
-acerola/dashboard/client/src/routes/(app)/<feature>/  tela (só composição, SvelteKit)
-acerola/dashboard/client/src/routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
+acerola/dashboard/client/src/routes/(app)/<context>/<feature>/  tela (só composição, SvelteKit)
+acerola/dashboard/client/src/routes/(app)/<context>/<feature>/components/acerola-<nome>/  componente da feature
 acerola/dashboard/client/src/lib/hooks/use-<nome>/    estado e dados das telas
 acerola/dashboard/client/src/lib/components/acerola-<nome>/  componente genérico
 acerola/dashboard/client/src/lib/components/ui/       ⛔ CLI do shadcn (lib/hooks/ui/ idem)
 acerola/dashboard/client/src/lib/navigation/          menu lateral
 acerola/dashboard/scripts/seed/<entidade>/            dados de teste
 ```
+
+**O contexto mora no endereço.** `<context>` é uma de três pastas: `infra` (Infraestrutura),
+`system` (Sistema) ou `maintenance` (Manutenção) — `/infra/tickets`, `/system/tickets`,
+`/maintenance/tickets`. Cada tela é um `+page.svelte` **próprio do contexto**: nada de `if` por
+contexto dentro da página, nem de ler o contexto de estado global para decidir o que buscar —
+a página passa a área para o hook. Tela que existe em mais de um contexto (Chamados) é uma
+página fina por contexto, e o componente que elas compartilham mora em `lib/components/`.
+Tela nova entra no menu com uma linha em `lib/navigation/navigation.ts`. Só o que não é de
+contexto nenhum (perfil, cargos) fica direto em `routes/(app)/`.
+
+**A margem do conteúdo é da casca** (`acerola-app-shell`): a tela define só a largura máxima
+(`mx-auto w-full max-w-6xl`), nunca `px-*`/`pt-*`/`pb-*` no elemento raiz.
 
 ## Comandos
 

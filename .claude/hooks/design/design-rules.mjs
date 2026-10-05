@@ -187,7 +187,15 @@ export function componentFolders(files) {
 }
 
 /**
- * A feature de um arquivo de rota: `routes/(app)/tickets/+page.svelte` → `tickets`;
+ * As pastas de CONTEXTO do dashboard (`routes/(app)/<contexto>/<feature>/`): Infraestrutura,
+ * Sistema e Manutenção são três sistemas dentro de um, e a feature é a pasta de DENTRO.
+ * Sem isto, o parque de máquinas inteiro viraria uma feature só chamada `infra`.
+ */
+export const ROUTE_CONTEXTS = ['infra', 'system', 'maintenance'];
+
+/**
+ * A feature de um arquivo de rota: `routes/(app)/infra/tickets/+page.svelte` →
+ * `infra/tickets`; `routes/(app)/profile/+page.svelte` (fora de contexto) → `profile`;
  * `routes/dashboard/dashboard.svelte` (agent, sem grupo) → `dashboard`. O grupo `(app)/` some
  * antes de olhar o primeiro segmento; `+layout`/`+error`, ou um `.svelte` direto na raiz de
  * `routes` (sem subpasta), contam como "app inteiro" (`*`).
@@ -200,8 +208,10 @@ function featureOf(path) {
   const rest = path.slice(routesDir(app).length + 1).replace(/^\([^)]+\)\//, '');
   const parts = rest.split('/');
   if (parts.length <= 1) return '*';
+  if (parts[0].startsWith('+')) return '*';
+  if (!ROUTE_CONTEXTS.includes(parts[0]) || parts.length <= 2) return parts[0];
 
-  return parts[0].startsWith('+') ? '*' : parts[0];
+  return `${parts[0]}/${parts[1]}`;
 }
 
 /**
