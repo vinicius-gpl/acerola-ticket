@@ -1,11 +1,13 @@
+import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
+import { optimizePhoto, PHOTO_CONTENT_TYPE } from './inventory-photo.util';
 
-const { spawn } = await import('node:child_process');
-const { optimizePhoto, PHOTO_CONTENT_TYPE } = await import('./inventory-photo.util');
+/* O Vitest sobe este `vi.mock` para ANTES das importações: quando o util importa o
+   `child_process`, já recebe o de mentira. */
+vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
 
 /**
  * Um ffmpeg DE MENTIRA: o processo de verdade é um programa de fora, e o que precisa de teste

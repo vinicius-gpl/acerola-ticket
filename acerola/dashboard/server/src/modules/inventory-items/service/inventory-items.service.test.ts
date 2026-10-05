@@ -1,9 +1,11 @@
 import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { inventoryItemListQuerySchema } from '@template/shared/schemas/inventory-item.schema';
+import { inventoryMovementListQuerySchema } from '@template/shared/schemas/inventory-movement.schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type InventoryItemRow } from '../../../lib/db/schema/inventory-items.schema';
+import { type InventoryMovementRow } from '../../../lib/db/schema/inventory-movements.schema';
 import { type StorageService } from '../../../lib/storage/storage.service';
 import { type InventoryItemsRepository } from '../repository/inventory-items.repository';
 import { InventoryItemsService, type UploadedPhoto } from './inventory-items.service';
@@ -59,6 +61,7 @@ function row(overrides: Partial<InventoryItemRow> = {}): InventoryItemRow {
     code: 'PAT-0042',
     note: null,
     photoKey: null,
+    balance: 4,
     createdAt: new Date('2026-09-01T12:00:00.000Z'),
     createdBy: 'ana@empresa.com.br',
     updatedAt: null,
@@ -77,12 +80,37 @@ function photo(overrides: Partial<UploadedPhoto> = {}): UploadedPhoto {
   };
 }
 
+function movementRow(overrides: Partial<InventoryMovementRow> = {}): InventoryMovementRow {
+  return {
+    id: 10,
+    itemId: 1,
+    type: 'out',
+    quantity: 1,
+    balanceAfter: 3,
+    reason: null,
+    note: null,
+    createdAt: new Date('2026-09-02T12:00:00.000Z'),
+    createdBy: 'ana@empresa.com.br',
+    ...overrides,
+  };
+}
+
 const defaultRepository: Partial<InventoryItemsRepository> = {
   list: vi.fn().mockResolvedValue({ rows: [row()], total: 1 }),
   findById: vi.fn().mockResolvedValue(row()),
   insert: vi.fn().mockResolvedValue(row()),
   update: vi.fn().mockResolvedValue(row()),
   remove: vi.fn().mockResolvedValue(undefined),
+  findByIdForUpdate: vi.fn().mockResolvedValue(row()),
+  updateBalance: vi.fn().mockResolvedValue(undefined),
+  insertMovement: vi.fn().mockImplementation(async (values) => movementRow(values)),
+  listMovements: vi.fn().mockResolvedValue({
+    rows: [{ movement: movementRow(), item: { name: 'Cadeira de escritório', unit: 'unit' } }],
+    total: 1,
+  }),
+  /* A transação de mentira só roda o que recebeu: o que importa aqui é a ORDEM das decisões
+     do service, não o banco. */
+  transaction: vi.fn().mockImplementation(async (run) => run({})),
 };
 
 const defaultStorage: Partial<StorageService> = {
@@ -293,5 +321,128 @@ describe('InventoryItemsService.remove', () => {
 
     await expect(service.remove(keeper, 99)).rejects.toThrow(NotFoundException);
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe('InventoryItemsService.movements', () => {
+  // feliz
+  it('lists the statement with the name of each product', async () => {
+    const page = await makeService().movements(
+      viewer,
+      inventoryMovementListQuerySchema.parse({ type: 'out' }),
+    );
+
+    expect(page.total).toBe(1);
+    expect(page.items[0]).toMatchObject({ itemName: 'Cadeira de escritório', balanceAfter: 3 });
+  });
+
+  // triste
+  it('refuses an unidentified request without touching the repository', async () => {
+    const listMovements = vi.fn();
+    const service = makeService({ listMovements });
+
+    await expect(
+      service.movements(noRole, inventoryMovementListQuerySchema.parse({})),
+    ).rejects.toThrow(ForbiddenException);
+    expect(listMovements).not.toHaveBeenCalled();
+  });
+});
+
+describe('InventoryItemsService.createMovement', () => {
+  // feliz
+  it('registers an entry and moves the balance with it', async () => {
+    const insertMovement = vi.fn().mockImplementation(async (values) => movementRow(values));
+    const updateBalance = vi.fn().mockResolvedValue(undefined);
+    const service = makeService({ insertMovement, updateBalance });
+
+    const movement = await service.createMovement(keeper, 1, { type: 'in', quantity: 6 });
+
+    expect(insertMovement).toHaveBeenCalledWith(
+      expect.objectContaining({ itemId: 1, type: 'in', quantity: 6, balanceAfter: 10 }),
+      expect.anything(),
+    );
+    expect(updateBalance).toHaveBeenCalledWith(1, 10, expect.anything());
+    expect(movement).toMatchObject({ itemName: 'Cadeira de escritório', balanceAfter: 10 });
+  });
+
+  it('registers a disposal with its reason, stamping who did it', async () => {
+    const insertMovement = vi.fn().mockImplementation(async (values) => movementRow(values));
+    const service = makeService({ insertMovement });
+
+    await service.createMovement(keeper, 1, { type: 'disposal', quantity: 4, reason: 'broken' });
+
+    expect(insertMovement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'disposal',
+        reason: 'broken',
+        balanceAfter: 0,
+        createdBy: 'ana@empresa.com.br',
+      }),
+      expect.anything(),
+    );
+  });
+
+  /* O motivo é do descarte: junto com uma saída comum, ele é ruído — e não é gravado. */
+  it('drops a reason sent along with a movement that is not a disposal', async () => {
+    const insertMovement = vi.fn().mockImplementation(async (values) => movementRow(values));
+    const service = makeService({ insertMovement });
+
+    await service.createMovement(keeper, 1, { type: 'out', quantity: 1, reason: 'broken' });
+
+    expect(insertMovement).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: null }),
+      expect.anything(),
+    );
+  });
+
+  // triste
+  /* O saldo não fica negativo: a recusa diz quanto há, para a pessoa saber o que conferir. */
+  it('refuses taking out more than exists, saying how much there is', async () => {
+    const insertMovement = vi.fn();
+    const updateBalance = vi.fn();
+    const service = makeService({ insertMovement, updateBalance });
+
+    await expect(service.createMovement(keeper, 1, { type: 'out', quantity: 9 })).rejects.toThrow(
+      'Só há 4 de Cadeira de escritório no depósito',
+    );
+    expect(insertMovement).not.toHaveBeenCalled();
+    expect(updateBalance).not.toHaveBeenCalled();
+  });
+
+  it('refuses a disposal of a product with nothing in stock', async () => {
+    const service = makeService({
+      findByIdForUpdate: vi.fn().mockResolvedValue(row({ balance: 0 })),
+    });
+
+    await expect(
+      service.createMovement(keeper, 1, { type: 'disposal', quantity: 1, reason: 'lost' }),
+    ).rejects.toThrow(UnprocessableEntityException);
+  });
+
+  it('answers 404 for a product that does not exist, without writing', async () => {
+    const insertMovement = vi.fn();
+    const service = makeService({
+      findByIdForUpdate: vi.fn().mockResolvedValue(null),
+      insertMovement,
+    });
+
+    await expect(service.createMovement(keeper, 99, { type: 'in', quantity: 1 })).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(insertMovement).not.toHaveBeenCalled();
+  });
+
+  /* ESCALADA DE PRIVILÉGIO: cargo de consulta não mexe no depósito, nem abre transação. */
+  it('refuses the movement for someone who only queries the area', async () => {
+    const transaction = vi.fn();
+    const service = makeService({ transaction });
+
+    await expect(service.createMovement(viewer, 1, { type: 'in', quantity: 1 })).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(
+      service.createMovement(infraManager, 1, { type: 'in', quantity: 1 }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(transaction).not.toHaveBeenCalled();
   });
 });

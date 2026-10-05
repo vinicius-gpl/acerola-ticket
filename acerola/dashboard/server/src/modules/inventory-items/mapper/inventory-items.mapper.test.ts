@@ -5,6 +5,8 @@ import {
   toInventoryItem,
   toInventoryItemInsert,
   toInventoryItemUpdate,
+  toInventoryMovement,
+  toInventoryMovementInsert,
 } from './inventory-items.mapper';
 
 function row(overrides: Partial<InventoryItemRow> = {}): InventoryItemRow {
@@ -17,6 +19,7 @@ function row(overrides: Partial<InventoryItemRow> = {}): InventoryItemRow {
     code: 'PAT-0042',
     note: null,
     photoKey: 'inventory/abc.webp',
+    balance: 7,
     createdAt: new Date('2026-09-01T12:00:00.000Z'),
     createdBy: 'ana@empresa.com.br',
     updatedAt: null,
@@ -33,6 +36,7 @@ describe('toInventoryItem', () => {
     expect(item.name).toBe('Cadeira de escritório');
     expect(item.photoUrl).toBe('https://r2.exemplo/foto?assinatura');
     expect(item.createdAt).toBe('2026-09-01T12:00:00.000Z');
+    expect(item.balance).toBe(7);
   });
 
   // triste
@@ -81,6 +85,74 @@ describe('toInventoryItemInsert', () => {
 
     expect(values.location).toBeNull();
     expect(values.note).toBeNull();
+  });
+});
+
+describe('toInventoryMovement', () => {
+  // feliz
+  it('translates the statement line with the name of its product', () => {
+    const movement = toInventoryMovement({
+      movement: {
+        id: 5,
+        itemId: 1,
+        type: 'disposal',
+        quantity: 2,
+        balanceAfter: 5,
+        reason: 'broken',
+        note: null,
+        createdAt: new Date('2026-09-03T12:00:00.000Z'),
+        createdBy: 'ana@empresa.com.br',
+      },
+      item: { name: 'Cadeira de escritório', unit: 'unit' },
+    });
+
+    expect(movement).toMatchObject({
+      itemName: 'Cadeira de escritório',
+      itemUnit: 'unit',
+      reason: 'broken',
+      createdAt: '2026-09-03T12:00:00.000Z',
+    });
+  });
+});
+
+describe('toInventoryMovementInsert', () => {
+  // feliz
+  it('stamps the authorship and the balance that was computed', () => {
+    const values = toInventoryMovementInsert(
+      1,
+      { type: 'in', quantity: 3, note: '  Compra do mês  ' },
+      10,
+      'ana@empresa.com.br',
+    );
+
+    expect(values).toMatchObject({
+      itemId: 1,
+      quantity: 3,
+      balanceAfter: 10,
+      note: 'Compra do mês',
+      createdBy: 'ana@empresa.com.br',
+    });
+  });
+
+  // triste
+  /* O motivo é do descarte: numa entrada ele não é gravado, e observação em branco vira nulo. */
+  it('keeps the reason only on a disposal and turns a blank note into nothing', () => {
+    const entry = toInventoryMovementInsert(
+      1,
+      { type: 'in', quantity: 1, reason: 'broken', note: '' },
+      1,
+      'ana@empresa.com.br',
+    );
+    const disposal = toInventoryMovementInsert(
+      1,
+      { type: 'disposal', quantity: 1, reason: 'expired' },
+      0,
+      'ana@empresa.com.br',
+    );
+
+    expect(entry.reason).toBeNull();
+    expect(entry.note).toBeNull();
+    expect(disposal.reason).toBe('expired');
   });
 });
 
