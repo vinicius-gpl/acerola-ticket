@@ -155,7 +155,7 @@ acerola/dashboard/scripts/seed/<entidade>/            dados de teste
 
 ```bash
 cd acerola/dashboard
-npm run dev            # API :3336 + tela :5176
+npm run dev            # API :3005 + tela :5005
 npm run seed:all       # dados de teste (idempotente)
 npm run db:generate    # depois de mudar tabela
 npm run lint           # ESLint
@@ -166,7 +166,7 @@ npm run build          # build de produção
 ```
 
 `npm run dev` roda em segundo plano (é um servidor que não termina). Para conferir a tela,
-use o navegador em http://localhost:5176.
+use o navegador em http://localhost:5005.
 
 ## O que SEMPRE pede confirmação antes
 

@@ -61,7 +61,7 @@ npm run seed:all
 npm run dev      # em segundo plano
 ```
 
-Abra http://localhost:5176 e faça o fluxo principal da mudança, incluindo **um erro** (campo
+Abra http://localhost:5005 e faça o fluxo principal da mudança, incluindo **um erro** (campo
 vazio, ação sem permissão). Confira o console do navegador sem erro.
 
 ## 4. Relatório

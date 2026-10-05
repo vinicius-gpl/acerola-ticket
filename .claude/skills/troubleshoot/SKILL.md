@@ -22,12 +22,12 @@ não sobe. Peça para instalar o 24 (https://nodejs.org, "LTS") ou `mise install
 | `EPERM` / `EBUSY` (Windows) | Algum processo segura o arquivo: pare o `npm run dev`, feche o Storybook, tente de novo. |
 | `.git can't be found` (husky) | O projeto foi baixado sem git (.zip). As travas e o Git-Flow não funcionam assim: clone o repositório pelo GitHub ou pelo Tower. |
 
-## `address already in use :3336` ou `:5176`
+## `address already in use :3005` ou `:5005`
 
 Já tem uma cópia rodando. Feche o outro terminal. No Windows, para achar e parar:
 
 ```bash
-netstat -ano | findstr :3336
+netstat -ano | findstr :3005
 taskkill /PID <número> /F
 ```
 
@@ -36,7 +36,7 @@ Porta ocupada por outro programa? `API_PORT` no `server/.env` e `VITE_API_PORT` 
 
 ## Tela em branco ou "Não consegui falar com o servidor"
 
-1. O server subiu? No terminal do `npm run dev` precisa aparecer `API em http://localhost:3336/api`.
+1. O server subiu? No terminal do `npm run dev` precisa aparecer `API em http://localhost:3005/api`.
 2. Erro no terminal do `[server]`? Resolva aquele primeiro — inclusive "Invalid environment":
    falta uma variável no `server/.env` (confira contra o `server/.env.example`, em especial
    `DATABASE_URL` e as do R2).
