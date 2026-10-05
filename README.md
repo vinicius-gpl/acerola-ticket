@@ -56,7 +56,7 @@ npm run seed:all # cria o banco e grava os dados de teste
 npm run dev # sobe o sistema
 ```
 
-Abra **<http://localhost:5176>**. A documentação da API fica em **<http://localhost:3336/docs>**.
+Abra **<http://localhost:5005>**. A documentação da API fica em **<http://localhost:3005/docs>**.
 
 </details>
 
@@ -181,7 +181,7 @@ Todos rodam dentro de `acerola/dashboard/`:
 
 | Comando                           | O que faz                                                                    |
 | --------------------------------- | ---------------------------------------------------------------------------- |
-| `npm run dev`                     | Sobe API (:3336) e tela (:5176), recarregando a cada mudança                 |
+| `npm run dev`                     | Sobe API (:3005) e tela (:5005), recarregando a cada mudança                 |
 | `npm run seed:all`                | Grava os dados de teste (pode rodar quantas vezes quiser)                    |
 | `npm run db:reset`                | **Apaga** os dados na Neon e recria com os dados de teste                    |
 | `npm run db:generate`             | Gera a migration depois de mudar uma tabela                                  |
