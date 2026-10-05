@@ -1,4 +1,5 @@
 import { seedComputers } from './computers/seed-computers';
+import { seedInventoryItems } from './inventory-items/seed-inventory-items';
 import { seedMaintenances } from './maintenances/seed-maintenances';
 import { seedNetwork } from './network/seed-network';
 import { seedParts } from './parts/seed-parts';
@@ -39,6 +40,9 @@ async function main(): Promise<void> {
     report('peças do depósito', await seedParts(db));
     /* Depois dos computadores: o histórico aponta para a máquina que mudou de setor. */
     report('transferências', await seedTransfers(db));
+    /* O inventário da Manutenção não depende de ninguém: cadeira e café não apontam para
+       máquina nem para chamado. */
+    report('produtos do inventário', await seedInventoryItems(db));
     /* A rede não depende de ninguém: é o link de internet, não uma máquina. */
     report('eventos de rede', await seedNetwork(db));
   } finally {
