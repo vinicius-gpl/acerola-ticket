@@ -19,6 +19,7 @@ import { HealthModule } from './modules/health/health.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { NetworkModule } from './modules/network/network.module';
+import { InventoryItemsModule } from './modules/inventory-items/inventory-items.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -67,6 +68,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     ComputersModule,
     MaintenancesModule,
     PartsModule,
+    InventoryItemsModule,
     DashboardModule,
     NetworkModule,
     InsightsModule,
