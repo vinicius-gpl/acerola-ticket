@@ -65,15 +65,15 @@ describe('useAppShellModel contexts', () => {
   });
 
   // triste
-  /* Trocar de contexto no Depósito (que é só de Infraestrutura) não pode deixar a pessoa
-     numa tela fora do menu: o sistema leva para a primeira tela do contexto novo. */
+  /* Trocar de contexto na Rede (que é só de Infraestrutura) não pode deixar a pessoa numa
+     tela fora do menu: o sistema leva para a primeira tela do contexto novo — o Painel dele. */
   it('takes the person to the first screen when the open one does not exist there', async () => {
-    openScreen('/infra/parts');
+    openScreen('/infra/network');
     const model = mountModel();
 
     model.actions.onAreaContextChange('manutencao');
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/maintenance/tickets'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/maintenance/dashboard'));
   });
 
   /* O perfil não é de contexto nenhum — trocar de contexto ali não navega: só o menu muda. */

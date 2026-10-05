@@ -1,5 +1,7 @@
 import type { LucideIcon } from '@lucide/svelte';
+import FileText from '@lucide/svelte/icons/file-text';
 import HardDrive from '@lucide/svelte/icons/hard-drive';
+import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import Lightbulb from '@lucide/svelte/icons/lightbulb';
 import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 import ListChecks from '@lucide/svelte/icons/list-checks';
@@ -104,9 +106,17 @@ export const NAV_ITEMS: NavItem[] = [
   /* SISTEMA — só chamado (e, mais adiante, a ponte com o GitHub). */
   navItem('sistema', 'tickets', 'Chamados', LifeBuoy),
 
-  /* MANUTENÇÃO — o inventário daqui é outro cadastro: mobiliário, mercadinho, limpeza. */
+  /* MANUTENÇÃO — o prédio e o dia a dia do escritório. Os nomes repetem os de Infraestrutura
+     (Painel, Inventário, Depósito, Descarte) porque o trabalho é o mesmo, mas cada um é OUTRA
+     tela, com outro cadastro: aqui é mobiliário, mercadinho e limpeza, não computador. Os
+     Orçamentos daqui guardam o que foi cotado com empresas de fora — não são a sugestão de
+     compra de máquina que Infraestrutura tem. */
+  navItem('manutencao', 'dashboard', 'Painel', LayoutDashboard),
   navItem('manutencao', 'tickets', 'Chamados', LifeBuoy),
   navItem('manutencao', 'inventory', 'Inventário', PackageOpen),
+  navItem('manutencao', 'stock', 'Depósito', Package),
+  navItem('manutencao', 'disposal', 'Descarte', Trash2),
+  navItem('manutencao', 'quotes', 'Orçamentos', FileText),
 ];
 
 /** Os itens de menu de um contexto, na ordem da lista acima. */

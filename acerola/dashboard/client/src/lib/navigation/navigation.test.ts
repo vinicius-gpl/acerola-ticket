@@ -184,10 +184,28 @@ describe('NAV_ITEMS', () => {
     }
   });
 
-  /* O Painel é do parque de máquinas: ele não aparece onde não há máquina para resumir. */
-  it('keeps the machine panel in infrastructure only', () => {
-    expect(navItemsForContext('infra').map((entry) => entry.feature)).toContain('dashboard');
-    expect(navItemsForContext('sistema').map((entry) => entry.feature)).not.toContain('dashboard');
+  /* Cada painel é do contexto dele, com endereço próprio: o de Infraestrutura resume
+     máquinas, o da Manutenção resume depósito e orçamentos. Sistema ainda não tem o que
+     resumir, e por isso não tem painel. */
+  it('gives a panel of its own to each context that has one', () => {
+    const panelOf = (context: 'infra' | 'sistema' | 'manutencao') =>
+      navItemsForContext(context).find((entry) => entry.feature === 'dashboard')?.to;
+
+    expect(panelOf('infra')).toBe('/infra/dashboard');
+    expect(panelOf('manutencao')).toBe('/maintenance/dashboard');
+    expect(panelOf('sistema')).toBeUndefined();
+  });
+
+  /* O que a Manutenção pediu: painel, depósito, descarte e orçamentos, além do inventário. */
+  it('carries the whole menu of Maintenance, in the order of the work', () => {
+    expect(navItemsForContext('manutencao').map((entry) => entry.feature)).toEqual([
+      'dashboard',
+      'tickets',
+      'inventory',
+      'stock',
+      'disposal',
+      'quotes',
+    ]);
   });
 
   // triste
