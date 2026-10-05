@@ -15,9 +15,9 @@ import { derived, writable } from 'svelte/store';
 import { readError } from '$lib/api/http-client';
 import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
 import {
-  type TicketAreaContext,
-  useTicketAreaContextModel,
-} from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
+  type AreaContext,
+  useAreaContextModel,
+} from '$lib/hooks/use-area-context/use-area-context.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
@@ -38,6 +38,12 @@ export type TicketListFilter = {
 
 export type TicketListModel = {
   data: {
+    /**
+     * A ÁREA da fila — o contexto do app-shell (#13). A tela usa para oferecer só os tipos de
+     * problema que existem nessa área: "Certificado digital" não é assunto de Manutenção, e
+     * "Ar-condicionado" não é de Infraestrutura.
+     */
+    area: AreaContext;
     tickets: Ticket[];
     /** Quantos casaram com o filtro — pode ser mais do que os que vieram na página. */
     total: number;
@@ -90,16 +96,17 @@ const EMPTY_FILTER: TicketListFilter = {
 export const TICKETS_QUERY_KEY = ['tickets'] as const;
 
 /**
- * `areaContext` é o seletor de contexto do app-shell (#13) — "Todas" ou uma área só, entre as
- * que a pessoa atende. Ele SOMA ao filtro, não o substitui: a fila sempre respeita os dois.
+ * `areaContext` é o contexto do app-shell (#13) — a área em que a pessoa está trabalhando.
+ * A fila é SEMPRE dessa área: não existe mais um "Todas" misturando chamado de computador com
+ * chamado de ar-condicionado na mesma lista. Ele SOMA ao filtro, não o substitui.
  */
-function scopeOf(filter: TicketListFilter, areaContext: TicketAreaContext) {
+function scopeOf(filter: TicketListFilter, areaContext: AreaContext) {
   return {
     search: filter.search.trim() || undefined,
     status: filter.status || undefined,
     statusGroup: filter.statusGroup || undefined,
     priority: filter.priority || undefined,
-    area: areaContext === 'all' ? undefined : areaContext,
+    area: areaContext,
     department: filter.department || undefined,
     problemType: filter.problemType || undefined,
   };
@@ -125,12 +132,12 @@ export function useTicketListModel(): TicketListModel {
   /* O contexto do app-shell (#13) é um RUNE compartilhado entre módulos, e `createQuery`
      só reage a STORE (ver comentário em `filterStore`, acima). Este `$effect` é a ponte: lê
      o rune (o que o torna reativo a ele) e espelha o valor numa store que a consulta escuta. */
-  const ticketAreaContext = useTicketAreaContextModel();
-  const areaContextStore = writable<TicketAreaContext>(ticketAreaContext.context);
+  const areaContext = useAreaContextModel();
+  const areaContextStore = writable<AreaContext>(areaContext.context);
   $effect(() => {
-    areaContextStore.set(ticketAreaContext.context);
-    /* Trocar de área pode deixar a página atual fora do alcance — a página 3 de "Todas"
-       pode não existir em "Manutenção". */
+    areaContextStore.set(areaContext.context);
+    /* Trocar de área pode deixar a página atual fora do alcance — a página 3 de
+       "Infraestrutura" pode não existir em "Manutenção". */
     pageStore.set(1);
   });
 
@@ -161,13 +168,18 @@ export function useTicketListModel(): TicketListModel {
 
   /* Os indicadores NÃO recebem o filtro: "quanto tempo levamos para resolver" é uma pergunta
      sobre o atendimento inteiro. Recalculá-los a cada filtro faria o número mudar enquanto a
-     pessoa procura um chamado, como se o desempenho do time dependesse da busca. */
+     pessoa procura um chamado, como se o desempenho do time dependesse da busca.
+
+     Mas eles RECEBEM O CONTEXTO (#13), pelo motivo oposto: o contexto não é um filtro da
+     tela, é a área em que a pessoa está trabalhando. Sem ele, os "98 abertos" de
+     Infraestrutura apareciam em cima da fila de Manutenção, que não tem nenhum. Por isso a
+     consulta escuta a mesma store de contexto da lista. */
   const dashboard = mirrorStore(
     createQuery(
-      writable({
-        queryKey: [...TICKETS_QUERY_KEY, 'dashboard'],
-        queryFn: () => ticketsApi.dashboard(),
-      }),
+      derived(areaContextStore, (currentAreaContext) => ({
+        queryKey: [...TICKETS_QUERY_KEY, 'dashboard', currentAreaContext],
+        queryFn: () => ticketsApi.dashboard(currentAreaContext),
+      })),
     ),
   );
 
@@ -176,6 +188,7 @@ export function useTicketListModel(): TicketListModel {
        valores fixos, a lista congelaria no primeiro carregamento. */
     get data() {
       return buildData({
+        area: areaContext.context,
         page: list.current.data,
         currentPage: page.current,
         dashboard: dashboard.current.data ?? null,
@@ -223,7 +236,7 @@ export function useTicketListModel(): TicketListModel {
         exportingFormat = format;
 
         ticketsApi
-          .exportReport(scopeOf(filter.current, ticketAreaContext.context), format)
+          .exportReport(scopeOf(filter.current, areaContext.context), format)
           .then(({ blob, fileName }) => triggerBrowserDownload(blob, fileName))
           .catch((error: unknown) => {
             exportError = readError(error) ?? 'Não consegui gerar o relatório.';
@@ -251,6 +264,7 @@ type TicketPage = { items: Ticket[]; total: number } | undefined;
  * passava do teto de complexidade sem ter nenhuma decisão de verdade dentro.
  */
 function buildData(input: {
+  area: AreaContext;
   page: TicketPage;
   currentPage: number;
   dashboard: TicketDashboard | null;
@@ -259,6 +273,7 @@ function buildData(input: {
   const total = input.page?.total ?? 0;
 
   return {
+    area: input.area,
     tickets: input.page?.items ?? [],
     total,
     dashboard: input.dashboard,

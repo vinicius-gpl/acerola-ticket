@@ -8,9 +8,9 @@ import { describe, expect, it, vi } from 'vitest';
 import AppShell, { type AcerolaAppShellProps } from './acerola-app-shell.svelte';
 
 const items = [
-  { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks },
-  { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3 },
-];
+  { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, contexts: ['infra'] },
+  { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3, contexts: ['infra'] },
+] as const;
 
 const content = createRawSnippet(() => ({
   render: () => '<div>Conteúdo da rota</div>',
@@ -50,8 +50,8 @@ describe('AcerolaAppShell', () => {
     renderShell({
       data: {
         areaOptions: [
-          { value: 'all', label: 'Todas' },
           { value: 'infra', label: 'Infraestrutura' },
+          { value: 'sistema', label: 'Sistema' },
           { value: 'manutencao', label: 'Manutenção' },
         ],
       },
@@ -72,17 +72,19 @@ describe('AcerolaAppShell', () => {
     renderShell({
       data: {
         areaOptions: [
-          { value: 'all', label: 'Todas', icon: ListChecks },
+          { value: 'manutencao', label: 'Manutenção', icon: ListChecks },
           { value: 'infra', label: 'Infraestrutura', icon: BarChart3 },
           { value: 'sistema', label: 'Sistema' },
         ],
       },
-      state: { areaContext: 'all' },
+      state: { areaContext: 'manutencao' },
     });
 
     const group = screen.getByRole('group', { name: 'Área que você está vendo' });
 
-    expect(within(group).getByRole('button', { name: 'Todas' }).querySelector('svg')).not.toBeNull();
+    expect(
+      within(group).getByRole('button', { name: 'Manutenção' }).querySelector('svg'),
+    ).not.toBeNull();
     expect(within(group).getByRole('button', { name: 'Infraestrutura' }).querySelector('svg')).not.toBeNull();
     /* Opção sem ícone continua valendo: só o texto. */
     expect(within(group).getByRole('button', { name: 'Sistema' }).querySelector('svg')).toBeNull();
@@ -98,7 +100,7 @@ describe('AcerolaAppShell', () => {
     renderShell({
       data: {
         areaOptions: [
-          { value: 'all', label: 'Todas' },
+          { value: 'sistema', label: 'Sistema' },
           { value: 'infra', label: 'Infraestrutura' },
         ],
       },

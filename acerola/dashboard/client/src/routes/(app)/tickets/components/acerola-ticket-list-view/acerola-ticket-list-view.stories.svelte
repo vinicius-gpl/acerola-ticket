@@ -125,7 +125,18 @@
 <Story
   name="Default"
   args={{
-    data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    data: { area: 'infra', tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    state: settled,
+    actions,
+  }}
+/>
+
+<!-- A fila de MANUTENÇÃO: a mesma tela, com o filtro de tipo de problema mais curto — só os
+     tipos da área (ar-condicionado, mobiliário, iluminação…). -->
+<Story
+  name="MaintenanceQueue"
+  args={{
+    data: { area: 'manutencao', tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: settled,
     actions,
   }}
@@ -136,7 +147,7 @@
   name="Celular"
   globals={{ viewport: { value: 'celular' } }}
   args={{
-    data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    data: { area: 'infra', tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: settled,
     actions,
   }}
@@ -145,7 +156,7 @@
 <Story
   name="Loading"
   args={{
-    data: { tickets: [], total: 0, dashboard: null, filter: emptyFilter },
+    data: { area: 'infra', tickets: [], total: 0, dashboard: null, filter: emptyFilter },
     state: { ...settled, isLoading: true, isDashboardLoading: true },
     actions,
   }}
@@ -156,6 +167,7 @@
   name="Empty"
   args={{
     data: {
+      area: 'infra',
       tickets: [],
       total: 0,
       dashboard: { ...dashboard, total: 0, open: 0, inProgress: 0, resolved: 0, cancelled: 0, averageResolutionHours: null, byProblemType: [], byDepartment: [] },
@@ -171,6 +183,7 @@
   name="FilteredOut"
   args={{
     data: {
+      area: 'infra',
       tickets: [],
       total: 0,
       dashboard,
@@ -184,7 +197,7 @@
 <Story
   name="Error"
   args={{
-    data: { tickets: [], total: 0, dashboard: null, filter: emptyFilter },
+    data: { area: 'infra', tickets: [], total: 0, dashboard: null, filter: emptyFilter },
     state: { ...settled, error: 'Não consegui falar com o servidor.' },
     actions,
   }}
@@ -194,7 +207,7 @@
 <Story
   name="Truncated"
   args={{
-    data: { tickets, total: 240, dashboard, filter: emptyFilter },
+    data: { area: 'infra', tickets, total: 240, dashboard, filter: emptyFilter },
     state: { ...settled, isTruncated: true },
     actions,
   }}
@@ -204,7 +217,7 @@
 <Story
   name="ExportingReport"
   args={{
-    data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    data: { area: 'infra', tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: { ...settled, exportingFormat: 'xlsx' },
     actions,
   }}
@@ -214,7 +227,7 @@
 <Story
   name="ExportError"
   args={{
-    data: { tickets, total: tickets.length, dashboard, filter: emptyFilter },
+    data: { area: 'infra', tickets, total: tickets.length, dashboard, filter: emptyFilter },
     state: { ...settled, exportError: 'Não consegui gerar o relatório.' },
     actions,
   }}
@@ -225,6 +238,7 @@
   name="NothingResolvedYet"
   args={{
     data: {
+      area: 'infra',
       tickets: [ticket()],
       total: 1,
       dashboard: { ...dashboard, total: 1, open: 1, inProgress: 0, resolved: 0, cancelled: 0, averageResolutionHours: null },

@@ -65,11 +65,11 @@ Cria as tabelas no banco e grava as tarefas de exemplo.
 ## 5. Subir
 
 Rode `npm run dev` **em segundo plano** (ele não termina). Espere aparecer
-`API em http://localhost:3336/api` e o Vite em `:5176`.
+`API em http://localhost:3005/api` e o Vite em `:5005`.
 
 Diga à pessoa:
-- **O sistema:** http://localhost:5176
-- **A documentação da API (Swagger):** http://localhost:3336/docs
+- **O sistema:** http://localhost:5005
+- **A documentação da API (Swagger):** http://localhost:3005/docs
 - Para parar: `Ctrl+C` no terminal onde está rodando.
 
 Se puder, abra no navegador e confira que a lista de tarefas aparece.

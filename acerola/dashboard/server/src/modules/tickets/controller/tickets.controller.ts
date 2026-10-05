@@ -36,6 +36,7 @@ import {
   AddTicketAreaDto,
   CreateTicketDto,
   PublicTicketDto,
+  TicketDashboardQueryDto,
   TicketDto,
   TicketListQueryDto,
   TicketListResponseDto,
@@ -61,7 +62,7 @@ import {
  * estágio só muda por um histórico (ver `TicketHistoriesController`).
  *
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
- * resposta. A documentação fica em http://localhost:3336/docs.
+ * resposta. A documentação fica em http://localhost:3005/docs.
  */
 /**
  * O teto de arquivos numa requisição. O limite de verdade é por formato, e quem o aplica é o
@@ -136,11 +137,14 @@ export class TicketsController {
   @ApiOperation({
     summary: 'Indicadores dos chamados',
     description:
-      'Calculados sobre todos os chamados, não só sobre a página aberta: tempo médio de resolução, contagem por situação, por tipo de problema e por departamento.',
+      'Calculados sobre todos os chamados, não só sobre a página aberta: tempo médio de resolução, contagem por situação, por tipo de problema e por departamento. Com `area`, são os indicadores DAQUELA área — é o contexto do painel (#13); sem ela, de todas as que a pessoa atende.',
   })
   @ApiOkResponse({ description: 'Contagens e o tempo médio de resolução em horas.' })
-  async dashboard(@CurrentUser() user: RequestUser): Promise<TicketDashboard> {
-    return this.service.dashboard(user);
+  async dashboard(
+    @CurrentUser() user: RequestUser,
+    @Query() query: TicketDashboardQueryDto,
+  ): Promise<TicketDashboard> {
+    return this.service.dashboard(user, query.area);
   }
 
   /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard`. */

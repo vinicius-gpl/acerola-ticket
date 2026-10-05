@@ -127,21 +127,29 @@ export class TicketsRepository {
   }
 
   /**
-   * O filtro da tela/relatório, SOMADO à área de quem está vendo: a área principal do chamado
-   * está entre as acessíveis, OU alguma das áreas PARTICIPANTES está. Sem a segunda parte,
-   * quem ganhou acesso como participante nunca veria o chamado na fila — só se abrisse pelo
-   * link direto.
+   * O filtro da tela/relatório, SOMADO a duas travas de área:
+   *
+   *  1. **O que a pessoa enxerga** — as áreas em que ela tem cargo.
+   *  2. **O CONTEXTO em que ela está** (#13), quando a consulta pede uma área.
+   *
+   * As duas usam a mesma régua (`areaReach`): o chamado é da área, ou a área foi somada a ele
+   * como PARTICIPANTE. Sem a segunda parte, o chamado de Infraestrutura em que a Manutenção
+   * foi chamada para ajudar não apareceria na fila de nenhuma das duas — some de Manutenção,
+   * que não é a área original, e some de Infraestrutura para quem não tem cargo lá.
    */
   private async scopedWhere(query: TicketFilter, areas: readonly TicketArea[]): Promise<SQL | undefined> {
+    const visibility = await this.areaReach(areas);
+    const context = query.area ? await this.areaReach([query.area]) : undefined;
+
+    return and(buildWhere(query), visibility, context);
+  }
+
+  /** "O chamado é desta área": a área original dele, ou uma das participantes. */
+  private async areaReach(areas: readonly TicketArea[]): Promise<SQL | undefined> {
     const participantIds = await this.ticketIdsWithParticipantArea(areas);
-    const visibility =
-      participantIds.length > 0
-        ? or(inArray(tickets.area, areas), inArray(tickets.id, participantIds))
-        : inArray(tickets.area, areas);
+    if (participantIds.length === 0) return inArray(tickets.area, areas);
 
-    const filters = buildWhere(query);
-
-    return filters ? and(filters, visibility) : visibility;
+    return or(inArray(tickets.area, areas), inArray(tickets.id, participantIds));
   }
 
   /** Os `id` de chamados que ganharam alguma destas áreas como PARTICIPANTE (não a original). */
@@ -182,6 +190,10 @@ export class TicketsRepository {
   async listForMetrics(areas: readonly TicketArea[]): Promise<TicketMetricsRow[]> {
     if (areas.length === 0) return [];
 
+    /* A MESMA régua da fila (`areaReach`): os números de cima e a lista de baixo precisam
+       contar o mesmo conjunto, ou o cartão diz "12 abertos" sobre uma lista de 9. */
+    const reach = await this.areaReach(areas);
+
     return runQuery(
       this.db
         .select({
@@ -193,7 +205,7 @@ export class TicketsRepository {
           area: tickets.area,
         })
         .from(tickets)
-        .where(inArray(tickets.area, areas)),
+        .where(reach),
       'calcular indicadores de chamados',
     );
   }
@@ -336,7 +348,8 @@ function buildWhere(query: TicketFilter): SQL | undefined {
     filters.push(inArray(tickets.status, [...ticketStatusesOfGroup(query.statusGroup)]));
   }
   if (query.priority) filters.push(eq(tickets.priority, query.priority));
-  if (query.area) filters.push(eq(tickets.area, query.area));
+  /* `area` NÃO entra aqui: ela é o contexto, e contexto inclui as áreas participantes —
+     quem resolve é o `scopedWhere`, que sabe consultar o banco. */
   if (query.department) filters.push(eq(tickets.department, query.department));
   if (query.problemType) filters.push(eq(tickets.problemType, query.problemType));
   if (query.computerId) filters.push(eq(tickets.computerId, query.computerId));

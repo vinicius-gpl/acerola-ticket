@@ -2,11 +2,11 @@
   import {
     TICKET_DEPARTMENTS,
     TICKET_DEPARTMENT_LABELS,
-    TICKET_PROBLEM_TYPE_LABELS,
-    TICKET_PROBLEM_TYPES,
     ticketAreaLabel,
     ticketDepartmentLabel,
     ticketProblemTypeLabel,
+    ticketProblemTypeOptionsForArea,
+    type TicketArea,
     type TicketDepartment,
     type TicketProblemType,
   } from '@template/shared/domain/ticket-catalog.util';
@@ -54,6 +54,8 @@
    */
   export type AcerolaTicketListViewProps = {
     data: {
+      /** A área da fila: é ela que diz quais tipos de problema o filtro oferece. */
+      area: TicketArea;
       tickets: Ticket[];
       total: number;
       dashboard: TicketDashboard | null;
@@ -105,11 +107,6 @@
   const DEPARTMENT_FILTER_OPTIONS = TICKET_DEPARTMENTS.map((department) => ({
     value: department,
     label: TICKET_DEPARTMENT_LABELS[department],
-  }));
-
-  const PROBLEM_TYPE_FILTER_OPTIONS = TICKET_PROBLEM_TYPES.map((type) => ({
-    value: type,
-    label: TICKET_PROBLEM_TYPE_LABELS[type],
   }));
 
   /**
@@ -165,6 +162,11 @@
   const tableView = useTableViewModel();
 
   const dashboard = $derived(data.dashboard);
+
+  /* Os tipos de problema SÃO OS DA ÁREA da fila (#13): oferecer "Impressora" a quem cuida de
+     cadeira e mesa é um filtro que nunca devolve nada. `$derived`, e não constante: a pessoa
+     troca de contexto no cabeçalho sem sair da tela. */
+  const problemTypeFilterOptions = $derived(ticketProblemTypeOptionsForArea(data.area));
 
   const problemSlices = $derived(
     (dashboard?.byProblemType ?? []).map((row) => ({
@@ -384,7 +386,7 @@
 
         <FilterField data={{ label: 'Tipo de problema' }}>
           <OptionPicker
-            data={{ value: data.filter.problemType, options: PROBLEM_TYPE_FILTER_OPTIONS }}
+            data={{ value: data.filter.problemType, options: problemTypeFilterOptions }}
             ui={{ ariaLabel: 'Filtrar por tipo de problema', allLabel: 'Todos os tipos' }}
             actions={{
               onChange: (value: string) =>

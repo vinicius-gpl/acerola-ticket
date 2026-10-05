@@ -2,7 +2,6 @@
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import BarChart3 from '@lucide/svelte/icons/chart-column';
   import Cpu from '@lucide/svelte/icons/cpu';
-  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import Server from '@lucide/svelte/icons/server';
   import Settings from '@lucide/svelte/icons/settings';
@@ -14,10 +13,16 @@
   const actions = { onLogout: fn() };
 
   const manyItems = [
-    { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks },
-    { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3 },
-    { key: 'settings', label: 'Configurações', to: '/settings', icon: Settings },
-  ];
+    { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, contexts: ['infra'] },
+    { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3, contexts: ['infra'] },
+    {
+      key: 'settings',
+      label: 'Configurações',
+      to: '/settings',
+      icon: Settings,
+      contexts: ['infra'],
+    },
+  ] as const;
 
   const user = { name: 'Ana Souza', email: 'ana@empresa.com.br', role: 'Administrador' };
 
@@ -57,13 +62,13 @@
 </Story>
 
 <!-- Quem atende mais de uma área: as pastilhas de contexto ficam no cabeçalho, ao lado do
-     botão do menu, com a área atual acesa. -->
+     botão do menu, com a área atual acesa. São os três contextos do sistema — não existe
+     "Todas as áreas": cada um tem o seu menu. -->
 <Story name="WithAreaContext">
   <AppShell
     data={{
       user,
       areaOptions: [
-        { value: 'all', label: 'Todas', icon: LayoutGrid },
         { value: 'infra', label: 'Infraestrutura', icon: Server },
         { value: 'sistema', label: 'Sistema', icon: Cpu },
         { value: 'manutencao', label: 'Manutenção', icon: Wrench },

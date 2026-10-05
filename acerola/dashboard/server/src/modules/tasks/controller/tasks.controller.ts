@@ -37,7 +37,7 @@ import { TasksService } from '../service/tasks.service';
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
  *
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
- * resposta. A documentação fica em http://localhost:3336/docs.
+ * resposta. A documentação fica em http://localhost:3005/docs.
  */
 @ApiTags('Tarefas')
 @Controller('tasks')
