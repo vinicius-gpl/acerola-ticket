@@ -2,6 +2,7 @@
   "name": "@template/shared",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Schemas Zod e regras de domínio puras — o que server e client compartilham.",
   "exports": {
     "./*": {

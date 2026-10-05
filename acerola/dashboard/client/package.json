@@ -2,6 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "SPA SvelteKit do template — rota compõe, view-model decide, view desenha.",
   "type": "module",
   "scripts": {
