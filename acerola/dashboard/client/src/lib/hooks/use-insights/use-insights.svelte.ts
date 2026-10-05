@@ -60,8 +60,8 @@ export function useInsightsModel(): InsightsModel {
     actions: {
       onPeriodChange: (value) => daysStore.set(value),
       onRetry: () => void summary.current.refetch(),
-      onOpenMachine: (computerId) => void goto(`/computers/${computerId}`),
-      onOpenComputers: () => void goto('/computers'),
+      onOpenMachine: (computerId) => void goto(`/infra/computers/${computerId}`),
+      onOpenComputers: () => void goto('/infra/computers'),
     },
   };
 }

@@ -45,7 +45,7 @@ describe('useLoginModel', () => {
 
     await submit(model, 'ana@exemplo.com.br', 'senha-de-teste');
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/tasks'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/'));
     expect(signIn).toHaveBeenCalledWith({
       email: 'ana@exemplo.com.br',
       password: 'senha-de-teste',

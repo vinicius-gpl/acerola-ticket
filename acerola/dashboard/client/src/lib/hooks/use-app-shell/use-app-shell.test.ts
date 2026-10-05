@@ -31,7 +31,9 @@ function mountModel(overrides: Partial<SessionUser> = {}): AppShellModel {
 }
 
 beforeEach(() => {
-  vi.mocked(neonAuth.signOut).mockReset().mockResolvedValue(undefined as never);
+  vi.mocked(neonAuth.signOut)
+    .mockReset()
+    .mockResolvedValue(undefined as never);
   vi.mocked(goto).mockClear();
   openScreen('/');
 });
@@ -40,47 +42,49 @@ describe('useAppShellModel contexts', () => {
   // feliz
   /* O menu NÃO é o mesmo nos três contextos: Infraestrutura cuida do parque de máquinas,
      Sistema é só chamado. */
-  it('gives the menu of the context the person is in', () => {
+  it('gives the menu of the context in the address', () => {
+    openScreen('/infra/computers');
+    expect(mountModel().ui.items.map((item) => item.key)).toContain('infra/computers');
+
+    openScreen('/system/tickets');
     const model = mountModel();
-
-    model.actions.onAreaContextChange('infra');
-    expect(model.ui.items.map((item) => item.key)).toContain('computers');
-
-    model.actions.onAreaContextChange('sistema');
-    expect(model.ui.items.map((item) => item.key)).toEqual(['tickets']);
+    expect(model.ui.items.map((item) => item.key)).toEqual(['system/tickets']);
+    expect(model.state.areaContext).toBe('sistema');
+    expect(model.state.activeKey).toBe('system/tickets');
   });
 
-  /* Trocar de contexto no Depósito (que é só de Infraestrutura) não pode deixar a pessoa
-     numa tela fora do menu: o sistema leva para a primeira tela do contexto novo. */
-  it('takes the person to the new context when the open screen does not exist there', async () => {
-    openScreen('/parts');
+  /* Chamados existe nos três contextos: trocar de contexto ali leva para os Chamados do
+     contexto escolhido — outra rota, com a fila dele. */
+  it('takes the person to the same screen of the chosen context', async () => {
+    openScreen('/infra/tickets');
     const model = mountModel();
 
     model.actions.onAreaContextChange('manutencao');
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/tickets'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/maintenance/tickets'));
   });
 
   // triste
-  /* Chamados existe nos três contextos: trocar de contexto ali não tira a pessoa da tela. */
-  it('keeps the person on a screen that exists in the new context', () => {
-    openScreen('/tickets');
+  /* Trocar de contexto no Depósito (que é só de Infraestrutura) não pode deixar a pessoa
+     numa tela fora do menu: o sistema leva para a primeira tela do contexto novo. */
+  it('takes the person to the first screen when the open one does not exist there', async () => {
+    openScreen('/infra/parts');
     const model = mountModel();
 
     model.actions.onAreaContextChange('manutencao');
 
-    expect(goto).not.toHaveBeenCalled();
-    expect(model.state.activeKey).toBe('tickets');
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/maintenance/tickets'));
   });
 
-  /* O perfil não é de contexto nenhum — trocar de contexto ali também não navega. */
-  it('keeps the person on a screen that is in no menu', () => {
+  /* O perfil não é de contexto nenhum — trocar de contexto ali não navega: só o menu muda. */
+  it('keeps the person on a screen that is in no menu, changing only the menu', () => {
     openScreen('/profile');
     const model = mountModel();
 
     model.actions.onAreaContextChange('sistema');
 
     expect(goto).not.toHaveBeenCalled();
+    expect(model.ui.items.map((item) => item.key)).toEqual(['system/tickets']);
   });
 
   /* Sem cargo em área nenhuma, o seletor não aparece — não há o que escolher. */

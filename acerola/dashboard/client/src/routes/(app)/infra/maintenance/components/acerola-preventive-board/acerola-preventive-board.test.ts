@@ -33,7 +33,11 @@ describe('machineLabelOf', () => {
 describe('pendingOf', () => {
   // feliz
   it('keeps only what still needs doing', () => {
-    const rows = [row(), row({ computerId: 1, status: 'ok' }), row({ computerId: 3, status: 'never' })];
+    const rows = [
+      row(),
+      row({ computerId: 1, status: 'ok' }),
+      row({ computerId: 3, status: 'never' }),
+    ];
 
     expect(pendingOf(rows).map((item) => item.computerId)).toEqual([2, 3]);
   });

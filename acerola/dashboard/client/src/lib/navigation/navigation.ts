@@ -19,67 +19,94 @@ import { ROLE_CONTEXTS, type RoleContext } from '@template/shared/domain/role-co
  * lista e o `useAppShellModel` decide o item ativo a partir dela — duas listas separadas
  * divergiriam no primeiro item acrescentado, e o menu acenderia o item errado.
  *
- * `to` é a rota do SvelteKit (a pasta em `src/routes`). O item fica aceso também nas
- * subrotas: `/tickets/42` acende "Chamados".
+ * O CONTEXTO MORA NO ENDEREÇO. São três sistemas dentro de um — Infraestrutura, Sistema e
+ * Manutenção — e cada um tem a própria pasta em `src/routes/(app)`: `/infra/...`,
+ * `/system/...` e `/maintenance/...`. Antes o contexto era só uma preferência guardada no
+ * navegador, e o endereço não dizia de quem a tela era: `/tickets` abria a fila da área que
+ * estivesse salva em quem clicou no link, e "Inventário", "Depósito" e "Orçamento" de áreas
+ * diferentes disputavam o mesmo nome de rota.
  *
- * `contexts` é a parte nova: o menu NÃO é o mesmo nas três áreas do sistema. Infraestrutura
- * cuida do parque de máquinas e tem o menu inteiro; Sistema é só chamado (e, mais adiante, a
- * ponte com o GitHub); Manutenção é inventário geral, orçamento e chamado externo. Um item
- * aparece no contexto que o usa, e em nenhum outro — mostrar "Rede" para quem cuida de
- * cadeira e mesa é pedir para a pessoa aprender a ignorar metade do menu.
+ * Cada item pertence a UM contexto. O que existe em mais de um (Chamados) é uma linha por
+ * contexto, porque é uma tela por contexto — a fila, os tipos de problema e o que vier depois
+ * mudam de uma área para a outra.
+ *
+ * `to` é a rota do SvelteKit (a pasta em `src/routes/(app)`). O item fica aceso também nas
+ * subrotas: `/infra/tickets/42` acende "Chamados".
  *
  * A ORDEM É A DO TRABALHO, não a da construção: começa no que a pessoa olha de manhã
  * (Painel, Chamados), passa pelo parque de máquinas (Inventário, Manutenção, Depósito,
  * Descarte), pela rede, e termina no que serve para decidir compra (Inteligência, Orçamento).
- * Várias dessas áreas ainda não foram construídas — elas abrem uma tela que diz o que vai
- * viver ali. Esconder o item até a área ficar pronta faria o sistema parecer menor do que é;
- * mostrar um item que abre uma tela em branco faria parecer quebrado.
  */
 export type NavItem = {
+  /** Única no menu inteiro: é o endereço sem a barra inicial (`infra/tickets`). */
   key: string;
   label: string;
   to: string;
   icon: LucideIcon;
-  /** Em quais contextos este item aparece. Nunca vazia — item sem contexto é item inacessível. */
-  contexts: readonly RoleContext[];
+  /** O contexto dono da tela. */
+  context: RoleContext;
+  /**
+   * A tela dentro do contexto (`tickets`). É o que deixa trocar de contexto sem sair do
+   * assunto: quem está nos Chamados da Infraestrutura cai nos Chamados da Manutenção.
+   */
+  feature: string;
 };
 
-/** Atalho de leitura para o item que vale nos três contextos. Hoje só Chamados é assim. */
-const EVERY_CONTEXT = ROLE_CONTEXTS;
+/**
+ * O pedaço do endereço de cada contexto. Em inglês, como toda rota (CONTRIBUTING §1) — o
+ * valor do contexto (`manutencao`) é dado do banco, e não muda por causa disto.
+ */
+export const CONTEXT_SEGMENTS: Record<RoleContext, string> = {
+  infra: 'infra',
+  sistema: 'system',
+  manutencao: 'maintenance',
+};
+
+/** O endereço de uma tela dentro de um contexto: `contextPath('infra', '/tickets')`. */
+export function contextPath(context: RoleContext, path = ''): string {
+  return `/${CONTEXT_SEGMENTS[context]}${path}`;
+}
+
+/** O contexto de um endereço — ou nada, na tela que não é de contexto nenhum (o perfil). */
+export function contextOfPath(pathname: string): RoleContext | undefined {
+  const segment = pathname.split('/')[1];
+
+  return ROLE_CONTEXTS.find((context) => CONTEXT_SEGMENTS[context] === segment);
+}
+
+function navItem(context: RoleContext, feature: string, label: string, icon: LucideIcon): NavItem {
+  return {
+    key: `${CONTEXT_SEGMENTS[context]}/${feature}`,
+    label,
+    to: contextPath(context, `/${feature}`),
+    icon,
+    context,
+    feature,
+  };
+}
 
 export const NAV_ITEMS: NavItem[] = [
-  /* O Painel é do PARQUE DE MÁQUINAS (quantas máquinas, quanto de memória, o que manter) —
-     por isso ele é de Infraestrutura, e não dos três contextos. Em Manutenção ele abriria uma
-     tela de zeros, que é o jeito mais rápido de a pessoa achar que o sistema está quebrado.
-     Sistema e Manutenção abrem nos Chamados; o painel de cada um, se fizer sentido, é tela
-     nova — não esta. */
-  { key: 'dashboard', label: 'Painel', to: '/dashboard', icon: Monitor, contexts: ['infra'] },
-  /* Chamado é o chão dos três: o que muda é a FILA (cada contexto vê a área dele) e a lista
-     de tipos de problema, não a tela. */
-  { key: 'tickets', label: 'Chamados', to: '/tickets', icon: LifeBuoy, contexts: EVERY_CONTEXT },
-  /* Do parque de máquinas para baixo é tudo Infraestrutura: o inventário daqui é de
-     computador, e a manutenção é a preventiva das máquinas. O inventário geral da Manutenção
-     (mobiliário, mercadinho) é outro cadastro, e entra no contexto dela quando existir. */
-  { key: 'computers', label: 'Inventário', to: '/computers', icon: HardDrive, contexts: ['infra'] },
-  { key: 'maintenance', label: 'Manutenção', to: '/maintenance', icon: Wrench, contexts: ['infra'] },
-  { key: 'parts', label: 'Depósito', to: '/parts', icon: Package, contexts: ['infra'] },
-  /* O inventário da MANUTENÇÃO é outro cadastro: mobiliário, mercadinho, limpeza. O de
-     Infraestrutura, logo acima, é o parque de computadores. */
-  {
-    key: 'inventory',
-    label: 'Inventário',
-    to: '/inventory',
-    icon: PackageOpen,
-    contexts: ['manutencao'],
-  },
-  { key: 'disposal', label: 'Descarte', to: '/disposal', icon: Trash2, contexts: ['infra'] },
-  { key: 'network', label: 'Rede', to: '/network', icon: Wifi, contexts: ['infra'] },
-  { key: 'insights', label: 'Inteligência', to: '/insights', icon: Lightbulb, contexts: ['infra'] },
-  { key: 'budget', label: 'Orçamento', to: '/budget', icon: Wallet, contexts: ['infra'] },
+  /* INFRAESTRUTURA — o parque de máquinas. O Painel daqui resume máquinas (quantas, quanto de
+     memória, o que manter); o painel de outro contexto é outra tela, na pasta dele. */
+  navItem('infra', 'dashboard', 'Painel', Monitor),
+  navItem('infra', 'tickets', 'Chamados', LifeBuoy),
+  navItem('infra', 'computers', 'Inventário', HardDrive),
+  navItem('infra', 'maintenance', 'Manutenção', Wrench),
+  navItem('infra', 'parts', 'Depósito', Package),
+  navItem('infra', 'disposal', 'Descarte', Trash2),
+  navItem('infra', 'network', 'Rede', Wifi),
+  navItem('infra', 'insights', 'Inteligência', Lightbulb),
+  navItem('infra', 'budget', 'Orçamento', Wallet),
   /* A feature de exemplo do template. Sai quando não servir mais de molde (skill
-     `remove-example`) — ela não faz parte do sistema de TI. Fica em Infraestrutura, o contexto
-     onde o sistema já existe, para não repetir em três menus um item que vai embora. */
-  { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, contexts: ['infra'] },
+     `remove-example`) — ela não faz parte do sistema de TI. */
+  navItem('infra', 'tasks', 'Tarefas', ListChecks),
+
+  /* SISTEMA — só chamado (e, mais adiante, a ponte com o GitHub). */
+  navItem('sistema', 'tickets', 'Chamados', LifeBuoy),
+
+  /* MANUTENÇÃO — o inventário daqui é outro cadastro: mobiliário, mercadinho, limpeza. */
+  navItem('manutencao', 'tickets', 'Chamados', LifeBuoy),
+  navItem('manutencao', 'inventory', 'Inventário', PackageOpen),
 ];
 
 /** Os itens de menu de um contexto, na ordem da lista acima. */
@@ -87,12 +114,12 @@ export function navItemsForContext(
   context: RoleContext,
   items: readonly NavItem[] = NAV_ITEMS,
 ): NavItem[] {
-  return items.filter((item) => item.contexts.includes(context));
+  return items.filter((item) => item.context === context);
 }
 
 /**
- * O item ativo pelo prefixo do caminho — o mais longo que casar vence, para `/tasks/archive`
- * acender "Arquivo" e não "Tarefas", se os dois existirem.
+ * O item ativo pelo prefixo do caminho — o mais longo que casar vence, para
+ * `/infra/tasks/archive` acender "Arquivo" e não "Tarefas", se os dois existirem.
  */
 export function activeNavKeyOf(
   pathname: string,
@@ -102,49 +129,40 @@ export function activeNavKeyOf(
 }
 
 /**
- * PARA QUAL CONTEXTO O SISTEMA DEVE IR — ou nada, quando o contexto atual já serve.
+ * ONDE A PESSOA CAI AO TROCAR DE CONTEXTO.
  *
- * Decide duas coisas de uma vez, nesta ordem:
- *
- *  1. **O contexto acompanha a tela.** Um link direto para o Depósito, colado no WhatsApp,
- *     abre com "Infraestrutura" aceso em cima — sem isto, a tela abriria com o contexto de
- *     ontem, num menu que não tem o item da tela aberta. Rota que existe no contexto atual
- *     (Chamados, por exemplo) não muda nada: trocar tiraria a pessoa de onde ela estava.
- *  2. **O contexto acompanha o cargo.** A preferência fica no navegador, mas o cargo muda (e
- *     a máquina pode ser de outra pessoa): abrir em "Manutenção" quem só atende
- *     Infraestrutura mostraria um menu de propósito nenhum.
- *
- * `available` é a lista de contextos em que a pessoa tem cargo. Vazia significa "ainda não
- * sei" (a consulta não voltou) ou "nenhum" — nos dois casos o cargo não restringe nada, e
- * quem manda é a tela aberta.
+ * Na mesma tela do contexto novo, quando ela existe lá (Chamados existe nos três) — e sempre
+ * na LISTA, nunca no registro aberto: o chamado 42 da Infraestrutura não é o 42 da Manutenção.
+ * Quando a tela não existe no contexto novo (o Depósito de máquinas), na primeira tela dele.
  */
-export function reconciledContextOf(
-  input: { pathname: string; current: RoleContext; available: readonly RoleContext[] },
+export function contextSwitchPath(
+  pathname: string,
+  context: RoleContext,
   items: readonly NavItem[] = NAV_ITEMS,
-): RoleContext | undefined {
-  const { pathname, current, available } = input;
-  const routeContext = contextOfRoute(pathname, current, items);
+): string | undefined {
+  const target = navItemsForContext(context, items);
+  const current = navItemOf(pathname, items);
+  const same = target.find((item) => item.feature === current?.feature);
 
-  if (routeContext && (available.length === 0 || available.includes(routeContext))) {
-    return routeContext;
-  }
-
-  if (available.length > 0 && !available.includes(current)) return available[0];
-
-  return undefined;
+  return (same ?? target[0])?.to;
 }
 
-/** O contexto a que uma rota pertence, quando ela NÃO existe no contexto atual. */
-function contextOfRoute(
-  pathname: string,
-  current: RoleContext,
-  items: readonly NavItem[],
+/**
+ * O CONTEXTO DA PESSOA, quando o pedido não é dela — ou nada, quando o pedido serve.
+ *
+ * O endereço diz o contexto, mas quem atende só Manutenção não tem o que fazer em `/infra`:
+ * abriria um menu que não é dela, com a fila de chamados vazia. `available` é a lista de
+ * contextos em que a pessoa tem cargo. Vazia significa "ainda não sei" (a consulta não
+ * voltou) ou "nenhum" — nos dois casos o cargo não restringe nada.
+ */
+export function fallbackContextOf(
+  wanted: RoleContext,
+  available: readonly RoleContext[],
 ): RoleContext | undefined {
-  const item = navItemOf(pathname, items);
-  if (!item) return undefined;
-  if (item.contexts.includes(current)) return undefined;
+  if (available.length === 0) return undefined;
+  if (available.includes(wanted)) return undefined;
 
-  return item.contexts[0];
+  return available[0];
 }
 
 /** O item de menu que responde por um caminho: o casamento mais específico. */

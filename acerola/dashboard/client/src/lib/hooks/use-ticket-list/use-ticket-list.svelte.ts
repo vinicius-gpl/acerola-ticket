@@ -14,10 +14,7 @@ import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
-import {
-  type AreaContext,
-  useAreaContextModel,
-} from '$lib/hooks/use-area-context/use-area-context.svelte';
+import { type AreaContext } from '$lib/hooks/use-area-context/use-area-context.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
@@ -39,7 +36,7 @@ export type TicketListFilter = {
 export type TicketListModel = {
   data: {
     /**
-     * A ÁREA da fila — o contexto do app-shell (#13). A tela usa para oferecer só os tipos de
+     * A ÁREA da fila — o contexto da rota (#13). A tela usa para oferecer só os tipos de
      * problema que existem nessa área: "Certificado digital" não é assunto de Manutenção, e
      * "Ar-condicionado" não é de Infraestrutura.
      */
@@ -96,7 +93,7 @@ const EMPTY_FILTER: TicketListFilter = {
 export const TICKETS_QUERY_KEY = ['tickets'] as const;
 
 /**
- * `areaContext` é o contexto do app-shell (#13) — a área em que a pessoa está trabalhando.
+ * `areaContext` é o contexto da rota (#13) — a área em que a pessoa está trabalhando.
  * A fila é SEMPRE dessa área: não existe mais um "Todas" misturando chamado de computador com
  * chamado de ar-condicionado na mesma lista. Ele SOMA ao filtro, não o substitui.
  */
@@ -116,10 +113,17 @@ function scopeOf(filter: TicketListFilter, areaContext: AreaContext) {
  * Estado, consultas e handlers da fila de chamados do painel. ZERO marcação — a view recebe
  * tudo por props e não sabe de onde o dado veio (CONTRIBUTING §3).
  *
- * Atender um chamado NÃO está aqui: ele tem a própria ficha (`/tickets/[id]`), com os
- * view-models dela (`use-ticket-detail`, `use-ticket-history-form`, `use-ticket-data-form`).
+ * Atender um chamado NÃO está aqui: ele tem a própria ficha (`/<contexto>/tickets/[id]`), com
+ * os view-models dela (`use-ticket-detail`, `use-ticket-history-form`, `use-ticket-data-form`).
+ *
+ * `area` chega por parâmetro, e não de um estado global: cada contexto tem a própria rota
+ * (`/infra/tickets`, `/system/tickets`, `/maintenance/tickets`), e é a rota que sabe de quem
+ * é a fila. Ela não muda enquanto a tela vive — trocar de contexto é trocar de rota, e a tela
+ * nova monta um model novo.
  */
-export function useTicketListModel(): TicketListModel {
+export function useTicketListModel(input: { area: AreaContext }): TicketListModel {
+  const { area } = input;
+
   /* O filtro mora numa STORE, e não num `$state`: esta versão do @tanstack/svelte-query
      recebe as opções como store e é ela quem decide quando refazer a busca. Com `$state`,
      duas mudanças seguidas de filtro chegariam à consulta como uma emissão só, com o valor
@@ -129,40 +133,20 @@ export function useTicketListModel(): TicketListModel {
   const pageStore = writable<number>(1);
   const page = mirrorStore(pageStore);
 
-  /* O contexto do app-shell (#13) é um RUNE compartilhado entre módulos, e `createQuery`
-     só reage a STORE (ver comentário em `filterStore`, acima). Este `$effect` é a ponte: lê
-     o rune (o que o torna reativo a ele) e espelha o valor numa store que a consulta escuta. */
-  const areaContext = useAreaContextModel();
-  const areaContextStore = writable<AreaContext>(areaContext.context);
-  $effect(() => {
-    areaContextStore.set(areaContext.context);
-    /* Trocar de área pode deixar a página atual fora do alcance — a página 3 de
-       "Infraestrutura" pode não existir em "Manutenção". */
-    pageStore.set(1);
-  });
-
   let exportingFormat = $state<ReportFormat | null>(null);
   let exportError = $state<string | null>(null);
 
   const list = mirrorStore(
     createQuery(
-      derived(
-        [filterStore, pageStore, areaContextStore],
-        ([currentFilter, currentPage, currentAreaContext]) => ({
-          queryKey: [
-            ...TICKETS_QUERY_KEY,
-            'list',
-            scopeOf(currentFilter, currentAreaContext),
-            currentPage,
-          ],
-          queryFn: () =>
-            ticketsApi.list({
-              ...scopeOf(currentFilter, currentAreaContext),
-              page: currentPage,
-              pageSize: TICKETS_PAGE_SIZE,
-            }),
-        }),
-      ),
+      derived([filterStore, pageStore], ([currentFilter, currentPage]) => ({
+        queryKey: [...TICKETS_QUERY_KEY, 'list', scopeOf(currentFilter, area), currentPage],
+        queryFn: () =>
+          ticketsApi.list({
+            ...scopeOf(currentFilter, area),
+            page: currentPage,
+            pageSize: TICKETS_PAGE_SIZE,
+          }),
+      })),
     ),
   );
 
@@ -172,14 +156,13 @@ export function useTicketListModel(): TicketListModel {
 
      Mas eles RECEBEM O CONTEXTO (#13), pelo motivo oposto: o contexto não é um filtro da
      tela, é a área em que a pessoa está trabalhando. Sem ele, os "98 abertos" de
-     Infraestrutura apareciam em cima da fila de Manutenção, que não tem nenhum. Por isso a
-     consulta escuta a mesma store de contexto da lista. */
+     Infraestrutura apareciam em cima da fila de Manutenção, que não tem nenhum. */
   const dashboard = mirrorStore(
     createQuery(
-      derived(areaContextStore, (currentAreaContext) => ({
-        queryKey: [...TICKETS_QUERY_KEY, 'dashboard', currentAreaContext],
-        queryFn: () => ticketsApi.dashboard(currentAreaContext),
-      })),
+      writable({
+        queryKey: [...TICKETS_QUERY_KEY, 'dashboard', area],
+        queryFn: () => ticketsApi.dashboard(area),
+      }),
     ),
   );
 
@@ -188,7 +171,7 @@ export function useTicketListModel(): TicketListModel {
        valores fixos, a lista congelaria no primeiro carregamento. */
     get data() {
       return buildData({
-        area: areaContext.context,
+        area,
         page: list.current.data,
         currentPage: page.current,
         dashboard: dashboard.current.data ?? null,
@@ -236,7 +219,7 @@ export function useTicketListModel(): TicketListModel {
         exportingFormat = format;
 
         ticketsApi
-          .exportReport(scopeOf(filter.current, areaContext.context), format)
+          .exportReport(scopeOf(filter.current, area), format)
           .then(({ blob, fileName }) => triggerBrowserDownload(blob, fileName))
           .catch((error: unknown) => {
             exportError = readError(error) ?? 'Não consegui gerar o relatório.';

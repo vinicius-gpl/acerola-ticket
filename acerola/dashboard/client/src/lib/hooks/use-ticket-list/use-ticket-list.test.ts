@@ -148,9 +148,7 @@ describe('useTicketListModel', () => {
 
     await waitFor(() => {
       expect(model.data.paging.page).toBe(3);
-      expect(ticketsApi.list).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 3 }),
-      );
+      expect(ticketsApi.list).toHaveBeenCalledWith(expect.objectContaining({ page: 3 }));
     });
   });
 

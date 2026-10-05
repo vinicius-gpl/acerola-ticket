@@ -329,7 +329,7 @@
   }
 </script>
 
-<div class="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-10 sm:px-6">
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-5">
   <ActionButton
     data={{ label: 'Voltar ao inventário' }}
     ui={{ variant: 'ghost', size: 'sm', icon: ArrowLeft, className: 'self-start' }}

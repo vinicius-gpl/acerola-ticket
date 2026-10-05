@@ -123,7 +123,7 @@
   }
 </script>
 
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-10 sm:px-6">
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-5">
   <ActionButton
     data={{ label: 'Voltar aos chamados' }}
     ui={{ variant: 'ghost', size: 'sm', icon: ArrowLeft, className: 'self-start' }}

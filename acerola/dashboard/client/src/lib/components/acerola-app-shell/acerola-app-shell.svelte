@@ -225,7 +225,10 @@
       {/if}
     </header>
 
-    <div bind:this={contentEl} class="min-w-0 flex-1">
+    <!-- A MARGEM DO CONTEÚDO É DA CASCA, e não de cada tela: quando cada tela definia a sua,
+         uma esquecia o respiro de cima, outra usava uma medida diferente, e trocar de tela (ou
+         de contexto) fazia o conteúdo "pular" de lugar. A tela decide só a largura máxima. -->
+    <div bind:this={contentEl} class="min-w-0 flex-1 px-4 pt-4 pb-10 sm:px-6">
       {@render children()}
     </div>
   </SidebarInset>

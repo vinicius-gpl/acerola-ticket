@@ -61,7 +61,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Features/Tickets/AcerolaTicketDataForm',
+    title: 'Components/AcerolaTicketDataForm',
     component: TicketDataForm,
     parameters: { layout: 'padded' },
   });

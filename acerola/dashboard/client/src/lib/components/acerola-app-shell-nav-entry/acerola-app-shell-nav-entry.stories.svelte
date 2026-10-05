@@ -15,14 +15,14 @@
     label: 'Tarefas',
     to: '/tasks',
     icon: ListChecks,
-    contexts: ['infra'],
+    context: 'infra', feature: 'tasks',
   } as const;
   const reports = {
     key: 'reports',
     label: 'Relatórios',
     to: '/reports',
     icon: BarChart3,
-    contexts: ['infra'],
+    context: 'infra', feature: 'reports',
   } as const;
 
   const { Story } = defineMeta({

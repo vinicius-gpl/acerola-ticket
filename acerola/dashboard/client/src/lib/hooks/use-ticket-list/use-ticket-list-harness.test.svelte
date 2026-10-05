@@ -12,5 +12,5 @@
 
   setQueryClientContext(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
 
-  onReady(useTicketListModel());
+  onReady(useTicketListModel({ area: 'infra' }));
 </script>

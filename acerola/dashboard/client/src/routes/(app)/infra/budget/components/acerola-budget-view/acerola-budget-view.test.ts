@@ -1,4 +1,8 @@
-import { type Budget, type BudgetMachine, type BudgetNeed } from '@template/shared/schemas/budget.schema';
+import {
+  type Budget,
+  type BudgetMachine,
+  type BudgetNeed,
+} from '@template/shared/schemas/budget.schema';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

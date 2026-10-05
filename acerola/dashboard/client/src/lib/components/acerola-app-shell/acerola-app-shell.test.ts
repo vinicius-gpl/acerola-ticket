@@ -8,8 +8,22 @@ import { describe, expect, it, vi } from 'vitest';
 import AppShell, { type AcerolaAppShellProps } from './acerola-app-shell.svelte';
 
 const items = [
-  { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, contexts: ['infra'] },
-  { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3, contexts: ['infra'] },
+  {
+    key: 'tasks',
+    label: 'Tarefas',
+    to: '/tasks',
+    icon: ListChecks,
+    context: 'infra',
+    feature: 'tasks',
+  },
+  {
+    key: 'reports',
+    label: 'Relatórios',
+    to: '/reports',
+    icon: BarChart3,
+    context: 'infra',
+    feature: 'reports',
+  },
 ] as const;
 
 const content = createRawSnippet(() => ({
@@ -85,7 +99,9 @@ describe('AcerolaAppShell', () => {
     expect(
       within(group).getByRole('button', { name: 'Manutenção' }).querySelector('svg'),
     ).not.toBeNull();
-    expect(within(group).getByRole('button', { name: 'Infraestrutura' }).querySelector('svg')).not.toBeNull();
+    expect(
+      within(group).getByRole('button', { name: 'Infraestrutura' }).querySelector('svg'),
+    ).not.toBeNull();
     /* Opção sem ícone continua valendo: só o texto. */
     expect(within(group).getByRole('button', { name: 'Sistema' }).querySelector('svg')).toBeNull();
     /* A lista suspensa das telas estreitas mostra o ícone da área atual também. */
@@ -111,7 +127,9 @@ describe('AcerolaAppShell', () => {
 
     expect(list).toHaveTextContent('Infraestrutura');
     expect(list.className).toContain('lg:hidden');
-    expect(screen.getByRole('group', { name: 'Área que você está vendo' }).className).toContain('hidden');
+    expect(screen.getByRole('group', { name: 'Área que você está vendo' }).className).toContain(
+      'hidden',
+    );
   });
 
   // triste
@@ -119,7 +137,9 @@ describe('AcerolaAppShell', () => {
   it('draws no context selector when there is nothing to choose', () => {
     renderShell({ data: { areaOptions: [] } });
 
-    expect(screen.queryByRole('group', { name: 'Área que você está vendo' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'Área que você está vendo' }),
+    ).not.toBeInTheDocument();
   });
 
   /* Zero não vira selo: um "0" ao lado de cada item seria ruído. */

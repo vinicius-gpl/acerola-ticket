@@ -146,7 +146,7 @@ export function useDisposalListModel(): DisposalListModel {
       onTypeChange: (type) => filterStore.update((current) => ({ ...current, type })),
       onClearFilters: () => filterStore.set({ ...EMPTY_FILTER }),
       onRetry: () => void list.current.refetch(),
-      onOpenMachine: (computer) => void goto(`/computers/${computer.id}`),
+      onOpenMachine: (computer) => void goto(`/infra/computers/${computer.id}`),
       onAskRestore: (computer) => restoringStore.set(computer),
       onCancelRestore: () => restoringStore.set(null),
       onConfirmRestore: () => {

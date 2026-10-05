@@ -3,7 +3,8 @@ import { redirect } from '@sveltejs/kit';
 import { authApi } from '$lib/api/auth.api';
 
 /**
- * Quem já está logado não precisa ver a tela de login de novo — manda direto para `/tasks`.
+ * Quem já está logado não precisa ver a tela de login de novo — manda direto para a raiz, que
+ * abre os Chamados do contexto dela (ver `routes/+page.ts`).
  *
  * `.catch(() => null)`, e não `try/catch`: o `redirect()` do SvelteKit lança um objeto
  * especial que precisa ATRAVESSAR esta função. Um `try/catch` em volta dele o engoliria junto
@@ -11,5 +12,5 @@ import { authApi } from '$lib/api/auth.api';
  */
 export async function load(): Promise<void> {
   const user = await authApi.me().catch(() => null);
-  if (user) redirect(307, '/tasks');
+  if (user) redirect(307, '/');
 }

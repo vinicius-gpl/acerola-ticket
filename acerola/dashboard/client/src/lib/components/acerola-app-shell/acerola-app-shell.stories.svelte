@@ -13,14 +13,14 @@
   const actions = { onLogout: fn() };
 
   const manyItems = [
-    { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, contexts: ['infra'] },
-    { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3, contexts: ['infra'] },
+    { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, context: 'infra', feature: 'tasks' },
+    { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3, context: 'infra', feature: 'reports' },
     {
       key: 'settings',
       label: 'Configurações',
       to: '/settings',
       icon: Settings,
-      contexts: ['infra'],
+      context: 'infra', feature: 'settings',
     },
   ] as const;
 

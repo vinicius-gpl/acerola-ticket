@@ -60,7 +60,7 @@
   }
 
   const { Story } = defineMeta({
-    title: 'Features/Tickets/AcerolaTicketHistoryForm',
+    title: 'Components/AcerolaTicketHistoryForm',
     component: TicketHistoryForm,
     parameters: { layout: 'padded' },
   });

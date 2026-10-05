@@ -227,7 +227,7 @@
 <!-- max-w-7xl, e não 6xl como as outras listas: com 9 colunas (a área entrou com o #13), a
      tabela de chamados é a mais larga do painel, e no 6xl ela não cabia — nascia com rolagem
      para o lado mesmo em tela cheia. -->
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-10 sm:px-6">
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-5">
   <PageHeader data={{ title: 'Chamados', description: 'O que o pessoal pediu, e em que pé está.' }}>
     <ReportExportActions
       state={{ exportingFormat: state.exportingFormat ?? null }}

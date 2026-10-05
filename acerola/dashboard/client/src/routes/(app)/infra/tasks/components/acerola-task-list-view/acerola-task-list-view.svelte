@@ -85,7 +85,7 @@
   const canEdit = $derived(state.canEdit ?? true);
 </script>
 
-<div class="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-10 sm:px-6">
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-5">
   <PageHeader data={{ title: 'Tarefas', description: 'O que precisa ser feito, e em que pé está.' }}>
     {#if canEdit}
       <ActionButton

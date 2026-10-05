@@ -3,7 +3,10 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import PartListView, { type PartListFilter, type PartSummary } from './acerola-part-list-view.svelte';
+import PartListView, {
+  type PartListFilter,
+  type PartSummary,
+} from './acerola-part-list-view.svelte';
 
 function part(over: Partial<Part> = {}): Part {
   return {
@@ -58,9 +61,7 @@ const settled: {
   error: null,
 };
 
-function renderView(
-  over: { parts?: Part[]; state?: Partial<typeof settled> } = {},
-) {
+function renderView(over: { parts?: Part[]; state?: Partial<typeof settled> } = {}) {
   return render(PartListView, {
     props: {
       data: {

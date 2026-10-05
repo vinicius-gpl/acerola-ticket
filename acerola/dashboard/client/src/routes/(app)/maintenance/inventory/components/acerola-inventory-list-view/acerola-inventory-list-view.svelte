@@ -88,7 +88,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-5 p-5">
+<div class="flex flex-col gap-5">
   <PageHeader
     data={{
       title: 'Inventário',

@@ -103,7 +103,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Features/Tickets/AcerolaTicketDetailView',
+    title: 'Components/AcerolaTicketDetailView',
     component: TicketDetailView,
     parameters: { layout: 'fullscreen' },
   });

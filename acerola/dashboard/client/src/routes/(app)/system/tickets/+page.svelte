@@ -8,10 +8,10 @@
   /**
    * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
-   * Abrir um chamado é NAVEGAR para a ficha dele (`/infra/tickets/7`), e não abrir um diálogo por
+   * Abrir um chamado é NAVEGAR para a ficha dele (`/system/tickets/7`), e não abrir um diálogo por
    * cima da fila: a ficha tem a linha do tempo inteira, e tem endereço para ser apontada.
    */
-  const list = useTicketListModel({ area: 'infra' });
+  const list = useTicketListModel({ area: 'sistema' });
 </script>
 
 <svelte:head>
@@ -21,5 +21,5 @@
 <TicketListView
   data={list.data}
   state={list.state}
-  actions={{ ...list.actions, onAnswer: (ticket: Ticket) => void goto(`/infra/tickets/${ticket.id}`) }}
+  actions={{ ...list.actions, onAnswer: (ticket: Ticket) => void goto(`/system/tickets/${ticket.id}`) }}
 />

@@ -117,7 +117,7 @@
   };
 
   const { Story } = defineMeta({
-    title: 'Features/Tickets/AcerolaTicketListView',
+    title: 'Components/AcerolaTicketListView',
     component: TicketListView,
   });
 </script>

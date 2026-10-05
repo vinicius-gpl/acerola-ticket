@@ -23,8 +23,10 @@ import {
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import {
   activeNavKeyOf,
+  contextOfPath,
+  contextSwitchPath,
+  fallbackContextOf,
   navItemsForContext,
-  reconciledContextOf,
   type NavItem,
 } from '$lib/navigation/navigation';
 
@@ -96,23 +98,36 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
     ),
   );
 
-  const areaContext = useAreaContextModel();
+  /* O ÚLTIMO contexto em que a pessoa esteve, guardado no navegador. Ele só responde por
+     duas coisas: onde o sistema abre (ver `routes/+page.ts`) e qual menu aparece nas telas
+     que não são de contexto nenhum (o perfil, os cargos). */
+  const lastContext = useAreaContextModel();
 
-  /* O contexto se ajusta à TELA ABERTA e ao CARGO de quem entrou (a decisão inteira está em
-     `reconciledContextOf`). O `untrack` é o que mantém isto honesto: o efeito reage à rota e
-     às áreas da pessoa, mas NÃO ao contexto que ele mesmo escreve — sem ele, trocar de
-     contexto estando numa tela de outro (clicar em "Manutenção" no Depósito) voltaria na
-     hora para o anterior, e a pastilha pareceria travada. */
+  /* O CONTEXTO VEM DO ENDEREÇO (`/infra/...`, `/system/...`, `/maintenance/...`): um link
+     colado numa conversa abre no contexto certo, e o botão de voltar do navegador volta
+     também o menu. Fora das três pastas, vale o último em que a pessoa esteve. */
+  const currentContext = () => contextOfPath(page.url.pathname) ?? lastContext.context;
+
+  /* O contexto se ajusta ao CARGO de quem entrou: quem só atende Manutenção e abre um link
+     de `/infra` é levado para a mesma tela da área dela (ou para a primeira, se a tela não
+     existir lá). O `untrack` é o que mantém isto honesto: o efeito reage à rota e às áreas da
+     pessoa, mas NÃO ao que ele mesmo escreve. */
   $effect(() => {
     const pathname = page.url.pathname;
     const available = areas.current.data ?? [];
 
-    const next = untrack(() =>
-      reconciledContextOf({ pathname, current: areaContext.context, available }),
-    );
-    if (!next) return;
+    untrack(() => {
+      const routeContext = contextOfPath(pathname);
+      const wanted = routeContext ?? lastContext.context;
+      const fallback = fallbackContextOf(wanted, available);
+      const next = fallback ?? wanted;
 
-    areaContext.actions.onContextChange(next);
+      if (next !== lastContext.context) lastContext.actions.onContextChange(next);
+      if (!fallback || !routeContext) return;
+
+      const destination = contextSwitchPath(pathname, fallback);
+      if (destination) void goto(destination, { replaceState: true });
+    });
   });
 
   return {
@@ -141,7 +156,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
        montado uma vez, e o contexto muda depois — uma lista fixa congelaria o menu da
        primeira área em que a pessoa entrou. */
     get ui() {
-      return { items: navItemsForContext(areaContext.context) };
+      return { items: navItemsForContext(currentContext()) };
     },
     /* Qual item está ativo é decidido AQUI, e não no componente: resolver a rota atual é
        trabalho de hook; o componente continua sem saber de roteamento.
@@ -153,7 +168,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         activeKey: activeNavKeyOf(page.url.pathname),
         routeKey: page.url.pathname,
         isProfileOpen,
-        areaContext: areaContext.context,
+        areaContext: currentContext(),
       };
     },
     actions: {
@@ -166,22 +181,18 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
       onViewRoles: () => {
         void goto('/profile');
       },
-      /* Trocar de contexto pode deixar a pessoa numa tela que não existe no contexto novo (o
-         Depósito é só de Infraestrutura). Nesse caso o sistema leva para a primeira tela do
-         contexto escolhido — o Painel —, porque ficar numa tela fora do menu é o jeito mais
-         rápido de a pessoa achar que o sistema quebrou. */
+      /* Trocar de contexto é TROCAR DE ENDEREÇO: a pessoa vai para a mesma tela do contexto
+         escolhido (Chamados existe nos três) ou, quando a tela não existe lá (o Depósito de
+         máquinas), para a primeira dele — a decisão está em `contextSwitchPath`. */
       onAreaContextChange: (context: AreaContext) => {
-        areaContext.actions.onContextChange(context);
+        lastContext.actions.onContextChange(context);
 
-        const activeKey = activeNavKeyOf(page.url.pathname);
-        /* Tela que não é de contexto nenhum (o perfil, os cargos): a pessoa continua nela. */
-        if (!activeKey) return;
+        /* Tela que não é de contexto nenhum (o perfil, os cargos): a pessoa continua nela, e
+           só o menu muda. */
+        if (!contextOfPath(page.url.pathname)) return;
 
-        const items = navItemsForContext(context);
-        if (items.some((item) => item.key === activeKey)) return;
-
-        const first = items[0];
-        if (first) void goto(first.to);
+        const destination = contextSwitchPath(page.url.pathname, context);
+        if (destination) void goto(destination);
       },
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
          estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não

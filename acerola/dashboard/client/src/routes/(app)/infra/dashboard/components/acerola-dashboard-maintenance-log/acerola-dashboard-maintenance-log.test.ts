@@ -135,7 +135,9 @@ describe('AcerolaDashboardMaintenanceLog', () => {
   });
 
   it('says the range has no maintenance instead of drawing an empty list', () => {
-    renderLog({ data: { log: { day: [], week: [], month: [] }, plannedToday: [], isDoneToday: false } });
+    renderLog({
+      data: { log: { day: [], week: [], month: [] }, plannedToday: [], isDoneToday: false },
+    });
 
     expect(screen.getByText('Nenhuma manutenção registrada neste recorte.')).toBeInTheDocument();
   });

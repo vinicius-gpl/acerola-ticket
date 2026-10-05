@@ -190,7 +190,7 @@
   }));
 </script>
 
-<div class="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-10 sm:px-6">
+<div class="mx-auto flex w-full max-w-6xl flex-col gap-5">
   <PageHeader
     data={{ title: 'Painel', description: 'Os indicadores do parque, num lugar só.' }}
   >

@@ -36,7 +36,7 @@ const UNAVAILABLE =
  * O login: e-mail, senha, entrar.
  *
  * Quem confere a senha é o **Neon Auth**, direto daqui — a nossa API não participa e nunca vê
- * a senha de ninguém. Deu certo, a sessão passa a existir no navegador e `/tasks` já abre;
+ * a senha de ninguém. Deu certo, a sessão passa a existir no navegador e o sistema já abre;
  * a guarda de rota confirma com `/api/auth/me` e é ali que o papel da pessoa aparece.
  *
  * Mesmo padrão do `useTaskFormModel`: o MESMO schema que valida o formulário, TanStack Form
@@ -54,10 +54,10 @@ export function useLoginModel(): LoginModel {
 
         /* A biblioteca NÃO lança em credencial errada: ela devolve `error` preenchido. Sem
            esta conversão, senha errada passaria como sucesso e a tela navegaria para uma
-           `/tasks` que a guarda devolveria para cá — um pisca-pisca sem explicação. */
+           rota que a guarda devolveria para cá — um pisca-pisca sem explicação. */
         if (result.error) throw new Error(readSignInError(result.error.status));
       },
-      onSuccess: () => goto('/tasks'),
+      onSuccess: () => goto('/'),
     }),
   );
 

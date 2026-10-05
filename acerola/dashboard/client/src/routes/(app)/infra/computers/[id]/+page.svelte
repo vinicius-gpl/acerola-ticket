@@ -36,7 +36,7 @@
 
 <!-- Estados na frente, conteúdo por último e sem aninhamento (CONTRIBUTING §2). -->
 {#if detail.state.isMissing}
-  <div class="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+  <div class="mx-auto w-full max-w-3xl py-10">
     <EmptyState
       data={{
         title: 'Este computador não está mais no inventário',
@@ -46,12 +46,12 @@
     >
       <ActionButton
         data={{ label: 'Voltar ao inventário' }}
-        actions={{ onClick: () => void goto('/computers') }}
+        actions={{ onClick: () => void goto('/infra/computers') }}
       />
     </EmptyState>
   </div>
 {:else if detail.state.error}
-  <div class="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+  <div class="mx-auto w-full max-w-3xl py-10">
     <ErrorState
       data={{ title: 'Não consegui abrir esta máquina', message: detail.state.error }}
       actions={{ onRetry: detail.actions.onRetry }}
@@ -79,7 +79,7 @@
       onEdit: () => (isEditing = true),
       onRegisterMaintenance: () => (isRegisteringMaintenance = true),
       onTransfer: () => (isTransferring = true),
-      onBack: () => void goto('/computers'),
+      onBack: () => void goto('/infra/computers'),
     }}
   />
 {/if}

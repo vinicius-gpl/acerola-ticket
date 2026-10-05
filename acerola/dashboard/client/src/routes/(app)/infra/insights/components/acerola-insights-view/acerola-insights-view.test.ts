@@ -83,9 +83,7 @@ const settled: { isLoading: boolean; isEmpty: boolean; error: string | null } = 
   error: null,
 };
 
-function renderView(
-  over: { insights?: Insights | null; state?: Partial<typeof settled> } = {},
-) {
+function renderView(over: { insights?: Insights | null; state?: Partial<typeof settled> } = {}) {
   return render(InsightsView, {
     props: {
       data: { insights: over.insights === undefined ? insights() : over.insights, days: 30 },

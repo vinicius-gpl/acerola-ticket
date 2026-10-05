@@ -15,13 +15,13 @@
    * A rota só compõe: chama o model e entrega para a view (CONTRIBUTING §3).
    *
    * A ficha é uma ROTA, e não um diálogo sobre a fila, porque o chamado tem endereço próprio:
-   * dá para colar `/infra/tickets/7` numa conversa e dizer "é deste que estou falando".
+   * dá para colar `/maintenance/tickets/7` numa conversa e dizer "é deste que estou falando".
    */
   const id = Number(page.params.id);
 
   const detail = useTicketDetailModel(id);
 
-  const backToQueue = () => void goto('/infra/tickets');
+  const backToQueue = () => void goto('/maintenance/tickets');
 </script>
 
 <svelte:head>

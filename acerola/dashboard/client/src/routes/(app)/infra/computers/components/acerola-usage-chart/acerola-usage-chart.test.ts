@@ -35,11 +35,7 @@ describe('USAGE_SERIES', () => {
   /* Duas telas montando a lista por conta própria é como "Memória" fica verde numa e azul
      na outra. */
   it('names the three measures in Portuguese, each with its own colour', () => {
-    expect(USAGE_SERIES.map((series) => series.label)).toEqual([
-      'Processador',
-      'Memória',
-      'Disco',
-    ]);
+    expect(USAGE_SERIES.map((series) => series.label)).toEqual(['Processador', 'Memória', 'Disco']);
     expect(new Set(USAGE_SERIES.map((series) => series.color)).size).toBe(3);
   });
 });
