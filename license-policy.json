@@ -61,7 +61,7 @@
       "ecosystem": "node",
       "package": "gsap",
       "license": "Standard 'no charge' license: https://gsap.com/standard-license.",
-      "reason": "USADO (animações da tela, em client/src/lib/motion). NÃO é código aberto: é a licença própria da GSAP, gratuita inclusive para uso comercial, que proíbe usar a biblioteca em ferramentas concorrentes da Webflow — o que este sistema não é. Não contamina o nosso código, que segue MIT; mas quem redistribuir o projeto leva o GSAP sob a licença DELE. Se o projeto precisar ser 100% código aberto, é a dependência a trocar."
+      "reason": "USADO (animações da tela, em client/src/lib/motion). NÃO é código aberto: é a licença própria da GSAP, gratuita inclusive para uso comercial, que proíbe usar a biblioteca em ferramentas concorrentes da Webflow — o que este sistema não é. Não contamina o nosso código, que segue MIT; mas quem redistribuir o projeto leva o GSAP sob a licença DELE. Se o projeto precisar ser 100% código aberto, é a dependência a trocar. O aviso para quem redistribui está em THIRD-PARTY-NOTICES.md."
     },
     {
       "ecosystem": "node",
