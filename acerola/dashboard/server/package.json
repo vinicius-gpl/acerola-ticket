@@ -2,6 +2,7 @@
   "name": "server",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "API NestJS do template — um caminho de escrita por dado, SQLite por baixo.",
   "scripts": {
     "dev": "nest start --watch",
