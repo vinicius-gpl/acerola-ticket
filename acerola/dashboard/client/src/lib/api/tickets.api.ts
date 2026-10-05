@@ -52,7 +52,12 @@ export const ticketsApi = {
       },
     }),
 
-  dashboard: () => apiRequest<TicketDashboard>('/tickets/dashboard'),
+  /**
+   * Os indicadores da fila. `area` é o contexto do menu (#13): sem ela, os números seriam a
+   * soma das três áreas enquanto a lista logo abaixo mostra uma só.
+   */
+  dashboard: (area?: TicketArea) =>
+    apiRequest<TicketDashboard>('/tickets/dashboard', { query: { area } }),
 
   /** As áreas que esta pessoa atende — alimenta o seletor de contexto do menu (#13). */
   myAreas: () => apiRequest<TicketArea[]>('/tickets/areas/mine'),

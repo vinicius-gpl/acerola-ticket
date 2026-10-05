@@ -38,6 +38,12 @@ export type TicketListFilter = {
 
 export type TicketListModel = {
   data: {
+    /**
+     * A ÁREA da fila — o contexto do app-shell (#13). A tela usa para oferecer só os tipos de
+     * problema que existem nessa área: "Certificado digital" não é assunto de Manutenção, e
+     * "Ar-condicionado" não é de Infraestrutura.
+     */
+    area: AreaContext;
     tickets: Ticket[];
     /** Quantos casaram com o filtro — pode ser mais do que os que vieram na página. */
     total: number;
@@ -162,13 +168,18 @@ export function useTicketListModel(): TicketListModel {
 
   /* Os indicadores NÃO recebem o filtro: "quanto tempo levamos para resolver" é uma pergunta
      sobre o atendimento inteiro. Recalculá-los a cada filtro faria o número mudar enquanto a
-     pessoa procura um chamado, como se o desempenho do time dependesse da busca. */
+     pessoa procura um chamado, como se o desempenho do time dependesse da busca.
+
+     Mas eles RECEBEM O CONTEXTO (#13), pelo motivo oposto: o contexto não é um filtro da
+     tela, é a área em que a pessoa está trabalhando. Sem ele, os "98 abertos" de
+     Infraestrutura apareciam em cima da fila de Manutenção, que não tem nenhum. Por isso a
+     consulta escuta a mesma store de contexto da lista. */
   const dashboard = mirrorStore(
     createQuery(
-      writable({
-        queryKey: [...TICKETS_QUERY_KEY, 'dashboard'],
-        queryFn: () => ticketsApi.dashboard(),
-      }),
+      derived(areaContextStore, (currentAreaContext) => ({
+        queryKey: [...TICKETS_QUERY_KEY, 'dashboard', currentAreaContext],
+        queryFn: () => ticketsApi.dashboard(currentAreaContext),
+      })),
     ),
   );
 
@@ -177,6 +188,7 @@ export function useTicketListModel(): TicketListModel {
        valores fixos, a lista congelaria no primeiro carregamento. */
     get data() {
       return buildData({
+        area: areaContext.context,
         page: list.current.data,
         currentPage: page.current,
         dashboard: dashboard.current.data ?? null,
@@ -252,6 +264,7 @@ type TicketPage = { items: Ticket[]; total: number } | undefined;
  * passava do teto de complexidade sem ter nenhuma decisão de verdade dentro.
  */
 function buildData(input: {
+  area: AreaContext;
   page: TicketPage;
   currentPage: number;
   dashboard: TicketDashboard | null;
@@ -260,6 +273,7 @@ function buildData(input: {
   const total = input.page?.total ?? 0;
 
   return {
+    area: input.area,
     tickets: input.page?.items ?? [],
     total,
     dashboard: input.dashboard,

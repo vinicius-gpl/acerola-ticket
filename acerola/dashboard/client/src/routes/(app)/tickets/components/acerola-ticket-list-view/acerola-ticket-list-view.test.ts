@@ -75,10 +75,29 @@ const settled = {
   error: null,
 };
 
+/**
+ * Abre o balão do filtro de tipo de problema e devolve o conteúdo dele.
+ *
+ * Com mais de seis opções o `OptionPicker` não desenha pastilhas: ele vira um botão que abre
+ * uma lista com busca — e é lá dentro que os tipos aparecem. O balão é achado pelo
+ * `aria-controls` do gatilho (é o próprio componente que amarra os dois) porque no jsdom, sem
+ * CSS, o conteúdo flutuante não entra na árvore de acessibilidade: `getByRole` não o enxerga,
+ * e procurar o rótulo na tela inteira acharia também o da linha da tabela.
+ */
+async function openProblemTypeFilter(): Promise<HTMLElement> {
+  const trigger = screen.getByRole('button', { name: /Filtrar por tipo de problema/ });
+  await userEvent.click(trigger);
+
+  const panel = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
+  expect(panel).not.toBeNull();
+
+  return panel as HTMLElement;
+}
+
 function setup(props: Record<string, unknown> = {}) {
   return render(TicketListView, {
     props: {
-      data: { tickets: [ticket()], total: 1, dashboard, filter: emptyFilter },
+      data: { area: 'infra', tickets: [ticket()], total: 1, dashboard, filter: emptyFilter },
       state: settled,
       actions,
       ...props,
@@ -138,6 +157,7 @@ describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
     const onStatusGroupChange = vi.fn();
     setup({
       data: {
+        area: 'infra',
         tickets: [ticket()],
         total: 1,
         dashboard,
@@ -156,7 +176,7 @@ describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
   it('marks the card whose filter is on, and clicking it again clears the filter', async () => {
     const onStatusChange = vi.fn();
     setup({
-      data: { tickets: [ticket()], total: 1, dashboard, filter: { ...emptyFilter, status: 'open' } },
+      data: { area: 'infra', tickets: [ticket()], total: 1, dashboard, filter: { ...emptyFilter, status: 'open' } },
       actions: { ...actions, onStatusChange },
     });
 
@@ -171,6 +191,7 @@ describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
     const onClearFilters = vi.fn();
     setup({
       data: {
+        area: 'infra',
         tickets: [ticket()],
         total: 1,
         dashboard,
@@ -187,7 +208,30 @@ describe('AcerolaTicketListView — stat card shortcuts and filter bar', () => {
     expect(onClearFilters).toHaveBeenCalled();
   });
 
+  /* O filtro de tipo de problema é O DA ÁREA da fila (#13): cada contexto tem a lista dele. */
+  it('offers only the problem types of the area of the queue', async () => {
+    setup();
+
+    const panel = await openProblemTypeFilter();
+
+    expect(within(panel).getByText('Impressora')).toBeInTheDocument();
+    expect(within(panel).queryByText('Ar-condicionado')).toBeNull();
+  });
+
   // triste
+  /* "Impressora" não é assunto de quem cuida de cadeira e mesa: oferecer o tipo de outra área
+     é um filtro que só devolve lista vazia. */
+  it('does not offer the problem types of another area', async () => {
+    setup({
+      data: { area: 'manutencao', tickets: [ticket()], total: 1, dashboard, filter: emptyFilter },
+    });
+
+    const panel = await openProblemTypeFilter();
+
+    expect(within(panel).getByText('Ar-condicionado')).toBeInTheDocument();
+    expect(within(panel).queryByText('Impressora')).toBeNull();
+  });
+
   /* O tempo médio é uma LEITURA dos resolvidos, e não uma quinta contagem: mora na dica do
      cartão deles, e não vira um atalho próprio. */
   it('does not turn the average time into a shortcut of its own', () => {
@@ -221,7 +265,7 @@ describe('AcerolaTicketListView', () => {
     const onAnswer = vi.fn();
     const only = ticket({ id: 42, protocol: 'CH-0042' });
     setup({
-      data: { tickets: [only], total: 1, dashboard, filter: emptyFilter },
+      data: { area: 'infra', tickets: [only], total: 1, dashboard, filter: emptyFilter },
       actions: { ...actions, onAnswer },
     });
 
@@ -247,7 +291,7 @@ describe('AcerolaTicketListView', () => {
 
   it('says nothing exists yet without blaming a filter', () => {
     setup({
-      data: { tickets: [], total: 0, dashboard, filter: emptyFilter },
+      data: { area: 'infra', tickets: [], total: 0, dashboard, filter: emptyFilter },
       state: { ...settled, isEmpty: true },
     });
 
@@ -258,7 +302,7 @@ describe('AcerolaTicketListView', () => {
   it('offers to clear the filters when they hid everything', async () => {
     const onClearFilters = vi.fn();
     setup({
-      data: { tickets: [], total: 0, dashboard, filter: { ...emptyFilter, status: 'resolved' } },
+      data: { area: 'infra', tickets: [], total: 0, dashboard, filter: { ...emptyFilter, status: 'resolved' } },
       state: { ...settled, isFilteredOut: true },
       actions: { ...actions, onClearFilters },
     });
@@ -271,7 +315,7 @@ describe('AcerolaTicketListView', () => {
   /* Mostrar "nenhum chamado" durante o carregamento faz a pessoa achar que os dados sumiram. */
   it('does not claim the queue is empty while it is still loading', () => {
     setup({
-      data: { tickets: [], total: 0, dashboard: null, filter: emptyFilter },
+      data: { area: 'infra', tickets: [], total: 0, dashboard: null, filter: emptyFilter },
       state: { ...settled, isLoading: true },
     });
 
@@ -281,7 +325,7 @@ describe('AcerolaTicketListView', () => {
 
   it('shows the failure with a way to try again', () => {
     setup({
-      data: { tickets: [], total: 0, dashboard: null, filter: emptyFilter },
+      data: { area: 'infra', tickets: [], total: 0, dashboard: null, filter: emptyFilter },
       state: { ...settled, error: 'Não consegui falar com o servidor.' },
     });
 
@@ -291,7 +335,7 @@ describe('AcerolaTicketListView', () => {
   /* Truncar calado é mentir sobre o tamanho da fila. */
   it('says how many were left out when the page does not hold everything', () => {
     setup({
-      data: { tickets: [ticket()], total: 240, dashboard, filter: emptyFilter },
+      data: { area: 'infra', tickets: [ticket()], total: 240, dashboard, filter: emptyFilter },
       state: { ...settled, isTruncated: true },
     });
 
@@ -315,6 +359,7 @@ describe('AcerolaTicketListView', () => {
     const onPageChange = vi.fn();
     setup({
       data: {
+        area: 'infra',
         tickets: [ticket()],
         total: 30,
         dashboard,
