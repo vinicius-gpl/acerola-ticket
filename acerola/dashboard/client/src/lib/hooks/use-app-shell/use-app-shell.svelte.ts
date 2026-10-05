@@ -2,33 +2,37 @@ import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import type { LucideIcon } from '@lucide/svelte';
 import Cpu from '@lucide/svelte/icons/cpu';
-import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 import Server from '@lucide/svelte/icons/server';
 import Wrench from '@lucide/svelte/icons/wrench';
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-import { ticketAreaOptions } from '@template/shared/domain/ticket-catalog.util';
+import { roleContextLabel } from '@template/shared/domain/role-context.util';
 import {
   USER_ROLE_LABELS,
   type ContextRoles,
   type SessionUser,
 } from '@template/shared/schemas/user.schema';
+import { untrack } from 'svelte';
 import { writable } from 'svelte/store';
 
 import { ticketsApi } from '$lib/api/tickets.api';
 import { neonAuth } from '$lib/auth/neon-auth.client';
 import {
-  type TicketAreaContext,
-  useTicketAreaContextModel,
-} from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
+  type AreaContext,
+  useAreaContextModel,
+} from '$lib/hooks/use-area-context/use-area-context.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
-import { activeNavKeyOf } from '$lib/navigation/navigation';
+import {
+  activeNavKeyOf,
+  navItemsForContext,
+  reconciledContextOf,
+  type NavItem,
+} from '$lib/navigation/navigation';
 
 /**
  * O ícone de cada contexto. Um desenho por área faz a pessoa achar a dela pelo formato, antes
  * de ler — e é o que sobra de pista quando o rótulo fica cortado numa tela estreita.
  */
-export const AREA_CONTEXT_ICONS: Record<TicketAreaContext, LucideIcon> = {
-  all: LayoutGrid,
+export const AREA_CONTEXT_ICONS: Record<AreaContext, LucideIcon> = {
   infra: Server,
   sistema: Cpu,
   manutencao: Wrench,
@@ -44,23 +48,25 @@ export type AppShellModel = {
       roles?: ContextRoles;
     };
     /**
-     * As áreas (#13) que esta pessoa atende, com a opção "Todas" na frente — vazio quando
-     * ela não tem cargo em área nenhuma, ou quando só tem uma (aí não há o que escolher).
+     * Os contextos que esta pessoa atende — vazio quando ela não tem cargo em área nenhuma,
+     * ou quando só tem uma (aí não há o que escolher, e o seletor nem aparece).
      */
-    areaOptions: { value: TicketAreaContext; label: string; icon: LucideIcon }[];
+    areaOptions: { value: AreaContext; label: string; icon: LucideIcon }[];
   };
+  /** O menu DO CONTEXTO atual: cada área do sistema tem o seu (ver `navigation.ts`). */
+  ui: { items: NavItem[] };
   state: {
     activeKey: string | undefined;
     routeKey: string;
     isProfileOpen: boolean;
-    areaContext: TicketAreaContext;
+    areaContext: AreaContext;
   };
   actions: {
     onLogout: () => void;
     onOpenProfile: () => void;
     onCloseProfile: () => void;
     onViewRoles: () => void;
-    onAreaContextChange: (context: TicketAreaContext) => void;
+    onAreaContextChange: (context: AreaContext) => void;
   };
 };
 
@@ -90,7 +96,24 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
     ),
   );
 
-  const ticketAreaContext = useTicketAreaContextModel();
+  const areaContext = useAreaContextModel();
+
+  /* O contexto se ajusta à TELA ABERTA e ao CARGO de quem entrou (a decisão inteira está em
+     `reconciledContextOf`). O `untrack` é o que mantém isto honesto: o efeito reage à rota e
+     às áreas da pessoa, mas NÃO ao contexto que ele mesmo escreve — sem ele, trocar de
+     contexto estando numa tela de outro (clicar em "Manutenção" no Depósito) voltaria na
+     hora para o anterior, e a pastilha pareceria travada. */
+  $effect(() => {
+    const pathname = page.url.pathname;
+    const available = areas.current.data ?? [];
+
+    const next = untrack(() =>
+      reconciledContextOf({ pathname, current: areaContext.context, available }),
+    );
+    if (!next) return;
+
+    areaContext.actions.onContextChange(next);
+  });
 
   return {
     data: {
@@ -103,23 +126,22 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
       },
       get areaOptions() {
         const mine = areas.current.data ?? [];
-        /* Com uma área só (ou nenhuma), não há o que escolher — "Todas" e "Infra" seriam a
-           mesma coisa na tela, e um seletor sem escolha real só confunde. */
+        /* Com uma área só (ou nenhuma), não há o que escolher: um seletor de uma opção só
+           ocuparia o cabeçalho sem nunca mudar nada. */
         if (mine.length <= 1) return [];
 
-        const allOptions = ticketAreaOptions();
-
-        return [
-          /* "Todas", e não "Todas as áreas": é uma pastilha ao lado das outras, e o rótulo
-             "Contexto" na frente já diz do que se trata. */
-          { value: 'all' as const, label: 'Todas', icon: AREA_CONTEXT_ICONS.all },
-          ...mine.map((area) => ({
-            value: area,
-            label: allOptions.find((option) => option.value === area)?.label ?? area,
-            icon: AREA_CONTEXT_ICONS[area],
-          })),
-        ];
+        return mine.map((area) => ({
+          value: area,
+          label: roleContextLabel(area),
+          icon: AREA_CONTEXT_ICONS[area],
+        }));
       },
+    },
+    /* O menu é o do contexto atual. `get`, pelo mesmo motivo do `state` abaixo: o model é
+       montado uma vez, e o contexto muda depois — uma lista fixa congelaria o menu da
+       primeira área em que a pessoa entrou. */
+    get ui() {
+      return { items: navItemsForContext(areaContext.context) };
     },
     /* Qual item está ativo é decidido AQUI, e não no componente: resolver a rota atual é
        trabalho de hook; o componente continua sem saber de roteamento.
@@ -131,7 +153,7 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         activeKey: activeNavKeyOf(page.url.pathname),
         routeKey: page.url.pathname,
         isProfileOpen,
-        areaContext: ticketAreaContext.context,
+        areaContext: areaContext.context,
       };
     },
     actions: {
@@ -144,7 +166,23 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
       onViewRoles: () => {
         void goto('/profile');
       },
-      onAreaContextChange: ticketAreaContext.actions.onContextChange,
+      /* Trocar de contexto pode deixar a pessoa numa tela que não existe no contexto novo (o
+         Depósito é só de Infraestrutura). Nesse caso o sistema leva para a primeira tela do
+         contexto escolhido — o Painel —, porque ficar numa tela fora do menu é o jeito mais
+         rápido de a pessoa achar que o sistema quebrou. */
+      onAreaContextChange: (context: AreaContext) => {
+        areaContext.actions.onContextChange(context);
+
+        const activeKey = activeNavKeyOf(page.url.pathname);
+        /* Tela que não é de contexto nenhum (o perfil, os cargos): a pessoa continua nela. */
+        if (!activeKey) return;
+
+        const items = navItemsForContext(context);
+        if (items.some((item) => item.key === activeKey)) return;
+
+        const first = items[0];
+        if (first) void goto(first.to);
+      },
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
          estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não
          pode falhar — sem ele, os dados da pessoa anterior continuariam na tela do próximo

@@ -10,8 +10,20 @@
    * contexto da barra para existir. Não é peça pública — só o `AppShell` o usa —, mas tem
    * história porque os estados dele (aceso, com contador) são os que mais quebram na tela.
    */
-  const tasks = { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks };
-  const reports = { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3 };
+  const tasks = {
+    key: 'tasks',
+    label: 'Tarefas',
+    to: '/tasks',
+    icon: ListChecks,
+    contexts: ['infra'],
+  } as const;
+  const reports = {
+    key: 'reports',
+    label: 'Relatórios',
+    to: '/reports',
+    icon: BarChart3,
+    contexts: ['infra'],
+  } as const;
 
   const { Story } = defineMeta({
     title: 'Components/AcerolaAppShellNavEntry',

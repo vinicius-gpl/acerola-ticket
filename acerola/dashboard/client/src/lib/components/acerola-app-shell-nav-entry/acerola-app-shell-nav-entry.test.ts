@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import Harness from './acerola-app-shell-nav-entry-harness.test.svelte';
 
-const item = { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks };
+const item = { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, contexts: ['infra'] } as const;
 
 describe('AcerolaAppShellNavEntry', () => {
   // feliz

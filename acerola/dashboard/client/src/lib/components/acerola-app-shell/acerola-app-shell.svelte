@@ -1,7 +1,7 @@
 <script lang="ts" module>
   import type { LucideIcon } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
-  import type { TicketAreaContext } from '$lib/hooks/use-ticket-area/use-ticket-area.svelte';
+  import type { AreaContext } from '$lib/hooks/use-area-context/use-area-context.svelte';
   import type { NavItem } from '$lib/navigation/navigation';
   import type { ContextRoles } from '@template/shared/schemas/user.schema';
 
@@ -31,10 +31,10 @@
         roles?: ContextRoles;
       };
       /**
-       * O seletor de contexto (#13) — "Todas as áreas" e as que a pessoa atende. Vazio (o
-       * padrão) esconde o controle: é o caso de quem só tem uma área, ou nenhuma.
+       * O seletor de contexto (#13) — os contextos que a pessoa atende. Vazio (o padrão)
+       * esconde o controle: é o caso de quem só tem uma área, ou nenhuma.
        */
-      areaOptions?: { value: TicketAreaContext; label: string; icon?: LucideIcon }[];
+      areaOptions?: { value: AreaContext; label: string; icon?: LucideIcon }[];
     };
     ui?: { items?: readonly NavItem[] };
     state?: {
@@ -43,14 +43,14 @@
       /** O caminho da rota atual — trocar de valor é o gatilho da animação entre telas. */
       routeKey?: string;
       isProfileOpen?: boolean;
-      areaContext?: TicketAreaContext;
+      areaContext?: AreaContext;
     };
     actions?: {
       onLogout?: () => void;
       onOpenProfile?: () => void;
       onCloseProfile?: () => void;
       onViewRoles?: () => void;
-      onAreaContextChange?: (context: TicketAreaContext) => void;
+      onAreaContextChange?: (context: AreaContext) => void;
     };
   };
 </script>
@@ -200,23 +200,23 @@
            é sobre O QUE a pessoa está vendo agora, não sobre PARA ONDE ela pode ir.
 
            São PASTILHAS, coladas no botão do menu, e não uma lista suspensa no canto oposto:
-           o contexto muda tudo o que a tela mostra, então a pessoa precisa VER em qual está
-           sem abrir nada — e trocar com um clique. -->
+           o contexto muda o MENU e tudo o que a tela mostra, então a pessoa precisa VER em
+           qual está sem abrir nada — e trocar com um clique. -->
       {#if data?.areaOptions && data.areaOptions.length > 0}
         <!-- DOIS DESENHOS do mesmo controle, um por largura. Com espaço (`lg` em diante), as
              pastilhas: o contexto fica à vista e troca com um clique. No tablet e no celular,
-             quatro pastilhas não cabem ao lado do botão do menu e quebravam em duas linhas —
+             três pastilhas não cabem ao lado do botão do menu e quebravam em duas linhas —
              ali ele vira uma lista suspensa, que ocupa o lugar de um botão só e ainda mostra a
              área atual. Só um dos dois aparece por vez; quem esconde é o CSS. -->
         <OptionPicker
-          data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
+          data={{ value: shellState?.areaContext ?? 'infra', options: data.areaOptions }}
           ui={{ ariaLabel: 'Área que você está vendo', className: 'hidden lg:inline-flex' }}
           actions={{
             onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
           }}
         />
         <SelectField
-          data={{ value: shellState?.areaContext ?? 'all', options: data.areaOptions }}
+          data={{ value: shellState?.areaContext ?? 'infra', options: data.areaOptions }}
           ui={{ ariaLabel: 'Área que você está vendo', className: 'w-auto min-w-[150px] lg:hidden' }}
           actions={{
             onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
