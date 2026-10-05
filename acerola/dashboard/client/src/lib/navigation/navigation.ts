@@ -5,6 +5,7 @@ import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 import ListChecks from '@lucide/svelte/icons/list-checks';
 import Monitor from '@lucide/svelte/icons/monitor';
 import Package from '@lucide/svelte/icons/package';
+import PackageOpen from '@lucide/svelte/icons/package-open';
 import Trash2 from '@lucide/svelte/icons/trash-2';
 import Wallet from '@lucide/svelte/icons/wallet';
 import Wifi from '@lucide/svelte/icons/wifi';
@@ -62,6 +63,15 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'computers', label: 'Inventário', to: '/computers', icon: HardDrive, contexts: ['infra'] },
   { key: 'maintenance', label: 'Manutenção', to: '/maintenance', icon: Wrench, contexts: ['infra'] },
   { key: 'parts', label: 'Depósito', to: '/parts', icon: Package, contexts: ['infra'] },
+  /* O inventário da MANUTENÇÃO é outro cadastro: mobiliário, mercadinho, limpeza. O de
+     Infraestrutura, logo acima, é o parque de computadores. */
+  {
+    key: 'inventory',
+    label: 'Inventário',
+    to: '/inventory',
+    icon: PackageOpen,
+    contexts: ['manutencao'],
+  },
   { key: 'disposal', label: 'Descarte', to: '/disposal', icon: Trash2, contexts: ['infra'] },
   { key: 'network', label: 'Rede', to: '/network', icon: Wifi, contexts: ['infra'] },
   { key: 'insights', label: 'Inteligência', to: '/insights', icon: Lightbulb, contexts: ['infra'] },

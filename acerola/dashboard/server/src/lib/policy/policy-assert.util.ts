@@ -1,9 +1,11 @@
 import { ForbiddenException } from '@nestjs/common';
-import { type UserRole } from '@template/shared/schemas/user.schema';
+import { roleContextLabel, type RoleContext } from '@template/shared/domain/role-context.util';
+import { type ContextRoles, type UserRole } from '@template/shared/schemas/user.schema';
 
 import {
   canAttendTicket,
   canCreate,
+  canManageInContext,
   canModifyRecord,
   canRead,
   isAdmin,
@@ -39,6 +41,25 @@ export function assertCanAttendTicket(role: UserRole | null | undefined): void {
   if (canAttendTicket(role)) return;
 
   throw new ForbiddenException('Seu perfil não permite atender chamados.');
+}
+
+/**
+ * MEXER no que é de uma área (#13): cadastrar, alterar, excluir.
+ *
+ * O cargo que vale é o DAQUELA área, não o papel geral: quem é gestor em Manutenção mexe no
+ * inventário dela mesmo sendo só usuário em Infraestrutura. Quem tem o cargo de usuário na
+ * área consulta e para por aí — é a mesma régua dos chamados.
+ */
+export function assertCanManageInContext(
+  user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
+  context: RoleContext,
+  what: string,
+): void {
+  if (canManageInContext(user, context)) return;
+
+  throw new ForbiddenException(
+    `Seu cargo em ${roleContextLabel(context)} só permite consultar — não ${what}.`,
+  );
 }
 
 export function assertIsAdmin(role: UserRole | null | undefined, what: string): void {

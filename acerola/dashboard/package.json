@@ -36,6 +36,7 @@
     "seed:maintenances": "npm run build -w @template/shared && tsx scripts/seed/maintenances/seed-maintenances.ts",
     "seed:parts": "npm run build -w @template/shared && tsx scripts/seed/parts/seed-parts.ts",
     "seed:network": "npm run build -w @template/shared && tsx scripts/seed/network/seed-network.ts",
+    "seed:inventory": "npm run build -w @template/shared && tsx scripts/seed/inventory-items/seed-inventory-items.ts",
     "seed:transfers": "npm run build -w @template/shared && tsx scripts/seed/transfers/seed-transfers.ts",
     "seed:users": "npm run build -w @template/shared && tsx scripts/seed/users/seed-users.ts",
     "user:promote": "node scripts/promote-user.mjs",

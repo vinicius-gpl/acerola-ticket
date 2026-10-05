@@ -88,6 +88,10 @@ const CONFLICT_MESSAGES: Record<string, string> = {
     'Outra pessoa emitiu esta ordem de serviço agora mesmo. Tente de novo.',
   parts_name_condition_unique:
     'Já existe uma peça com essa descrição e essa condição. Registre uma entrada nela em vez de cadastrar outra.',
+  /* A etiqueta de patrimônio é colada na coisa: duas iguais fariam o inventário discordar
+     da parede. O nome, esse repete à vontade — há cinco cadeiras iguais em salas diferentes. */
+  inventory_items_code_unique:
+    'Já existe um produto com esse código de patrimônio. Confira a etiqueta ou abra o cadastro que já existe.',
 };
 
 /** Mensagem por `check` do banco, pela mesma chave. */
@@ -110,6 +114,8 @@ const CHECK_MESSAGES: Record<string, string> = {
   computer_alerts_metric_valid: 'A medida do alerta precisa ser processador, memória ou disco.',
   computer_alerts_status_valid: 'A situação do alerta precisa ser ativa ou recuperada.',
   maintenances_type_valid: 'O tipo da manutenção precisa ser um dos da lista.',
+  inventory_items_category_valid: 'A categoria do produto precisa ser uma das opções da lista.',
+  inventory_items_unit_valid: 'A medida do produto precisa ser uma das opções da lista.',
   computers_disposal_complete:
     'Um descarte precisa dizer o tipo e o motivo. Recarregue a tela e tente de novo.',
   computers_disposal_type_valid: 'O tipo do descarte precisa ser defeito ou lixo.',
