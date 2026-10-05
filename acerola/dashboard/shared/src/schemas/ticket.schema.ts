@@ -323,6 +323,22 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
 export type TicketListQuery = z.infer<typeof ticketListQuerySchema>;
 
 /**
+ * Os INDICADORES da fila: os cartões de cima e os dois gráficos.
+ *
+ * `area` é o CONTEXTO em que a pessoa está (#13), e não um filtro que ela escolhe. Sem ele os
+ * números seriam a soma das três áreas enquanto a lista logo abaixo mostra uma só — e o
+ * "98 abertos" de Infraestrutura apareceria em Manutenção, onde não existe nenhum.
+ *
+ * Continua opcional: sem área, os indicadores são de tudo o que a pessoa enxerga (é o que a
+ * ficha do computador e qualquer leitura futura sem contexto precisam).
+ */
+export const ticketDashboardQuerySchema = z.object({
+  area: ticketAreaSchema.optional(),
+});
+
+export type TicketDashboardQuery = z.infer<typeof ticketDashboardQuerySchema>;
+
+/**
  * Baixar o relatório: os MESMOS filtros da lista, sem página — o arquivo sai com tudo que
  * casou, não só a página aberta na tela.
  */
