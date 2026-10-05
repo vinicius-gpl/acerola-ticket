@@ -167,11 +167,20 @@ export class TicketsService {
     });
   }
 
-  /** Os indicadores do painel, sobre TODOS os chamados das áreas que a pessoa enxerga. */
-  async dashboard(user: RequestUser): Promise<TicketDashboard> {
+  /**
+   * Os indicadores do painel, sobre TODOS os chamados — da área pedida, ou das áreas que a
+   * pessoa enxerga quando nenhuma é pedida.
+   *
+   * A área pedida é sempre cruzada com as que a pessoa atende, e não substitui a trava: pedir
+   * uma área sem cargo devolve indicadores ZERADOS, não os de outra área. Zero, e não erro,
+   * porque esta é uma leitura de contexto do menu — um 403 piscando na tela enquanto o
+   * contexto se ajusta ao cargo assustaria sem informar nada.
+   */
+  async dashboard(user: RequestUser, area?: TicketArea): Promise<TicketDashboard> {
     assertCanRead(user.role, 'os chamados');
 
-    const areas = await this.access.accessibleAreas(user);
+    const accessible = await this.access.accessibleAreas(user);
+    const areas = area ? accessible.filter((mine) => mine === area) : accessible;
     const rows = await this.repository.listForMetrics(areas);
     const measurable = rows.map((row) => ({
       status: row.status,

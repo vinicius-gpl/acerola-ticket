@@ -471,6 +471,31 @@ describe('TicketsService.dashboard', () => {
 
     expect(listForMetrics).toHaveBeenCalledWith(['infra']);
   });
+
+  /* O contexto do menu (#13): os números de cima são DA ÁREA em que a pessoa está, ou o
+     "98 abertos" de Infraestrutura apareceria sobre a fila de Manutenção. */
+  it('narrows the metrics to the area asked for', async () => {
+    const listForMetrics = vi.fn().mockResolvedValue([]);
+    const contextRolesFor = vi.fn().mockResolvedValue({ infra: 'user', manutencao: 'manager' });
+    const service = makeService({ listForMetrics, contextRolesFor });
+
+    await service.dashboard(ana, 'manutencao');
+
+    expect(listForMetrics).toHaveBeenCalledWith(['manutencao']);
+  });
+
+  // triste
+  /* Pedir uma área sem cargo não devolve a de outra pessoa: devolve nada. Zerado, e não 403,
+     porque é leitura de contexto do menu — ver o comentário no service. */
+  it('gives zeroed metrics for an area the person does not serve', async () => {
+    const listForMetrics = vi.fn().mockResolvedValue([]);
+    const service = makeService({ listForMetrics });
+
+    const dashboard = await service.dashboard(ana, 'manutencao');
+
+    expect(listForMetrics).toHaveBeenCalledWith([]);
+    expect(dashboard.total).toBe(0);
+  });
 });
 
 /**
