@@ -62,7 +62,7 @@ import {
  * estágio só muda por um histórico (ver `TicketHistoriesController`).
  *
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
- * resposta. A documentação fica em http://localhost:3336/docs.
+ * resposta. A documentação fica em http://localhost:3005/docs.
  */
 /**
  * O teto de arquivos numa requisição. O limite de verdade é por formato, e quem o aplica é o
