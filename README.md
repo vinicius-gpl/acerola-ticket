@@ -316,3 +316,23 @@ A lista do que é protegido fica em `acerola/dashboard/scripts/git/protected-str
 No GitHub, proteja a `main` (o hook local não pega merge **fast-forward**, e quem tem o clone pode desligar hooks): **Settings → Branches → Add branch ruleset** para `main`, com **Restrict updates** e **Require a pull request before merging**, liberando só você. Marque também o repositório como **Template repository** (Settings → General).
 
 Versões: a partir da `develop`, pelo Git-Flow do Tower (**Start Release** / **Finish Release**), com tag `v<versão>`.
+
+---
+
+## Licença
+
+O código deste projeto é distribuído sob a licença **MIT** — veja o arquivo [`LICENSE`](./LICENSE). Em resumo: pode usar, copiar, modificar e redistribuir, inclusive comercialmente, desde que o aviso de direitos autorais seja mantido.
+
+**As dependências têm as licenças delas.** A regra do que pode entrar fica em [`license-policy.json`](./license-policy.json), e é conferida a cada PR:
+
+```bash
+mise run licenses:check    # confere Node (painel e tela do agente) e Go (agente)
+mise run licenses:list     # mostra a licença de cada dependência
+```
+
+Dependência com licença que não está na lista **reprova o PR**. O caminho é trocar a dependência ou, depois de avaliar, registrar uma exceção com o motivo escrito no próprio `license-policy.json`.
+
+Dois pontos para quem for redistribuir:
+
+- **GSAP** (as animações da tela) **não é código aberto**: tem licença própria, gratuita inclusive para uso comercial. Ela não muda a licença do nosso código, mas acompanha a biblioteca.
+- A biblioteca de login da Neon instala, sem que o sistema use, um kit de telas React com dependências **AGPL**. Elas não entram no que é entregue, e o verificador impede que alguém passe a importá-las.
