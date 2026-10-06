@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      /* Escuta em todas as interfaces de rede, e não só em localhost: é o que deixa abrir a
+         tela pelo IP da máquina (`http://192.168.x.x:5005`) num celular do mesmo Wi-Fi, para
+         testar o que só existe lá — a câmera, o toque. A API continua só em localhost: o
+         celular fala com `/api` nesta mesma porta, e quem encaminha é o proxy abaixo. */
+      host: true,
       port: 5005,
       /* Porta ocupada não derruba o Vite: ele procura a próxima livre e imprime qual pegou.
          Aqui isso é seguro, e na API não seria — ninguém aponta para a porta da TELA, então
