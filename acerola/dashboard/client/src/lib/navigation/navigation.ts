@@ -15,29 +15,26 @@ import Wrench from '@lucide/svelte/icons/wrench';
 import { ROLE_CONTEXTS, type RoleContext } from '@template/shared/domain/role-context.util';
 
 /**
- * O MENU LATERAL, num lugar só.
+ * O MENU LATERAL — UMA LISTA POR MÓDULO.
  *
- * Tela nova que precisa aparecer no menu = UMA linha aqui. O `AppShell` desenha a partir desta
- * lista e o `useAppShellModel` decide o item ativo a partir dela — duas listas separadas
- * divergiriam no primeiro item acrescentado, e o menu acenderia o item errado.
+ * São três sistemas dentro de um — Infraestrutura, Sistema e Manutenção —, cada um com a
+ * própria pasta em `src/routes/(app)` (`/infra/...`, `/system/...`, `/maintenance/...`) e com
+ * a PRÓPRIA CASCA: cada `+layout.svelte` de contexto importa só a lista dele e monta o seu
+ * menu. Nenhum módulo enxerga a lista do outro.
  *
- * O CONTEXTO MORA NO ENDEREÇO. São três sistemas dentro de um — Infraestrutura, Sistema e
- * Manutenção — e cada um tem a própria pasta em `src/routes/(app)`: `/infra/...`,
- * `/system/...` e `/maintenance/...`. Antes o contexto era só uma preferência guardada no
- * navegador, e o endereço não dizia de quem a tela era: `/tickets` abria a fila da área que
- * estivesse salva em quem clicou no link, e "Inventário", "Depósito" e "Orçamento" de áreas
- * diferentes disputavam o mesmo nome de rota.
+ * Antes existia uma lista única, com o contexto como campo, e a casca a FILTRAVA em tempo de
+ * execução a partir do contexto guardado no navegador. Era por aí que um módulo se achava
+ * dono do sistema inteiro: a lista sabia das três áreas, e bastava o filtro falhar (ou nem
+ * ser aplicado) para o menu de um aparecer no outro. Agora não há filtro: a pasta é o filtro.
  *
- * Cada item pertence a UM contexto. O que existe em mais de um (Chamados) é uma linha por
- * contexto, porque é uma tela por contexto — a fila, os tipos de problema e o que vier depois
- * mudam de uma área para a outra.
+ * Tela nova no menu = uma linha na lista do módulo dono.
  *
  * `to` é a rota do SvelteKit (a pasta em `src/routes/(app)`). O item fica aceso também nas
  * subrotas: `/infra/tickets/42` acende "Chamados".
  *
  * A ORDEM É A DO TRABALHO, não a da construção: começa no que a pessoa olha de manhã
- * (Painel, Chamados), passa pelo parque de máquinas (Inventário, Manutenção, Depósito,
- * Descarte), pela rede, e termina no que serve para decidir compra (Inteligência, Orçamento).
+ * (Painel, Chamados), passa pelo que ela cuida (Inventário, Manutenção, Depósito, Descarte),
+ * e termina no que serve para decidir compra (Inteligência, Orçamento).
  */
 export type NavItem = {
   /** Única no menu inteiro: é o endereço sem a barra inicial (`infra/tickets`). */
@@ -45,10 +42,10 @@ export type NavItem = {
   label: string;
   to: string;
   icon: LucideIcon;
-  /** O contexto dono da tela. */
+  /** O módulo dono da tela. */
   context: RoleContext;
   /**
-   * A tela dentro do contexto (`tickets`). É o que deixa trocar de contexto sem sair do
+   * A tela dentro do módulo (`tickets`). É o que deixa trocar de contexto sem sair do
    * assunto: quem está nos Chamados da Infraestrutura cai nos Chamados da Manutenção.
    */
   feature: string;
@@ -87,9 +84,11 @@ function navItem(context: RoleContext, feature: string, label: string, icon: Luc
   };
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  /* INFRAESTRUTURA — o parque de máquinas. O Painel daqui resume máquinas (quantas, quanto de
-     memória, o que manter); o painel de outro contexto é outra tela, na pasta dele. */
+/**
+ * INFRAESTRUTURA — o parque de máquinas. O Painel daqui resume máquinas e os chamados DA
+ * INFRA; o painel de outro módulo é outra tela, na pasta dele.
+ */
+export const INFRA_NAV_ITEMS: readonly NavItem[] = [
   navItem('infra', 'dashboard', 'Painel', Monitor),
   navItem('infra', 'tickets', 'Chamados', LifeBuoy),
   navItem('infra', 'computers', 'Inventário', HardDrive),
@@ -102,15 +101,21 @@ export const NAV_ITEMS: NavItem[] = [
   /* A feature de exemplo do template. Sai quando não servir mais de molde (skill
      `remove-example`) — ela não faz parte do sistema de TI. */
   navItem('infra', 'tasks', 'Tarefas', ListChecks),
+];
 
-  /* SISTEMA — só chamado (e, mais adiante, a ponte com o GitHub). */
+/** SISTEMA — os sistemas da empresa e os chamados deles. */
+export const SYSTEM_NAV_ITEMS: readonly NavItem[] = [
   navItem('sistema', 'tickets', 'Chamados', LifeBuoy),
+];
 
-  /* MANUTENÇÃO — o prédio e o dia a dia do escritório. Os nomes repetem os de Infraestrutura
-     (Painel, Inventário, Depósito, Descarte) porque o trabalho é o mesmo, mas cada um é OUTRA
-     tela, com outro cadastro: aqui é mobiliário, mercadinho e limpeza, não computador. Os
-     Orçamentos daqui guardam o que foi cotado com empresas de fora — não são a sugestão de
-     compra de máquina que Infraestrutura tem. */
+/**
+ * MANUTENÇÃO — o prédio e o dia a dia do escritório. Os nomes repetem os de Infraestrutura
+ * (Painel, Inventário, Depósito, Descarte) porque o trabalho é o mesmo, mas cada um é OUTRA
+ * tela, com outro cadastro: aqui é mobiliário, mercadinho e limpeza, não computador. Os
+ * Orçamentos daqui guardam o que foi cotado com empresas de fora — não são a sugestão de
+ * compra de máquina que Infraestrutura tem.
+ */
+export const MAINTENANCE_NAV_ITEMS: readonly NavItem[] = [
   navItem('manutencao', 'dashboard', 'Painel', LayoutDashboard),
   navItem('manutencao', 'tickets', 'Chamados', LifeBuoy),
   navItem('manutencao', 'inventory', 'Inventário', PackageOpen),
@@ -119,22 +124,29 @@ export const NAV_ITEMS: NavItem[] = [
   navItem('manutencao', 'quotes', 'Orçamentos', FileText),
 ];
 
-/** Os itens de menu de um contexto, na ordem da lista acima. */
-export function navItemsForContext(
-  context: RoleContext,
-  items: readonly NavItem[] = NAV_ITEMS,
-): NavItem[] {
-  return items.filter((item) => item.context === context);
-}
+/**
+ * O MAPA DOS TRÊS — e o único lugar do sistema que conhece os três menus.
+ *
+ * Serve a duas coisas que são, por natureza, de fora dos módulos: o SELETOR de contexto no
+ * cabeçalho (que precisa saber para qual endereço ir) e a casca das telas que não são de
+ * contexto nenhum (o perfil, os cargos), que mostra o menu do último contexto usado.
+ *
+ * Nenhuma tela de módulo importa isto: a casca de cada contexto importa a lista dele.
+ */
+export const NAV_ITEMS_BY_CONTEXT: Record<RoleContext, readonly NavItem[]> = {
+  infra: INFRA_NAV_ITEMS,
+  sistema: SYSTEM_NAV_ITEMS,
+  manutencao: MAINTENANCE_NAV_ITEMS,
+};
 
 /**
- * O item ativo pelo prefixo do caminho — o mais longo que casar vence, para
- * `/infra/tasks/archive` acender "Arquivo" e não "Tarefas", se os dois existirem.
+ * O item aceso, DENTRO DOS ITENS QUE A CASCA RECEBEU — o prefixo mais longo que casar vence,
+ * para `/infra/tasks/archive` acender "Arquivo" e não "Tarefas", se os dois existirem.
+ *
+ * `items` é obrigatório de propósito: com um padrão que conhecesse as três listas, a casca de
+ * um módulo poderia acender o item de outro.
  */
-export function activeNavKeyOf(
-  pathname: string,
-  items: readonly NavItem[] = NAV_ITEMS,
-): string | undefined {
+export function activeNavKeyOf(pathname: string, items: readonly NavItem[]): string | undefined {
   return navItemOf(pathname, items)?.key;
 }
 
@@ -148,19 +160,20 @@ export function activeNavKeyOf(
 export function contextSwitchPath(
   pathname: string,
   context: RoleContext,
-  items: readonly NavItem[] = NAV_ITEMS,
+  byContext: Record<RoleContext, readonly NavItem[]> = NAV_ITEMS_BY_CONTEXT,
 ): string | undefined {
-  const target = navItemsForContext(context, items);
-  const current = navItemOf(pathname, items);
+  const target = byContext[context];
+  const from = contextOfPath(pathname);
+  const current = from ? navItemOf(pathname, byContext[from]) : undefined;
   const same = target.find((item) => item.feature === current?.feature);
 
   return (same ?? target[0])?.to;
 }
 
 /**
- * O CONTEXTO DA PESSOA, quando o pedido não é dela — ou nada, quando o pedido serve.
+ * O CONTEXTO DA PESSOA, quando o módulo não é dela — ou nada, quando é.
  *
- * O endereço diz o contexto, mas quem atende só Manutenção não tem o que fazer em `/infra`:
+ * O endereço diz o módulo, mas quem atende só Manutenção não tem o que fazer em `/infra`:
  * abriria um menu que não é dela, com a fila de chamados vazia. `available` é a lista de
  * contextos em que a pessoa tem cargo. Vazia significa "ainda não sei" (a consulta não
  * voltou) ou "nenhum" — nos dois casos o cargo não restringe nada.
@@ -177,9 +190,7 @@ export function fallbackContextOf(
 
 /** O item de menu que responde por um caminho: o casamento mais específico. */
 function navItemOf(pathname: string, items: readonly NavItem[]): NavItem | undefined {
-  const matches = items.filter(
-    (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
-  );
+  const matches = items.filter((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
 
   return matches.sort((a, b) => b.to.length - a.to.length)[0];
 }

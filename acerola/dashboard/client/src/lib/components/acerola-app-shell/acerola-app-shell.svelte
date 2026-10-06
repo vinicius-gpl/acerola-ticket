@@ -17,7 +17,8 @@
    * arredondado por cima. A cor vem dos tokens `--sidebar-*` em `lib/theme/tokens.css` — não de
    * `class` empilhada no componente baixado.
    *
-   * Os itens vêm de `lib/ui/navigation.ts`. Tela nova no menu é uma linha lá, não aqui.
+   * Os itens vêm da lista do módulo dono, em `lib/navigation/navigation.ts`, e entram por
+   * `ui.items`. Tela nova no menu é uma linha lá, não aqui.
    */
   export type AcerolaAppShellProps = {
     children: Snippet;
@@ -74,7 +75,6 @@
     SidebarRail,
     SidebarTrigger,
   } from '$lib/components/ui/sidebar';
-  import { NAV_ITEMS } from '$lib/navigation/navigation';
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/acerola-app-shell-nav-entry/acerola-app-shell-nav-entry.svelte';
   import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
@@ -87,7 +87,10 @@
      mesmo problema, e a mesma solução, do `ColumnChart`. */
   let { children, data, ui, state: shellState, actions }: AcerolaAppShellProps = $props();
 
-  const items = $derived(ui?.items ?? NAV_ITEMS);
+  /* Sem lista padrão: a casca desenha o menu que o módulo dono passou, e nada mais. Um
+     padrão que conhecesse as três listas faria o menu de um contexto aparecer no outro
+     sempre que alguém esquecesse de passar `ui.items`. */
+  const items = $derived(ui?.items ?? []);
   const userName = $derived(data?.user?.name ?? 'Visitante');
 
   let contentEl: HTMLDivElement | undefined = $state();
