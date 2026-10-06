@@ -72,6 +72,11 @@ export const inventoryItemSchema = z.object({
   code: z.string().nullable(),
   note: z.string().nullable(),
   photoUrl: z.string().nullable(),
+  /**
+   * Quanto existe agora, na medida do produto. Só LEITURA: o número muda pelo Depósito, com
+   * uma entrada, uma saída ou um descarte — nunca editando o cadastro.
+   */
+  balance: z.number().int(),
 
   createdAt: z.string().datetime(),
   createdBy: z.string(),

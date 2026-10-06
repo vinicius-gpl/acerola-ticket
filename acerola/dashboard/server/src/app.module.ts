@@ -20,6 +20,8 @@ import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { NetworkModule } from './modules/network/network.module';
 import { InventoryItemsModule } from './modules/inventory-items/inventory-items.module';
+import { MaintenanceDashboardModule } from './modules/maintenance-dashboard/maintenance-dashboard.module';
+import { MaintenanceQuotesModule } from './modules/maintenance-quotes/maintenance-quotes.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -69,6 +71,8 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     MaintenancesModule,
     PartsModule,
     InventoryItemsModule,
+    MaintenanceQuotesModule,
+    MaintenanceDashboardModule,
     DashboardModule,
     NetworkModule,
     InsightsModule,

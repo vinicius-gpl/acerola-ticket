@@ -103,7 +103,7 @@ Booleano de estado usa prefixo `is`/`has`. Callback usa prefixo `on`. O handler 
 lib/components/ui/                                ⛔ CLI do shadcn-svelte. NÃO EDITE.
 lib/hooks/ui/                                     ⛔ hook que o CLI gera ("hooks": "$lib/hooks/ui" no components.json).
 lib/components/acerola-<nome>/                    ✅ genérico: envolve o ui, sem domínio, usado por 2+ features.
-routes/(app)/<feature>/components/acerola-<nome>/ ✅ da feature: conhece o domínio, só a própria rota importa.
+routes/(app)/<context>/<feature>/components/acerola-<nome>/ ✅ da feature: conhece o domínio, só a própria rota importa.
 ```
 
 Regras:
@@ -324,7 +324,7 @@ Regras:
 | Tipo           | Padrão                                      | Exemplo                                                |
 | -------------- | ------------------------------------------- | ------------------------------------------------------- |
 | Componente genérico | `lib/components/acerola-<nome>/acerola-<nome>.svelte` | `lib/components/acerola-text-field/acerola-text-field.svelte` |
-| Componente de feature | `routes/(app)/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/tasks/components/acerola-task-list-view/acerola-task-list-view.svelte` |
+| Componente de feature | `routes/(app)/<context>/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/infra/tasks/components/acerola-task-list-view/acerola-task-list-view.svelte` |
 | Story          | `acerola-<nome>.stories.svelte`             | `acerola-task-list-view.stories.svelte`                |
 | Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` — pasta própria, prefixo `use-`, nunca arquivo solto | `lib/hooks/use-task-list/use-task-list.svelte.ts`   |
 | Teste          | `<arquivo>.test.ts`                         | `task-status.util.test.ts`     |

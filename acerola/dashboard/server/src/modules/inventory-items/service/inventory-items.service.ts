@@ -1,11 +1,17 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { refuseInventoryPhoto } from '@template/shared/domain/inventory-photo.util';
+import { fitsInInventoryStock, stockAfter } from '@template/shared/domain/inventory-stock.util';
 import {
   type CreateInventoryItemInput,
   type InventoryItem,
   type InventoryItemListQuery,
   type UpdateInventoryItemInput,
 } from '@template/shared/schemas/inventory-item.schema';
+import {
+  type CreateInventoryMovementInput,
+  type InventoryMovement,
+  type InventoryMovementListQuery,
+} from '@template/shared/schemas/inventory-movement.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
@@ -19,6 +25,8 @@ import {
   toInventoryItem,
   toInventoryItemInsert,
   toInventoryItemUpdate,
+  toInventoryMovement,
+  toInventoryMovementInsert,
 } from '../mapper/inventory-items.mapper';
 import { InventoryItemsRepository } from '../repository/inventory-items.repository';
 import { optimizePhoto } from './inventory-photo.util';
@@ -127,6 +135,62 @@ export class InventoryItemsService {
     await this.discardReplacedPhoto(current.photoKey, null);
   }
 
+  /** O extrato do depósito: do movimento mais novo para o mais velho. */
+  async movements(
+    user: RequestUser,
+    query: InventoryMovementListQuery,
+  ): Promise<Paginated<InventoryMovement>> {
+    assertCanRead(user.role, 'o depósito da Manutenção');
+
+    const page = await this.repository.listMovements(query);
+
+    return {
+      items: page.rows.map(toInventoryMovement),
+      total: page.total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
+  /**
+   * Registra uma entrada, uma saída ou um descarte e move o saldo junto.
+   *
+   * Tudo DENTRO de uma transação, com o produto travado: a linha do extrato e o saldo entram
+   * juntos ou não entram, e duas pessoas movimentando o mesmo produto ao mesmo tempo não
+   * conseguem ler o mesmo saldo antigo.
+   *
+   * O que sai é conferido contra o que existe. Aceitar calado e prender o saldo em zero faria
+   * o número mentir a partir dali — e a diferença só apareceria na prateleira.
+   */
+  async createMovement(
+    user: RequestUser,
+    itemId: number,
+    input: CreateInventoryMovementInput,
+  ): Promise<InventoryMovement> {
+    assertCanManageInContext(user, 'manutencao', 'movimentar o depósito');
+
+    const quantity = Number(input.quantity);
+
+    return this.repository.transaction(async (executor) => {
+      const item = await this.repository.findByIdForUpdate(itemId, executor);
+      if (!item) throw new NotFoundException(ITEM_NOT_FOUND);
+
+      if (!fitsInInventoryStock(item.balance, input.type, quantity)) {
+        throw new UnprocessableEntityException(stockMessage(item, quantity));
+      }
+
+      const balance = stockAfter(item.balance, input.type, quantity);
+
+      const movement = await this.repository.insertMovement(
+        toInventoryMovementInsert(itemId, input, balance, user.email),
+        executor,
+      );
+      await this.repository.updateBalance(itemId, balance, executor);
+
+      return toInventoryMovement({ movement, item });
+    });
+  }
+
   /** O produto, ou 404 com uma frase que diz o que fazer. */
   private async require(id: number): Promise<InventoryItemRow> {
     const row = await this.repository.findById(id);
@@ -202,4 +266,18 @@ export class InventoryItemsService {
       // segue adiante: o banco já tem a verdade.
     }
   }
+}
+
+/**
+ * A recusa diz o número, não só "não dá".
+ *
+ * Quem lê precisa saber se faltou uma ou faltaram dez para decidir o que fazer: registrar a
+ * entrada que alguém esqueceu, ou conferir a prateleira.
+ */
+function stockMessage(item: InventoryItemRow, quantity: number): string {
+  if (item.balance === 0) {
+    return `Não há ${item.name} no depósito. Registre uma entrada antes.`;
+  }
+
+  return `Só há ${item.balance} de ${item.name} no depósito, e o movimento é de ${quantity}. Confira a prateleira e registre a entrada que faltou.`;
 }

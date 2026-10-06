@@ -116,6 +116,15 @@ const CHECK_MESSAGES: Record<string, string> = {
   maintenances_type_valid: 'O tipo da manutenção precisa ser um dos da lista.',
   inventory_items_category_valid: 'A categoria do produto precisa ser uma das opções da lista.',
   inventory_items_unit_valid: 'A medida do produto precisa ser uma das opções da lista.',
+  inventory_items_balance_not_negative:
+    'Não há essa quantidade no depósito. Recarregue a tela para ver o saldo atual.',
+  inventory_movements_type_valid: 'O movimento precisa ser entrada, saída ou descarte.',
+  inventory_movements_quantity_positive: 'A quantidade precisa ser pelo menos 1.',
+  inventory_movements_reason_matches_type:
+    'Um descarte precisa dizer o motivo, e só o descarte tem motivo.',
+  maintenance_quotes_kind_valid: 'O tipo do orçamento precisa ser um dos da lista.',
+  maintenance_quotes_status_valid: 'A situação do orçamento precisa ser uma das opções da lista.',
+  maintenance_quotes_amount_not_negative: 'O valor do orçamento não pode ser negativo.',
   computers_disposal_complete:
     'Um descarte precisa dizer o tipo e o motivo. Recarregue a tela e tente de novo.',
   computers_disposal_type_valid: 'O tipo do descarte precisa ser defeito ou lixo.',

@@ -3,12 +3,20 @@ import {
   type InventoryItem,
   type UpdateInventoryItemInput,
 } from '@template/shared/schemas/inventory-item.schema';
+import {
+  type CreateInventoryMovementInput,
+  type InventoryMovement,
+} from '@template/shared/schemas/inventory-movement.schema';
 
 import { setIfDefined } from '../../../lib/db/partial-update.util';
 import {
   type InventoryItemInsert,
   type InventoryItemRow,
 } from '../../../lib/db/schema/inventory-items.schema';
+import {
+  type InventoryMovementInsert,
+  type InventoryMovementRow,
+} from '../../../lib/db/schema/inventory-movements.schema';
 
 /**
  * A tradução entre a linha do banco e o contrato.
@@ -27,11 +35,59 @@ export function toInventoryItem(row: InventoryItemRow, photoUrl: string | null):
     code: row.code,
     note: row.note,
     photoUrl,
+    balance: row.balance,
 
     createdAt: row.createdAt.toISOString(),
     createdBy: row.createdBy,
     updatedAt: row.updatedAt?.toISOString() ?? null,
     updatedBy: row.updatedBy,
+  };
+}
+
+/** A linha do extrato com o produto dela, do jeito que o repository entrega. */
+export type MovementWithItem = {
+  movement: InventoryMovementRow;
+  item: { name: string; unit: InventoryItemRow['unit'] };
+};
+
+/** Um movimento do depósito, já com o nome do produto — a lista não precisa ir buscá-lo. */
+export function toInventoryMovement({ movement, item }: MovementWithItem): InventoryMovement {
+  return {
+    id: movement.id,
+    itemId: movement.itemId,
+    itemName: item.name,
+    itemUnit: item.unit,
+    type: movement.type,
+    quantity: movement.quantity,
+    balanceAfter: movement.balanceAfter,
+    reason: movement.reason,
+    note: movement.note,
+    createdAt: movement.createdAt.toISOString(),
+    createdBy: movement.createdBy,
+  };
+}
+
+/**
+ * O movimento novo. A autoria vem da identidade, nunca do corpo (CONTRIBUTING §8), e o saldo
+ * chega CALCULADO por quem chamou: é o service que confere se a saída cabe, com o produto
+ * travado.
+ */
+export function toInventoryMovementInsert(
+  itemId: number,
+  input: CreateInventoryMovementInput,
+  balanceAfter: number,
+  actorEmail: string,
+): InventoryMovementInsert {
+  return {
+    itemId,
+    type: input.type,
+    quantity: Number(input.quantity),
+    balanceAfter,
+    /* O motivo só existe no descarte: mandado junto com uma entrada, é ruído — e o banco
+       recusaria a linha (`inventory_movements_reason_matches_type`). */
+    reason: input.type === 'disposal' ? (input.reason ?? null) : null,
+    note: textOrNull(input.note) ?? null,
+    createdBy: actorEmail,
   };
 }
 

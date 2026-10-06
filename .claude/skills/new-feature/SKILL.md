@@ -87,15 +87,15 @@ banco (unique, check, relação).
 - `lib/hooks/use-<entity>-form/use-<entity>-form.svelte.ts` (+ `.test.ts`) — TanStack Form
   (versão Svelte) com `validators: { onChange: <entity>FormSchema }` (**só `onChange`**: com
   `onSubmit` o erro fica preso) e `mutate` (não `await mutateAsync`).
-- `routes/(app)/<entities>/components/acerola-<entity>-list-view/acerola-<entity>-list-view.svelte`,
-  `routes/(app)/<entities>/components/acerola-<entity>-form-dialog/acerola-<entity>-form-dialog.svelte`
+- `routes/(app)/<context>/<entities>/components/acerola-<entity>-list-view/acerola-<entity>-list-view.svelte`,
+  `routes/(app)/<context>/<entities>/components/acerola-<entity>-form-dialog/acerola-<entity>-form-dialog.svelte`
   — componentes **da feature**: moram na rota, não em `lib/`. Cada um com `.stories.svelte`
   (`Features/<Entities>/…`) e `.test.ts`. Só importam `acerola-*` genéricos de `lib/components/`
   (`acerola-page-header`, `acerola-empty-state`, `acerola-error-state`, `acerola-confirm-dialog`,
   `acerola-action-button`, `acerola-text-field`…), nunca `ui/*`. Siga `design-system`,
   `ui-component` e `ui-standards`. Faltou um genérico? Instale do shadcn e envolva — não recrie.
-- `routes/(app)/<entities>/+page.svelte` — só composição: hook + componente + classes de
-  cor/espaço/layout (modelo: `routes/(app)/tasks/+page.svelte`). Formulário em diálogo ligado ao
+- `routes/(app)/<context>/<entities>/+page.svelte` — só composição: hook + componente + classes de
+  cor/espaço/layout (modelo: `routes/(app)/infra/tasks/+page.svelte`). Formulário em diálogo ligado ao
   hook vai em `<entity>-form-slot.svelte` ao lado.
 - `lib/navigation/navigation.ts` — uma linha no menu, ícone Lucide.
 

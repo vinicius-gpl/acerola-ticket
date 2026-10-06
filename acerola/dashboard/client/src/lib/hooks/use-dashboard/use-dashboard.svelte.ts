@@ -69,11 +69,11 @@ export function useDashboardModel(): DashboardModel {
     actions: {
       onPeriodChange: (value) => daysStore.set(value),
       onRetry: () => void summary.current.refetch(),
-      onOpenMachine: (machine) => void goto(`/computers/${machine.computerId}`),
-      onOpenComputers: () => void goto('/computers'),
-      onOpenTickets: () => void goto('/tickets'),
-      onOpenMaintenance: () => void goto('/maintenance'),
-      onOpenParts: () => void goto('/parts'),
+      onOpenMachine: (machine) => void goto(`/infra/computers/${machine.computerId}`),
+      onOpenComputers: () => void goto('/infra/computers'),
+      onOpenTickets: () => void goto('/infra/tickets'),
+      onOpenMaintenance: () => void goto('/infra/maintenance'),
+      onOpenParts: () => void goto('/infra/parts'),
     },
   };
 }

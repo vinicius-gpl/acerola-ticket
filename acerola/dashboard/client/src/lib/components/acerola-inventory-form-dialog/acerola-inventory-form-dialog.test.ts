@@ -94,9 +94,31 @@ describe('AcerolaInventoryFormDialog', () => {
       actions: { ...actions, onPhotoRemove },
     });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Tirar foto' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remover foto' }));
 
     expect(onPhotoRemove).toHaveBeenCalledOnce();
+  });
+
+  /* No celular o inventário é feito andando: fotografar na hora e escolher da galeria são
+     dois caminhos, os dois à vista. */
+  it('offers both taking a photo and choosing an image', () => {
+    setup();
+
+    expect(screen.getByRole('button', { name: 'Tirar foto' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Escolher imagem' })).toBeInTheDocument();
+    /* É o `capture` que faz o celular abrir a câmera de trás em vez da galeria. */
+    expect(document.querySelector('#photo-camera')).toHaveAttribute('capture', 'environment');
+    expect(document.querySelector('#photo')).not.toHaveAttribute('capture');
+  });
+
+  it('reports the photo taken with the camera', async () => {
+    const onPhotoChange = vi.fn();
+    setup({ actions: { ...actions, onPhotoChange } });
+    const shot = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
+
+    await userEvent.upload(document.querySelector<HTMLInputElement>('#photo-camera')!, shot);
+
+    expect(onPhotoChange).toHaveBeenCalledWith(shot);
   });
 
   // triste
@@ -126,19 +148,20 @@ describe('AcerolaInventoryFormDialog', () => {
     expect(screen.getByText('Já existe um produto com esse código.')).toBeInTheDocument();
   });
 
-  /* Enquanto grava, nada pode ser mexido — nem o botão de escolher foto. */
+  /* Enquanto grava, nada pode ser mexido — nem os botões da foto. */
   it('locks the form while saving', () => {
     setup({ state: { isOpen: true, isSubmitting: true } });
 
     expect(screen.getByLabelText('Nome do produto')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Escolher foto' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tirar foto' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Escolher imagem' })).toBeDisabled();
   });
 
-  /* Sem foto não existe o botão de tirar: botão que não faz nada é ruído. */
+  /* Sem foto não existe o botão de remover: botão que não faz nada é ruído. */
   it('offers no way to drop a photo that does not exist (edge case)', () => {
     setup();
 
-    expect(screen.queryByRole('button', { name: 'Tirar foto' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Escolher foto' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remover foto' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Escolher imagem' })).toBeInTheDocument();
   });
 });

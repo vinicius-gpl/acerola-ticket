@@ -22,6 +22,7 @@ function item(over: Partial<InventoryItem> = {}): InventoryItem {
     code: 'PAT-0101',
     note: null,
     photoUrl: 'https://r2.exemplo/foto.webp',
+    balance: 3,
     createdAt: '2026-09-01T12:00:00.000Z',
     createdBy: 'manutencao@azuos.local',
     updatedAt: null,

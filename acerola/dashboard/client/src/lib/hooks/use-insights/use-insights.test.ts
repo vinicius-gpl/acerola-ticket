@@ -78,7 +78,7 @@ describe('useInsightsModel', () => {
 
     model.actions.onOpenMachine(42);
 
-    expect(goto).toHaveBeenCalledWith('/computers/42');
+    expect(goto).toHaveBeenCalledWith('/infra/computers/42');
   });
 
   // triste

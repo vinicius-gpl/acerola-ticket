@@ -31,9 +31,13 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
   CreateInventoryItemDto,
+  CreateInventoryMovementDto,
   InventoryItemDto,
   InventoryItemListQueryDto,
   InventoryItemListResponseDto,
+  InventoryMovementDto,
+  InventoryMovementListQueryDto,
+  InventoryMovementListResponseDto,
   UpdateInventoryItemDto,
 } from '../dto/inventory-item.dto';
 import {
@@ -68,6 +72,42 @@ export class InventoryItemsController {
     @Query() query: InventoryItemListQueryDto,
   ): Promise<InventoryItemListResponseDto> {
     return this.service.list(user, query);
+  }
+
+  /* ANTES de `:id`, de propósito: o Nest casa as rotas na ordem em que aparecem, e depois
+     dela `/inventory-items/movements` seria lido como "o produto de id movements". */
+  @Get('movements')
+  @ApiOperation({
+    summary: 'Lista os movimentos do depósito da Manutenção',
+    description:
+      'Do mais novo para o mais velho. `type=disposal` devolve só os descartes; `itemId` devolve o extrato de um produto.',
+  })
+  @ApiOkResponse({ type: InventoryMovementListResponseDto })
+  async movements(
+    @CurrentUser() user: RequestUser,
+    @Query() query: InventoryMovementListQueryDto,
+  ): Promise<InventoryMovementListResponseDto> {
+    return this.service.movements(user, query);
+  }
+
+  @Post(':id/movements')
+  @ApiOperation({
+    summary: 'Registra uma entrada, uma saída ou um descarte do produto',
+    description:
+      'Move o saldo do produto junto. Saída e descarte são recusados quando passam do que existe; o descarte exige o motivo.',
+  })
+  @ApiCreatedResponse({ type: InventoryMovementDto })
+  @ApiForbiddenResponse({ description: 'Seu cargo em Manutenção só permite consultar.' })
+  @ApiNotFoundResponse({ description: 'Produto não encontrado.' })
+  @ApiUnprocessableEntityResponse({
+    description: 'A quantidade passa do que existe no depósito, ou falta o motivo do descarte.',
+  })
+  async createMovement(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateInventoryMovementDto,
+  ): Promise<InventoryMovementDto> {
+    return this.service.createMovement(user, id, body);
   }
 
   @Get(':id')

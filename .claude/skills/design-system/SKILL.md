@@ -65,7 +65,7 @@ acerola/dashboard/
 │   │   ├── hooks/use-<nome>/               hook próprio (view-model)
 │   │   ├── navigation/  theme/  motion/  types/  utils/
 │   ├── src/routes/
-│   │   ├── (app)/<feature>/
+│   │   ├── (app)/<context>/<feature>/
 │   │   │   ├── +page.svelte                só composição
 │   │   │   ├── <nome>-slot.svelte          liga hook → componente (pode chamar hook)
 │   │   │   └── components/acerola-<nome>/  componente DA FEATURE
@@ -79,6 +79,13 @@ acerola/agent/
 ├── svelte/src/routes/<tela>/<tela>.svelte
 └── docs/<nome-kebab>.md                        conteúdo em pt-BR, nome em inglês
 ```
+
+**`<context>` é `infra`, `system` ou `maintenance`** — o contexto mora no endereço
+(`/infra/tickets`, `/system/tickets`, `/maintenance/tickets`), e cada um tem o próprio
+`+page.svelte`. A feature é a pasta de dentro (`infra/computers`). Componente usado pela mesma
+tela em mais de um contexto (os de Chamados) é compartilhado e mora em `lib/components/`. Só o
+que não é de contexto nenhum (`profile`, `roles`) fica direto em `routes/(app)/`. A margem do
+conteúdo é da casca (`acerola-app-shell`): o elemento raiz da tela não leva `px-*`/`pt-*`/`pb-*`.
 
 **Pasta que não está neste mapa não é criada.** Precisa de uma pasta nova em `lib/`? Pare e
 pergunte. Pasta fora deste mapa (um `lib/table-view/`, um `lib/context/`) é violação — o check reprova.
@@ -167,13 +174,13 @@ Tudo em `kebab-case`, inglês, singular para componente/hook, plural para módul
 | Tipo | Padrão | Exemplo |
 |---|---|---|
 | Componente genérico | `lib/components/acerola-<nome>/acerola-<nome>.svelte` | `acerola-select/acerola-select.svelte` |
-| Componente de feature | `routes/(app)/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/dashboard/components/acerola-maintenance-log/acerola-maintenance-log.svelte` |
+| Componente de feature | `routes/(app)/<context>/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/infra/dashboard/components/acerola-maintenance-log/acerola-maintenance-log.svelte` |
 | Story / teste / harness | `acerola-<nome>.stories.svelte` · `.test.ts` · `-harness.test.svelte` | ao lado do componente |
 | Tipo de props | `Acerola<Nome>Props` | `AcerolaSelectProps` |
 | Story title | `Components/Acerola<Nome>` · feature: `Features/<Feature>/Acerola<Nome>` | `Features/Dashboard/AcerolaMaintenanceLog` |
 | Hook | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` | `use-media-query/use-media-query.svelte.ts` |
 | Hook harness | `use-<nome>-harness.test.svelte` | |
-| Slot de rota | `routes/(app)/<feature>/<nome>-slot.svelte` | `task-form-slot.svelte` |
+| Slot de rota | `routes/(app)/<context>/<feature>/<nome>-slot.svelte` | `task-form-slot.svelte` |
 | API client | `lib/api/<entities>.api.ts` | `tickets.api.ts` |
 | Util | `<nome>.util.ts` | `format-date.util.ts` |
 | Tipo | `<nome>.type.ts` | `form-field.type.ts` |

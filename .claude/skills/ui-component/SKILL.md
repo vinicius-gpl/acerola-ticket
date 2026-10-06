@@ -52,7 +52,7 @@ Catálogo genérico (nome-alvo; o backlog de renomeação está em `design-syste
 
 | | Genérico | De feature |
 |---|---|---|
-| Onde | `lib/components/acerola-<nome>/` | `routes/(app)/<feature>/components/acerola-<nome>/` |
+| Onde | `lib/components/acerola-<nome>/` | `routes/(app)/<context>/<feature>/components/acerola-<nome>/` |
 | Conhece entidade do domínio? | Não | Sim |
 | Importa `ui/*`? | Sim (é o único) | **Não** — só `acerola-*` genéricos |
 | Quem importa | Qualquer feature | Só a própria feature |
@@ -114,7 +114,7 @@ componente precisa de um contexto Svelte pra montar (provider, slot), use um arq
 
 ```bash
 cd acerola/dashboard
-npx vitest run --root client src/lib/components/acerola-<nome>   # ou src/routes/(app)/<feature>/components/acerola-<nome>
+npx vitest run --root client src/lib/components/acerola-<nome>   # ou src/routes/(app)/<context>/<feature>/components/acerola-<nome>
 npm run lint -w client
 npm run typecheck -w client
 ```

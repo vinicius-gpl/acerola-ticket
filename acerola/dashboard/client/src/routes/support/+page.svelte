@@ -52,7 +52,7 @@
     <OpenTicketForm data={open.data} state={open.state} actions={open.actions} />
 
     <p class="text-ink-500 text-center text-xs">
-      É do time de TI? <a class="text-primary underline" href="/tickets">Abrir o painel</a>
+      É do time de TI? <a class="text-primary underline" href="/">Abrir o painel</a>
     </p>
   </main>
 </div>

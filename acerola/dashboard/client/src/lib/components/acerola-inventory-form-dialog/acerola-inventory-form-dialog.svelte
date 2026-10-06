@@ -46,6 +46,7 @@
 </script>
 
 <script lang="ts">
+  import Camera from '@lucide/svelte/icons/camera';
   import ImagePlus from '@lucide/svelte/icons/image-plus';
   import Package from '@lucide/svelte/icons/package';
   import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -71,6 +72,7 @@
   const fields = $derived(data.fields);
 
   let photoInput = $state<HTMLInputElement | undefined>();
+  let cameraInput = $state<HTMLInputElement | undefined>();
 
   function handleSubmit(event: SubmitEvent): void {
     event.preventDefault();
@@ -88,6 +90,7 @@
   function removePhoto(): void {
     actions.onPhotoRemove();
     if (photoInput) photoInput.value = '';
+    if (cameraInput) cameraInput.value = '';
   }
 </script>
 
@@ -205,16 +208,26 @@
           </div>
 
           <div class="flex min-w-0 flex-col gap-1.5">
+            <!-- DOIS CAMINHOS, os dois à vista: o inventário é feito andando pelo escritório com
+                 o celular, e ali o mais rápido é fotografar o produto na hora. Quem já tem a
+                 imagem (ou está no computador) escolhe da galeria. Um botão só obrigava a
+                 pessoa a descobrir a câmera dentro do seletor de arquivos do aparelho. -->
             <div class="flex flex-wrap items-center gap-2">
               <ActionButton
-                data={{ label: data.photo.previewUrl ? 'Trocar foto' : 'Escolher foto' }}
-                ui={{ variant: 'secondary' }}
+                data={{ label: 'Tirar foto' }}
+                ui={{ variant: 'secondary', icon: Camera }}
+                state={{ isDisabled: dialogState.isSubmitting }}
+                actions={{ onClick: () => cameraInput?.click() }}
+              />
+              <ActionButton
+                data={{ label: 'Escolher imagem' }}
+                ui={{ variant: 'secondary', icon: ImagePlus }}
                 state={{ isDisabled: dialogState.isSubmitting }}
                 actions={{ onClick: () => photoInput?.click() }}
               />
               {#if data.photo.previewUrl}
                 <ActionButton
-                  data={{ label: 'Tirar foto' }}
+                  data={{ label: 'Remover foto' }}
                   ui={{ variant: 'ghost', icon: Trash2 }}
                   state={{ isDisabled: dialogState.isSubmitting }}
                   actions={{ onClick: removePhoto }}
@@ -233,6 +246,20 @@
           name="photo"
           type="file"
           accept={inventoryPhotoAccept()}
+          disabled={dialogState.isSubmitting}
+          onchange={handlePhoto}
+          class="sr-only"
+        />
+        <!-- `capture="environment"` abre direto a câmera de TRÁS do celular (a que aponta para
+             o produto). No computador o atributo é ignorado e o botão abre o seletor de
+             arquivos — não quebra, só não tem câmera para abrir. -->
+        <input
+          bind:this={cameraInput}
+          id="photo-camera"
+          name="photo-camera"
+          type="file"
+          accept="image/*"
+          capture="environment"
           disabled={dialogState.isSubmitting}
           onchange={handlePhoto}
           class="sr-only"

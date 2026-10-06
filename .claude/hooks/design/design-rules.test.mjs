@@ -90,6 +90,44 @@ describe('feature-component-in-lib', () => {
     assert.deepEqual(run('feature-component-in-lib', files), []);
   });
 
+  // feliz
+  /* Chamados é uma tela por contexto: o componente que as três usam é compartilhado. */
+  it('keeps components shared by the same screen of different contexts', () => {
+    const files = [
+      file(`${DASHBOARD_LIB}/acerola-ticket-list-view/acerola-ticket-list-view.svelte`),
+      ...['infra', 'system', 'maintenance'].map((context) =>
+        file(
+          `${DASHBOARD_ROUTES}/(app)/${context}/tickets/+page.svelte`,
+          `components/acerola-ticket-list-view/acerola-ticket-list-view`,
+        ),
+      ),
+    ];
+
+    assert.deepEqual(run('feature-component-in-lib', files), []);
+  });
+
+  // triste
+  /* Dentro de um contexto, a feature é a pasta de DENTRO: duas telas de `infra` são duas
+     features, e uma só continua sendo uma. */
+  it('names the feature by the folder inside the context', () => {
+    const files = [
+      file(`${DASHBOARD_LIB}/acerola-button/acerola-button.svelte`),
+      file(`${DASHBOARD_LIB}/acerola-usage-chart/acerola-usage-chart.svelte`),
+      file(
+        `${DASHBOARD_ROUTES}/(app)/infra/computers/[id]/+page.svelte`,
+        `components/acerola-usage-chart/acerola-usage-chart components/acerola-button/acerola-button`,
+      ),
+      file(
+        `${DASHBOARD_ROUTES}/(app)/infra/parts/+page.svelte`,
+        `components/acerola-button/acerola-button`,
+      ),
+    ];
+
+    assert.deepEqual(run('feature-component-in-lib', files), [
+      `${DASHBOARD_LIB}/acerola-usage-chart só usado por routes/infra/computers`,
+    ]);
+  });
+
   // triste
   it('follows the import chain in the agent app, without +page', () => {
     const files = [

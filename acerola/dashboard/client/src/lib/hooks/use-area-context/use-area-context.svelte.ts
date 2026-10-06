@@ -5,13 +5,13 @@ import {
 } from '@template/shared/domain/role-context.util';
 
 /**
- * O CONTEXTO em que a pessoa está usando o sistema: Infraestrutura, Sistema ou Manutenção.
+ * O ÚLTIMO CONTEXTO em que a pessoa usou o sistema: Infraestrutura, Sistema ou Manutenção.
  *
- * São três sistemas dentro de um. O contexto não filtra só a fila de chamados — ele decide o
- * MENU (ver `navigation.ts`): Infra cuida do parque de máquinas, Sistema só de chamado, e
- * Manutenção de inventário geral, orçamento e chamado externo. Por isso não existe mais um
- * "Todas as áreas": uma tela que some de um contexto e aparece em outro não tem como estar em
- * todos ao mesmo tempo, e um menu com tudo junto seria o menu de ninguém.
+ * São três sistemas dentro de um, e quem diz em qual a pessoa ESTÁ é o endereço
+ * (`/infra/...`, `/system/...`, `/maintenance/...` — ver `navigation.ts`). O que mora aqui é
+ * só a lembrança do último: é por ela que o sistema sabe onde abrir (`routes/+page.ts`) e
+ * qual menu mostrar nas telas que não são de contexto nenhum, como o perfil. Nenhuma tela
+ * decide o que busca a partir daqui — a fila de chamados recebe a área da própria rota.
  *
  * O MESMO mecanismo do tema (`lib/theme/theme.svelte.ts`): uma preferência do sistema
  * inteiro, não de uma tela — por isso o `$state` vive no escopo do MÓDULO, compartilhado por

@@ -3,6 +3,11 @@ import {
   type InventoryItemFormValues,
   type InventoryItemListQuery,
 } from '@template/shared/schemas/inventory-item.schema';
+import {
+  type CreateInventoryMovementInput,
+  type InventoryMovement,
+  type InventoryMovementListQuery,
+} from '@template/shared/schemas/inventory-movement.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 
 import { apiRequest } from './http-client';
@@ -38,18 +43,31 @@ export const inventoryItemsApi = {
    * `removePhoto` é o que separa "não mexi na foto" de "quero sem foto": sem ele, salvar o
    * cadastro sem escolher imagem nenhuma apagaria a que já estava lá.
    */
-  update: (
-    id: number,
-    values: InventoryItemFormValues,
-    photo: File | null,
-    removePhoto = false,
-  ) =>
+  update: (id: number, values: InventoryItemFormValues, photo: File | null, removePhoto = false) =>
     apiRequest<InventoryItem>(`/inventory-items/${id}`, {
       method: 'PATCH',
       body: toInventoryFormData(values, photo, removePhoto),
     }),
 
   remove: (id: number) => apiRequest<void>(`/inventory-items/${id}`, { method: 'DELETE' }),
+
+  /** O extrato do depósito. `type: 'disposal'` é a tela de Descarte inteira. */
+  movements: (query: Partial<InventoryMovementListQuery>) =>
+    apiRequest<Paginated<InventoryMovement>>('/inventory-items/movements', {
+      query: {
+        page: query.page,
+        pageSize: query.pageSize,
+        itemId: query.itemId,
+        type: query.type,
+      },
+    }),
+
+  /** Entrada, saída ou descarte de um produto. O saldo é movido pelo servidor, junto. */
+  createMovement: (itemId: number, body: CreateInventoryMovementInput) =>
+    apiRequest<InventoryMovement>(`/inventory-items/${itemId}/movements`, {
+      method: 'POST',
+      body,
+    }),
 };
 
 /** Os campos do formulário e a foto num envio só. */

@@ -47,9 +47,9 @@ export function useBudgetModel(): BudgetModel {
     },
     actions: {
       onRetry: () => void summary.current.refetch(),
-      onOpenMachine: (computerId) => void goto(`/computers/${computerId}`),
-      onOpenComputers: () => void goto('/computers'),
-      onOpenParts: () => void goto('/parts'),
+      onOpenMachine: (computerId) => void goto(`/infra/computers/${computerId}`),
+      onOpenComputers: () => void goto('/infra/computers'),
+      onOpenParts: () => void goto('/infra/parts'),
     },
   };
 }

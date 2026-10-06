@@ -4,6 +4,12 @@ import {
   inventoryItemSchema,
   updateInventoryItemSchema,
 } from '@template/shared/schemas/inventory-item.schema';
+import {
+  createInventoryMovementSchema,
+  inventoryMovementListQuerySchema,
+  inventoryMovementSchema,
+} from '@template/shared/schemas/inventory-movement.schema';
+import { paginatedSchema } from '@template/shared/schemas/pagination.schema';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -23,4 +29,14 @@ export class InventoryItemListResponseDto extends createZodDto(
     page: z.number().int(),
     pageSize: z.number().int(),
   }),
+) {}
+
+/* O DEPÓSITO: cada entrada, saída e descarte de um produto. */
+export class InventoryMovementDto extends createZodDto(inventoryMovementSchema) {}
+export class CreateInventoryMovementDto extends createZodDto(createInventoryMovementSchema) {}
+export class InventoryMovementListQueryDto extends createZodDto(
+  inventoryMovementListQuerySchema,
+) {}
+export class InventoryMovementListResponseDto extends createZodDto(
+  paginatedSchema(inventoryMovementSchema),
 ) {}

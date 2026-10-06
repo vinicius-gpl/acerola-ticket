@@ -23,8 +23,9 @@ import {
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import {
   activeNavKeyOf,
-  navItemsForContext,
-  reconciledContextOf,
+  contextOfPath,
+  contextSwitchPath,
+  fallbackContextOf,
   type NavItem,
 } from '$lib/navigation/navigation';
 
@@ -53,8 +54,8 @@ export type AppShellModel = {
      */
     areaOptions: { value: AreaContext; label: string; icon: LucideIcon }[];
   };
-  /** O menu DO CONTEXTO atual: cada área do sistema tem o seu (ver `navigation.ts`). */
-  ui: { items: NavItem[] };
+  /** O menu DO MÓDULO que montou esta casca — o mesmo que entrou por `items`. */
+  ui: { items: readonly NavItem[] };
   state: {
     activeKey: string | undefined;
     routeKey: string;
@@ -78,12 +79,24 @@ export type AppShellModel = {
  * `routes/(app)/+layout.ts`. Por isso ele só monta dentro do grupo `(app)`, depois que a
  * sessão já foi conferida.
  *
+ * `context` e `items` TAMBÉM chegam por parâmetro, e é aí que está a independência dos três
+ * módulos: quem monta a casca é o `+layout.svelte` de cada contexto, que passa o contexto
+ * dele e só a lista de menu dele. Este hook não descobre contexto nenhum — nem pelo endereço,
+ * nem pelo que está guardado no navegador —, e por isso não tem como montar o menu de um
+ * módulo dentro de outro.
+ *
  * Contador de menu (ex.: "3 tarefas atrasadas") é buscado AQUI, uma vez, e não em cada rota:
  * o menu é o mesmo em todas, e buscar de novo a cada navegação repetiria a mesma consulta a
  * cada clique. Falha de contador NÃO derruba o menu — `useQuery` sem `throwOnError`, e o selo
  * simplesmente não aparece.
  */
-export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
+export function useAppShellModel(input: {
+  user: SessionUser;
+  /** O módulo dono desta casca. */
+  context: AreaContext;
+  /** O menu dele — `INFRA_NAV_ITEMS`, `SYSTEM_NAV_ITEMS` ou `MAINTENANCE_NAV_ITEMS`. */
+  items: readonly NavItem[];
+}): AppShellModel {
   const queryClient = useQueryClient();
   let isProfileOpen = $state(false);
 
@@ -96,23 +109,33 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
     ),
   );
 
-  const areaContext = useAreaContextModel();
+  /* O ÚLTIMO contexto em que a pessoa esteve, guardado no navegador. Ele só responde por duas
+     coisas: onde o sistema abre (ver `routes/+page.ts`) e qual menu aparece nas telas que não
+     são de contexto nenhum (o perfil, os cargos). Quem está numa tela de módulo não o
+     consulta para nada — ali o contexto chegou por `input.context`, do próprio layout. */
+  const lastContext = useAreaContextModel();
 
-  /* O contexto se ajusta à TELA ABERTA e ao CARGO de quem entrou (a decisão inteira está em
-     `reconciledContextOf`). O `untrack` é o que mantém isto honesto: o efeito reage à rota e
-     às áreas da pessoa, mas NÃO ao contexto que ele mesmo escreve — sem ele, trocar de
-     contexto estando numa tela de outro (clicar em "Manutenção" no Depósito) voltaria na
-     hora para o anterior, e a pastilha pareceria travada. */
+  /* O contexto se ajusta ao CARGO de quem entrou: quem só atende Manutenção e abre um link
+     de `/infra` é levado para a mesma tela da área dela (ou para a primeira, se a tela não
+     existir lá). O `untrack` é o que mantém isto honesto: o efeito reage à rota e às áreas da
+     pessoa, mas NÃO ao que ele mesmo escreve. */
   $effect(() => {
     const pathname = page.url.pathname;
     const available = areas.current.data ?? [];
 
-    const next = untrack(() =>
-      reconciledContextOf({ pathname, current: areaContext.context, available }),
-    );
-    if (!next) return;
+    untrack(() => {
+      const next = fallbackContextOf(input.context, available) ?? input.context;
 
-    areaContext.actions.onContextChange(next);
+      if (next !== lastContext.context) lastContext.actions.onContextChange(next);
+      if (next === input.context) return;
+
+      /* Tela que não é de contexto nenhum (o perfil, os cargos): o cargo corrige a lembrança
+         do último contexto, mas não tira a pessoa da tela em que ela está. */
+      if (!contextOfPath(pathname)) return;
+
+      const destination = contextSwitchPath(pathname, next);
+      if (destination) void goto(destination, { replaceState: true });
+    });
   });
 
   return {
@@ -137,12 +160,10 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
         }));
       },
     },
-    /* O menu é o do contexto atual. `get`, pelo mesmo motivo do `state` abaixo: o model é
-       montado uma vez, e o contexto muda depois — uma lista fixa congelaria o menu da
-       primeira área em que a pessoa entrou. */
-    get ui() {
-      return { items: navItemsForContext(areaContext.context) };
-    },
+    /* O menu é o que o layout do módulo passou, e nada mais. Valor fixo, e não `get`: a casca
+       de um contexto vive e morre com a pasta dele — trocar de contexto é trocar de endereço,
+       e aí monta a casca do outro módulo, com a lista dele. */
+    ui: { items: input.items },
     /* Qual item está ativo é decidido AQUI, e não no componente: resolver a rota atual é
        trabalho de hook; o componente continua sem saber de roteamento.
 
@@ -150,10 +171,10 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
        valor fixo, o item aceso congelaria no primeiro que a pessoa abrisse. */
     get state() {
       return {
-        activeKey: activeNavKeyOf(page.url.pathname),
+        activeKey: activeNavKeyOf(page.url.pathname, input.items),
         routeKey: page.url.pathname,
         isProfileOpen,
-        areaContext: areaContext.context,
+        areaContext: input.context,
       };
     },
     actions: {
@@ -166,22 +187,17 @@ export function useAppShellModel(input: { user: SessionUser }): AppShellModel {
       onViewRoles: () => {
         void goto('/profile');
       },
-      /* Trocar de contexto pode deixar a pessoa numa tela que não existe no contexto novo (o
-         Depósito é só de Infraestrutura). Nesse caso o sistema leva para a primeira tela do
-         contexto escolhido — o Painel —, porque ficar numa tela fora do menu é o jeito mais
-         rápido de a pessoa achar que o sistema quebrou. */
+      /* Trocar de contexto é TROCAR DE ENDEREÇO, sempre: a pessoa vai para a mesma tela do
+         contexto escolhido (Chamados existe nos três) ou, quando a tela não existe lá (o
+         Depósito de máquinas), para a primeira dele — a decisão está em `contextSwitchPath`.
+         Do perfil, que não é de módulo nenhum, ela entra na primeira tela do contexto: a
+         casca de cada módulo é montada pela pasta dele, e não há como trocar só o menu
+         ficando onde está. */
       onAreaContextChange: (context: AreaContext) => {
-        areaContext.actions.onContextChange(context);
+        lastContext.actions.onContextChange(context);
 
-        const activeKey = activeNavKeyOf(page.url.pathname);
-        /* Tela que não é de contexto nenhum (o perfil, os cargos): a pessoa continua nela. */
-        if (!activeKey) return;
-
-        const items = navItemsForContext(context);
-        if (items.some((item) => item.key === activeKey)) return;
-
-        const first = items[0];
-        if (first) void goto(first.to);
+        const destination = contextSwitchPath(page.url.pathname, context);
+        if (destination) void goto(destination);
       },
       /* Quem encerra a sessão é o Neon Auth, e a tentativa é best-effort: mesmo se a rede
          estiver caída, a pessoa ainda sai daqui. O `queryClient.clear()` é a parte que não
