@@ -145,6 +145,10 @@
 </script>
 
 <script lang="ts">
+  import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+  import LifeBuoy from '@lucide/svelte/icons/life-buoy';
+  import MonitorX from '@lucide/svelte/icons/monitor-x';
+  import PackageX from '@lucide/svelte/icons/package-x';
   import PartyPopper from '@lucide/svelte/icons/party-popper';
   import Rocket from '@lucide/svelte/icons/rocket';
 
@@ -225,7 +229,8 @@
       />
     </EmptyState>
   {:else if summary}
-    <!-- 1. O que exige ação hoje. -->
+    <!-- 1. O que exige ação hoje. Todo cartão de painel leva ícone, nos três contextos — e o
+         mesmo assunto leva o mesmo ícone (chamado é a boia, falta de estoque é a caixa com X). -->
     <StatCardGrid>
       <StatCard
         data={{
@@ -233,7 +238,7 @@
           value: summary.tickets.open,
           hint: summary.tickets.inProgress ? `${summary.tickets.inProgress} em atendimento` : null,
         }}
-        ui={{ tone: 'danger' }}
+        ui={{ tone: 'danger', icon: LifeBuoy }}
       />
       <StatCard
         data={{
@@ -241,7 +246,7 @@
           value: summary.park.critical,
           hint: summary.park.attention ? `${summary.park.attention} em atenção` : null,
         }}
-        ui={{ tone: 'warning' }}
+        ui={{ tone: 'warning', icon: MonitorX }}
       />
       <StatCard
         data={{
@@ -249,7 +254,7 @@
           value: summary.maintenance.preventiveDue,
           hint: `de ${summary.park.total} máquinas em uso`,
         }}
-        ui={{ tone: 'info' }}
+        ui={{ tone: 'info', icon: CalendarClock }}
       />
       <StatCard
         data={{
@@ -257,7 +262,7 @@
           value: summary.parts.outOfStock,
           hint: `${summary.parts.items} peças na prateleira`,
         }}
-        ui={{ tone: 'brand' }}
+        ui={{ tone: 'brand', icon: PackageX }}
       />
     </StatCardGrid>
 
