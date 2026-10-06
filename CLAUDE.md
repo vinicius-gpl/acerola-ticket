@@ -168,9 +168,11 @@ Cada tela é um `+page.svelte` **próprio do contexto**: nada de `if` por contex
 página, nem de ler o contexto de estado global para decidir o que buscar — a página passa a
 área para o hook. Tela nova entra no menu com uma linha na lista do módulo dono.
 
-As telas que não são de contexto nenhum (perfil, cargos) ficam em `routes/(app)/(account)/`,
-com a casca própria desse grupo — os parênteses são agrupamento do SvelteKit e não entram no
-endereço (`/profile`, `/roles`).
+As telas que não são de contexto nenhum (perfil, cargos) ficam direto em `routes/(app)/`, e
+**cada uma tem o próprio `+layout.svelte`**, com o menu do último contexto usado. A casca se
+repete nas duas de propósito: uma casca só para ambas exigiria uma pasta agrupadora, que
+juntaria as duas telas numa única "feature" para a checagem de design e passaria a acusar o
+componente que as duas compartilham.
 
 **A margem do conteúdo é da casca** (`acerola-app-shell`): a tela define só a largura máxima
 (`mx-auto w-full max-w-6xl`), nunca `px-*`/`pt-*`/`pb-*` no elemento raiz.
