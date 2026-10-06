@@ -51,8 +51,10 @@
   <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-5 px-4 py-10 sm:px-6">
     <OpenTicketForm data={open.data} state={open.state} actions={open.actions} />
 
+    <!-- Para `/login`, e não para a raiz: a raiz manda quem está sem sessão de volta para cá,
+         e o link viraria um laço. Quem já está logado passa direto pelo login e cai no painel. -->
     <p class="text-ink-500 text-center text-xs">
-      É do time de TI? <a class="text-primary underline" href="/">Abrir o painel</a>
+      É do time de TI? <a class="text-primary underline" href="/login">Abrir o painel</a>
     </p>
   </main>
 </div>
