@@ -1,15 +1,12 @@
 import type { LucideIcon } from '@lucide/svelte';
+import Boxes from '@lucide/svelte/icons/boxes';
 import FileText from '@lucide/svelte/icons/file-text';
-import HardDrive from '@lucide/svelte/icons/hard-drive';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import Lightbulb from '@lucide/svelte/icons/lightbulb';
 import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 import ListChecks from '@lucide/svelte/icons/list-checks';
-import Monitor from '@lucide/svelte/icons/monitor';
 import Package from '@lucide/svelte/icons/package';
-import PackageOpen from '@lucide/svelte/icons/package-open';
 import Trash2 from '@lucide/svelte/icons/trash-2';
-import Wallet from '@lucide/svelte/icons/wallet';
 import Wifi from '@lucide/svelte/icons/wifi';
 import Wrench from '@lucide/svelte/icons/wrench';
 import { ROLE_CONTEXTS, type RoleContext } from '@template/shared/domain/role-context.util';
@@ -35,6 +32,11 @@ import { ROLE_CONTEXTS, type RoleContext } from '@template/shared/domain/role-co
  * A ORDEM É A DO TRABALHO, não a da construção: começa no que a pessoa olha de manhã
  * (Painel, Chamados), passa pelo que ela cuida (Inventário, Manutenção, Depósito, Descarte),
  * e termina no que serve para decidir compra (Inteligência, Orçamento).
+ *
+ * O MESMO NOME LEVA O MESMO ÍCONE nos três módulos: Painel, Chamados, Inventário, Depósito,
+ * Descarte e Orçamento são telas diferentes em cada um, mas quem troca de contexto procura o
+ * item pelo desenho — e um Painel com ícone de monitor num módulo e de grade no outro parece
+ * outra coisa.
  */
 export type NavItem = {
   /** Única no menu inteiro: é o endereço sem a barra inicial (`infra/tickets`). */
@@ -89,15 +91,15 @@ function navItem(context: RoleContext, feature: string, label: string, icon: Luc
  * INFRA; o painel de outro módulo é outra tela, na pasta dele.
  */
 export const INFRA_NAV_ITEMS: readonly NavItem[] = [
-  navItem('infra', 'dashboard', 'Painel', Monitor),
+  navItem('infra', 'dashboard', 'Painel', LayoutDashboard),
   navItem('infra', 'tickets', 'Chamados', LifeBuoy),
-  navItem('infra', 'computers', 'Inventário', HardDrive),
+  navItem('infra', 'computers', 'Inventário', Boxes),
   navItem('infra', 'maintenance', 'Manutenção', Wrench),
   navItem('infra', 'parts', 'Depósito', Package),
   navItem('infra', 'disposal', 'Descarte', Trash2),
   navItem('infra', 'network', 'Rede', Wifi),
   navItem('infra', 'insights', 'Inteligência', Lightbulb),
-  navItem('infra', 'budget', 'Orçamento', Wallet),
+  navItem('infra', 'budget', 'Orçamento', FileText),
   /* A feature de exemplo do template. Sai quando não servir mais de molde (skill
      `remove-example`) — ela não faz parte do sistema de TI. */
   navItem('infra', 'tasks', 'Tarefas', ListChecks),
@@ -118,7 +120,7 @@ export const SYSTEM_NAV_ITEMS: readonly NavItem[] = [
 export const MAINTENANCE_NAV_ITEMS: readonly NavItem[] = [
   navItem('manutencao', 'dashboard', 'Painel', LayoutDashboard),
   navItem('manutencao', 'tickets', 'Chamados', LifeBuoy),
-  navItem('manutencao', 'inventory', 'Inventário', PackageOpen),
+  navItem('manutencao', 'inventory', 'Inventário', Boxes),
   navItem('manutencao', 'stock', 'Depósito', Package),
   navItem('manutencao', 'disposal', 'Descarte', Trash2),
   navItem('manutencao', 'quotes', 'Orçamentos', FileText),

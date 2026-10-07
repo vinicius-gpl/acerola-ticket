@@ -170,6 +170,19 @@ describe('os menus dos módulos', () => {
     }
   });
 
+  /* O mesmo nome leva o mesmo ícone nos três módulos: quem troca de contexto procura o item
+     pelo desenho. */
+  it('draws screens of the same name with the same icon in every module', () => {
+    const iconByLabel = new Map<string, NavItem['icon']>();
+
+    for (const entry of allItems) {
+      const known = iconByLabel.get(entry.label) ?? entry.icon;
+
+      expect(entry.icon, entry.key).toBe(known);
+      iconByLabel.set(entry.label, known);
+    }
+  });
+
   /* O endereço de cada tela começa pela pasta do módulo dela — é o que faz o link dizer de
      quem a tela é. */
   it('puts every screen under the address of its own module', () => {
