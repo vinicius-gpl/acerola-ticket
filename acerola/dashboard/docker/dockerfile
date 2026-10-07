@@ -24,9 +24,14 @@ RUN npm ci --ignore-scripts
 
 FROM deps AS build
 COPY . .
+ARG VITE_NEON_AUTH_URL
+ARG VITE_API_URL
+ENV VITE_NEON_AUTH_URL=$VITE_NEON_AUTH_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build -w @template/shared \
   && npm run build -w server \
   && npm run build -w client
+
 
 FROM node:24-bookworm-slim AS app
 WORKDIR /repo
