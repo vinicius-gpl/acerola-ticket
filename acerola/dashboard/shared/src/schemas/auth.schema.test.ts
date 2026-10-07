@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { forgotPasswordSchema, loginRequestSchema, resetPasswordSchema } from './auth.schema';
+import {
+  authConfigSchema,
+  forgotPasswordSchema,
+  loginRequestSchema,
+  resetPasswordSchema,
+} from './auth.schema';
 
 describe('loginRequestSchema', () => {
   // feliz
@@ -70,3 +75,21 @@ describe('resetPasswordSchema', () => {
     expect(result.error?.issues[0]?.message).toContain('8 caracteres');
   });
 });
+
+describe('authConfigSchema', () => {
+  // feliz
+  it('accepts a valid Neon Auth URL', () => {
+    const input = { neonAuthUrl: 'https://ep-demo.neonauth.sa-east-1.aws.neon.tech/acerola/auth' };
+
+    expect(authConfigSchema.parse(input)).toEqual(input);
+  });
+
+  // triste
+  it('refuses an invalid URL', () => {
+    const result = authConfigSchema.safeParse({ neonAuthUrl: 'nao-e-uma-url' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('A URL do Neon Auth precisa ser válida');
+  });
+});
+

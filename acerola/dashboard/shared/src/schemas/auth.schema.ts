@@ -65,3 +65,14 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
+
+/**
+ * A configuração pública de autenticação entregue pelo backend.
+ * Permite ao frontend inicializar o cliente de login quando a URL não foi embutida no build.
+ */
+export const authConfigSchema = z.object({
+  neonAuthUrl: z.string().url('A URL do Neon Auth precisa ser válida'),
+});
+
+export type AuthConfig = z.infer<typeof authConfigSchema>;
+
