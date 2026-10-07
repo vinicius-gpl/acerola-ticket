@@ -1,21 +1,35 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
+import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { SessionUserDto } from '../dto/auth.dto';
+import { type Env } from '../../../lib/config/env.schema';
+import { ENV } from '../../../lib/config/env.token';
+import { AuthConfigDto, SessionUserDto } from '../dto/auth.dto';
 
 /**
  * A API NÃO FAZ LOGIN — quem faz é o Neon Auth, direto com a tela.
  *
- * Sobra um endpoint só, e ele existe por um motivo prático: o token diz quem a pessoa é, mas
- * não diz o PAPEL dela no sistema (isso é nosso, lido de `neon_auth.user` a cada
- * requisição). A tela pergunta aqui, uma vez, e com a mesma resposta descobre duas coisas:
- * se a sessão ainda vale (401 manda para o login) e o que mostrar no menu.
+ * Entrega a configuração pública do Neon Auth e a pergunta "quem sou eu", com o PAPEL da
+ * pessoa no sistema (isso é nosso, lido de `neon_auth.user` a cada requisição).
  */
 @ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
+  constructor(@Inject(ENV) private readonly env: Env) {}
+
+  @Get('config')
+  @Public()
+  @ApiOperation({
+    summary: 'Configuração pública de autenticação',
+    description: 'Entrega a URL do Neon Auth para a tela inicializar o cliente de login quando não estiver no bundle.',
+  })
+  @ApiOkResponse({ type: AuthConfigDto })
+  config(): AuthConfigDto {
+    return { neonAuthUrl: this.env.NEON_AUTH_URL };
+  }
+
   @Get('me')
   @ApiOperation({
     summary: 'Quem está logado agora',
