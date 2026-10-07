@@ -1,0 +1,37 @@
+# Tarefas que valem para o repositório inteiro (os dois apps). As de cada app continuam no
+# mise.toml de cada pasta: acerola/dashboard e acerola/agent.
+#
+#   mise run design:check     → reprova só violação de design NOVA (fora da baseline)
+#   mise run licenses:check   → confere a licença de cada dependência (Node e Go) pela política
+#   mise tasks                → lista tudo
+
+[tools]
+node = "24"
+
+[tasks."design:check"]
+description = "Regras de design (skills design-system e ui-standards) nos dois apps — só reprova o que é novo"
+run = "node .claude/hooks/design/check-design.mjs"
+
+[tasks."design:all"]
+description = "Lista todas as violações de design, inclusive a dívida congelada na baseline"
+run = "node .claude/hooks/design/check-design.mjs --all"
+
+[tasks."design:update"]
+description = "Regrava a baseline de design — só depois de CORRIGIR dívida; a baseline nunca cresce"
+run = "node .claude/hooks/design/check-design.mjs --update"
+
+[tasks."design:test"]
+description = "Testes das regras de design (node:test)"
+run = "node --test .claude/hooks/design/design-rules.test.mjs"
+
+[tasks."licenses:check"]
+description = "Licença de cada dependência (Node e Go) contra license-policy.json — o deny.toml deste repositório"
+run = "node .github/scripts/licenses/check-licenses.mjs"
+
+[tasks."licenses:list"]
+description = "Lista a licença de cada dependência instalada"
+run = "node .github/scripts/licenses/check-licenses.mjs --list"
+
+[tasks."licenses:test"]
+description = "Testes da regra de licenças (node:test)"
+run = "node --test .github/scripts/licenses/license-policy.test.mjs"

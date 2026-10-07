@@ -1,1 +1,4 @@
 sh acerola/dashboard/scripts/git/branch-guard.sh push
+# Mesma checagem do CI, antes de sair da máquina: violação de design nova não chega ao PR.
+# O hook roda sozinho (sem npm, sem workspace): o git já executa este arquivo da raiz do repositório.
+node .claude/hooks/design/check-design.mjs || exit 1

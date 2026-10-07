@@ -17,12 +17,15 @@ test.skip(!E2E_USER, NO_E2E_USER);
 test('creates a task after fixing an empty title', async ({ page }) => {
   const title = `Tarefa E2E ${Date.now()}`;
 
-  /* Entrar é o primeiro passo de QUALQUER fluxo agora: `/tasks` exige sessão, e quem
-     autentica é o Neon Auth. */
+  /* Entrar é o primeiro passo de QUALQUER fluxo agora: `/infra/tasks` exige sessão, e quem
+     autentica é o Neon Auth. O login abre nos Chamados; as Tarefas vêm depois. */
   await page.goto('/login');
   await page.getByLabel('E-mail').fill(E2E_USER!.email);
   await page.getByLabel('Senha').fill(E2E_USER!.password);
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page).toHaveURL(/\/tickets/);
+
+  await page.goto('/infra/tasks');
 
   await expect(page.getByRole('heading', { name: 'Tarefas' })).toBeVisible();
 

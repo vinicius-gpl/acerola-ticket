@@ -1,8 +1,15 @@
+import { createHash } from 'node:crypto';
+
 import { type INestApplication } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
+import { internalRoles } from '../src/lib/db/schema/internal-roles.schema';
+import { ticketHistories } from '../src/lib/db/schema/ticket-histories.schema';
+import { ticketServiceOrders } from '../src/lib/db/schema/ticket-service-orders.schema';
+import { tickets } from '../src/lib/db/schema/tickets.schema';
+import { BIA, CAIO, asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
 
 /**
  * O FLUXO DO CHAMADO de ponta a ponta, que é onde o sistema realmente trabalha.
@@ -20,6 +27,7 @@ const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 /** O mínimo que o portal público exige para abrir um chamado. */
 const PEDIDO = {
   requesterName: 'Marta da Recepção',
+  area: 'infra',
   department: 'recepcao',
   problemType: 'printer',
   contactPhone: '62 99999-1234',
@@ -41,6 +49,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     request(app.getHttpServer())
       .post('/api/tickets')
       .field('requesterName', PEDIDO.requesterName)
+      .field('area', PEDIDO.area)
       .field('department', PEDIDO.department)
       .field('problemType', PEDIDO.problemType)
       .field('contactPhone', PEDIDO.contactPhone)
@@ -53,10 +62,26 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
 
   /* Cada teste começa com as tabelas vazias e o contador de `id` em 1: o protocolo é derivado
      do id, e sem isto uma asserção sobre `CH-0001` só passaria na primeira execução. Os anexos
-     vão junto — eles não existem sem o chamado. */
+     vão junto — eles não existem sem o chamado.
+     `internal_roles` entra junto (#13): sem cargo nenhum, Caio e Bia não enxergariam chamado
+     nenhum — o padrão agora é SEM ACESSO, não o cargo mínimo `user`. Os dois ganham `admin`
+     em Infra, a área de todo chamado deste arquivo: o FOCO aqui é o fluxo de ponta a ponta
+     (anexo, consulta pública, identidade), não a régua fina de cargo — essa já tem suíte
+     própria em `tickets.service.test.ts`. */
   beforeEach(async () => {
-    await started.truncate('tickets', 'ticket_attachments');
+    await started.truncate(
+      'tickets',
+      'ticket_attachments',
+      'ticket_histories',
+      'ticket_service_orders',
+      'internal_roles',
+    );
     started.storage.files.clear();
+
+    await started.db.insert(internalRoles).values([
+      { userId: CAIO.id, userEmail: CAIO.email, context: 'infra', role: 'admin' },
+      { userId: BIA.id, userEmail: BIA.email, context: 'infra', role: 'admin' },
+    ]);
   });
 
   afterAll(async () => {
@@ -83,22 +108,188 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     expect(created.body.screenshotUrl).toContain('https://');
   });
 
-  it('lets the IT side answer and attach its own files', async () => {
+  /**
+   * A ORDEM DE SERVIÇO de ponta a ponta: abrir, assumir, esperar a peça, retomar e encerrar —
+   * cada passo um histórico, e o estágio do chamado sempre a leitura do último.
+   */
+  it('walks a ticket through its whole timeline, one history at a time', async () => {
+    const created = await openTicket().expect(201);
+    const launch = (type: string, description: string) =>
+      request(app.getHttpServer())
+        .post(`/api/tickets/${created.body.id}/histories`)
+        .set(asCaio())
+        .send({ type, description });
+
+    const started = await launch('start', 'Assumi o chamado.').expect(201);
+    expect(started.body).toMatchObject({
+      type: 'start',
+      statusAfter: 'in_progress',
+      createdBy: 'caio@empresa.com.br',
+    });
+
+    await launch('waiting_third_party', 'Pedi o rolete ao fornecedor.').expect(201);
+    await launch('resume', 'O rolete chegou.').expect(201);
+    await launch('closure_with_caveats', 'Troquei o rolete; a bandeja 2 segue com defeito.').expect(201);
+
+    const ticket = await request(app.getHttpServer())
+      .get(`/api/tickets/${created.body.id}`)
+      .set(asCaio())
+      .expect(200);
+
+    expect(ticket.body).toMatchObject({
+      status: 'resolved_with_caveats',
+      solution: 'Troquei o rolete; a bandeja 2 segue com defeito.',
+      updatedBy: 'caio@empresa.com.br',
+    });
+    /* Os carimbos são do SERVIDOR, a partir dos históricos. */
+    expect(ticket.body.startedAt).not.toBeNull();
+    expect(ticket.body.resolvedAt).not.toBeNull();
+
+    const timeline = await request(app.getHttpServer())
+      .get(`/api/tickets/${created.body.id}/histories`)
+      .set(asCaio())
+      .expect(200);
+
+    /* A abertura é do sistema, assinada por quem abriu; o resto, por quem atendeu. */
+    expect(timeline.body.map((history: { type: string }) => history.type)).toEqual([
+      'opening',
+      'start',
+      'waiting_third_party',
+      'resume',
+      'closure_with_caveats',
+    ]);
+    expect(timeline.body[0]).toMatchObject({ authorName: PEDIDO.requesterName, createdBy: null });
+  });
+
+  it('attaches the files sent with a history to that history', async () => {
+    const created = await openTicket().expect(201);
+
+    const history = await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/histories`)
+      .set(asCaio())
+      .field('type', 'note')
+      .field('description', 'Segue o orçamento da peça.')
+      .field('minutesSpent', '20')
+      .attach('attachments', ORCAMENTO, { filename: 'orcamento-da-peca.pdf', contentType: PDF })
+      .expect(201);
+
+    expect(history.body.minutesSpent).toBe(20);
+    expect(history.body.attachments).toHaveLength(1);
+    expect(history.body.attachments[0]).toMatchObject({
+      fileName: 'orcamento-da-peca.pdf',
+      origin: 'support',
+      historyId: history.body.id,
+    });
+  });
+
+  /* A emissão registra a impressão digital do arquivo, e a conferência — pública — devolve a
+     MESMA: é o que deixa qualquer pessoa conferir o PDF que tem em mãos. */
+  it('issues the service order as a PDF that anyone can check afterwards', async () => {
+    const created = await openTicket().expect(201);
+
+    const report = await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/service-order`)
+      .set(asCaio())
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(201);
+
+    expect(report.headers['content-type']).toContain('application/pdf');
+    expect(report.headers['content-disposition']).toContain('ordem-de-servico-CH-0001.pdf');
+
+    const fileHash = createHash('sha256').update(report.body as Buffer).digest('hex');
+    const [issued] = await started.db.select().from(ticketServiceOrders);
+
+    expect(issued).toMatchObject({ version: 1, fileHash, issuedBy: CAIO.email });
+
+    const checked = await request(app.getHttpServer())
+      .get(`/api/service-orders/${issued!.code.slice(0, 12)}`)
+      .expect(200);
+
+    expect(checked.body).toMatchObject({ protocol: 'CH-0001', version: 1, fileHash, isLatest: true });
+    expect(checked.body).not.toHaveProperty('issuedBy');
+  });
+
+  it('gives the same document again until the ticket changes, then a new version', async () => {
+    const created = await openTicket().expect(201);
+    const issue = () =>
+      request(app.getHttpServer())
+        .post(`/api/tickets/${created.body.id}/service-order`)
+        .set(asCaio())
+        .expect(201);
+
+    await issue();
+    await issue();
+    expect(await started.db.select().from(ticketServiceOrders)).toHaveLength(1);
+
+    await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/histories`)
+      .set(asCaio())
+      .send({ type: 'note', description: 'Liguei para o fornecedor.' })
+      .expect(201);
+
+    await issue();
+    const issued = await started.db.select().from(ticketServiceOrders);
+
+    expect(issued.map((row) => row.version).sort()).toEqual([1, 2]);
+  });
+
+  /* A regra "registro não se reescreve" vale no BANCO, e não só nas rotas: quem escrever SQL à
+     mão também é recusado. Aqui o teste faz exatamente isso — vai direto ao banco. */
+  it('refuses, in the database itself, to rewrite or erase the records of a ticket', async () => {
+    const created = await openTicket().expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/service-order`)
+      .set(asCaio())
+      .expect(201);
+
+    const { db } = started;
+    const ofTicket = eq(ticketHistories.ticketId, created.body.id);
+
+    await expect(db.update(ticketHistories).set({ description: 'Reescrito.' }).where(ofTicket)).rejects.toThrow();
+    await expect(db.delete(ticketHistories).where(ofTicket)).rejects.toThrow();
+    await expect(db.update(ticketServiceOrders).set({ fileHash: '0'.repeat(64) })).rejects.toThrow();
+    await expect(db.delete(ticketServiceOrders)).rejects.toThrow();
+    await expect(db.delete(tickets).where(eq(tickets.id, created.body.id))).rejects.toThrow();
+
+    const [history] = await db.select().from(ticketHistories).where(ofTicket);
+    expect(history?.description).toBe('Chamado aberto.');
+    expect(await db.select().from(ticketServiceOrders)).toHaveLength(1);
+    await request(app.getHttpServer()).get(`/api/tickets/${created.body.id}`).set(asCaio()).expect(200);
+  });
+
+  it('does not find a service order that was never issued', async () => {
+    await request(app.getHttpServer()).get(`/api/service-orders/${'0'.repeat(64)}`).expect(404);
+    await request(app.getHttpServer()).get('/api/service-orders/abc').expect(404);
+  });
+
+  it('lets the IT side correct the ticket data and attach its own files', async () => {
     const created = await openTicket().expect(201);
 
     const answered = await request(app.getHttpServer())
       .patch(`/api/tickets/${created.body.id}`)
       .set(asCaio())
-      .send({ status: 'in_progress', assignee: 'Caio', solution: 'Troquei o rolete de tração.' })
+      .send({ priority: 'high', assignee: 'Outra Pessoa' })
       .expect(200);
 
+    /* O responsável não se troca à mão: o `assignee` do corpo é ignorado. */
     expect(answered.body).toMatchObject({
-      status: 'in_progress',
-      assignee: 'Caio',
+      priority: 'high',
+      assignee: null,
       updatedBy: 'caio@empresa.com.br',
     });
-    /* A data de início é CARIMBADA pelo servidor a partir da mudança de situação. */
-    expect(answered.body.startedAt).not.toBeNull();
+
+    /* A correção fica na linha do tempo, sozinha — e escondida de quem abriu. */
+    const timeline = await request(app.getHttpServer())
+      .get(`/api/tickets/${created.body.id}/histories`)
+      .set(asCaio())
+      .expect(200);
+
+    expect(timeline.body.at(-1)).toMatchObject({ type: 'update', isVisibleToRequester: false });
 
     const attached = await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/attachments`)
@@ -120,10 +311,16 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       .expect(201);
 
     await request(app.getHttpServer())
-      .patch(`/api/tickets/${created.body.id}`)
+      .post(`/api/tickets/${created.body.id}/histories`)
       .set(asCaio())
-      .send({ status: 'resolved', assignee: 'Caio', solution: 'Troquei o rolete.' })
-      .expect(200);
+      .send({ type: 'note', description: 'Peça cotada com dois fornecedores.', isVisibleToRequester: false })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/histories`)
+      .set(asCaio())
+      .send({ type: 'resolution', description: 'Troquei o rolete.' })
+      .expect(201);
 
     await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/attachments`)
@@ -150,6 +347,46 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     expect(found.body.assignee).toBeUndefined();
     expect(found.body.solution).toBeUndefined();
     expect(found.body).toMatchObject({ protocol: 'CH-0001', status: 'resolved' });
+
+    /* A LINHA DO TEMPO pública: só o que foi marcado como visível, e sem o bastidor. O
+       andamento interno (a cotação) não aparece; a abertura e a solução, sim. */
+    expect(found.body.histories.map((history: { type: string }) => history.type)).toEqual([
+      'opening',
+      'resolution',
+    ]);
+    expect(found.body.histories[1].createdBy).toBeUndefined();
+    expect(found.body.histories[1].minutesSpent).toBeUndefined();
+  });
+
+  /* Encerrado é encerrado: para escrever de novo, reabra — e a reabertura fica registrada. */
+  it('refuses a history on a closed ticket until it is reopened', async () => {
+    const created = await openTicket().expect(201);
+    const launch = (type: string) =>
+      request(app.getHttpServer())
+        .post(`/api/tickets/${created.body.id}/histories`)
+        .set(asCaio())
+        .send({ type, description: 'Registro de teste.' });
+
+    await launch('cancellation').expect(201);
+
+    const refused = await launch('note').expect(422);
+    expect(refused.body.message).toContain('Reabra-o');
+
+    await launch('reopening').expect(201);
+    await launch('note').expect(201);
+  });
+
+  /* O estágio NÃO muda por fora: mandar `status` na correção de dados é ignorado. */
+  it('ignores a stage sent through the data door', async () => {
+    const created = await openTicket().expect(201);
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/tickets/${created.body.id}`)
+      .set(asCaio())
+      .send({ status: 'resolved', solution: 'Fechei por fora.' })
+      .expect(200);
+
+    expect(patched.body).toMatchObject({ status: 'open', solution: null });
   });
 
   /* Quem anotou o protocolo no celular raramente digita o traço. */
@@ -162,6 +399,23 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
         .expect(200);
 
       expect(found.body.protocol).toBe('CH-0001');
+    }
+  });
+
+  /* A FILA do painel também precisa achar pelo protocolo — sem isto, procurar "CH-0001" na
+     busca da tela não achava nada: `protocol` não é coluna, é o `id` vestido (#13). */
+  it('finds a ticket on the panel queue by protocol, typed loosely', async () => {
+    await openTicket().expect(201);
+
+    for (const typed of ['CH-0001', 'ch 1', '1']) {
+      const found = await request(app.getHttpServer())
+        .get('/api/tickets')
+        .query({ search: typed })
+        .set(asCaio())
+        .expect(200);
+
+      expect(found.body.items).toHaveLength(1);
+      expect(found.body.items[0].protocol).toBe('CH-0001');
     }
   });
 
@@ -283,6 +537,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/tickets')
       .field('requesterName', PEDIDO.requesterName)
+      .field('area', PEDIDO.area)
       .field('department', PEDIDO.department)
       .field('problemType', PEDIDO.problemType)
       .field('contactPhone', PEDIDO.contactPhone)
@@ -300,6 +555,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const response = await request(app.getHttpServer())
       .post('/api/tickets')
       .field('requesterName', PEDIDO.requesterName)
+      .field('area', PEDIDO.area)
       .field('department', PEDIDO.department)
       .field('problemType', PEDIDO.problemType)
       .field('contactPhone', '9999')
@@ -336,25 +592,31 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     await request(app.getHttpServer()).get('/api/tickets/dashboard').expect(401);
     await request(app.getHttpServer())
       .patch('/api/tickets/1')
-      .send({ status: 'resolved' })
+      .send({ priority: 'high' })
+      .expect(401);
+    await request(app.getHttpServer()).get('/api/tickets/1/histories').expect(401);
+    await request(app.getHttpServer()).post('/api/tickets/1/service-order').expect(401);
+    await request(app.getHttpServer())
+      .post('/api/tickets/1/histories')
+      .send({ type: 'resolution', description: 'Fechei sem me identificar.' })
       .expect(401);
   });
 
-  /* Atender é do time inteiro, e não só de gerente: chamado parado esperando o gerente certo é
-     pior para quem está sem impressora. Mas continua exigindo estar identificado. */
-  it('lets any identified person answer, and nobody unidentified', async () => {
+  /* Atender exige cargo na área do chamado (#13, Bia tem `admin` em Infra no `beforeEach`) —
+     e continua exigindo estar identificado, sempre. */
+  it('lets whoever has a cargo in the area answer, and nobody unidentified', async () => {
     const created = await openTicket().expect(201);
 
     await request(app.getHttpServer())
-      .patch(`/api/tickets/${created.body.id}`)
+      .post(`/api/tickets/${created.body.id}/histories`)
       .set(asBia())
-      .send({ status: 'in_progress' })
-      .expect(200);
+      .send({ type: 'start', description: 'Assumi o chamado.' })
+      .expect(201);
 
     await request(app.getHttpServer())
-      .patch(`/api/tickets/${created.body.id}`)
+      .post(`/api/tickets/${created.body.id}/histories`)
       .set({ Authorization: 'Bearer token-inventado' })
-      .send({ status: 'resolved' })
+      .send({ type: 'resolution', description: 'Fechei sem me identificar.' })
       .expect(401);
   });
 });

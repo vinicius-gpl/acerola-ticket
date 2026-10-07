@@ -8,7 +8,7 @@ import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { insightsApi } from '$lib/api/insights.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 
 export type InsightsModel = {
   data: { insights: Insights | null; days: number };
@@ -60,8 +60,8 @@ export function useInsightsModel(): InsightsModel {
     actions: {
       onPeriodChange: (value) => daysStore.set(value),
       onRetry: () => void summary.current.refetch(),
-      onOpenMachine: (computerId) => void goto(`/computers/${computerId}`),
-      onOpenComputers: () => void goto('/computers'),
+      onOpenMachine: (computerId) => void goto(`/infra/computers/${computerId}`),
+      onOpenComputers: () => void goto('/infra/computers'),
     },
   };
 }

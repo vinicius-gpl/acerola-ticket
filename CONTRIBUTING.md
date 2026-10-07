@@ -23,6 +23,10 @@ A régua é uma só: **o usuário vê, é português. O usuário não vê, é in
 | O quê                                                                                  | Idioma                                                        |
 | -------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | Nome de variável, função, classe, tipo, arquivo, pasta, branch, tabela, coluna, rota   | **Inglês**                                                    |
+| Pasta/prefixo de bucket (R2/S3), chave de storage, nome de fila, variável de ambiente  | **Inglês**                                                    |
+| Nome de arquivo de documentação (`docs/architecture.md`)                               | **Inglês** (conteúdo em pt-BR)                                |
+| Nome de arquivo baixado pelo usuário (`chamados.csv`)                                  | **Português (pt-BR)**                                         |
+| Nome de skill (`.claude/skills/<name>/`); atalho pt-BR em `.claude/commands/`          | **Inglês** (atalho em pt-BR: `/socorro` → `troubleshoot`)     |
 | `console.log`, `Logger`, mensagem de log, nome de métrica                              | **Inglês**                                                    |
 | `throw new Error(...)` interno, mensagem de exceção, texto de `assert`                 | **Inglês**                                                    |
 | `describe` / `it` de teste, nome de story do Storybook                                 | **Inglês**                                                    |
@@ -93,28 +97,39 @@ Booleano de estado usa prefixo `is`/`has`. Callback usa prefixo `on`. O handler 
 
 ---
 
-## 5. Componente baixado nunca mora com componente próprio
+## 5. Componentes: baixado, genérico, de feature
 
 ```text
-lib/components/ui/    ⛔ território do CLI do shadcn-svelte. NÃO EDITE.
-lib/components/<nome>/ ✅ nosso. Uma pasta por componente: ActionButton, TextField, StatusBadge, EmptyState, TaskListView, AppShell…
+lib/components/ui/                                ⛔ CLI do shadcn-svelte. NÃO EDITE.
+lib/hooks/ui/                                     ⛔ hook que o CLI gera ("hooks": "$lib/hooks/ui" no components.json).
+lib/components/acerola-<nome>/                    ✅ genérico: envolve o ui, sem domínio, usado por 2+ features.
+routes/(app)/<context>/<feature>/components/acerola-<nome>/ ✅ da feature: conhece o domínio, só a própria rota importa.
 ```
 
-O `components.json` aponta a saída para `lib/components/ui`.
+Regras:
 
-Rodar `npx shadcn-svelte@latest add <nome>` (dentro de `client/`) sobrescreve aquela pasta — e é para sobrescrever mesmo.
-
-Precisa mudar um componente baixado? **Não edite.** Crie um componente nosso em `lib/components/` que envolve o baixado e aplica nossas variantes com `tv()`.
-
-O app importa o nosso; ninguém importa `lib/components/ui/` diretamente fora de `lib/components/`.
+1. **Prefixo `acerola-*` em todo componente próprio**, genérico ou de feature.
+2. **Existe no shadcn-svelte? Instale** (`npx shadcn-svelte@latest add <nome>`, dentro de
+   `client/`) e envolva num `acerola-*` com `tv()`. Recriar à mão é proibido; copiar o markup do
+   baixado para editar também.
+3. **Rodar o `add` sobrescreve `ui/`** — e é para sobrescrever mesmo. Por isso nada nosso mora lá.
+4. **Nunca reescrever componente existente.** Mudança limitada ao que foi pedido.
+5. **Campo de formulário tem `h-10`**, na variante base do `acerola-*`. Nem mais, nem menos. A
+   tela não compensa altura.
+6. **Só `lib/components/acerola-*` importa `lib/components/ui/`.** Componente de feature importa
+   os `acerola-*` genéricos. Feature não importa componente de outra feature.
+7. **A rota só compõe**: hook + componente + classes de cor, espaço e layout. UI/UX de componente
+   na rota é violação.
 
 **Lint:** `no-restricted-imports` bloqueia `lib/components/ui/**` fora de `lib/components/**`.
+
+Regra completa, árvore de decisão e checagens: skill `design-system`.
 
 ---
 
 ## 6. Storybook para 100% dos componentes
 
-Componente em `lib/components/` (fora de `lib/components/ui/`) **sem** `.stories.svelte` não entra.
+Componente `acerola-*` (em `lib/components/` ou em `routes/**/components/`) **sem** `.stories.svelte` não entra.
 
 Cada story cobre, no mínimo:
 
@@ -308,9 +323,10 @@ Regras:
 
 | Tipo           | Padrão                                      | Exemplo                                                |
 | -------------- | ------------------------------------------- | ------------------------------------------------------- |
-| Componente     | `lib/components/<nome>/<nome>.svelte`       | `lib/components/task-list-view/task-list-view.svelte`  |
-| Story          | `<nome>.stories.svelte`                     | `task-list-view.stories.svelte`                        |
-| Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` | `lib/hooks/use-task-list/use-task-list.svelte.ts`   |
+| Componente genérico | `lib/components/acerola-<nome>/acerola-<nome>.svelte` | `lib/components/acerola-text-field/acerola-text-field.svelte` |
+| Componente de feature | `routes/(app)/<context>/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/infra/tasks/components/acerola-task-list-view/acerola-task-list-view.svelte` |
+| Story          | `acerola-<nome>.stories.svelte`             | `acerola-task-list-view.stories.svelte`                |
+| Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` — pasta própria, prefixo `use-`, nunca arquivo solto | `lib/hooks/use-task-list/use-task-list.svelte.ts`   |
 | Teste          | `<arquivo>.test.ts`                         | `task-status.util.test.ts`     |
 | E2E            | `<fluxo>.e2e.ts`                            | `tasks.e2e.ts`                 |
 | Módulo Nest    | `<feature>.<papel>.ts`                      | `tasks.service.ts`             |

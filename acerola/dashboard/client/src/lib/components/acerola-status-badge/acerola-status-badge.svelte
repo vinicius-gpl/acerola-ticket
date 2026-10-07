@@ -1,0 +1,47 @@
+<script lang="ts" module>
+  import { cn } from '$lib/utils/cn';
+
+  /**
+   * Um selo de situação: texto curto sobre fundo de cor.
+   *
+   * O TOM É PASSADO, NÃO ESCOLHIDO AQUI. Quem sabe que "Concluída" é verde é o domínio (ex.:
+   * `taskStatusTone` em `shared/src/domain`) — deixar cada tela escolher a cor é como a mesma
+   * situação aparece verde numa lista e cinza em outra.
+   */
+  export type StatusBadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand';
+
+  export type AcerolaStatusBadgeProps = {
+    data: { label: string | null | undefined };
+    ui?: { tone?: StatusBadgeTone; size?: 'sm' | 'md'; className?: string };
+  };
+
+  const TONE_CLASSES: Record<StatusBadgeTone, string> = {
+    neutral: 'bg-ink-100 text-ink-700',
+    info: 'bg-info-soft text-info',
+    success: 'bg-success-soft text-success',
+    warning: 'bg-warning-soft text-warning',
+    danger: 'bg-destructive-soft text-destructive',
+    brand: 'bg-primary/15 text-primary',
+  };
+</script>
+
+<script lang="ts">
+  let { data, ui }: AcerolaStatusBadgeProps = $props();
+</script>
+
+<!-- Situação vazia não é uma situação: um selo cinza escrito "—" faria parecer que alguém
+     respondeu algo. Linha que ninguém tocou fica sem selo. -->
+{#if !data.label}
+  <span class={cn('text-ink-500 text-xs', ui?.className)}>Não preenchido</span>
+{:else}
+  <span
+    class={cn(
+      'inline-flex items-center rounded-full font-semibold whitespace-nowrap',
+      ui?.size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs',
+      TONE_CLASSES[ui?.tone ?? 'neutral'],
+      ui?.className,
+    )}
+  >
+    {data.label}
+  </span>
+{/if}

@@ -12,7 +12,7 @@ import { derived, writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
 export type ComputerListFilter = {
@@ -174,7 +174,7 @@ export function useComputerListModel(): ComputerListModel {
         void summary.current.refetch();
       },
       /* A navegação mora no view-model: componente de UI não navega (CONTRIBUTING §3). */
-      onOpen: (computer) => void goto(`/computers/${computer.id}`),
+      onOpen: (computer) => void goto(`/infra/computers/${computer.id}`),
       onExportReport: (format) => {
         exportError = null;
         exportingFormat = format;

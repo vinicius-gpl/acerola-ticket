@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -25,14 +26,17 @@ import {
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
+import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
+  AddTicketAreaDto,
   CreateTicketDto,
   PublicTicketDto,
+  TicketDashboardQueryDto,
   TicketDto,
   TicketListQueryDto,
   TicketListResponseDto,
@@ -54,10 +58,11 @@ import {
  * socorro significaria não receber o pedido. Toda rota nasce protegida; estas duas abrem a
  * exceção explicitamente, numa linha que aparece na revisão.
  *
- * Não há `@Delete` nenhum: chamado não se apaga. O que sai da fila sai por situação.
+ * Não há `@Delete` de chamado: ele não se apaga. O que sai da fila sai por estágio, e o
+ * estágio só muda por um histórico (ver `TicketHistoriesController`).
  *
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
- * resposta. A documentação fica em http://localhost:3336/docs.
+ * resposta. A documentação fica em http://localhost:3005/docs.
  */
 /**
  * O teto de arquivos numa requisição. O limite de verdade é por formato, e quem o aplica é o
@@ -107,7 +112,7 @@ export class TicketsController {
   @ApiOperation({
     summary: 'Consulta um chamado pelo protocolo (público)',
     description:
-      'Devolve UM chamado, com menos campos que o painel: telefone, responsável e solução ficam de fora. Aceita `CH-0007`, `ch 7` ou `7`.',
+      'Devolve UM chamado, com menos campos que o painel: telefone e responsável ficam de fora, e da linha do tempo só saem os históricos marcados como visíveis para quem abriu. Aceita `CH-0007`, `ch 7` ou `7`.',
   })
   @ApiOkResponse({ type: PublicTicketDto })
   @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
@@ -115,16 +120,31 @@ export class TicketsController {
     return this.service.findByProtocol(protocol);
   }
 
+  /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard` e `export`. */
+  @Get('areas/mine')
+  @ApiOperation({
+    summary: 'As áreas que esta pessoa atende',
+    description:
+      'Infra, Sistema e/ou Manutenção — só as que a pessoa tem cargo. Alimenta o seletor de contexto do menu (#13). Administrador enxerga as três sempre.',
+  })
+  @ApiOkResponse({ description: 'Lista de áreas, de zero a três.' })
+  async myAreas(@CurrentUser() user: RequestUser): Promise<TicketArea[]> {
+    return this.service.myAreas(user);
+  }
+
   /* Vem ANTES de `:id`: declarada depois, o Nest leria "dashboard" como se fosse um número. */
   @Get('dashboard')
   @ApiOperation({
     summary: 'Indicadores dos chamados',
     description:
-      'Calculados sobre todos os chamados, não só sobre a página aberta: tempo médio de resolução, contagem por situação, por tipo de problema e por departamento.',
+      'Calculados sobre todos os chamados, não só sobre a página aberta: tempo médio de resolução, contagem por situação, por tipo de problema e por departamento. Com `area`, são os indicadores DAQUELA área — é o contexto do painel (#13); sem ela, de todas as que a pessoa atende.',
   })
   @ApiOkResponse({ description: 'Contagens e o tempo médio de resolução em horas.' })
-  async dashboard(@CurrentUser() user: RequestUser): Promise<TicketDashboard> {
-    return this.service.dashboard(user);
+  async dashboard(
+    @CurrentUser() user: RequestUser,
+    @Query() query: TicketDashboardQueryDto,
+  ): Promise<TicketDashboard> {
+    return this.service.dashboard(user, query.area);
   }
 
   /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard`. */
@@ -182,9 +202,9 @@ export class TicketsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Atende um chamado',
+    summary: 'Corrige os dados de um chamado',
     description:
-      'Muda a situação, a urgência, quem assumiu e o que foi feito. As datas de início e de resolução são carimbadas pelo servidor a partir da mudança de situação. Nada que identifique quem abriu pode ser alterado.',
+      'Muda a urgência, a área, o tipo de problema, a máquina e o responsável — e registra a alteração na linha do tempo. O ESTÁGIO não muda por aqui: ele só muda lançando um histórico (`POST /tickets/:id/histories`). Nada que identifique quem abriu pode ser alterado.',
   })
   @ApiOkResponse({ type: TicketDto })
   @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
@@ -195,5 +215,38 @@ export class TicketsController {
     @Body() body: UpdateTicketDto,
   ): Promise<TicketDto> {
     return this.service.update(user, id, body);
+  }
+
+  @Post(':id/areas')
+  @ApiOperation({
+    summary: 'Soma uma área participante ao chamado (#13)',
+    description:
+      'Ex.: um chamado de Infra que também precisa de Manutenção. A área original não muda. Só quem gerencia alguma área do chamado pode somar outra.',
+  })
+  @ApiOkResponse({ type: TicketDto })
+  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
+  @ApiForbiddenResponse({ description: 'Só gestor de alguma área do chamado pode somar outra.' })
+  async addArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: AddTicketAreaDto,
+  ): Promise<TicketDto> {
+    return this.service.addArea(user, id, body.area);
+  }
+
+  @Delete(':id/areas/:area')
+  @ApiOperation({
+    summary: 'Tira uma área participante do chamado (#13)',
+    description: 'A área original nunca pode ser removida por aqui — só reclassificada (PATCH).',
+  })
+  @ApiOkResponse({ type: TicketDto })
+  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
+  @ApiForbiddenResponse({ description: 'Só gestor de alguma área do chamado pode remover outra.' })
+  async removeArea(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('area') area: TicketArea,
+  ): Promise<TicketDto> {
+    return this.service.removeArea(user, id, area);
   }
 }

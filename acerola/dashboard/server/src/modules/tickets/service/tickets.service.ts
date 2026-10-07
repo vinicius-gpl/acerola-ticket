@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import {
+  ticketAreaLabel,
   ticketDepartmentLabel,
   ticketProblemTypeLabel,
+  type TicketArea,
 } from '@template/shared/domain/ticket-catalog.util';
 import {
   parseTicketProtocol,
@@ -12,6 +14,7 @@ import {
   summarizeTickets,
   type TicketSummary,
 } from '@template/shared/domain/ticket-metrics.util';
+import { refuseScreenshot } from '@template/shared/domain/screenshot-catalog.util';
 import {
   ticketPriorityLabel,
   ticketPriorityTone,
@@ -34,12 +37,21 @@ import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
+import { describeTicketChanges, toUpdateHistory } from '../mapper/ticket-histories.mapper';
 import { toPublicTicket, toTicket, toTicketInsert, toTicketUpdate } from '../mapper/tickets.mapper';
+import { TicketHistoriesRepository } from '../repository/ticket-histories.repository';
+import { TICKET_NOT_FOUND, TicketAccessService } from './ticket-access.service';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
+import { TicketHistoriesService } from './ticket-histories.service';
 import {
   TicketsRepository,
   type TicketWithComputer,
 } from '../repository/tickets.repository';
+
+/** Sem repetir — somar a mesma área participante duas vezes não deve duplicar na resposta. */
+function dedupeAreas(areas: readonly TicketArea[]): TicketArea[] {
+  return Array.from(new Set(areas));
+}
 
 /**
  * As colunas do relatório de chamados, na mesma ordem em que a fila do painel as mostra —
@@ -48,6 +60,7 @@ import {
 const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
   { header: 'Protocolo', value: (row) => formatTicketProtocol(row.id), isTitle: true },
   { header: 'Quem abriu', value: (row) => row.requesterName },
+  { header: 'Área', value: (row) => ticketAreaLabel(row.area) },
   { header: 'Departamento', value: (row) => ticketDepartmentLabel(row.department) },
   { header: 'Tipo de problema', value: (row) => ticketProblemTypeLabel(row.problemType) },
   {
@@ -56,7 +69,7 @@ const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
     tone: (row) => ticketPriorityTone(row.priority),
   },
   {
-    header: 'Situação',
+    header: 'Estágio',
     value: (row) => ticketStatusLabel(row.status),
     tone: (row) => ticketStatusTone(row.status),
   },
@@ -66,25 +79,10 @@ const TICKET_REPORT_COLUMNS: ReportColumn<TicketRow>[] = [
   { header: 'Resolvido em', value: (row) => formatReportDate(row.resolvedAt) },
 ];
 
-const NOT_FOUND = 'Chamado não encontrado. Confira o número do protocolo.';
+const NOT_FOUND = TICKET_NOT_FOUND;
 
 /** A pasta do print dentro do bucket. */
-const SCREENSHOT_FOLDER = 'chamados';
-
-/**
- * O print serve para o TI ver a tela de erro. Formato fora desta lista é recusado: aceitar
- * qualquer arquivo transformaria o formulário público num depósito de arquivo qualquer.
- */
-const ALLOWED_SCREENSHOT_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'image/bmp',
-]);
-
-/** 8 MB cobre print de tela em qualquer monitor; acima disso é arquivo que não é print. */
-const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
+const SCREENSHOT_FOLDER = 'tickets';
 
 /**
  * O arquivo como o multer o entrega. Declarado aqui em vez de instalar `@types/multer`: são
@@ -100,6 +98,7 @@ export type UploadedScreenshot = {
 export type TicketDashboard = TicketSummary & {
   byProblemType: { key: string; count: number }[];
   byDepartment: { key: string; count: number }[];
+  byArea: { key: string; count: number }[];
 };
 
 /**
@@ -113,7 +112,11 @@ export type TicketDashboard = TicketSummary & {
  *   devolve o chamado podado) e o que cada uma aceita.
  * - `list`, `findById`, `dashboard` e `update` são do painel, e começam pela policy.
  *
- * Não existe método de exclusão, em nenhuma das duas: chamado sai da fila por situação.
+ * Não existe método de exclusão, em nenhuma das duas: chamado sai da fila por estágio.
+ *
+ * **E não existe método que mude o estágio.** Isso é do `TicketHistoriesService`: o estágio só
+ * muda quando alguém lança um histórico na ordem de serviço. `update` corrige os DADOS do
+ * chamado — e deixa na linha do tempo, sozinho, o que foi alterado.
  */
 @Injectable()
 export class TicketsService {
@@ -121,13 +124,17 @@ export class TicketsService {
     private readonly repository: TicketsRepository,
     private readonly storage: StorageService,
     private readonly attachments: TicketAttachmentsService,
+    private readonly access: TicketAccessService,
+    private readonly histories: TicketHistoriesService,
+    private readonly historiesRepository: TicketHistoriesRepository,
   ) {}
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
     assertCanRead(user.role, 'os chamados');
 
-    const page = await this.repository.list(query);
-    const items = await Promise.all(page.rows.map((row) => this.withScreenshot(row)));
+    const areas = await this.access.accessibleAreas(user);
+    const page = await this.repository.list(query, areas);
+    const items = await this.withAreasAndScreenshots(page.rows);
 
     return { items, total: page.total, page: query.page, pageSize: query.pageSize };
   }
@@ -135,10 +142,9 @@ export class TicketsService {
   async findById(user: RequestUser, id: number): Promise<Ticket> {
     assertCanRead(user.role, 'os chamados');
 
-    const row = await this.repository.findById(id);
-    if (!row) throw new NotFoundException(NOT_FOUND);
+    const { ticket, participantAreas } = await this.access.reach(user, id);
 
-    return this.withScreenshot(row);
+    return this.toFullTicket(ticket, participantAreas);
   }
 
   /**
@@ -148,7 +154,8 @@ export class TicketsService {
   async exportList(user: RequestUser, query: TicketReportQuery): Promise<BuiltReport> {
     assertCanRead(user.role, 'os chamados');
 
-    const rows = await this.repository.listAll(query);
+    const areas = await this.access.accessibleAreas(user);
+    const rows = await this.repository.listAll(query, areas);
 
     return buildReport({
       format: query.format,
@@ -160,11 +167,21 @@ export class TicketsService {
     });
   }
 
-  /** Os indicadores do painel, sobre TODOS os chamados — não só sobre a página aberta. */
-  async dashboard(user: RequestUser): Promise<TicketDashboard> {
+  /**
+   * Os indicadores do painel, sobre TODOS os chamados — da área pedida, ou das áreas que a
+   * pessoa enxerga quando nenhuma é pedida.
+   *
+   * A área pedida é sempre cruzada com as que a pessoa atende, e não substitui a trava: pedir
+   * uma área sem cargo devolve indicadores ZERADOS, não os de outra área. Zero, e não erro,
+   * porque esta é uma leitura de contexto do menu — um 403 piscando na tela enquanto o
+   * contexto se ajusta ao cargo assustaria sem informar nada.
+   */
+  async dashboard(user: RequestUser, area?: TicketArea): Promise<TicketDashboard> {
     assertCanRead(user.role, 'os chamados');
 
-    const rows = await this.repository.listForMetrics();
+    const accessible = await this.access.accessibleAreas(user);
+    const areas = area ? accessible.filter((mine) => mine === area) : accessible;
+    const rows = await this.repository.listForMetrics(areas);
     const measurable = rows.map((row) => ({
       status: row.status,
       createdAt: row.createdAt.toISOString(),
@@ -175,7 +192,15 @@ export class TicketsService {
       ...summarizeTickets(measurable),
       byProblemType: countByField(rows, (row) => row.problemType),
       byDepartment: countByField(rows, (row) => row.department),
+      byArea: countByField(rows, (row) => row.area),
     };
+  }
+
+  /** As áreas que esta pessoa atende — alimenta o seletor de contexto no app-shell (#13). */
+  async myAreas(user: RequestUser): Promise<TicketArea[]> {
+    assertCanRead(user.role, 'os chamados');
+
+    return this.access.accessibleAreas(user);
   }
 
   /**
@@ -199,9 +224,13 @@ export class TicketsService {
        dois males. Quem envia vê o protocolo e o motivo, e anexa o resto pelo painel. */
     /* `requester`: é a prova de quem pediu socorro, e ela é dela — o TI vê e baixa, mas não
        apaga (ver `attachment-ownership.util`). */
+    /* A linha do tempo começa aqui: a abertura é o primeiro histórico, de quem abriu. */
+    await this.histories.recordOpening(row);
+
     await this.attachments.attach(row.id, attachments, null, 'requester');
 
-    return this.withScreenshot(row);
+    /* Chamado nasce sem área participante — só a original, escolhida por quem abriu. */
+    return this.toFullTicket(row, []);
   }
 
   /**
@@ -221,23 +250,92 @@ export class TicketsService {
       this.screenshotUrl(row),
       this.attachments.list(row.id),
     ]);
+    const histories = await this.histories.listPublic(row.id, attachments);
 
-    return toPublicTicket(row, screenshotUrl, attachments);
+    /* Fora da linha do tempo ficam só os arquivos do PRÓPRIO chamado. Os que entraram junto
+       de um histórico saem dentro dele — e os de um histórico escondido não saem. */
+    const ownFiles = attachments.filter((attachment) => attachment.historyId === null);
+
+    return toPublicTicket(row, screenshotUrl, ownFiles, histories);
   }
 
   async update(user: RequestUser, id: number, input: UpdateTicketInput): Promise<Ticket> {
     assertCanAttendTicket(user.role);
 
-    const current = await this.repository.findById(id);
-    if (!current) throw new NotFoundException(NOT_FOUND);
+    const reach = await this.access.reach(user, id);
+    const current = reach.ticket;
+    /* Escrever (qualquer campo) já exige gestor+ — quem só tem o cargo `user` na área só lê. */
+    this.access.assertCanWrite(reach);
 
-    const row = await this.repository.update(id, toTicketUpdate(input, user.email, current));
+    /* Reclassificar É mexer em quem atende — por isso pede gestor, não só "ter cargo". Sem
+       esta trava, quem só lê a área de Infra poderia empurrar um chamado para Manutenção e
+       nunca mais vê-lo responder por ele. */
+    if (input.area !== undefined && input.area !== current.area) {
+      this.access.assertCanManageArea(reach, 'reclassificar');
+    }
 
-    return this.withScreenshot(row);
+    const row = await this.repository.update(id, toTicketUpdate(input, user.email));
+
+    /* O que mudou vai para a linha do tempo, com quem mudou. Salvar sem mudar nada não deixa
+       rastro: uma linha do tempo cheia de "alteração" vazia esconde as que importam. */
+    const changes = describeTicketChanges(current, row);
+    if (changes) {
+      await this.historiesRepository.record(
+        toUpdateHistory(row, changes, { name: user.name, email: user.email }),
+      );
+    }
+
+    return this.toFullTicket(row, reach.participantAreas);
   }
 
-  private async withScreenshot(row: TicketWithComputer): Promise<Ticket> {
-    return toTicket(row, await this.screenshotUrl(row));
+  /**
+   * Soma uma área PARTICIPANTE (#13) — ex.: um chamado de Infra que também precisa de
+   * Manutenção. A área original não muda.
+   */
+  async addArea(user: RequestUser, id: number, area: TicketArea): Promise<Ticket> {
+    assertCanAttendTicket(user.role);
+
+    const reach = await this.access.reach(user, id);
+    this.access.assertCanManageArea(reach, 'somar uma área a');
+
+    if (area === reach.ticket.area) {
+      throw new UnprocessableEntityException(
+        `${ticketAreaLabel(area)} já é a área original deste chamado.`,
+      );
+    }
+
+    await this.repository.addArea({ ticketId: id, area, createdBy: user.email });
+
+    return this.toFullTicket(reach.ticket, dedupeAreas([...reach.participantAreas, area]));
+  }
+
+  /** Tira uma área participante — a área original nunca pode ser removida por aqui. */
+  async removeArea(user: RequestUser, id: number, area: TicketArea): Promise<Ticket> {
+    assertCanAttendTicket(user.role);
+
+    const reach = await this.access.reach(user, id);
+    this.access.assertCanManageArea(reach, 'remover uma área de');
+
+    await this.repository.removeArea(id, area);
+
+    return this.toFullTicket(
+      reach.ticket,
+      reach.participantAreas.filter((candidate) => candidate !== area),
+    );
+  }
+
+  /** As áreas participantes de VÁRIOS chamados de uma vez, mais o print — para a fila. */
+  private async withAreasAndScreenshots(rows: TicketWithComputer[]): Promise<Ticket[]> {
+    const areasByTicket = await this.repository.listAreasFor(rows.map((row) => row.id));
+
+    return Promise.all(rows.map((row) => this.toFullTicket(row, areasByTicket.get(row.id) ?? [])));
+  }
+
+  private async toFullTicket(
+    row: TicketWithComputer,
+    participantAreas: readonly TicketArea[],
+  ): Promise<Ticket> {
+    return toTicket(row, await this.screenshotUrl(row), participantAreas);
   }
 
   /** Link assinado e temporário. Sem print, nulo — a tela usa isso para não mostrar nada. */
@@ -250,13 +348,11 @@ export class TicketsService {
   private async storeScreenshot(screenshot?: UploadedScreenshot): Promise<string | null> {
     if (!screenshot) return null;
 
-    if (!ALLOWED_SCREENSHOT_TYPES.has(screenshot.mimetype)) {
-      throw new UnprocessableEntityException('O print precisa ser uma imagem (PNG, JPG ou WEBP).');
-    }
-
-    if (screenshot.size > MAX_SCREENSHOT_BYTES) {
-      throw new UnprocessableEntityException('O print passa de 8 MB. Envie uma imagem menor.');
-    }
+    const refusal = refuseScreenshot({
+      contentType: screenshot.mimetype,
+      sizeBytes: screenshot.size,
+    });
+    if (refusal) throw new UnprocessableEntityException(refusal.message);
 
     const stored = await this.storage.upload({
       fileName: screenshot.originalname,

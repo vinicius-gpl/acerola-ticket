@@ -1,24 +1,20 @@
 <script lang="ts">
-  import { cn } from '$lib/utils/cn';
-  import type { HTMLAttributes } from 'svelte/elements';
-  import type { Snippet } from 'svelte';
+	import { cn, type WithElementRef } from "$lib/utils/cn.js";
+	import type { HTMLAttributes } from "svelte/elements";
 
-  let {
-    class: className,
-    ref = $bindable(null),
-    children,
-    ...restProps
-  }: HTMLAttributes<HTMLTableSectionElement> & { ref?: HTMLTableSectionElement | null; children?: Snippet } = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLTableSectionElement>> = $props();
 </script>
 
 <tfoot
-  bind:this={ref}
-  data-slot="table-footer"
-  class={cn(
-    "border-t border-border/80 bg-neutral-50/40 px-6 py-3 text-xs text-neutral-400 dark:bg-neutral-800/20 font-normal [&>tr]:last:border-b-0",
-    className
-  )}
-  {...restProps}
+	bind:this={ref}
+	data-slot="table-footer"
+	class={cn("bg-muted/50 border-t font-medium [&>tr]:last:border-b-0", className)}
+	{...restProps}
 >
-  {@render children?.()}
+	{@render children?.()}
 </tfoot>

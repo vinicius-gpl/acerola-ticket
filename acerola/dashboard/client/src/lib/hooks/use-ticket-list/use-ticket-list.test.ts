@@ -22,8 +22,10 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     status: 'open',
     priority: 'high',
     requesterName: 'Bia Costa',
+    area: 'infra',
     department: 'financeiro',
     problemType: 'printer',
+    participantAreas: [],
     anydeskId: null,
     contactPhone: '62999990001',
     notifyWhatsapp: false,
@@ -50,6 +52,7 @@ const emptyDashboard = {
   total: 0,
   open: 0,
   inProgress: 0,
+  waiting: 0,
   resolved: 0,
   cancelled: 0,
   averageResolutionHours: null,
@@ -99,6 +102,30 @@ describe('useTicketListModel', () => {
     });
   });
 
+  /* Estágio e grupo são o MESMO filtro em dois tamanhos: os dois juntos pediriam "aberto E
+     aguardando", que não acha nada. Escolher um limpa o outro. */
+  it('filters by a whole group of stages, dropping the single stage that was on', async () => {
+    const model = mountModel();
+
+    model.actions.onStatusChange('open');
+    model.actions.onStatusGroupChange('waiting');
+
+    await waitFor(() =>
+      expect(ticketsApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ statusGroup: 'waiting', status: undefined }),
+      ),
+    );
+    expect(model.data.filter).toMatchObject({ status: '', statusGroup: 'waiting' });
+
+    model.actions.onStatusChange('in_progress');
+
+    await waitFor(() =>
+      expect(ticketsApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: 'in_progress', statusGroup: undefined }),
+      ),
+    );
+  });
+
   it('clears every filter at once', async () => {
     const model = await mountLoadedModel();
 
@@ -121,9 +148,7 @@ describe('useTicketListModel', () => {
 
     await waitFor(() => {
       expect(model.data.paging.page).toBe(3);
-      expect(ticketsApi.list).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 3 }),
-      );
+      expect(ticketsApi.list).toHaveBeenCalledWith(expect.objectContaining({ page: 3 }));
     });
   });
 

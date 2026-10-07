@@ -49,7 +49,7 @@ export function buildObjectKey(folder: string, fileName: string): string {
   const extension = extname(fileName).toLowerCase();
   const safeExtension =
     /^\.[a-z0-9]{1,8}$/.test(extension) && !EXECUTABLE_EXTENSIONS.has(extension) ? extension : '';
-  const safeFolder = folder.replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'arquivos';
+  const safeFolder = folder.replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'files';
 
   return `${safeFolder}/${randomUUID()}${safeExtension}`;
 }

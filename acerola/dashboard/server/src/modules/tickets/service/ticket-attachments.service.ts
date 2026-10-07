@@ -21,13 +21,14 @@ import {
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type TicketAttachmentRow } from '../../../lib/db/schema/ticket-attachments.schema';
+import { decodeUploadedFileName } from '../../../lib/http/uploaded-file-name.util';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { TicketAttachmentsRepository } from '../repository/ticket-attachments.repository';
 import { TicketsRepository } from '../repository/tickets.repository';
 
 /** A pasta dos anexos dentro do bucket. */
-const FOLDER = 'chamados-anexos';
+const FOLDER = 'ticket-attachments';
 
 const TICKET_NOT_FOUND = 'Chamado não encontrado.';
 const ATTACHMENT_NOT_FOUND = 'Anexo não encontrado.';
@@ -92,6 +93,7 @@ export class TicketAttachmentsService {
     files: readonly UploadedAttachment[],
     author: string | null,
     origin: AttachmentOrigin,
+    historyId: number | null = null,
   ): Promise<TicketAttachment[]> {
     if (files.length === 0) return [];
 
@@ -100,8 +102,13 @@ export class TicketAttachmentsService {
     const existing = await this.repository.listByTicket(ticketId);
     /* A cota é POR LADO: só conta o que ESTE lado já subiu. Com cota compartilhada, alguém
        que abrisse o chamado com cinco PDFs deixaria o TI sem poder anexar a nota fiscal da
-       peça — e o TI não pode apagar os cinco para abrir espaço, porque não são dele. */
-    const kinds: AttachmentKind[] = kindsUsedBy(existing, origin);
+       peça — e o TI não pode apagar os cinco para abrir espaço, porque não são dele.
+
+       E é POR HISTÓRICO: cada lançamento na linha do tempo tem a própria cota. Um chamado
+       que dura semanas junta mais de cinco fotos, e contar tudo junto travaria o anexo do
+       décimo histórico por causa do que entrou no primeiro. */
+    const sameEntry = existing.filter((row) => row.historyId === historyId);
+    const kinds: AttachmentKind[] = kindsUsedBy(sameEntry, origin);
 
     const accepted = files.map((file) => this.accept(file, kinds));
 
@@ -116,6 +123,7 @@ export class TicketAttachmentsService {
 
       const row = await this.repository.insert({
         ticketId,
+        historyId,
         kind,
         origin,
         fileName,
@@ -129,6 +137,17 @@ export class TicketAttachmentsService {
     }
 
     return saved;
+  }
+
+  /**
+   * Confere os arquivos SEM guardar nada — para quem precisa saber se eles servem antes de
+   * gravar outra coisa (um histórico, por exemplo). Um arquivo fora das regras recusa aqui,
+   * com o mesmo motivo que `attach` daria.
+   */
+  assertAcceptable(files: readonly UploadedAttachment[]): void {
+    const kinds: AttachmentKind[] = [];
+
+    for (const file of files) this.accept(file, kinds);
   }
 
   /**
@@ -187,7 +206,9 @@ export class TicketAttachmentsService {
    * teto de dois, porque cada um seria julgado contra o mesmo estado inicial.
    */
   private accept(file: UploadedAttachment, kinds: AttachmentKind[]) {
-    const parsed = fileNameSchema.safeParse(file.originalname);
+    /* O nome chega com os acentos embaralhados (ver `decodeUploadedFileName`): é o nome
+       corrigido que se valida, se guarda e se mostra. */
+    const parsed = fileNameSchema.safeParse(decodeUploadedFileName(file.originalname));
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.issues[0]?.message ?? 'Nome de arquivo inválido.');
     }
@@ -226,6 +247,7 @@ export class TicketAttachmentsService {
     return {
       id: row.id,
       ticketId: row.ticketId,
+      historyId: row.historyId,
       kind: row.kind,
       fileName: row.fileName,
       contentType: row.contentType,

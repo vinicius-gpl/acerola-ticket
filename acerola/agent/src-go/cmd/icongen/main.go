@@ -2,7 +2,7 @@
 // resoluções. Existe porque a bandeja (fyne.io/systray) exige um .ico, mas os
 // ícones de origem são SVG. É uma ferramenta avulsa, não uma dependência do
 // binário final — assim o agente em si nunca precisa de um rasterizador de
-// SVG em tempo de execução. A justificativa completa está em docs/ICONES.md.
+// SVG em tempo de execução. A justificativa completa está em docs/icons.md.
 package main
 
 import (

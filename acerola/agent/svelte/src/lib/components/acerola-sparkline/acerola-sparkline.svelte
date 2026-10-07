@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Gráfico de série temporal usando uPlot — escolhido (em vez de Chart.js)
 	// por ser leve e feito pra dado de alta frequência como este (ver
-	// docs/ARQUITETURA.md). uPlot manipula um <canvas> direto, por isso o
+	// docs/architecture.md). uPlot manipula um <canvas> direto, por isso o
 	// wrapper aqui só cuida do ciclo de vida (criar/atualizar/destruir).
 	import uPlot from 'uplot';
 	import 'uplot/dist/uPlot.min.css';

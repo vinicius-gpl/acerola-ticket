@@ -21,6 +21,32 @@ export function formatDate(iso: string | null | undefined): string {
   return date ? DATE_ONLY.format(date) : '—';
 }
 
+/**
+ * Um DIA sem hora (`2026-09-28`) → "28/09/2026".
+ *
+ * Não passa por `Date` de propósito: `new Date('2026-09-28')` é meia-noite em Londres, que
+ * no Brasil ainda é dia 27 — e a data escrita num documento apareceria um dia antes na tela.
+ */
+export function formatDay(day: string | null | undefined): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day ?? '');
+  if (!match) return '—';
+
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+/**
+ * Hoje, como dia sem hora (`2026-10-05`), NO FUSO DE QUEM ESTÁ USANDO.
+ *
+ * Não usa `toISOString()`: ele devolve o dia de Londres, e às dez da noite no Brasil um
+ * formulário abriria com a data de amanhã.
+ */
+export function todayAsDay(now: Date = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 function parse(iso: string | null | undefined): Date | null {
   if (!iso) return null;
 

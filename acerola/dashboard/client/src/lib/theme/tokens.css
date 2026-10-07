@@ -82,6 +82,22 @@
   --input: #e2e8f0;
   --ring: #7c3aed;
 
+  /* Os tons de ESTADO. `danger` é o `destructive` acima; estes três não existem na paleta
+     do agente, então nascem aqui. No claro são os tons 700 (texto pequeno legível sobre
+     branco); no escuro, os 400.
+
+     `-soft` é o fundo SÓLIDO do tom (selo, cartão de indicador): os tons 100 no claro e 950
+     no escuro. Sólido de propósito — com opacidade, o cartão de indicador mudava de cor
+     conforme o que estivesse atrás dele. */
+  --success: #047857;
+  --success-soft: #d1fae5;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --info: #1d4ed8;
+  --info-soft: #dbeafe;
+  --destructive-soft: #ffe4e6;
+  --primary-soft: #ede9fe;
+
   /* As cores de categoria dos gráficos. Ver utils/chart-slice.ts. */
   --chart-1: #e11d48;
   --chart-2: #f97316;
@@ -156,6 +172,15 @@
   --input: #222332;
   --ring: #cba6f7;
 
+  --success: #34d399;
+  --success-soft: #022c22;
+  --warning: #fbbf24;
+  --warning-soft: #451a03;
+  --info: #60a5fa;
+  --info-soft: #172554;
+  --destructive-soft: #4c0519;
+  --primary-soft: #2e1065;
+
   --chart-1: #f38ba8;
   --chart-2: #fab387;
   --chart-3: #f9e2af;
@@ -213,6 +238,15 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-primary-soft: var(--primary-soft);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -266,9 +300,9 @@
 
    | classe       | altura | onde                                                          |
    |--------------|--------|---------------------------------------------------------------|
-   | `control-sm` | 32px   | dentro de outra coisa: linha de tabela, pastilha e busca de filtro |
+   | `control-sm` | 32px   | dentro de outra coisa: linha de tabela, rodapé de cartão, paginação |
    | `control-md` | 36px   | a ação da tela: cabeçalho e rodapé de diálogo, botão de enviar |
-   | `control-lg` | 40px   | campo de formulário: texto, data, seletor, combobox            |
+   | `control-lg` | 40px   | campo de formulário E de filtro: texto, data, seletor, combobox, trilho de pastilhas |
 
    A regra que decide: **o que divide fileira tem que ter a mesma altura**. Um botão ao lado
    de um campo é `control-lg`; o mesmo botão sozinho num cabeçalho é `control-md`.
@@ -323,6 +357,120 @@
   width: var(--control-lg);
   padding-inline: 0;
 }
+
+/* ==========================================================================
+   A GRADE DE CARTÕES DAS LISTAS.
+
+   De 1 a 4 cartões por linha, e quem decide quantos é o ESPAÇO QUE A LISTA TEM, não a
+   largura da janela: a área de conteúdo é mais estreita que o monitor (o menu lateral ocupa
+   256px e a página tem largura máxima), e uma lista dentro de um diálogo é mais estreita
+   ainda. Contando pela janela, o diálogo ganharia quatro colunas espremidas.
+
+   Na prática: celular 1, tablet 2 a 3, monitor 3 a 4.
+
+   A conta: cada cartão tem no mínimo 15rem (240px); cabem quantos couberem, e o `max(...)`
+   segura o teto em 4 — um quinto cartão só entraria com cada um mais estreito que um quarto
+   da linha, o que o mínimo não deixa. `min-width: 0` nos filhos é o que permite o texto
+   comprido quebrar dentro do cartão em vez de alargar a coluna.
+   ========================================================================== */
+@utility card-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(15rem, calc((100% - 3 * 0.75rem) / 4)), 1fr)
+  );
+
+  & > * {
+    min-width: 0;
+  }
+
+  /* O RODAPÉ DO CARTÃO FICA NO FUNDO. Os cartões de uma mesma fileira têm a altura do maior;
+     sem isto, o que tem menos texto termina antes e o rodapé dele sobe, desalinhado dos
+     vizinhos, com um vazio embaixo. O cartão vira uma coluna e o último bloco é empurrado
+     para o fim — a sobra de altura fica entre o conteúdo e o rodapé.
+
+     `.col-span-full` é a legenda da lista, que mora na grade mas não é cartão. */
+  & > :not(.col-span-full) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  & > :not(.col-span-full) > :last-child {
+    margin-top: auto;
+  }
+
+  /* `margin-top: auto` toma o lugar do respiro que o rodapé tinha (`mt-3`). Nos cartões sem
+     `gap` próprio, quem devolve esse respiro mínimo é o bloco de cima. Os que já usam `gap`
+     (a classe do cartão tem `gap-`) não precisam: o `gap` continua valendo. */
+  & > :not(.col-span-full):not([class*='gap-']) > :nth-last-child(2) {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   O PREENCHIMENTO NO HOVER — a cor do status entra por onde o mouse entrou.
+
+   Um círculo da cor do tom nasce no ponto em que o cursor cruzou a borda e cresce até
+   cobrir o item; ao sair, encolhe em direção ao ponto de saída. Quem informa os dois pontos
+   é a action `fillFromPointer` (`lib/motion/hover-fill.ts`), por `--fill-x`/`--fill-y`; a cor
+   vem em `--fill-color`.
+
+   É LEVE DE PROPÓSITO: a única coisa animada é `transform: scale` de uma camada só, que o
+   navegador entrega à placa de vídeo sem redesenhar o conteúdo — nada de animar cor de fundo,
+   sombra ou tamanho. E só o item sob o mouse anima, então 50 itens custam o mesmo que 5.
+
+   O círculo tem o tamanho exato para alcançar o canto mais distante a partir do ponto de
+   entrada. `isolation` + `z-index: -1` o deixam ACIMA do fundo do item e ABAIXO do texto.
+   Quem pediu menos movimento ao sistema vê a cor aparecer e sumir, sem crescer.
+   ========================================================================== */
+@utility hover-fill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: var(--fill-y, 50%);
+    left: var(--fill-x, 50%);
+    /* O dobro da distância até o canto mais longe (a action mede em `--fill-reach`); sem a
+       medida, 3× a largura do item cobre qualquer ponto de entrada. */
+    width: calc(var(--fill-reach, 150%) * 2);
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    background-color: var(--fill-color, var(--muted));
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+
+  /* Só onde existe mouse de verdade: no toque não há hover, e o "hover preso" depois de um
+     toque deixaria o item pintado até o próximo toque em outro lugar. */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover::before {
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  /* Modo LEVE (`data-effects='lite'` no <html>, decidido por `lib/hooks/use-effects`): a cor
+     aparece e some de uma vez, sem crescer. O mesmo para quem pediu menos movimento ao sistema
+     operacional. O resultado é igual; só a animação sai. */
+  :root[data-effects='lite'] &::before {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
+}
+
+/* SÓ PARA CARTÃO (e outros blocos que cortam o próprio conteúdo). Em LINHA DE TABELA não:
+   uma `<tr>` ignora `overflow: hidden`, então a camada circular conta como conteúdo da tabela,
+   estica a área de rolagem e a tabela ganha barra para os lados. Foi testado e retirado. */
 
 @layer base {
   * {

@@ -4,12 +4,18 @@ import { computerSamples } from './schema/computer-samples.schema';
 import { computerTransfers } from './schema/computer-transfers.schema';
 import { computers } from './schema/computers.schema';
 import { internalRoles } from './schema/internal-roles.schema';
+import { inventoryItems } from './schema/inventory-items.schema';
+import { inventoryMovements } from './schema/inventory-movements.schema';
+import { maintenanceQuotes } from './schema/maintenance-quotes.schema';
 import { maintenances } from './schema/maintenances.schema';
 import { networkEvents } from './schema/network-events.schema';
 import { partMovements } from './schema/part-movements.schema';
 import { parts } from './schema/parts.schema';
 import { tasks } from './schema/tasks.schema';
+import { ticketAreas } from './schema/ticket-areas.schema';
 import { ticketAttachments } from './schema/ticket-attachments.schema';
+import { ticketHistories } from './schema/ticket-histories.schema';
+import { ticketServiceOrders } from './schema/ticket-service-orders.schema';
 import { tickets } from './schema/tickets.schema';
 
 /**
@@ -25,7 +31,10 @@ import { tickets } from './schema/tickets.schema';
 export const drizzleSchema = {
   tasks,
   tickets,
+  ticketAreas,
   ticketAttachments,
+  ticketHistories,
+  ticketServiceOrders,
   computers,
   computerSamples,
   computerAlerts,
@@ -33,6 +42,9 @@ export const drizzleSchema = {
   maintenances,
   parts,
   partMovements,
+  inventoryItems,
+  inventoryMovements,
+  maintenanceQuotes,
   networkEvents,
   internalRoles,
   /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */

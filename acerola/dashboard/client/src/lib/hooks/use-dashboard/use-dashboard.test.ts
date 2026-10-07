@@ -96,7 +96,7 @@ describe('useDashboardModel', () => {
       maintenanceCount: 0,
     });
 
-    expect(goto).toHaveBeenCalledWith('/computers/42');
+    expect(goto).toHaveBeenCalledWith('/infra/computers/42');
   });
 
   // triste

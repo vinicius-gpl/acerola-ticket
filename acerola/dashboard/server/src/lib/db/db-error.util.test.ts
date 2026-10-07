@@ -104,6 +104,15 @@ describe('toHttpException', () => {
     expect(exception).toBeInstanceOf(ConflictException);
   });
 
+  /* Histórico, emissão e chamado são permanentes: o banco recusa, e a tela diz por quê em vez
+     de um erro 500 com o texto do gatilho. */
+  it('turns the refusal to change a permanent record into a conflict', () => {
+    const exception = toHttpException(wrapped('23001'), 'apagar o chamado');
+
+    expect(exception).toBeInstanceOf(ConflictException);
+    expect(exception.message).toBe('Este registro é permanente: não pode ser alterado nem apagado.');
+  });
+
   /* A checagem do banco tem mensagem própria: "o banco recusou" não diz o que corrigir. */
   it('uses the message written for the named check', () => {
     const exception = toHttpException(wrapped('23514', 'tasks_status_valid'), 'criar tarefa');

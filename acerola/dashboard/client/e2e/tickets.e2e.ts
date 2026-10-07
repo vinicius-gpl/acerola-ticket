@@ -167,7 +167,7 @@ test('does not show a ticket for a protocol that does not exist', async ({ page 
 /* A porta do painel continua trancada — e é o único teste daqui que fala dela: sem sessão, a
    tela interna manda a pessoa para o login em vez de mostrar chamado de ninguém. */
 test('sends a visitor with no session away from the panel', async ({ page }) => {
-  await page.goto('/tickets');
+  await page.goto('/infra/tickets');
 
   /* Espera a TELA antes do endereço: o SvelteKit desenha o login primeiro e sincroniza a barra
      de endereço depois, então olhar só a URL testa a parte que chega por último — e falha sem

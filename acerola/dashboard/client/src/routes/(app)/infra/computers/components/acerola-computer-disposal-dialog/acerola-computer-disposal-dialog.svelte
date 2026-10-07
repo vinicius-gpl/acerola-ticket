@@ -1,0 +1,139 @@
+<script lang="ts" module>
+  import {
+    DISPOSAL_TYPES,
+    DISPOSAL_TYPE_LABELS,
+    disposalTypeHint,
+    disposalTypeTone,
+    type DisposalType,
+  } from '@template/shared/domain/disposal.util';
+  import { DISPOSAL_REASON_MAX_LENGTH } from '@template/shared/schemas/computer.schema';
+
+  /**
+   * DESCARTAR UMA MÁQUINA — a pergunta, com o tipo e o motivo.
+   *
+   * Tem diálogo próprio, e não um `ConfirmDialog`, por causa dos dois campos. O motivo é
+   * OBRIGATÓRIO: uma saída sem explicação vira, meses depois, uma máquina na lista de
+   * descarte que ninguém sabe por que saiu — e alguém a devolve "para testar".
+   *
+   * Função pura de props: o que foi escolhido sai no `onConfirm`. O componente não grava nada.
+   */
+  export type AcerolaComputerDisposalDialogProps = {
+    data: { computerName: string };
+    state?: { isOpen?: boolean; isConfirming?: boolean; error?: string | null };
+    actions: {
+      onConfirm: (input: { type: DisposalType; reason: string }) => void;
+      onCancel: () => void;
+    };
+  };
+
+  /**
+   * A pastilha mostra só o nome — a explicação do que ele significa vai numa legenda
+   * embaixo. O nome mais o motivo juntos ("Com defeito — ainda rende peça...") era comprido
+   * demais para caber numa pastilha, o formato pensado pra uma palavra ou duas.
+   */
+  const TYPE_OPTIONS = DISPOSAL_TYPES.map((type) => ({
+    value: type,
+    label: DISPOSAL_TYPE_LABELS[type],
+    tone: disposalTypeTone(type),
+  }));
+</script>
+
+<script lang="ts">
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+  } from '$lib/components/acerola-dialog/acerola-dialog';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
+  import TextAreaField from '$lib/components/acerola-text-area-field/acerola-text-area-field.svelte';
+
+  import Trash2 from '@lucide/svelte/icons/trash-2';
+
+  let { data, state: dialogState, actions }: AcerolaComputerDisposalDialogProps = $props();
+
+  /* Estado puramente visual: o que está escolhido enquanto o diálogo está aberto. */
+  let type = $state<DisposalType>('defect');
+  let reason = $state('');
+
+  /* O erro do motivo é conferido aqui porque o campo é o único obrigatório, e a recusa
+     precisa aparecer colada nele — não depois de uma ida ao servidor. */
+  let hasTried = $state(false);
+
+  const reasonError = $derived(
+    hasTried && reason.trim() === '' ? 'Diga por que a máquina saiu de uso' : null,
+  );
+
+  function confirm(): void {
+    hasTried = true;
+    if (reason.trim() === '') return;
+
+    actions.onConfirm({ type, reason: reason.trim() });
+  }
+</script>
+
+<Dialog
+  open={dialogState?.isOpen ?? false}
+  onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onCancel())}
+>
+  <DialogContent showCloseButton={false}>
+    <DialogHeader class="gap-1.5">
+      <div class="flex items-center gap-2.5">
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-destructive/10 text-destructive">
+          <Trash2 class="size-4" aria-hidden="true" />
+        </span>
+        <DialogTitle class="text-lg font-semibold tracking-tight">Descartar esta máquina?</DialogTitle>
+      </div>
+      <DialogDescription class="text-xs text-muted-foreground">
+        {data.computerName} sai das listas do dia a dia e vai para o Descarte. Nada é apagado: o
+        histórico, as manutenções e as peças dela continuam salvos, e ela pode voltar depois.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div class="flex flex-col gap-1.5">
+      <span class="text-ink-700 text-sm font-medium">Tipo de descarte</span>
+      <OptionPicker
+        data={{ value: type, options: TYPE_OPTIONS }}
+        ui={{ ariaLabel: 'Tipo de descarte', fullWidth: true }}
+        state={{ isDisabled: dialogState?.isConfirming }}
+        actions={{ onChange: (value: string) => (type = value as DisposalType) }}
+      />
+      <span class="text-muted-foreground text-xs">{disposalTypeHint(type)}</span>
+    </div>
+
+    <TextAreaField
+      data={{
+        label: 'Motivo',
+        name: 'disposalReason',
+        value: reason,
+        placeholder: 'Ex: placa-mãe queimada, sem conserto',
+        maxLength: DISPOSAL_REASON_MAX_LENGTH,
+      }}
+      state={{ error: reasonError, isDisabled: dialogState?.isConfirming }}
+      actions={{ onChange: (value: string) => (reason = value) }}
+    />
+
+    {#if dialogState?.error}
+      <ErrorState data={{ message: dialogState.error }} ui={{ variant: 'inline' }} />
+    {/if}
+
+    <DialogFooter>
+      <ActionButton
+        data={{ label: 'Cancelar' }}
+        ui={{ variant: 'secondary' }}
+        state={{ isDisabled: dialogState?.isConfirming }}
+        actions={{ onClick: actions.onCancel }}
+      />
+      <ActionButton
+        data={{ label: 'Descartar máquina', loadingLabel: 'Descartando…' }}
+        ui={{ variant: 'danger', className: 'sm:w-auto' }}
+        state={{ isLoading: dialogState?.isConfirming }}
+        actions={{ onClick: confirm }}
+      />
+    </DialogFooter>
+  </DialogContent>
+</Dialog>

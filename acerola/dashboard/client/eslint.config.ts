@@ -124,8 +124,12 @@ export default tseslint.config(
   {
     /* Seção 3 — a view é função pura de props. Hook de dado aqui é o defeito que torna a
        tela impossível de atualizar por linha e impossível de testar sem subir rede. */
-    files: ['src/lib/components/**/*.svelte'],
-    ignores: ['src/lib/components/ui/**', 'src/lib/components/**/*.stories.svelte'],
+    files: ['src/lib/components/**/*.svelte', 'src/routes/**/components/**/*.svelte'],
+    ignores: [
+      'src/lib/components/ui/**',
+      'src/lib/components/**/*.stories.svelte',
+      'src/routes/**/components/**/*.stories.svelte',
+    ],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -154,9 +158,15 @@ export default tseslint.config(
     },
   },
   {
-    // A rota só compõe; o Storybook e as configs exigem `export default`.
+    /* A rota só compõe. Componente de feature (`routes/<feature>/components/`) fica de fora:
+       ele segue a regra de componente acima, não a de rota. */
+    files: ['src/routes/**/*.svelte'],
+    ignores: ['src/routes/**/components/**'],
+    rules: { 'no-restricted-syntax': 'off' },
+  },
+  {
+    // O Storybook e as configs exigem `export default`.
     files: [
-      'src/routes/**/*.svelte',
       '**/*.stories.svelte',
       '**/*.stories.tsx',
       '.storybook/**/*.ts',

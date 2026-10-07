@@ -34,7 +34,7 @@
 	<div class="flex h-full flex-col justify-between">
 		<div>
 			<div class="flex items-center justify-between gap-2">
-				<p class="text-muted-foreground text-[11px] font-semibold tracking-widest uppercase">
+				<p class="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
 					{data.label}
 				</p>
 				{#if data.trend && data.trendFormat}

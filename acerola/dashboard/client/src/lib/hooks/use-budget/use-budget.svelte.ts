@@ -4,7 +4,7 @@ import { type Budget } from '@template/shared/schemas/budget.schema';
 
 import { budgetApi } from '$lib/api/budget.api';
 import { readError } from '$lib/api/http-client';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 
 export type BudgetModel = {
   data: { budget: Budget | null };
@@ -47,9 +47,9 @@ export function useBudgetModel(): BudgetModel {
     },
     actions: {
       onRetry: () => void summary.current.refetch(),
-      onOpenMachine: (computerId) => void goto(`/computers/${computerId}`),
-      onOpenComputers: () => void goto('/computers'),
-      onOpenParts: () => void goto('/parts'),
+      onOpenMachine: (computerId) => void goto(`/infra/computers/${computerId}`),
+      onOpenComputers: () => void goto('/infra/computers'),
+      onOpenParts: () => void goto('/infra/parts'),
     },
   };
 }

@@ -11,6 +11,7 @@ import {
 
 const validInput = {
   requesterName: 'Ana Souza',
+  area: 'infra',
   department: 'financeiro',
   problemType: 'printer',
   contactPhone: '62 99999-9999',
@@ -101,6 +102,38 @@ describe('createTicketSchema', () => {
     expect(result.error?.issues[0]?.message).toBe('Escolha o tipo de problema');
   });
 
+  it('refuses an area that is not on the list, in Portuguese', () => {
+    const result = createTicketSchema.safeParse({ ...validInput, area: 'financeiro' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('Escolha a área do chamado');
+  });
+
+  // feliz
+  it('accepts a problem type from the chosen area', () => {
+    const parsed = createTicketSchema.parse({
+      ...validInput,
+      area: 'manutencao',
+      problemType: 'air_conditioning',
+    });
+
+    expect(parsed.area).toBe('manutencao');
+  });
+
+  // triste
+  it('refuses a problem type from another area, even though it exists on the full list', () => {
+    const result = createTicketSchema.safeParse({
+      ...validInput,
+      area: 'manutencao',
+      /* "printer" existe — só que em Infra, não em Manutenção. */
+      problemType: 'printer',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('Escolha um tipo de problema da área selecionada');
+    expect(result.error?.issues[0]?.path).toEqual(['problemType']);
+  });
+
   it('refuses a description longer than the limit', () => {
     const result = createTicketSchema.safeParse({ ...validInput, description: 'a'.repeat(5001) });
 
@@ -145,6 +178,19 @@ describe('ticketFormSchema', () => {
 
     expect(result.error?.issues[0]?.message).toBe('Informe seu nome');
   });
+
+  it('shows the same cross-area message the API would return', () => {
+    const result = ticketFormSchema.safeParse({
+      ...validInput,
+      area: 'sistema',
+      problemType: 'printer',
+      anydeskId: '',
+      priority: 'high',
+      notifyWhatsapp: false,
+    });
+
+    expect(result.error?.issues[0]?.message).toBe('Escolha um tipo de problema da área selecionada');
+  });
 });
 
 describe('publicTicketSchema', () => {
@@ -154,8 +200,10 @@ describe('publicTicketSchema', () => {
     status: 'in_progress' as const,
     priority: 'high' as const,
     requesterName: 'Ana Souza',
+    area: 'infra' as const,
     department: 'financeiro' as const,
     problemType: 'printer' as const,
+    participantAreas: [],
     anydeskId: null,
     contactPhone: '62999999999',
     notifyWhatsapp: true,
@@ -169,6 +217,7 @@ describe('publicTicketSchema', () => {
     updatedAt: null,
     updatedBy: null,
     attachments: [],
+    histories: [],
   };
 
   // feliz
@@ -199,6 +248,7 @@ describe('publicTicketSchema', () => {
     const file = (over: Record<string, unknown>) => ({
       id: 1,
       ticketId: 7,
+      historyId: null,
       kind: 'pdf' as const,
       origin: 'requester' as const,
       fileName: 'nota.pdf',
@@ -228,12 +278,13 @@ describe('publicTicketSchema', () => {
 
 describe('updateTicketSchema', () => {
   // feliz
-  it('accepts changing only the status', () => {
-    expect(updateTicketSchema.parse({ status: 'resolved' })).toEqual({ status: 'resolved' });
+  it('accepts changing only the urgency', () => {
+    expect(updateTicketSchema.parse({ priority: 'high' })).toEqual({ priority: 'high' });
   });
 
-  it('turns an emptied solution into null, so the field is actually cleared', () => {
-    expect(updateTicketSchema.parse({ solution: '   ' }).solution).toBeNull();
+  /* O responsável não se troca à mão: quem assume o chamado vira responsável pelo histórico. */
+  it('ignores an assignee sent in the body, which is set only by taking the ticket', () => {
+    expect(updateTicketSchema.parse({ assignee: 'Carlos do TI' })).not.toHaveProperty('assignee');
   });
 
   it('accepts an empty change without touching anything', () => {
@@ -241,17 +292,39 @@ describe('updateTicketSchema', () => {
   });
 
   // triste
-  it('refuses an unknown status, in Portuguese', () => {
-    const result = updateTicketSchema.safeParse({ status: 'arquivado' });
+  /* O estágio e a solução só mudam por um histórico lançado: aceitá-los aqui seria uma porta
+     lateral para encerrar um chamado sem deixar rastro na linha do tempo. */
+  it('ignores the stage and the solution, which only change through a history', () => {
+    const parsed = updateTicketSchema.parse({ status: 'resolved', solution: 'Pronto.' });
+
+    expect(parsed).not.toHaveProperty('status');
+    expect(parsed).not.toHaveProperty('solution');
+  });
+
+  it('refuses an unknown urgency, in Portuguese', () => {
+    const result = updateTicketSchema.safeParse({ priority: 'urgentíssima' });
 
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe('Escolha uma situação da lista');
+    expect(result.error?.issues[0]?.message).toBe('Escolha a urgência');
   });
 
   it('refuses changing who opened the ticket', () => {
     const parsed = updateTicketSchema.parse({ requesterName: 'Outra pessoa' });
 
     expect(parsed).not.toHaveProperty('requesterName');
+  });
+
+  // feliz
+  it('accepts reclassifying the area', () => {
+    expect(updateTicketSchema.parse({ area: 'manutencao' })).toEqual({ area: 'manutencao' });
+  });
+
+  // triste
+  it('refuses an area that is not on the list, in Portuguese', () => {
+    const result = updateTicketSchema.safeParse({ area: 'rh' });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('Escolha a área do chamado');
   });
 });
 
@@ -264,10 +337,16 @@ describe('ticketListQuerySchema', () => {
     expect(parsed.status).toBeUndefined();
   });
 
+  it('accepts a whole group of stages as one filter', () => {
+    expect(ticketListQuerySchema.parse({ statusGroup: 'waiting' }).statusGroup).toBe('waiting');
+    expect(ticketListQuerySchema.safeParse({ statusGroup: 'fechados' }).success).toBe(false);
+  });
+
   it('accepts the panel filters together', () => {
     const parsed = ticketListQuerySchema.parse({
       status: 'open',
       priority: 'high',
+      area: 'infra',
       department: 'rh',
       problemType: 'network',
       search: '  impressora  ',
@@ -275,6 +354,7 @@ describe('ticketListQuerySchema', () => {
 
     expect(parsed.search).toBe('impressora');
     expect(parsed.department).toBe('rh');
+    expect(parsed.area).toBe('infra');
   });
 
   // triste

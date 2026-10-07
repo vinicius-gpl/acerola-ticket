@@ -4,7 +4,7 @@
 //
 // O //go:embed do Go não alcança fora do diretório deste pacote (sem ".."
 // nos padrões), então isto aqui é uma cópia de trabalho dos arquivos
-// canônicos mantidos em /icons na raiz do projeto — veja docs/ICONES.md.
+// canônicos mantidos em /icons na raiz do projeto — veja docs/icons.md.
 package assets
 
 import _ "embed"

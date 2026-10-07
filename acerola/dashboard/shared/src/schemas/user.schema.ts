@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+import {
+  ROLE_CONTEXT_LABELS,
+  ROLE_CONTEXTS,
+  roleContextLabel,
+  type RoleContext,
+} from '../domain/role-context.util';
+
+export { ROLE_CONTEXTS, ROLE_CONTEXT_LABELS, roleContextLabel, type RoleContext };
+
 /**
  * Identidade — a FORMA de quem está usando o sistema.
  *
@@ -41,23 +50,9 @@ export const DEFAULT_USER_ROLE: UserRole = 'user';
  * Contextos do sistema nos quais um usuário pode possuir papéis/cargos diferentes.
  *
  * Exemplo: no contexto de infraestrutura o usuário pode ser 'user', em manutenção 'manager'
- * e no sistema interno 'admin'.
+ * e no sistema interno 'admin'. A lista em si mora em `domain/role-context.util.ts`.
  */
-export const ROLE_CONTEXTS = ['infra', 'sistema', 'manutencao'] as const;
-
-export type RoleContext = (typeof ROLE_CONTEXTS)[number];
-
 export const roleContextSchema = z.enum(ROLE_CONTEXTS);
-
-export const ROLE_CONTEXT_LABELS: Record<RoleContext, string> = {
-  infra: 'Infraestrutura',
-  sistema: 'Sistema',
-  manutencao: 'Manutenção',
-};
-
-export function roleContextLabel(context: RoleContext): string {
-  return ROLE_CONTEXT_LABELS[context];
-}
 
 export const contextRolesSchema = z.object({
   infra: userRoleSchema.default('user'),

@@ -17,8 +17,8 @@
 
 	const toneClass = $derived(
 		{
-			up: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-			down: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+			up: 'bg-destructive/10 text-destructive border-destructive/20',
+			down: 'bg-success/10 text-success border-success/20',
 			flat: 'bg-muted/70 text-muted-foreground border-border/60'
 		}[data.trend.direction]
 	);
@@ -26,7 +26,7 @@
 
 <span
 	class={cn(
-		'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium tabular-nums shadow-xs',
+		'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium tabular-nums shadow-xs',
 		toneClass,
 		ui?.class
 	)}

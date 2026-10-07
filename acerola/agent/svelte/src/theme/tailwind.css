@@ -2,8 +2,65 @@
 
 @import './catppuccin.css';
 
+/* ==========================================================================
+   OS MESMOS TOKENS DO DASHBOARD (`acerola/dashboard/client/src/lib/theme/tokens.css`).
+
+   A paleta Catppuccin fica intacta em `catppuccin.css`; aqui entram os apelidos e as
+   medidas que o dashboard já tinha e o agente não: `ink-*`, os tons de estado, o raio por
+   papel e a régua de altura. Os valores são os de lá — mudar em um é mudar no outro.
+   ========================================================================== */
+:root,
+[data-theme] {
+	--subtext: var(--muted-foreground);
+
+	--ink-900: var(--foreground);
+	--ink-700: var(--subtext);
+	--ink-500: var(--muted-foreground);
+	--ink-300: var(--border);
+	--ink-100: var(--surface);
+
+	--radius: 0.625rem;
+
+	--control-sm: 2rem;
+	--control-md: 2.25rem;
+	--control-lg: 2.5rem;
+}
+
+/* Os tons de estado. `danger` é o `destructive` da paleta; os outros três não existem no
+   Catppuccin portado, então moram aqui — claro no Latte, escuro no Mocha. */
+:root,
+[data-theme='catppuccin-mocha'] {
+	--success: #34d399;
+	--warning: #fbbf24;
+	--info: #60a5fa;
+}
+
+[data-theme='catppuccin-latte'] {
+	--success: #059669;
+	--warning: #d97706;
+	--info: #2563eb;
+}
+
 @theme inline {
 	--font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+	--color-subtext: var(--subtext);
+	--color-ink-900: var(--ink-900);
+	--color-ink-700: var(--ink-700);
+	--color-ink-500: var(--ink-500);
+	--color-ink-300: var(--ink-300);
+	--color-ink-100: var(--ink-100);
+
+	--color-success: var(--success);
+	--color-warning: var(--warning);
+	--color-info: var(--info);
+
+	/* O arredondamento por PAPEL (skill `ui-standards` §3.1). A escala por tamanho do
+	   Tailwind (`rounded-lg`, `rounded-xl`) continua valendo só dentro de `ui/`. */
+	--radius-surface: calc(var(--radius) + 6px);
+	--radius-control: calc(var(--radius) + 4px);
+	--radius-box: var(--radius);
+	--radius-chip: calc(var(--radius) - 2px);
 
 	--color-crust: var(--crust);
 	--color-mantle: var(--mantle);
@@ -44,6 +101,40 @@
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* A régua de altura dos controles — três degraus, o raio à parte (`rounded-control`). */
+@utility control-sm {
+	height: var(--control-sm);
+	padding-inline: 0.625rem;
+}
+
+@utility control-md {
+	height: var(--control-md);
+	padding-inline: 0.75rem;
+}
+
+@utility control-lg {
+	height: var(--control-lg);
+	padding-inline: 0.75rem;
+}
+
+@utility control-icon-sm {
+	height: var(--control-sm);
+	width: var(--control-sm);
+	padding-inline: 0;
+}
+
+@utility control-icon-md {
+	height: var(--control-md);
+	width: var(--control-md);
+	padding-inline: 0;
+}
+
+@utility control-icon-lg {
+	height: var(--control-lg);
+	width: var(--control-lg);
+	padding-inline: 0;
 }
 
 @layer base {

@@ -270,7 +270,7 @@ func (app *App) forwardSnapshots(ctx context.Context) {
 // sempre nesta mesma goroutine neutra — nunca na goroutine que despacha o
 // clique da bandeja. O systray trava sua própria thread do sistema
 // operacional pra bombear mensagens nativas do Windows (ver
-// docs/ARQUITETURA.md); chamar uma função do runtime do Wails direto dali
+// docs/architecture.md); chamar uma função do runtime do Wails direto dali
 // arrisca um deadlock entre a fila de mensagens do systray e a da janela.
 // Por isso ShowPopup/ShowDashboard/Quit só mandam uma função pra este canal
 // — quem clicou nunca espera a ação terminar.
@@ -445,7 +445,7 @@ func (app *App) Quit() {
 // HideWindow é exposto ao frontend (via Bind): a popup chama ao perder o
 // foco ("fecha ao perder foco" do pedido original), e o dashboard chama
 // pelo próprio botão de fechar — a janela não tem moldura nativa, então não
-// existe um X do Windows pra isso (ver docs/ARQUITETURA.md).
+// existe um X do Windows pra isso (ver docs/architecture.md).
 //
 // Esconder a janela nativa não desmonta a tela: sem o passo extra abaixo, a
 // Popup ou o Dashboard continuariam vivos em segundo plano — com todos os

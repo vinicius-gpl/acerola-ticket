@@ -1,6 +1,12 @@
+import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
+import { type PublicServiceOrder } from '@template/shared/schemas/service-order.schema';
+import {
+  type TicketHistory,
+  type TicketHistoryFormValues,
+} from '@template/shared/schemas/ticket-history.schema';
 import {
   type PublicTicket,
   type Ticket,
@@ -16,6 +22,9 @@ export type TicketDashboard = {
   total: number;
   open: number;
   inProgress: number;
+  /** Parados, esperando alguém de fora do TI — os dois estágios de espera somados. */
+  waiting: number;
+  /** Encerrados com o problema tratado — com e sem ressalva. */
   resolved: number;
   cancelled: number;
   averageResolutionHours: number | null;
@@ -35,13 +44,23 @@ export const ticketsApi = {
         pageSize: query.pageSize,
         search: query.search,
         status: query.status,
+        statusGroup: query.statusGroup,
         priority: query.priority,
+        area: query.area,
         department: query.department,
         problemType: query.problemType,
       },
     }),
 
-  dashboard: () => apiRequest<TicketDashboard>('/tickets/dashboard'),
+  /**
+   * Os indicadores da fila. `area` é o contexto do menu (#13): sem ela, os números seriam a
+   * soma das três áreas enquanto a lista logo abaixo mostra uma só.
+   */
+  dashboard: (area?: TicketArea) =>
+    apiRequest<TicketDashboard>('/tickets/dashboard', { query: { area } }),
+
+  /** As áreas que esta pessoa atende — alimenta o seletor de contexto do menu (#13). */
+  myAreas: () => apiRequest<TicketArea[]>('/tickets/areas/mine'),
 
   /** Baixa o relatório com os MESMOS filtros da fila — sem página, é a lista inteira. */
   exportReport: (query: Partial<TicketListQuery>, format: ReportFormat): Promise<Downloaded> =>
@@ -50,7 +69,9 @@ export const ticketsApi = {
         format,
         search: query.search,
         status: query.status,
+        statusGroup: query.statusGroup,
         priority: query.priority,
+        area: query.area,
         department: query.department,
         problemType: query.problemType,
       },
@@ -60,6 +81,14 @@ export const ticketsApi = {
 
   update: (id: number, body: UpdateTicketInput) =>
     apiRequest<Ticket>(`/tickets/${id}`, { method: 'PATCH', body }),
+
+  /** Soma uma área PARTICIPANTE ao chamado (#13) — a área original não muda. */
+  addArea: (id: number, area: TicketArea) =>
+    apiRequest<Ticket>(`/tickets/${id}/areas`, { method: 'POST', body: { area } }),
+
+  /** Tira uma área participante. A área original nunca sai por aqui. */
+  removeArea: (id: number, area: TicketArea) =>
+    apiRequest<Ticket>(`/tickets/${id}/areas/${area}`, { method: 'DELETE' }),
 
   /**
    * Abre um chamado — público, sem login.
@@ -97,6 +126,45 @@ export const ticketsApi = {
   removeAttachment: (ticketId: number, attachmentId: number) =>
     apiRequest<void>(`/tickets/${ticketId}/attachments/${attachmentId}`, { method: 'DELETE' }),
 
+  /** A linha do tempo de um chamado — a ordem de serviço. */
+  histories: (ticketId: number) =>
+    apiRequest<TicketHistory[]>(`/tickets/${ticketId}/histories`),
+
+  /**
+   * Lança um histórico — é o que muda o estágio do chamado.
+   *
+   * Vai como `FormData` porque os arquivos viajam junto: um envio só significa que ou existe o
+   * histórico COM os anexos dele, ou não existe histórico nenhum.
+   */
+  createHistory: (ticketId: number, values: TicketHistoryFormValues, files: readonly File[] = []) => {
+    const form = new FormData();
+
+    form.set('type', values.type);
+    form.set('description', values.description);
+    /* Booleano e número viram texto no multipart; o contrato no `shared` lê os dois jeitos. */
+    form.set('isVisibleToRequester', String(values.isVisibleToRequester));
+    form.set('minutesSpent', values.minutesSpent.trim());
+    for (const file of files) form.append('attachments', file);
+
+    return apiRequest<TicketHistory>(`/tickets/${ticketId}/histories`, {
+      method: 'POST',
+      body: form,
+    });
+  },
+
+  /**
+   * EMITE a ordem de serviço do chamado, em PDF.
+   *
+   * `POST`, e não `GET`: a emissão registra a impressão digital do arquivo, para ele poder ser
+   * conferido depois. Sem mudança no chamado desde a última, volta o mesmo documento.
+   */
+  serviceOrder: (ticketId: number): Promise<Downloaded> =>
+    apiDownload(`/tickets/${ticketId}/service-order`, { method: 'POST' }),
+
+  /** A conferência PÚBLICA de uma ordem de serviço emitida — pelo código inteiro ou o curto. */
+  verifyServiceOrder: (reference: string) =>
+    apiRequest<PublicServiceOrder>(`/service-orders/${encodeURIComponent(reference)}`),
+
   /** Consulta pública pelo protocolo. Devolve menos campos que o painel, de propósito. */
   findByProtocol: (protocol: string) =>
     apiRequest<PublicTicket>(`/tickets/protocol/${encodeURIComponent(protocol)}`),
@@ -110,6 +178,7 @@ function toTicketFormData(
   const form = new FormData();
 
   form.set('requesterName', values.requesterName);
+  form.set('area', values.area);
   form.set('department', values.department);
   form.set('problemType', values.problemType);
   form.set('priority', values.priority);

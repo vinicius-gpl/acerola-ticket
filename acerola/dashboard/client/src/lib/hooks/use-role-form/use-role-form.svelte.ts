@@ -10,8 +10,8 @@ import { type DirectoryUser } from '@template/shared/schemas/user.schema';
 
 import { readError } from '$lib/api/http-client';
 import { rolesApi } from '$lib/api/roles.api';
-import { toFieldState } from '$lib/hooks/form-projection/form-projection.svelte';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { ROLES_QUERY_KEY } from '$lib/hooks/use-roles/use-roles.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
 

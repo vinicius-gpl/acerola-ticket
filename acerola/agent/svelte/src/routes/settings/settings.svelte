@@ -5,7 +5,7 @@
 
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaReportingCard from '$lib/components/acerola-reporting-card/acerola-reporting-card.svelte';
-	import { useReporting } from '$lib/reporting/store.svelte';
+	import { useReporting } from '$lib/hooks/use-reporting/use-reporting.svelte';
 	import { HideWindow, ShowDashboard } from '../../../wailsjs/go/main/App';
 
 	/**
@@ -22,7 +22,7 @@
 	onMount(() => reporting.watch());
 </script>
 
-<div class="bg-background flex h-full w-full flex-col overflow-hidden rounded-lg">
+<div class="bg-background rounded-surface flex h-full w-full flex-col overflow-hidden">
 	<header class="border-border/70 flex items-center justify-between gap-2 border-b px-3 py-2.5">
 		<div class="flex min-w-0 items-center gap-2">
 			<AcerolaButton
@@ -36,7 +36,7 @@
 				<h1 class="text-foreground truncate text-sm font-semibold tracking-tight">
 					Configuração do agente
 				</h1>
-				<p class="text-muted-foreground text-[11px]">Liga esta máquina ao painel do TI.</p>
+				<p class="text-muted-foreground text-xs">Liga esta máquina ao painel do TI.</p>
 			</div>
 		</div>
 

@@ -2,15 +2,23 @@ import { z } from 'zod';
 
 import { anydeskFormSchema, anydeskSchema } from '../domain/anydesk.util';
 import { contactPhoneSchema } from '../domain/phone.util';
-import { TICKET_DEPARTMENTS, TICKET_PROBLEM_TYPES } from '../domain/ticket-catalog.util';
+import {
+  isTicketProblemTypeForArea,
+  TICKET_AREAS,
+  TICKET_DEPARTMENTS,
+  TICKET_PROBLEM_TYPES,
+  type TicketProblemType,
+} from '../domain/ticket-catalog.util';
 import {
   DEFAULT_TICKET_PRIORITY,
   TICKET_PRIORITIES,
+  TICKET_STATUS_GROUPS,
   TICKET_STATUSES,
 } from '../domain/ticket-status.util';
 import { paginationQuerySchema } from './pagination.schema';
 import { reportFormatSchema } from './report.schema';
 import { ticketAttachmentSchema } from './ticket-attachment.schema';
+import { publicTicketHistorySchema } from './ticket-history.schema';
 
 /**
  * O CONTRATO do chamado. Um schema, duas pontas: a API o usa como DTO e Swagger (via
@@ -21,7 +29,6 @@ import { ticketAttachmentSchema } from './ticket-attachment.schema';
  */
 export const REQUESTER_NAME_MAX_LENGTH = 200;
 export const DESCRIPTION_MAX_LENGTH = 5000;
-export const ASSIGNEE_MAX_LENGTH = 200;
 export const SOLUTION_MAX_LENGTH = 5000;
 
 export { CONTACT_PHONE_MAX_LENGTH } from '../domain/phone.util';
@@ -40,10 +47,30 @@ const chooseFrom = (what: string) => ({ errorMap: () => ({ message: `Escolha ${w
 export const ticketStatusSchema = z.enum(TICKET_STATUSES, chooseFrom('uma situação da lista'));
 export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES, chooseFrom('a urgência'));
 export const ticketDepartmentSchema = z.enum(TICKET_DEPARTMENTS, chooseFrom('seu departamento'));
+export const ticketAreaSchema = z.enum(TICKET_AREAS, chooseFrom('a área do chamado'));
 export const ticketProblemTypeSchema = z.enum(
-  TICKET_PROBLEM_TYPES,
+  TICKET_PROBLEM_TYPES as [TicketProblemType, ...TicketProblemType[]],
   chooseFrom('o tipo de problema'),
 );
+
+/**
+ * O tipo de problema precisa COMBINAR com a área: "ar-condicionado" não existe em Infra, e
+ * "rede caiu" não existe em Manutenção. A checagem de enum sozinha não garante isso — ela só
+ * sabe que o valor existe em ALGUMA área (é a união das três). Por isso vai num `superRefine`,
+ * de quem é dono dos dois campos ao mesmo tempo.
+ */
+function checkProblemTypeMatchesArea(
+  value: { area: string; problemType: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (isTicketProblemTypeForArea(value.area as never, value.problemType)) return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: 'Escolha um tipo de problema da área selecionada',
+    path: ['problemType'],
+  });
+}
 
 const requesterNameSchema = z
   .string({ required_error: 'Informe seu nome' })
@@ -56,25 +83,6 @@ const descriptionSchema = z
   .trim()
   .min(1, 'Descreva o problema')
   .max(DESCRIPTION_MAX_LENGTH, `A descrição pode ter até ${DESCRIPTION_MAX_LENGTH} caracteres`);
-
-/** Texto opcional: vazio vira nulo, para a busca não tratar "" e nulo como coisas diferentes. */
-const optionalText = (max: number, tooLong: string) =>
-  z
-    .string()
-    .trim()
-    .max(max, tooLong)
-    .transform((value) => (value === '' ? null : value))
-    .nullable();
-
-const assigneeSchema = optionalText(
-  ASSIGNEE_MAX_LENGTH,
-  `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-);
-
-const solutionSchema = optionalText(
-  SOLUTION_MAX_LENGTH,
-  `O que foi feito pode ter até ${SOLUTION_MAX_LENGTH} caracteres`,
-);
 
 /**
  * O chamado como o PAINEL do TI o enxerga — tudo.
@@ -91,8 +99,20 @@ export const ticketSchema = z.object({
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
   requesterName: z.string(),
+  /**
+   * A ÁREA de quem atende (Infra, Sistema ou Manutenção) — escolhida por quem abre, pelo que
+   * PARECE o problema (#13). É dela que depende quem enxerga o chamado: só quem tem cargo
+   * nesta área (ou nalguma das `participantAreas`) consegue ler e atender.
+   */
+  area: ticketAreaSchema,
   department: ticketDepartmentSchema,
   problemType: ticketProblemTypeSchema,
+  /**
+   * Áreas ADICIONAIS, somadas à área original depois que o chamado já existe — ex.: um
+   * chamado de Infra que também precisa de Manutenção. Quem gerencia alguma área do chamado
+   * pode somar outra; a área original nunca entra aqui, só as que vieram depois.
+   */
+  participantAreas: z.array(ticketAreaSchema),
   anydeskId: z.string().nullable(),
   contactPhone: z.string().nullable(),
   notifyWhatsapp: z.boolean(),
@@ -134,6 +154,7 @@ export const publicTicketSchema = ticketSchema
     status: true,
     priority: true,
     requesterName: true,
+    area: true,
     department: true,
     problemType: true,
     anydeskId: true,
@@ -150,6 +171,12 @@ export const publicTicketSchema = ticketSchema
      * pelo painel, com identidade (ver o controller de anexos).
      */
     attachments: z.array(ticketAttachmentSchema),
+    /**
+     * A LINHA DO TEMPO que quem abriu pode ver: só os históricos marcados como visíveis, e
+     * sem o bastidor (identidade de quem escreveu, tempo gasto). É por ela que a pessoa
+     * acompanha o pedido — "aguardando a peça chegar" responde mais do que uma situação.
+     */
+    histories: z.array(publicTicketHistorySchema),
   });
 
 export type PublicTicket = z.infer<typeof publicTicketSchema>;
@@ -163,23 +190,26 @@ export type PublicTicket = z.infer<typeof publicTicketSchema>;
  * O print não está no schema: ele viaja como arquivo, na mesma requisição, e é o controller
  * que o recebe. Validar imagem é trabalho de quem lê os bytes, não do Zod.
  */
-export const createTicketSchema = z.object({
-  requesterName: requesterNameSchema,
-  department: ticketDepartmentSchema,
-  problemType: ticketProblemTypeSchema,
-  anydeskId: anydeskSchema.optional(),
-  priority: ticketPrioritySchema.default(DEFAULT_TICKET_PRIORITY),
-  contactPhone: contactPhoneSchema,
-  /**
-   * Vem de uma caixa de seleção, e num formulário multipart todo campo chega como texto:
-   * `"true"` e `true` precisam significar a mesma coisa. Qualquer outro valor é "não" —
-   * ninguém é inscrito em aviso por engano de digitação.
-   */
-  notifyWhatsapp: z
-    .preprocess((value) => value === true || value === 'true', z.boolean())
-    .default(false),
-  description: descriptionSchema,
-});
+export const createTicketSchema = z
+  .object({
+    requesterName: requesterNameSchema,
+    area: ticketAreaSchema,
+    department: ticketDepartmentSchema,
+    problemType: ticketProblemTypeSchema,
+    anydeskId: anydeskSchema.optional(),
+    priority: ticketPrioritySchema.default(DEFAULT_TICKET_PRIORITY),
+    contactPhone: contactPhoneSchema,
+    /**
+     * Vem de uma caixa de seleção, e num formulário multipart todo campo chega como texto:
+     * `"true"` e `true` precisam significar a mesma coisa. Qualquer outro valor é "não" —
+     * ninguém é inscrito em aviso por engano de digitação.
+     */
+    notifyWhatsapp: z
+      .preprocess((value) => value === true || value === 'true', z.boolean())
+      .default(false),
+    description: descriptionSchema,
+  })
+  .superRefine(checkProblemTypeMatchesArea);
 
 export type CreateTicketInput = z.input<typeof createTicketSchema>;
 
@@ -190,32 +220,43 @@ export type CreateTicketInput = z.input<typeof createTicketSchema>;
  * API devolveria. O que muda é só a forma: o servidor transforma "" em nulo; o formulário
  * não precisa saber disso.
  */
-export const ticketFormSchema = z.object({
-  requesterName: requesterNameSchema,
-  department: ticketDepartmentSchema,
-  problemType: ticketProblemTypeSchema,
-  anydeskId: anydeskFormSchema,
-  priority: ticketPrioritySchema,
-  contactPhone: contactPhoneSchema,
-  notifyWhatsapp: z.boolean(),
-  description: descriptionSchema,
-});
+export const ticketFormSchema = z
+  .object({
+    requesterName: requesterNameSchema,
+    area: ticketAreaSchema,
+    department: ticketDepartmentSchema,
+    problemType: ticketProblemTypeSchema,
+    anydeskId: anydeskFormSchema,
+    priority: ticketPrioritySchema,
+    contactPhone: contactPhoneSchema,
+    notifyWhatsapp: z.boolean(),
+    description: descriptionSchema,
+  })
+  .superRefine(checkProblemTypeMatchesArea);
 
 export type TicketFormValues = z.input<typeof ticketFormSchema>;
 
 /**
- * O que o TI altera no painel. Campo AUSENTE não mexe; campo NULO limpa.
+ * Os DADOS do chamado que o TI corrige no painel. Campo AUSENTE não mexe; campo NULO limpa.
  *
  * Nada que identifique quem abriu entra aqui: corrigir o nome ou o telefone de um chamado
- * alheio apagaria o que a pessoa de fato escreveu. O TI muda a situação, assume o chamado e
- * registra o que fez — só isso.
+ * alheio apagaria o que a pessoa de fato escreveu.
  *
- * Não existe exclusão de chamado em lugar nenhum do contrato: o que sai da fila sai por
- * situação (`resolved`, `cancelled`), e o histórico fica.
+ * **O estágio e a solução NÃO entram aqui, de propósito.** Eles só mudam por um HISTÓRICO
+ * lançado na ordem de serviço (`createTicketHistorySchema`): é o que garante que toda mudança
+ * de estágio tenha quem, quando e por quê na linha do tempo. Aceitar `status` aqui seria uma
+ * porta lateral para encerrar um chamado sem deixar rastro.
+ *
+ * Cada alteração feita por aqui vira, sozinha, um histórico de "Alteração de dados".
  */
 export const updateTicketSchema = z.object({
-  status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
+  /**
+   * Reclassificar a área — quem abriu escolheu pelo que parecia; quem atende descobre que
+   * era de outra área. Só quem gerencia (cargo de gestor+) numa das áreas atuais do chamado
+   * pode mudar isto (ver `TicketsService.update`).
+   */
+  area: ticketAreaSchema.optional(),
   /**
    * O tipo do problema É corrigível pelo painel: quem abre escolhe pelo que parece, e quem
    * atende descobre o que era. Sem isso, o mapa de "o que mais dá problema" fica torto para
@@ -224,46 +265,78 @@ export const updateTicketSchema = z.object({
   problemType: ticketProblemTypeSchema.optional(),
   /** A máquina do chamado. Nulo DESVINCULA — é como se corrige um vínculo errado. */
   computerId: z.number().int().positive().nullable().optional(),
-  assignee: assigneeSchema.optional(),
-  solution: solutionSchema.optional(),
+  /* O RESPONSÁVEL não entra aqui: ele não se troca à mão. Quem assume o chamado vira
+     responsável ao lançar o primeiro histórico (`toTicketMove`). Um `assignee` no corpo é
+     ignorado, como `status` e `solution`. */
 });
 
 export type UpdateTicketInput = z.input<typeof updateTicketSchema>;
 
-/** A forma do formulário de atendimento, no painel. */
-export const ticketAnswerFormSchema = z.object({
-  status: ticketStatusSchema,
-  priority: ticketPrioritySchema,
-  problemType: ticketProblemTypeSchema,
-  /**
-   * No formulário a máquina é TEXTO, como todo campo de `select`: vazio quer dizer "nenhuma".
-   * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
-   */
-  computerId: z.string(),
-  assignee: z
-    .string()
-    .max(
-      ASSIGNEE_MAX_LENGTH,
-      `O nome do responsável pode ter até ${ASSIGNEE_MAX_LENGTH} caracteres`,
-    ),
-  solution: z
-    .string()
-    .max(SOLUTION_MAX_LENGTH, `O que foi feito pode ter até ${SOLUTION_MAX_LENGTH} caracteres`),
+/**
+ * A forma do formulário de DADOS do chamado, no painel.
+ *
+ * `area` entra aqui porque reclassificar é parte de atender: quem pegou o chamado é quem
+ * percebe que ele é de outra área. A API decide se quem está atendendo PODE mudar — o
+ * formulário só manda o valor escolhido.
+ */
+export const ticketDataFormSchema = z
+  .object({
+    priority: ticketPrioritySchema,
+    area: ticketAreaSchema,
+    problemType: ticketProblemTypeSchema,
+    /**
+     * No formulário a máquina é TEXTO, como todo campo de `select`: vazio quer dizer "nenhuma".
+     * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
+     */
+    computerId: z.string(),
+  })
+  .superRefine(checkProblemTypeMatchesArea);
+
+export type TicketDataFormValues = z.input<typeof ticketDataFormSchema>;
+
+/**
+ * Somar uma área PARTICIPANTE a um chamado já aberto (#13) — ex.: um chamado de Infra que
+ * também precisa de Manutenção. A área original não entra aqui: ela já está em `area`.
+ */
+export const addTicketAreaSchema = z.object({
+  area: ticketAreaSchema,
 });
 
-export type TicketAnswerFormValues = z.input<typeof ticketAnswerFormSchema>;
+export type AddTicketAreaInput = z.infer<typeof addTicketAreaSchema>;
 
 export const ticketListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
   /** Os chamados DESTA máquina — é a consulta da ficha do computador. */
   computerId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
+  /**
+   * Um GRUPO de estágios de uma vez — "aguardando" (os dois) ou "resolvidos" (com e sem
+   * ressalva). É o filtro dos cartões do topo, que contam o grupo inteiro.
+   */
+  statusGroup: z.enum(TICKET_STATUS_GROUPS, chooseFrom('um grupo de estágios')).optional(),
   priority: ticketPrioritySchema.optional(),
+  area: ticketAreaSchema.optional(),
   department: ticketDepartmentSchema.optional(),
   problemType: ticketProblemTypeSchema.optional(),
 });
 
 export type TicketListQuery = z.infer<typeof ticketListQuerySchema>;
+
+/**
+ * Os INDICADORES da fila: os cartões de cima e os dois gráficos.
+ *
+ * `area` é o CONTEXTO em que a pessoa está (#13), e não um filtro que ela escolhe. Sem ele os
+ * números seriam a soma das três áreas enquanto a lista logo abaixo mostra uma só — e o
+ * "98 abertos" de Infraestrutura apareceria em Manutenção, onde não existe nenhum.
+ *
+ * Continua opcional: sem área, os indicadores são de tudo o que a pessoa enxerga (é o que a
+ * ficha do computador e qualquer leitura futura sem contexto precisam).
+ */
+export const ticketDashboardQuerySchema = z.object({
+  area: ticketAreaSchema.optional(),
+});
+
+export type TicketDashboardQuery = z.infer<typeof ticketDashboardQuerySchema>;
 
 /**
  * Baixar o relatório: os MESMOS filtros da lista, sem página — o arquivo sai com tudo que

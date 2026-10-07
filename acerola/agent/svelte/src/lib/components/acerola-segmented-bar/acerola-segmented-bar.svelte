@@ -38,7 +38,7 @@
 >
 	{#each segmentIndexes as index (index)}
 		<div
-			class="h-full min-w-0 flex-1 rounded-[1px] transition-colors duration-300"
+			class="h-full min-w-0 flex-1 rounded-none transition-colors duration-300"
 			style={`background:${index < filledCount ? `var(${ui?.colorVar ?? '--chart-4'})` : 'var(--border)'}`}
 		></div>
 	{/each}

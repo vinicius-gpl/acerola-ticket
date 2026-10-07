@@ -133,7 +133,7 @@ describe('useDisposalListModel', () => {
 
     model.actions.onOpenMachine(computer({ id: 42 }));
 
-    expect(goto).toHaveBeenCalledWith('/computers/42');
+    expect(goto).toHaveBeenCalledWith('/infra/computers/42');
   });
 
   /* Devolver ao inventário é desfazer uma decisão: pergunta antes. */

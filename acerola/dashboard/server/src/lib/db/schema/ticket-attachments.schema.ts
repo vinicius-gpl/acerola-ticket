@@ -12,6 +12,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 
+import { ticketHistories } from './ticket-histories.schema';
 import { tickets } from './tickets.schema';
 
 /** Monta a lista de valores aceitos para a checagem do banco, a partir da lista do domínio. */
@@ -50,6 +51,15 @@ export const ticketAttachments = pgTable(
       .notNull()
       .references(() => tickets.id, { onDelete: 'cascade' }),
 
+    /**
+     * O HISTÓRICO com o qual o arquivo foi anexado, quando foi junto de um.
+     *
+     * Nulo é o arquivo do próprio chamado: o que veio com a abertura, ou o que o TI juntou
+     * solto. `set null` por coerência com a regra acima — histórico também não se apaga, mas
+     * se um dia sumir, o arquivo continua sendo do chamado.
+     */
+    historyId: integer('history_id').references(() => ticketHistories.id, { onDelete: 'set null' }),
+
     kind: text('kind', { enum: ATTACHMENT_KINDS }).notNull(),
 
     /**
@@ -85,6 +95,7 @@ export const ticketAttachments = pgTable(
   (table) => [
     /* A consulta é sempre "os anexos deste chamado". */
     index('ticket_attachments_ticket_idx').on(table.ticketId),
+    index('ticket_attachments_history_idx').on(table.historyId),
     check('ticket_attachments_kind_valid', sql`${table.kind} in (${valuesFor(ATTACHMENT_KINDS)})`),
     /* O lado do arquivo decide quem pode apagá-lo, e por isso a checagem é do BANCO: um
        valor inventado aqui viraria um arquivo que ninguém consegue apagar, ou pior, um que

@@ -59,7 +59,7 @@ describe('useBudgetModel', () => {
 
     model.actions.onOpenMachine(42);
 
-    expect(goto).toHaveBeenCalledWith('/computers/42');
+    expect(goto).toHaveBeenCalledWith('/infra/computers/42');
   });
 
   it('opens the storeroom to check the shelf', async () => {
@@ -67,7 +67,7 @@ describe('useBudgetModel', () => {
 
     model.actions.onOpenParts();
 
-    expect(goto).toHaveBeenCalledWith('/parts');
+    expect(goto).toHaveBeenCalledWith('/infra/parts');
   });
 
   /* Precisar e o depósito cobrir é a boa notícia da tela, e não a mesma coisa que não

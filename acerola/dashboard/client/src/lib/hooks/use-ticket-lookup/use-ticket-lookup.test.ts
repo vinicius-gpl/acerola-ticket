@@ -18,12 +18,14 @@ const ticket: PublicTicket = {
   status: 'in_progress',
   priority: 'high',
   requesterName: 'Bia Costa',
+  area: 'infra',
   department: 'financeiro',
   problemType: 'printer',
   anydeskId: null,
   description: 'A impressora não puxa papel.',
   screenshotUrl: null,
   attachments: [],
+  histories: [],
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 

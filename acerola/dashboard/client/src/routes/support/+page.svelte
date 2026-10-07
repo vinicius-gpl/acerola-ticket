@@ -1,7 +1,7 @@
 <script lang="ts">
-  import ActionButton from '$lib/components/action-button/action-button.svelte';
-  import OpenTicketForm from '$lib/components/open-ticket-form/open-ticket-form.svelte';
-  import TicketLookupDrawer from '$lib/components/ticket-lookup-drawer/ticket-lookup-drawer.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import OpenTicketForm from './components/acerola-open-ticket-form/acerola-open-ticket-form.svelte';
+  import TicketLookupDrawer from './components/acerola-ticket-lookup-drawer/acerola-ticket-lookup-drawer.svelte';
   import { useOpenTicketModel } from '$lib/hooks/use-open-ticket/use-open-ticket.svelte';
   import { useTicketLookupModel } from '$lib/hooks/use-ticket-lookup/use-ticket-lookup.svelte';
 
@@ -51,8 +51,10 @@
   <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-5 px-4 py-10 sm:px-6">
     <OpenTicketForm data={open.data} state={open.state} actions={open.actions} />
 
+    <!-- Para `/login`, e não para a raiz: a raiz manda quem está sem sessão de volta para cá,
+         e o link viraria um laço. Quem já está logado passa direto pelo login e cai no painel. -->
     <p class="text-ink-500 text-center text-xs">
-      É do time de TI? <a class="text-primary underline" href="/tickets">Abrir o painel</a>
+      É do time de TI? <a class="text-primary underline" href="/login">Abrir o painel</a>
     </p>
   </main>
 </div>

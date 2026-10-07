@@ -13,6 +13,7 @@ function row(over: Partial<TicketWithComputer> = {}): TicketWithComputer {
     status: 'open',
     priority: 'medium',
     requesterName: 'Bia Costa',
+    area: 'infra',
     department: 'financeiro',
     computerId: null,
     computerName: null,
@@ -58,9 +59,21 @@ describe('toTicket', () => {
   });
 
   it('never leaks the storage key, which is not a link anyone can open', () => {
-    const ticket = toTicket(row({ screenshotKey: 'chamados/abc.png' }), null);
+    const ticket = toTicket(row({ screenshotKey: 'tickets/abc.png' }), null);
 
     expect(ticket).not.toHaveProperty('screenshotKey');
+  });
+
+  it('carries the participant areas it was given, besides the original area', () => {
+    const ticket = toTicket(row({ area: 'infra' }), null, ['manutencao']);
+
+    expect(ticket.area).toBe('infra');
+    expect(ticket.participantAreas).toEqual(['manutencao']);
+  });
+
+  // triste
+  it('defaults to no participant areas when none were given', () => {
+    expect(toTicket(row(), null).participantAreas).toEqual([]);
   });
 });
 
@@ -94,6 +107,7 @@ describe('toPublicTicket', () => {
 describe('toTicketInsert', () => {
   const input = {
     requesterName: '  Bia Costa  ',
+    area: 'infra' as const,
     department: 'rh' as const,
     problemType: 'network' as const,
     contactPhone: ' 62 99999-9999 ',
@@ -108,8 +122,12 @@ describe('toTicketInsert', () => {
     expect(values.description).toBe('A internet caiu.');
   });
 
+  it('carries the area the person chose', () => {
+    expect(toTicketInsert(input, null).area).toBe('infra');
+  });
+
   it('keeps the storage key given by whoever stored the file', () => {
-    expect(toTicketInsert(input, 'chamados/abc.png').screenshotKey).toBe('chamados/abc.png');
+    expect(toTicketInsert(input, 'tickets/abc.png').screenshotKey).toBe('tickets/abc.png');
   });
 
   it('reads the checkbox sent as text by a multipart form', () => {
@@ -129,67 +147,43 @@ describe('toTicketInsert', () => {
 describe('toTicketUpdate', () => {
   // feliz
   it('always stamps who touched it and when', () => {
-    const update = toTicketUpdate({ solution: 'Pronto.' }, ANA, row(), NOW);
+    const update = toTicketUpdate({ priority: 'high' }, ANA, NOW);
 
     expect(update.updatedBy).toBe(ANA);
     expect(update.updatedAt).toBe(NOW);
+    expect(update.priority).toBe('high');
   });
 
-  it('stamps the start when the ticket is picked up', () => {
-    const update = toTicketUpdate({ status: 'in_progress' }, ANA, row(), NOW);
+  /* O responsável só muda quando alguém assume o chamado por um histórico — nunca por aqui. */
+  it('never changes who is responsible, even when the body tries to', () => {
+    const update = toTicketUpdate({ priority: 'high', assignee: 'Carlos' } as never, ANA, NOW);
 
-    expect(update.startedAt).toBe(NOW);
+    expect(update).not.toHaveProperty('assignee');
   });
 
-  it('stamps both start and resolution when it is solved straight away', () => {
-    const update = toTicketUpdate({ status: 'resolved' }, ANA, row(), NOW);
-
-    expect(update.startedAt).toBe(NOW);
-    expect(update.resolvedAt).toBe(NOW);
-  });
-
-  it('keeps the original start when the ticket was already being worked on', () => {
-    const current = row({ status: 'in_progress', startedAt: CREATED_AT });
-    const update = toTicketUpdate({ status: 'resolved' }, ANA, current, NOW);
-
-    expect(update.startedAt).toBeUndefined();
-    expect(update.resolvedAt).toBe(NOW);
-  });
-
-  it('clears an emptied solution, so the field can actually be wiped', () => {
-    expect(toTicketUpdate({ solution: '   ' }, ANA, row(), NOW).solution).toBeNull();
+  it('reclassifies the area when asked to', () => {
+    expect(toTicketUpdate({ area: 'manutencao' }, ANA, NOW).area).toBe('manutencao');
   });
 
   // triste
-  it('does not move the start stamp when the status did not change', () => {
-    const current = row({ status: 'in_progress', startedAt: CREATED_AT });
-    const update = toTicketUpdate({ status: 'in_progress' }, ANA, current, NOW);
-
-    expect(update.startedAt).toBeUndefined();
-  });
-
-  it('clears the resolution date when a ticket goes back to the queue', () => {
-    const current = row({ status: 'resolved', startedAt: CREATED_AT, resolvedAt: CREATED_AT });
-    const update = toTicketUpdate({ status: 'in_progress' }, ANA, current, NOW);
-
-    expect(update.resolvedAt).toBeNull();
-  });
-
-  it('does not count a cancelled ticket as resolved', () => {
-    const current = row({ status: 'resolved', startedAt: CREATED_AT, resolvedAt: CREATED_AT });
-    const update = toTicketUpdate({ status: 'cancelled' }, ANA, current, NOW);
-
-    expect(update.resolvedAt).toBeNull();
-  });
-
-  it('does not stamp a start for a ticket cancelled before anyone touched it', () => {
-    const update = toTicketUpdate({ status: 'cancelled' }, ANA, row(), NOW);
-
-    expect(update.startedAt).toBeUndefined();
-  });
-
   it('touches nothing but the stamps when the change is empty', () => {
-    expect(toTicketUpdate({}, ANA, row(), NOW)).toEqual({ updatedAt: NOW, updatedBy: ANA });
+    expect(toTicketUpdate({}, ANA, NOW)).toEqual({ updatedAt: NOW, updatedBy: ANA });
+  });
+
+  it('leaves the area alone when it was not sent', () => {
+    expect(toTicketUpdate({ priority: 'low' }, ANA, NOW)).not.toHaveProperty('area');
+  });
+
+  /* O estágio e os carimbos dele só mudam por um histórico lançado (`toTicketMove`): corrigir
+     um dado não pode mover o chamado de estágio nem mexer no tempo de atendimento. */
+  it('never moves the stage nor its stamps, whatever comes in the body', () => {
+    const smuggled = { status: 'resolved', solution: 'Pronto.' } as never;
+    const update = toTicketUpdate(smuggled, ANA, NOW);
+
+    expect(update).not.toHaveProperty('status');
+    expect(update).not.toHaveProperty('solution');
+    expect(update).not.toHaveProperty('startedAt');
+    expect(update).not.toHaveProperty('resolvedAt');
   });
 });
 
@@ -216,12 +210,7 @@ describe('toTicket com máquina', () => {
 describe('toTicketUpdate com máquina e tipo', () => {
   // feliz
   it('links the machine and corrects the problem type', () => {
-    const update = toTicketUpdate(
-      { computerId: 11, problemType: 'slow_computer' },
-      ANA,
-      row(),
-      NOW,
-    );
+    const update = toTicketUpdate({ computerId: 11, problemType: 'slow_computer' }, ANA, NOW);
 
     expect(update.computerId).toBe(11);
     expect(update.problemType).toBe('slow_computer');
@@ -230,14 +219,12 @@ describe('toTicketUpdate com máquina e tipo', () => {
   /* Nulo DESVINCULA: é assim que se desfaz um vínculo errado, e por isso o mapper precisa
      distinguir "não mandou o campo" de "mandou vazio". */
   it('unlinks the machine when the field comes empty', () => {
-    expect(
-      toTicketUpdate({ computerId: null }, ANA, row({ computerId: 11 }), NOW).computerId,
-    ).toBeNull();
+    expect(toTicketUpdate({ computerId: null }, ANA, NOW).computerId).toBeNull();
   });
 
   // triste
   it('leaves the link alone when the field was not sent', () => {
-    const update = toTicketUpdate({ status: 'resolved' }, ANA, row({ computerId: 11 }), NOW);
+    const update = toTicketUpdate({ priority: 'low' }, ANA, NOW);
 
     expect(update).not.toHaveProperty('computerId');
     expect(update).not.toHaveProperty('problemType');

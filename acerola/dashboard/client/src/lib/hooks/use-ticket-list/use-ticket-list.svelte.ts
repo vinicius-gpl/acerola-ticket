@@ -6,6 +6,7 @@ import {
 import {
   type TicketPriority,
   type TicketStatus,
+  type TicketStatusGroup,
 } from '@template/shared/domain/ticket-status.util';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { type Ticket } from '@template/shared/schemas/ticket.schema';
@@ -13,7 +14,8 @@ import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { ticketsApi, type TicketDashboard } from '$lib/api/tickets.api';
-import { mirrorStore } from '$lib/hooks/mirror-store/mirror-store.svelte';
+import { type AreaContext } from '$lib/hooks/use-area-context/use-area-context.svelte';
+import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { triggerBrowserDownload } from '$lib/utils/download-file.util';
 
 export const TICKETS_PAGE_SIZE = 15;
@@ -21,6 +23,11 @@ export const TICKETS_PAGE_SIZE = 15;
 export type TicketListFilter = {
   search: string;
   status: TicketStatus | '';
+  /**
+   * Um GRUPO de estágios de uma vez — o filtro dos cartões "Aguardando" e "Resolvidos", que
+   * contam mais de um estágio. Nunca vale junto com `status`: escolher um limpa o outro.
+   */
+  statusGroup: TicketStatusGroup | '';
   priority: TicketPriority | '';
   department: TicketDepartment | '';
   problemType: TicketProblemType | '';
@@ -28,6 +35,12 @@ export type TicketListFilter = {
 
 export type TicketListModel = {
   data: {
+    /**
+     * A ÁREA da fila — o contexto da rota (#13). A tela usa para oferecer só os tipos de
+     * problema que existem nessa área: "Certificado digital" não é assunto de Manutenção, e
+     * "Ar-condicionado" não é de Infraestrutura.
+     */
+    area: AreaContext;
     tickets: Ticket[];
     /** Quantos casaram com o filtro — pode ser mais do que os que vieram na página. */
     total: number;
@@ -57,6 +70,7 @@ export type TicketListModel = {
   actions: {
     onSearchChange: (search: string) => void;
     onStatusChange: (status: TicketStatus | '') => void;
+    onStatusGroupChange: (group: TicketStatusGroup | '') => void;
     onPriorityChange: (priority: TicketPriority | '') => void;
     onDepartmentChange: (department: TicketDepartment | '') => void;
     onProblemTypeChange: (problemType: TicketProblemType | '') => void;
@@ -70,6 +84,7 @@ export type TicketListModel = {
 const EMPTY_FILTER: TicketListFilter = {
   search: '',
   status: '',
+  statusGroup: '',
   priority: '',
   department: '',
   problemType: '',
@@ -77,11 +92,18 @@ const EMPTY_FILTER: TicketListFilter = {
 
 export const TICKETS_QUERY_KEY = ['tickets'] as const;
 
-function scopeOf(filter: TicketListFilter) {
+/**
+ * `areaContext` é o contexto da rota (#13) — a área em que a pessoa está trabalhando.
+ * A fila é SEMPRE dessa área: não existe mais um "Todas" misturando chamado de computador com
+ * chamado de ar-condicionado na mesma lista. Ele SOMA ao filtro, não o substitui.
+ */
+function scopeOf(filter: TicketListFilter, areaContext: AreaContext) {
   return {
     search: filter.search.trim() || undefined,
     status: filter.status || undefined,
+    statusGroup: filter.statusGroup || undefined,
     priority: filter.priority || undefined,
+    area: areaContext,
     department: filter.department || undefined,
     problemType: filter.problemType || undefined,
   };
@@ -91,10 +113,17 @@ function scopeOf(filter: TicketListFilter) {
  * Estado, consultas e handlers da fila de chamados do painel. ZERO marcação — a view recebe
  * tudo por props e não sabe de onde o dado veio (CONTRIBUTING §3).
  *
- * Atender um chamado NÃO está aqui: tem o próprio view-model (`use-ticket-answer`), e a rota
- * compõe os dois.
+ * Atender um chamado NÃO está aqui: ele tem a própria ficha (`/<contexto>/tickets/[id]`), com
+ * os view-models dela (`use-ticket-detail`, `use-ticket-history-form`, `use-ticket-data-form`).
+ *
+ * `area` chega por parâmetro, e não de um estado global: cada contexto tem a própria rota
+ * (`/infra/tickets`, `/system/tickets`, `/maintenance/tickets`), e é a rota que sabe de quem
+ * é a fila. Ela não muda enquanto a tela vive — trocar de contexto é trocar de rota, e a tela
+ * nova monta um model novo.
  */
-export function useTicketListModel(): TicketListModel {
+export function useTicketListModel(input: { area: AreaContext }): TicketListModel {
+  const { area } = input;
+
   /* O filtro mora numa STORE, e não num `$state`: esta versão do @tanstack/svelte-query
      recebe as opções como store e é ela quem decide quando refazer a busca. Com `$state`,
      duas mudanças seguidas de filtro chegariam à consulta como uma emissão só, com o valor
@@ -110,10 +139,10 @@ export function useTicketListModel(): TicketListModel {
   const list = mirrorStore(
     createQuery(
       derived([filterStore, pageStore], ([currentFilter, currentPage]) => ({
-        queryKey: [...TICKETS_QUERY_KEY, 'list', scopeOf(currentFilter), currentPage],
+        queryKey: [...TICKETS_QUERY_KEY, 'list', scopeOf(currentFilter, area), currentPage],
         queryFn: () =>
           ticketsApi.list({
-            ...scopeOf(currentFilter),
+            ...scopeOf(currentFilter, area),
             page: currentPage,
             pageSize: TICKETS_PAGE_SIZE,
           }),
@@ -123,12 +152,16 @@ export function useTicketListModel(): TicketListModel {
 
   /* Os indicadores NÃO recebem o filtro: "quanto tempo levamos para resolver" é uma pergunta
      sobre o atendimento inteiro. Recalculá-los a cada filtro faria o número mudar enquanto a
-     pessoa procura um chamado, como se o desempenho do time dependesse da busca. */
+     pessoa procura um chamado, como se o desempenho do time dependesse da busca.
+
+     Mas eles RECEBEM O CONTEXTO (#13), pelo motivo oposto: o contexto não é um filtro da
+     tela, é a área em que a pessoa está trabalhando. Sem ele, os "98 abertos" de
+     Infraestrutura apareciam em cima da fila de Manutenção, que não tem nenhum. */
   const dashboard = mirrorStore(
     createQuery(
       writable({
-        queryKey: [...TICKETS_QUERY_KEY, 'dashboard'],
-        queryFn: () => ticketsApi.dashboard(),
+        queryKey: [...TICKETS_QUERY_KEY, 'dashboard', area],
+        queryFn: () => ticketsApi.dashboard(area),
       }),
     ),
   );
@@ -138,6 +171,7 @@ export function useTicketListModel(): TicketListModel {
        valores fixos, a lista congelaria no primeiro carregamento. */
     get data() {
       return buildData({
+        area,
         page: list.current.data,
         currentPage: page.current,
         dashboard: dashboard.current.data ?? null,
@@ -159,7 +193,13 @@ export function useTicketListModel(): TicketListModel {
       },
       onStatusChange: (status) => {
         pageStore.set(1);
-        filterStore.update((current) => ({ ...current, status }));
+        /* Estágio e grupo são o MESMO filtro em dois tamanhos: os dois juntos pediriam
+           "aberto E aguardando", que não acha nada. */
+        filterStore.update((current) => ({ ...current, status, statusGroup: '' }));
+      },
+      onStatusGroupChange: (statusGroup) => {
+        pageStore.set(1);
+        filterStore.update((current) => ({ ...current, statusGroup, status: '' }));
       },
       onPriorityChange: (priority) => {
         pageStore.set(1);
@@ -179,7 +219,7 @@ export function useTicketListModel(): TicketListModel {
         exportingFormat = format;
 
         ticketsApi
-          .exportReport(scopeOf(filter.current), format)
+          .exportReport(scopeOf(filter.current, area), format)
           .then(({ blob, fileName }) => triggerBrowserDownload(blob, fileName))
           .catch((error: unknown) => {
             exportError = readError(error) ?? 'Não consegui gerar o relatório.';
@@ -207,6 +247,7 @@ type TicketPage = { items: Ticket[]; total: number } | undefined;
  * passava do teto de complexidade sem ter nenhuma decisão de verdade dentro.
  */
 function buildData(input: {
+  area: AreaContext;
   page: TicketPage;
   currentPage: number;
   dashboard: TicketDashboard | null;
@@ -215,6 +256,7 @@ function buildData(input: {
   const total = input.page?.total ?? 0;
 
   return {
+    area: input.area,
     tickets: input.page?.items ?? [],
     total,
     dashboard: input.dashboard,
@@ -240,6 +282,7 @@ function hasAnyFilter(filter: TicketListFilter): boolean {
 
   return (
     filter.status !== '' ||
+    filter.statusGroup !== '' ||
     filter.priority !== '' ||
     filter.department !== '' ||
     filter.problemType !== ''

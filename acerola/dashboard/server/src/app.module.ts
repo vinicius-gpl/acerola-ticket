@@ -8,6 +8,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './lib/auth/auth.module';
 import { AppConfigModule } from './lib/config/app-config.module';
 import { DbModule } from './lib/db/db.module';
+import { LoggingModule } from './lib/logging/logging.module';
 import { SecurityModule } from './lib/security/security.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
@@ -18,6 +19,9 @@ import { HealthModule } from './modules/health/health.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { NetworkModule } from './modules/network/network.module';
+import { InventoryItemsModule } from './modules/inventory-items/inventory-items.module';
+import { MaintenanceDashboardModule } from './modules/maintenance-dashboard/maintenance-dashboard.module';
+import { MaintenanceQuotesModule } from './modules/maintenance-quotes/maintenance-quotes.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -27,7 +31,7 @@ import { TransfersModule } from './modules/transfers/transfers.module';
 /**
  * Serve o build do client — sem Nginx, sem container à parte. Atrás do Traefik, esta
  * imagem responde `/` (SPA) e `/api` (Nest) sozinha. Em desenvolvimento a pasta não existe
- * (o Vite serve o client em :5176), e o `express.static` por baixo simplesmente devolve 404
+ * (o Vite serve o client em :5005), e o `express.static` por baixo simplesmente devolve 404
  * em silêncio — não derruba o boot.
  */
 const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
@@ -46,6 +50,9 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
       exclude: ['/api/{*path}', '/docs', '/docs-json'],
     }),
     AppConfigModule,
+    /* Logo depois da configuração: o log precisa do `API_LOG_LEVEL` e tem de existir antes de
+       qualquer outro módulo escrever a primeira linha. */
+    LoggingModule,
     /* `@Global` só vale a partir do momento em que o módulo é registrado UMA vez. Sem esta
        linha o token `DB` não existe em lugar nenhum, e todo repository falha na injeção. */
     DbModule,
@@ -63,6 +70,9 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     ComputersModule,
     MaintenancesModule,
     PartsModule,
+    InventoryItemsModule,
+    MaintenanceQuotesModule,
+    MaintenanceDashboardModule,
     DashboardModule,
     NetworkModule,
     InsightsModule,

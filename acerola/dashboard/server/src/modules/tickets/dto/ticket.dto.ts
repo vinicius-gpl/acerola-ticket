@@ -1,6 +1,8 @@
 import {
+  addTicketAreaSchema,
   createTicketSchema,
   publicTicketSchema,
+  ticketDashboardQuerySchema,
   ticketListQuerySchema,
   ticketReportQuerySchema,
   ticketSchema,
@@ -15,9 +17,11 @@ import { z } from 'zod';
  * manda um campo que o servidor ignora em silêncio.
  */
 export class TicketListQueryDto extends createZodDto(ticketListQuerySchema) {}
+export class TicketDashboardQueryDto extends createZodDto(ticketDashboardQuerySchema) {}
 export class TicketReportQueryDto extends createZodDto(ticketReportQuerySchema) {}
 export class CreateTicketDto extends createZodDto(createTicketSchema) {}
 export class UpdateTicketDto extends createZodDto(updateTicketSchema) {}
+export class AddTicketAreaDto extends createZodDto(addTicketAreaSchema) {}
 export class TicketDto extends createZodDto(ticketSchema) {}
 
 /** O que a consulta pública por protocolo devolve — menos campos, de propósito. */

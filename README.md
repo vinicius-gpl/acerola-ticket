@@ -42,7 +42,7 @@ git --version
 
 4. Abra o Claude Code e digite: **`/comecar`**
 
-A skill `comecar` instala tudo, sobe o sistema, grava os dados de teste e abre no navegador.
+A skill `getting-started` instala tudo, sobe o sistema, grava os dados de teste e abre no navegador.
 
 Em seguida, peça **`/renomear-projeto`** para o nome do seu MVP aparecer nas telas.
 
@@ -56,7 +56,7 @@ npm run seed:all # cria o banco e grava os dados de teste
 npm run dev # sobe o sistema
 ```
 
-Abra **<http://localhost:5176>**. A documentação da API fica em **<http://localhost:3336/docs>**.
+Abra **<http://localhost:5005>**. A documentação da API fica em **<http://localhost:3005/docs>**.
 
 </details>
 
@@ -181,7 +181,7 @@ Todos rodam dentro de `acerola/dashboard/`:
 
 | Comando                           | O que faz                                                                    |
 | --------------------------------- | ---------------------------------------------------------------------------- |
-| `npm run dev`                     | Sobe API (:3336) e tela (:5176), recarregando a cada mudança                 |
+| `npm run dev`                     | Sobe API (:3005) e tela (:5005), recarregando a cada mudança                 |
 | `npm run seed:all`                | Grava os dados de teste (pode rodar quantas vezes quiser)                    |
 | `npm run db:reset`                | **Apaga** os dados na Neon e recria com os dados de teste                    |
 | `npm run db:generate`             | Gera a migration depois de mudar uma tabela                                  |
@@ -316,3 +316,25 @@ A lista do que é protegido fica em `acerola/dashboard/scripts/git/protected-str
 No GitHub, proteja a `main` (o hook local não pega merge **fast-forward**, e quem tem o clone pode desligar hooks): **Settings → Branches → Add branch ruleset** para `main`, com **Restrict updates** e **Require a pull request before merging**, liberando só você. Marque também o repositório como **Template repository** (Settings → General).
 
 Versões: a partir da `develop`, pelo Git-Flow do Tower (**Start Release** / **Finish Release**), com tag `v<versão>`.
+
+---
+
+## Licença
+
+O código deste projeto é distribuído sob a licença **MIT** — veja o arquivo [`LICENSE`](./LICENSE). Em resumo: pode usar, copiar, modificar e redistribuir, inclusive comercialmente, desde que o aviso de direitos autorais seja mantido.
+
+**As dependências têm as licenças delas.** A regra do que pode entrar fica em [`license-policy.json`](./license-policy.json), e é conferida a cada PR:
+
+```bash
+mise run licenses:check    # confere Node (painel e tela do agente) e Go (agente)
+mise run licenses:list     # mostra a licença de cada dependência
+```
+
+Dependência com licença que não está na lista **reprova o PR**. O caminho é trocar a dependência ou, depois de avaliar, registrar uma exceção com o motivo escrito no próprio `license-policy.json`.
+
+> **Aviso:** a licença MIT cobre só o código deste repositório, **não as dependências**. Em
+> especial, o **GSAP** (as animações da tela) **não é código aberto**: é distribuído sob a
+> licença própria da Webflow, e este projeto não o relicencia. Leia
+> [`THIRD-PARTY-NOTICES.md`](./THIRD-PARTY-NOTICES.md) antes de redistribuir.
+
+O mesmo arquivo explica as dependências **AGPL** que a biblioteca de login da Neon instala sem que o sistema use, e o pacote sem licença declarada que vem do `exceljs`.

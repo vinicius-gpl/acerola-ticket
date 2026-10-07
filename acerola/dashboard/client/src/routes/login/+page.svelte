@@ -1,5 +1,5 @@
 <script lang="ts">
-  import LoginScreen from '$lib/components/login-screen/login-screen.svelte';
+  import LoginScreen from './components/acerola-login-screen/acerola-login-screen.svelte';
   import { useLoginModel } from '$lib/hooks/use-login/use-login.svelte';
 
   /**
