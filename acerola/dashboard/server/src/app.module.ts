@@ -24,6 +24,7 @@ import { MaintenanceDashboardModule } from './modules/maintenance-dashboard/main
 import { MaintenanceQuotesModule } from './modules/maintenance-quotes/maintenance-quotes.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { SoftwareProjectsModule } from './modules/software-projects/software-projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
@@ -79,6 +80,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     BudgetModule,
     TransfersModule,
     RolesModule,
+    SoftwareProjectsModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })

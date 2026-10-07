@@ -20,8 +20,13 @@ vi.mock('$lib/api/computers.api', () => ({
   computersApi: { list: vi.fn() },
 }));
 
+vi.mock('$lib/api/software-projects.api', () => ({
+  softwareProjectsApi: { list: vi.fn() },
+}));
+
 const { ticketsApi } = await import('$lib/api/tickets.api');
 const { computersApi } = await import('$lib/api/computers.api');
+const { softwareProjectsApi } = await import('$lib/api/software-projects.api');
 
 function ticket(over: Partial<Ticket> = {}): Ticket {
   return {
@@ -64,11 +69,12 @@ function mountModel(current: Ticket = ticket()): TicketDataFormModel {
 describe('toFormValues', () => {
   // feliz
   it('starts from what the ticket already has', () => {
-    expect(toFormValues(ticket({ computerId: 11, priority: 'high' }))).toEqual({
+    expect(toFormValues(ticket({ computerId: 11, priority: 'high', projectId: 5 }))).toEqual({
       priority: 'high',
       area: 'infra',
       problemType: 'network',
       computerId: '11',
+      projectId: '5',
     });
   });
 
@@ -77,6 +83,7 @@ describe('toFormValues', () => {
     const values = toFormValues(ticket());
 
     expect(values.computerId).toBe('');
+    expect(values.projectId).toBe('');
     /* O responsável não se troca por este formulário: nem entra nos valores. */
     expect(values).not.toHaveProperty('assignee');
   });
@@ -147,6 +154,12 @@ describe('useTicketDataFormModel', () => {
       page: 1,
       pageSize: 200,
     } as never);
+    vi.mocked(softwareProjectsApi.list).mockResolvedValue({
+      items: [{ id: 1, name: 'Acerola Ticket' }],
+      total: 1,
+      page: 1,
+      pageSize: 200,
+    } as never);
   });
 
   // feliz
@@ -163,6 +176,7 @@ describe('useTicketDataFormModel', () => {
       area: 'infra',
       problemType: 'network',
       computerId: 3,
+      projectId: null,
     });
   });
 

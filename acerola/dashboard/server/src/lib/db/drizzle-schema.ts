@@ -12,6 +12,9 @@ import { networkEvents } from './schema/network-events.schema';
 import { partMovements } from './schema/part-movements.schema';
 import { parts } from './schema/parts.schema';
 import { tasks } from './schema/tasks.schema';
+import { softwareProjects } from './schema/software-projects.schema';
+import { softwareTimelineEvents } from './schema/software-timeline-events.schema';
+import { softwareScheduleEvents } from './schema/software-schedule-events.schema';
 import { ticketAreas } from './schema/ticket-areas.schema';
 import { ticketAttachments } from './schema/ticket-attachments.schema';
 import { ticketHistories } from './schema/ticket-histories.schema';
@@ -30,6 +33,9 @@ import { tickets } from './schema/tickets.schema';
  */
 export const drizzleSchema = {
   tasks,
+  softwareProjects,
+  softwareTimelineEvents,
+  softwareScheduleEvents,
   tickets,
   ticketAreas,
   ticketAttachments,

@@ -74,7 +74,9 @@
 
 <script lang="ts">
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+  import ExternalLink from '@lucide/svelte/icons/external-link';
   import FileDown from '@lucide/svelte/icons/file-down';
+  import GitPullRequest from '@lucide/svelte/icons/git-pull-request';
   import ImageIcon from '@lucide/svelte/icons/image';
   import MessageCircle from '@lucide/svelte/icons/message-circle';
 
@@ -100,6 +102,7 @@
     { label: 'Quem abriu', value: ticket.requesterName },
     { label: 'Departamento', value: ticketDepartmentLabel(ticket.department) },
     { label: 'Área', value: ticketAreaLabel(ticket.area) },
+    ...(ticket.projectName ? [{ label: 'Sistema', value: ticket.projectName }] : []),
     { label: 'Tipo', value: ticketProblemTypeLabel(ticket.problemType) },
     { label: 'WhatsApp', value: ticket.contactPhone ?? 'Não informado' },
     { label: 'AnyDesk', value: ticket.anydeskId ?? 'Não informado' },
@@ -169,6 +172,21 @@
     {#each ticket.participantAreas as area (area)}
       <StatusBadge data={{ label: `Também: ${ticketAreaLabel(area)}` }} ui={{ tone: 'brand' }} />
     {/each}
+    {#if ticket.projectName}
+      <StatusBadge data={{ label: `Sistema: ${ticket.projectName}` }} ui={{ tone: 'brand' }} />
+    {/if}
+    {#if ticket.githubIssueUrl}
+      <a
+        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/80"
+        href={ticket.githubIssueUrl}
+        target="_blank"
+        rel="noopener"
+      >
+        <GitPullRequest class="size-3 text-primary" aria-hidden="true" />
+        <span>Issue #{ticket.githubIssueNumber ?? ''}</span>
+        <ExternalLink class="size-3 text-muted-foreground" aria-hidden="true" />
+      </a>
+    {/if}
   </div>
 
   {#if viewState?.serviceOrderError}

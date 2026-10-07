@@ -47,18 +47,39 @@ export class IdentityProvider {
    */
   async resolve(token: string): Promise<SessionUser | null> {
     const claims = await this.verifyToken(token);
-    if (!claims) return null;
+    if (!claims) {
+      if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+        console.warn('[IdentityProvider] Token rejeitado ou inválido pelo verificador');
+      }
+      return null;
+    }
 
-    const row = await runMaybe(
+    let row = await runMaybe(
       this.db.select().from(neonAuthUsers).where(eq(neonAuthUsers.id, claims.userId)).limit(1),
       'ler a pessoa no cadastro do Neon Auth',
     );
-    if (!row) return null;
-    if (isBanned(row)) return null;
+    if (!row && claims.email) {
+      row = await runMaybe(
+        this.db.select().from(neonAuthUsers).where(eq(neonAuthUsers.email, claims.email)).limit(1),
+        'ler a pessoa no cadastro do Neon Auth por e-mail',
+      );
+    }
+    if (!row) {
+      if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+        console.warn(`[IdentityProvider] Usuário não encontrado no banco neon_auth.user (userId: ${claims.userId}, email: ${claims.email})`);
+      }
+      return null;
+    }
+    if (isBanned(row)) {
+      if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+        console.warn(`[IdentityProvider] Usuário banido: ${row.id}`);
+      }
+      return null;
+    }
 
     const email = row.email || claims.email;
 
-    const conditions = [eq(internalRoles.userId, claims.userId)];
+    const conditions = [eq(internalRoles.userId, claims.userId), eq(internalRoles.userId, row.id)];
     if (email) {
       conditions.push(eq(internalRoles.userEmail, email));
       conditions.push(eq(internalRoles.userId, email));
@@ -144,15 +165,20 @@ function toSessionUser(
   const isSuper = parsedNeonRole.success && parsedNeonRole.data === 'superadmin';
   const contextRoles = resolveContextRoles(row, roleRows, isSuper, parsedNeonRole);
   const primaryRole = isSuper ? 'superadmin' : (contextRoles.sistema ?? DEFAULT_USER_ROLE);
+  const safeName = (row.name?.trim() || email?.split('@')[0] || 'Usuário').trim();
 
   const parsed = sessionUserSchema.safeParse({
     id: row.id,
     email,
-    name: row.name,
+    name: safeName,
     image: row.image,
     role: primaryRole,
     roles: contextRoles,
   });
+
+  if (!parsed.success && process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+    console.warn('[IdentityProvider] sessionUserSchema falhou ao validar dados da sessão:', parsed.error.issues);
+  }
 
   return parsed.success ? parsed.data : null;
 }

@@ -44,6 +44,10 @@ export function toTicket(
     screenshotUrl,
     computerId: row.computerId,
     computerName: row.computerName,
+    projectId: row.projectId ?? null,
+    projectName: row.projectName ?? null,
+    githubIssueNumber: row.githubIssueNumber ?? null,
+    githubIssueUrl: row.githubIssueUrl ?? null,
     assignee: row.assignee,
     solution: row.solution,
     /* O contrato publica data como texto ISO; o Drizzle devolve `Date`. Converter em cada
@@ -135,6 +139,8 @@ export function toTicketUpdate(
   setIfDefined(update, 'problemType', input.problemType);
   /* Nulo aqui DESVINCULA a máquina — é como se desfaz um vínculo errado. */
   setIfDefined(update, 'computerId', input.computerId);
+  /* Nulo aqui DESVINCULA o projeto de software */
+  setIfDefined(update, 'projectId', input.projectId);
 
   return update;
 }

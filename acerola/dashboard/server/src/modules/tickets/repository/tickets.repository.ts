@@ -25,17 +25,21 @@ import { DB } from '../../../lib/db/db.token';
 import { type Database } from '../../../lib/db/db.type';
 import { computers } from '../../../lib/db/schema/computers.schema';
 import { internalRoles } from '../../../lib/db/schema/internal-roles.schema';
+import { softwareProjects } from '../../../lib/db/schema/software-projects.schema';
 import { ticketAreas, type TicketAreaInsert } from '../../../lib/db/schema/ticket-areas.schema';
 import { tickets, type TicketInsert, type TicketRow } from '../../../lib/db/schema/tickets.schema';
 
 /**
- * O chamado com o NOME da máquina junto.
+ * O chamado com o NOME da máquina e do projeto/sistema junto.
  *
  * O nome sai do mesmo `select` por `left join`: buscá-lo depois, linha a linha, daria uma ida
  * ao banco por chamado na lista. `left`, e não `inner`, porque a maioria dos chamados não tem
- * máquina nenhuma — e um `inner` os faria sumir da tela.
+ * máquina ou projeto — e um `inner` os faria sumir da tela.
  */
-export type TicketWithComputer = TicketRow & { computerName: string | null };
+export type TicketWithComputer = TicketRow & {
+  computerName: string | null;
+  projectName?: string | null;
+};
 
 export type TicketPage = {
   rows: TicketWithComputer[];
@@ -43,14 +47,12 @@ export type TicketPage = {
 };
 
 /**
- * As colunas do chamado mais o apelido da máquina.
- *
- * `coalesce`: a ficha mostra o apelido quando existe ("Recepção — balcão") e o nome da própria
- * máquina quando não ("RECEPCAO-01"). Decidir isso aqui evita que cada tela decida diferente.
+ * As colunas do chamado mais o apelido da máquina e nome do projeto.
  */
 const ticketColumns = {
   ...getTableColumns(tickets),
   computerName: sql<string | null>`coalesce(${computers.displayName}, ${computers.name})`,
+  projectName: softwareProjects.name,
 };
 
 /** O recorte que os indicadores precisam — e só ele. */
@@ -95,6 +97,7 @@ export class TicketsRepository {
           .select(ticketColumns)
           .from(tickets)
           .leftJoin(computers, eq(computers.id, tickets.computerId))
+          .leftJoin(softwareProjects, eq(softwareProjects.id, tickets.projectId))
           .where(where)
           .orderBy(desc(tickets.createdAt), desc(tickets.id))
           .limit(query.pageSize)
@@ -120,6 +123,7 @@ export class TicketsRepository {
         .select(ticketColumns)
         .from(tickets)
         .leftJoin(computers, eq(computers.id, tickets.computerId))
+        .leftJoin(softwareProjects, eq(softwareProjects.id, tickets.projectId))
         .where(await this.scopedWhere(query, areas))
         .orderBy(desc(tickets.createdAt), desc(tickets.id)),
       'listar chamados para o relatório',
@@ -173,6 +177,7 @@ export class TicketsRepository {
         .select(ticketColumns)
         .from(tickets)
         .leftJoin(computers, eq(computers.id, tickets.computerId))
+        .leftJoin(softwareProjects, eq(softwareProjects.id, tickets.projectId))
         .where(eq(tickets.id, id))
         .limit(1),
       'ler chamado',
@@ -331,6 +336,7 @@ type TicketFilter = Pick<
   | 'department'
   | 'problemType'
   | 'computerId'
+  | 'projectId'
 >;
 
 /**
@@ -353,6 +359,7 @@ function buildWhere(query: TicketFilter): SQL | undefined {
   if (query.department) filters.push(eq(tickets.department, query.department));
   if (query.problemType) filters.push(eq(tickets.problemType, query.problemType));
   if (query.computerId) filters.push(eq(tickets.computerId, query.computerId));
+  if (query.projectId) filters.push(eq(tickets.projectId, query.projectId));
 
   if (query.search) filters.push(searchFilter(query.search));
 

@@ -30,6 +30,9 @@ function ticket(over: Partial<TicketWithComputer> = {}): TicketWithComputer {
     area: 'infra',
     department: 'financeiro',
     computerId: null,
+    projectId: null,
+    githubIssueNumber: null,
+    githubIssueUrl: null,
     computerName: null,
     problemType: 'printer',
     anydeskId: null,
@@ -257,7 +260,7 @@ describe('describeTicketChanges', () => {
   });
 
   it('names the machine that was linked and the one that was unlinked', () => {
-    const linked = ticket({ computerId: 11, computerName: 'RECEPCAO-01' });
+    const linked = ticket({ computerId: 11, projectId: null, githubIssueNumber: null, githubIssueUrl: null, computerName: 'RECEPCAO-01' });
 
     expect(describeTicketChanges(ticket(), linked)).toBe('Máquina: nenhum → RECEPCAO-01');
     expect(describeTicketChanges(linked, ticket())).toBe('Máquina: RECEPCAO-01 → nenhum');
