@@ -53,10 +53,12 @@
       onViewRoles?: () => void;
       onAreaContextChange?: (context: AreaContext) => void;
     };
+    initialSidebarOpen?: boolean;
   };
 </script>
 
 <script lang="ts">
+  import { untrack } from 'svelte';
   import LogOut from '@lucide/svelte/icons/log-out';
   import { BrandMark } from '$lib/components/acerola-brand-mark/acerola-brand-mark';
   import { fadeInUp } from '$lib/motion/motion';
@@ -75,17 +77,23 @@
     SidebarRail,
     SidebarTrigger,
   } from '$lib/components/ui/sidebar';
+  import * as Tooltip from '$lib/components/ui/tooltip';
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/acerola-app-shell-nav-entry/acerola-app-shell-nav-entry.svelte';
-  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
-  import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
   import EffectsToggle from '$lib/components/acerola-effects-toggle/acerola-effects-toggle.svelte';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
 
   /* `state` (o prop) precisa de outro nome aqui dentro: um binding local chamado `state` faz
      o compilador ler `$state(...)` como inscrição numa store `state`, em vez da rune — o
      mesmo problema, e a mesma solução, do `ColumnChart`. */
-  let { children, data, ui, state: shellState, actions }: AcerolaAppShellProps = $props();
+  let {
+    children,
+    data,
+    ui,
+    state: shellState,
+    actions,
+    initialSidebarOpen = true,
+  }: AcerolaAppShellProps = $props();
 
   /* Sem lista padrão: a casca desenha o menu que o módulo dono passou, e nada mais. Um
      padrão que conhecesse as três listas faria o menu de um contexto aparecer no outro
@@ -94,6 +102,7 @@
   const userName = $derived(data?.user?.name ?? 'Visitante');
 
   let contentEl: HTMLDivElement | undefined = $state();
+  let sidebarOpen = $state(untrack(() => initialSidebarOpen));
 
   /* A troca de tela nasce com um fade sutil — sem isso, uma rota substitui a outra num corte
      seco, e o sistema inteiro parece uma sucessão de telas desconectadas em vez de um só
@@ -105,14 +114,43 @@
   });
 </script>
 
-<SidebarProvider open={!shellState?.isCollapsed}>
+<SidebarProvider bind:open={sidebarOpen}>
   <!-- `collapsible="icon"` e não `offcanvas`: recolhida, a barra vira uma faixa de ícones.
        Sumir por inteiro tiraria da tela a única pista de onde estão as outras telas. -->
   <Sidebar collapsible="icon" variant="inset">
-    <SidebarHeader>
+    <SidebarHeader class="group-data-[collapsible=icon]:p-1">
       <div class="flex items-center px-2 py-1.5 group-data-[collapsible=icon]:hidden">
         <BrandMark ui={{ size: 'sm' }} />
       </div>
+
+      {#if data?.areaOptions && data.areaOptions.length > 0}
+        <div
+          role="group"
+          aria-label="Módulos"
+          class="bg-sidebar-accent/40 border-sidebar-border flex w-full flex-col items-center gap-1 rounded-xl border p-1 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0"
+        >
+          {#each data.areaOptions as option (option.value)}
+            {@const Icon = option.icon}
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                {#snippet child({ props })}
+                  <button
+                    {...props}
+                    type="button"
+                    aria-label={option.label}
+                    aria-pressed={shellState?.areaContext === option.value}
+                    onclick={() => actions?.onAreaContextChange?.(option.value)}
+                    class="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors aria-pressed:bg-sidebar-primary aria-pressed:text-sidebar-primary-foreground"
+                  >
+                    {#if Icon}<Icon class="size-[18px]" aria-hidden="true" />{/if}
+                  </button>
+                {/snippet}
+              </Tooltip.Trigger>
+              <Tooltip.Content side="right" align="center">{option.label}</Tooltip.Content>
+            </Tooltip.Root>
+          {/each}
+        </div>
+      {/if}
     </SidebarHeader>
 
     <SidebarContent>
@@ -193,39 +231,8 @@
   <!-- `min-w-0`: sem isto a área de conteúdo não encolhe abaixo da largura natural da tabela,
        e quem rola para o lado é a PÁGINA inteira, em vez da tabela dentro da caixa dela. -->
   <SidebarInset class="border-sidebar-border bg-background border min-w-0">
-    <!-- `min-h` e `flex-wrap`, e não altura fixa: no celular as pastilhas de contexto quebram
-         para a linha de baixo em vez de vazar pela lateral. -->
-    <header class="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1">
+    <header class="flex h-12 shrink-0 items-center gap-3 px-4">
       <SidebarTrigger />
-
-      <!-- Seletor de contexto (#13): só aparece para quem atende mais de uma área — ver
-           `areaOptions` em `use-app-shell`. Fica no cabeçalho, e não no menu lateral, porque
-           é sobre O QUE a pessoa está vendo agora, não sobre PARA ONDE ela pode ir.
-
-           São PASTILHAS, coladas no botão do menu, e não uma lista suspensa no canto oposto:
-           o contexto muda o MENU e tudo o que a tela mostra, então a pessoa precisa VER em
-           qual está sem abrir nada — e trocar com um clique. -->
-      {#if data?.areaOptions && data.areaOptions.length > 0}
-        <!-- DOIS DESENHOS do mesmo controle, um por largura. Com espaço (`lg` em diante), as
-             pastilhas: o contexto fica à vista e troca com um clique. No tablet e no celular,
-             três pastilhas não cabem ao lado do botão do menu e quebravam em duas linhas —
-             ali ele vira uma lista suspensa, que ocupa o lugar de um botão só e ainda mostra a
-             área atual. Só um dos dois aparece por vez; quem esconde é o CSS. -->
-        <OptionPicker
-          data={{ value: shellState?.areaContext ?? 'infra', options: data.areaOptions }}
-          ui={{ ariaLabel: 'Área que você está vendo', className: 'hidden lg:inline-flex' }}
-          actions={{
-            onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
-          }}
-        />
-        <SelectField
-          data={{ value: shellState?.areaContext ?? 'infra', options: data.areaOptions }}
-          ui={{ ariaLabel: 'Área que você está vendo', className: 'w-auto min-w-[150px] lg:hidden' }}
-          actions={{
-            onChange: (value: string) => actions?.onAreaContextChange?.(value as never),
-          }}
-        />
-      {/if}
     </header>
 
     <!-- A MARGEM DO CONTEÚDO É DA CASCA, e não de cada tela: quando cada tela definia a sua,
