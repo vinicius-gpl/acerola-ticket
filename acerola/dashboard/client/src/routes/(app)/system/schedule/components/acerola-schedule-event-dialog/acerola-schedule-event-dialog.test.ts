@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import ScheduleEventDialog from './acerola-schedule-event-dialog.svelte';
 import { type SoftwareScheduleFormModel } from '$lib/hooks/use-software-schedule-form/use-software-schedule-form.svelte';
 
-function createMockModel(overrides?: Partial<SoftwareScheduleFormModel>): SoftwareScheduleFormModel {
+function createMockModel(
+  overrides?: Partial<SoftwareScheduleFormModel>,
+): SoftwareScheduleFormModel {
   return {
     data: {
       mode: 'create',
@@ -36,6 +38,20 @@ function createMockModel(overrides?: Partial<SoftwareScheduleFormModel>): Softwa
 }
 
 describe('AcerolaScheduleEventDialog', () => {
+  it('shows deletion errors inside the open dialog', () => {
+    render(ScheduleEventDialog, {
+      props: {
+        open: true,
+        model: createMockModel(),
+        projects: [],
+        onClose: vi.fn(),
+        deleteError: 'Não foi possível excluir o compromisso.',
+      },
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível excluir o compromisso.');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
   it('renders modal when open', () => {
     const model = createMockModel();
     render(ScheduleEventDialog, {
@@ -63,7 +79,7 @@ describe('AcerolaScheduleEventDialog', () => {
       },
     });
 
-    const closeBtn = screen.getByRole('button', { name: 'Close', exact: true });
+    const closeBtn = screen.getByRole('button', { name: /^Close$/ });
     await userEvent.click(closeBtn);
     expect(onClose).toHaveBeenCalled();
   });

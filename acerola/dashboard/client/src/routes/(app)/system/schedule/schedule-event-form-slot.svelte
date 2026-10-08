@@ -10,12 +10,16 @@
     defaultDate,
     projects = [],
     onDelete,
+    deleteError = null,
+    isDeleting = false,
     onClose,
   }: {
     event: SoftwareScheduleEvent | null;
     defaultDate?: string;
     projects?: SoftwareProject[];
     onDelete?: () => void;
+    deleteError?: string | null;
+    isDeleting?: boolean;
     onClose: () => void;
   } = $props();
 
@@ -31,5 +35,7 @@
   {model}
   {projects}
   {onDelete}
+  {deleteError}
+  {isDeleting}
   {onClose}
 />

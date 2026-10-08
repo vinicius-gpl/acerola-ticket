@@ -17,6 +17,7 @@
       deleting: SoftwareProject | null;
     };
     state: {
+      canEdit?: boolean;
       isLoading: boolean;
       isRefetching?: boolean;
       isEmpty: boolean;
@@ -87,11 +88,13 @@
         'Cadastre os softwares da empresa, acompanhe Pull Requests e vincule chamados de suporte.',
     }}
   >
-    <ActionButton
-      data={{ label: 'Novo Sistema' }}
-      ui={{ variant: 'primary', icon: Plus }}
-      actions={{ onClick: actions.onRegister }}
-    />
+    {#if state.canEdit !== false}
+      <ActionButton
+        data={{ label: 'Novo Sistema' }}
+        ui={{ variant: 'primary', icon: Plus }}
+        actions={{ onClick: actions.onRegister }}
+      />
+    {/if}
   </PageHeader>
 
   {#if state.syncMessage}
@@ -157,14 +160,19 @@
     <EmptyState
       data={{
         title: 'Nenhum sistema cadastrado',
-        description: 'Cadastre seu primeiro sistema para acompanhar Pull Requests e chamados.',
+        description:
+          state.canEdit === false
+            ? 'Aguarde um administrador cadastrar os sistemas da equipe.'
+            : 'Cadastre seu primeiro sistema para acompanhar Pull Requests e chamados.',
       }}
     >
-      <ActionButton
-        data={{ label: 'Cadastrar Sistema' }}
-        ui={{ variant: 'primary', icon: Plus }}
-        actions={{ onClick: actions.onRegister }}
-      />
+      {#if state.canEdit !== false}
+        <ActionButton
+          data={{ label: 'Cadastrar Sistema' }}
+          ui={{ variant: 'primary', icon: Plus }}
+          actions={{ onClick: actions.onRegister }}
+        />
+      {/if}
     </EmptyState>
   {:else if state.isFilteredOut}
     <EmptyState
@@ -253,36 +261,40 @@
                 Timeline
               </button>
 
-              <button
-                type="button"
-                class="flex items-center gap-1 rounded-control border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
-                disabled={state.isSyncing}
-                onclick={() => actions.onSyncGithub(project.id)}
-                title="Sincronizar Pull Requests com o GitHub"
-              >
-                <RefreshCw class="size-3 {state.isSyncing ? 'animate-spin' : ''}" />
-                Sincronizar
-              </button>
+              {#if state.canEdit !== false}
+                <button
+                  type="button"
+                  class="flex items-center gap-1 rounded-control border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
+                  disabled={state.isSyncing}
+                  onclick={() => actions.onSyncGithub(project.id)}
+                  title="Sincronizar Pull Requests com o GitHub"
+                >
+                  <RefreshCw class="size-3 {state.isSyncing ? 'animate-spin' : ''}" />
+                  Sincronizar
+                </button>
+              {/if}
             </div>
 
-            <div class="flex items-center gap-1">
-              <button
-                type="button"
-                class="p-1 text-muted-foreground hover:text-foreground"
-                onclick={() => actions.onEdit(project)}
-                title="Editar"
-              >
-                <Pencil class="size-3.5" />
-              </button>
-              <button
-                type="button"
-                class="p-1 text-muted-foreground hover:text-destructive"
-                onclick={() => actions.onAskDelete(project)}
-                title="Excluir"
-              >
-                <Trash2 class="size-3.5" />
-              </button>
-            </div>
+            {#if state.canEdit !== false}
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  class="p-1 text-muted-foreground hover:text-foreground"
+                  onclick={() => actions.onEdit(project)}
+                  title="Editar"
+                >
+                  <Pencil class="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  class="p-1 text-muted-foreground hover:text-destructive"
+                  onclick={() => actions.onAskDelete(project)}
+                  title="Excluir"
+                >
+                  <Trash2 class="size-3.5" />
+                </button>
+              </div>
+            {/if}
           </div>
         </div>
       {/each}

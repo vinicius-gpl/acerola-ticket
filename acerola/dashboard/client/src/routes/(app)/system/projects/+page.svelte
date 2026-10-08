@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { page } from '$app/state';
+  import { canEditSystem } from '@template/shared/domain/system-access.util';
   import { type SoftwareProject } from '@template/shared/schemas/software-project.schema';
 
   import { useSoftwareProjectListModel } from '$lib/hooks/use-software-project-list/use-software-project-list.svelte';
@@ -34,7 +36,7 @@
 
 <ProjectListView
   data={listModel.data}
-  state={listModel.state}
+  state={{ ...listModel.state, canEdit: canEditSystem(page.data.user) }}
   actions={{
     ...listModel.actions,
     onRegister: handleRegister,
@@ -46,18 +48,17 @@
 />
 
 {#if isFormOpen}
-  <ProjectFormSlot
-    project={editingProject}
-    onClose={handleCloseForm}
-  />
+  <ProjectFormSlot project={editingProject} onClose={handleCloseForm} />
 {/if}
 
 {#if timelineProject}
-  <ProjectTimelineDialog
-    open={true}
-    project={timelineProject}
-    onClose={() => {
-      timelineProject = null;
-    }}
-  />
+  {#key timelineProject.id}
+    <ProjectTimelineDialog
+      open={true}
+      project={timelineProject}
+      onClose={() => {
+        timelineProject = null;
+      }}
+    />
+  {/key}
 {/if}

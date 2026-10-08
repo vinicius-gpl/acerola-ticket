@@ -204,9 +204,7 @@
   {#if viewState.isLoading}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {#each [0, 1, 2, 3] as _}
-        <div
-          class="h-96 animate-pulse rounded-surface border border-border bg-muted/50"
-        ></div>
+        <div class="h-96 animate-pulse rounded-surface border border-border bg-muted/50"></div>
       {/each}
     </div>
   {:else if viewState.error}
@@ -270,24 +268,33 @@
               </div>
             {:else}
               {#each column.tickets as ticket}
-                {@const ticketTone = (data.cardColors[ticket.id] as StatusBadgeTone | undefined) ?? 'neutral'}
+                {@const ticketTone =
+                  (data.cardColors[ticket.id] as StatusBadgeTone | undefined) ?? 'neutral'}
                 {@const isBeingDragged = draggedTicketId === ticket.id}
 
                 <div
                   role="button"
                   tabindex="0"
-                  draggable="true"
+                  draggable={!viewState.isMoving}
                   ondragstart={(e) => handleDragStart(e, ticket.id)}
                   ondragend={handleDragEnd}
-                  class="group relative flex flex-col gap-2 rounded-box border p-3.5 text-left shadow-xs transition {CARD_SURFACE_STYLES[ticketTone] ?? CARD_SURFACE_STYLES.neutral} {isBeingDragged
+                  class="group relative flex flex-col gap-2 rounded-box border p-3.5 text-left shadow-xs transition {CARD_SURFACE_STYLES[
+                    ticketTone
+                  ] ?? CARD_SURFACE_STYLES.neutral} {isBeingDragged
                     ? 'opacity-40 cursor-grabbing'
                     : 'cursor-grab active:cursor-grabbing'}"
-                  onclick={() => {
+                  onclick={(e) => {
+                    if (e.target instanceof Element && e.target.closest('[data-card-control]'))
+                      return;
                     if (justDragged) return;
                     actions.onOpenTicket(ticket.id);
                   }}
                   onkeydown={(e) => {
-                    if (e.key === 'Enter') actions.onOpenTicket(ticket.id);
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      actions.onOpenTicket(ticket.id);
+                    }
                   }}
                 >
                   <!-- Barra Superior: Drag handle, Protocolo, Selo do Card e Prioridade -->
@@ -330,7 +337,9 @@
                             role="dialog"
                             tabindex="-1"
                           >
-                            <span class="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <span
+                              class="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
                               Etiqueta
                             </span>
                             {#each CARD_TONE_OPTIONS as opt}
@@ -343,7 +352,10 @@
                                 }}
                               >
                                 <span>{opt.label}</span>
-                                <StatusBadge data={{ label: '' }} ui={{ tone: opt.tone, size: 'sm', className: 'size-2 p-0' }} />
+                                <StatusBadge
+                                  data={{ label: '' }}
+                                  ui={{ tone: opt.tone, size: 'sm', className: 'size-2 p-0' }}
+                                />
                               </button>
                             {/each}
                           </div>
@@ -352,7 +364,9 @@
 
                       {#if ticketTone !== 'neutral'}
                         <StatusBadge
-                          data={{ label: CARD_TONE_OPTIONS.find((o) => o.tone === ticketTone)?.label }}
+                          data={{
+                            label: CARD_TONE_OPTIONS.find((o) => o.tone === ticketTone)?.label,
+                          }}
                           ui={{ tone: ticketTone, size: 'sm' }}
                         />
                       {/if}
@@ -369,6 +383,22 @@
                     {ticket.description}
                   </p>
 
+                  <div data-card-control role="group" aria-label="Movimentação do chamado">
+                    <SelectField
+                      data={{
+                        value: column.id,
+                        options: data.columns
+                          .filter((target) => target.id === column.id || target.id !== 'todo')
+                          .map((target) => ({ value: target.id, label: target.title })),
+                      }}
+                      ui={{ ariaLabel: `Mover ${ticket.protocol} para` }}
+                      state={{ isDisabled: viewState.isMoving }}
+                      actions={{
+                        onChange: (value) =>
+                          void actions.onMoveTicket(ticket.id, value as KanbanColumnId),
+                      }}
+                    />
+                  </div>
                   <!-- Tags: Sistema e GitHub Issue -->
                   <div
                     class="mt-1 flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-2 text-xs"

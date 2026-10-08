@@ -21,21 +21,23 @@
   import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
   import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
-  import {
-    type SoftwareScheduleFormModel,
-  } from '$lib/hooks/use-software-schedule-form/use-software-schedule-form.svelte';
+  import { type SoftwareScheduleFormModel } from '$lib/hooks/use-software-schedule-form/use-software-schedule-form.svelte';
 
   let {
     open = $bindable(false),
     model,
     projects = [],
     onDelete,
+    deleteError = null,
+    isDeleting = false,
     onClose,
   }: {
     open: boolean;
     model: SoftwareScheduleFormModel;
     projects?: SoftwareProject[];
     onDelete?: () => void;
+    deleteError?: string | null;
+    isDeleting?: boolean;
     onClose: () => void;
   } = $props();
 
@@ -59,7 +61,12 @@
     { value: 'rose', label: 'Rosa', bgClass: 'bg-accent-hero', ringClass: 'ring-accent-hero' },
     { value: 'indigo', label: 'Índigo', bgClass: 'bg-primary', ringClass: 'ring-primary' },
     { value: 'red', label: 'Vermelho', bgClass: 'bg-destructive', ringClass: 'ring-destructive' },
-    { value: 'neutral', label: 'Grafite', bgClass: 'bg-muted-foreground', ringClass: 'ring-muted-foreground' },
+    {
+      value: 'neutral',
+      label: 'Grafite',
+      bgClass: 'bg-muted-foreground',
+      ringClass: 'ring-muted-foreground',
+    },
   ];
 
   const projectOptions = $derived([
@@ -73,11 +80,13 @@
   }
 </script>
 
-<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+<Dialog {open} onOpenChange={(isOpen) => !isOpen && onClose()}>
   <DialogContent class="max-w-lg">
     <DialogHeader class="gap-1.5">
       <div class="flex items-center gap-2.5">
-        <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
+        <span
+          class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary"
+        >
           <CalendarDays class="size-4" aria-hidden="true" />
         </span>
         <DialogTitle class="text-lg font-semibold tracking-tight">
@@ -98,6 +107,14 @@
       />
     {/if}
 
+    {#if deleteError}
+      <p
+        role="alert"
+        class="rounded-box border border-destructive/40 bg-destructive-soft p-3 text-sm text-destructive"
+      >
+        {deleteError}
+      </p>
+    {/if}
     <form novalidate onsubmit={handleSubmit} class="flex flex-col gap-4">
       <TextField
         data={{
@@ -133,9 +150,7 @@
 
         {#if projects.length > 0}
           <div class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-foreground">
-              Sistema vinculado (opcional)
-            </span>
+            <span class="text-xs font-medium text-foreground"> Sistema vinculado (opcional) </span>
             <SelectField
               data={{
                 value: model.data.fields.projectId.value ?? '',
@@ -162,7 +177,9 @@
             {@const isSelected = model.data.fields.color.value === swatch.value}
             <button
               type="button"
-              class="group relative flex size-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus:outline-none {isSelected ? 'ring-2 ring-offset-2 ring-offset-card ' + swatch.ringClass : ''}"
+              class="group relative flex size-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus:outline-none {isSelected
+                ? 'ring-2 ring-offset-2 ring-offset-card ' + swatch.ringClass
+                : ''}"
               onclick={() => model.actions.onChange('color', swatch.value)}
               title={swatch.label}
               aria-label={swatch.label}
@@ -176,15 +193,15 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-[1.25fr_1fr_1fr]">
         <TextField
           data={{
-            label: 'Data (AAAA-MM-DD)',
+            label: 'Data',
             name: 'date',
             value: model.data.fields.date.value,
-            placeholder: '2026-10-18',
             isRequired: true,
           }}
+          ui={{ type: 'date', className: 'col-span-2 min-w-0 sm:col-span-1' }}
           state={{
             error: model.data.fields.date.error,
             isDisabled: model.state.isSubmitting,
@@ -197,12 +214,13 @@
 
         <TextField
           data={{
-            label: 'Início (HH:MM)',
+            label: 'Início',
             name: 'startTime',
             value: model.data.fields.startTime.value,
             placeholder: '09:00',
             isRequired: true,
           }}
+          ui={{ type: 'time', className: 'min-w-0' }}
           state={{
             error: model.data.fields.startTime.error,
             isDisabled: model.state.isSubmitting,
@@ -215,12 +233,13 @@
 
         <TextField
           data={{
-            label: 'Fim (HH:MM)',
+            label: 'Fim',
             name: 'endTime',
             value: model.data.fields.endTime.value,
             placeholder: '10:00',
             isRequired: true,
           }}
+          ui={{ type: 'time', className: 'min-w-0' }}
           state={{
             error: model.data.fields.endTime.error,
             isDisabled: model.state.isSubmitting,
@@ -256,9 +275,10 @@
               type="button"
               class="inline-flex items-center gap-1.5 text-xs font-medium text-destructive hover:underline"
               onclick={onDelete}
+              disabled={isDeleting || model.state.isSubmitting}
             >
               <Trash2 class="size-3.5" />
-              Excluir compromisso
+              {isDeleting ? 'Excluindo…' : 'Excluir compromisso'}
             </button>
           {/if}
         </div>

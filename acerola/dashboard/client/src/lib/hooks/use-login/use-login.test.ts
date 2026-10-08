@@ -13,8 +13,12 @@ import { type LoginModel } from './use-login.svelte';
 vi.mock('$lib/auth/neon-auth.client', () => ({
   neonAuth: { signIn: { email: vi.fn() } },
 }));
+vi.mock('$lib/api/github-integration.api', () => ({
+  githubIntegrationApi: { authorize: vi.fn() },
+}));
 
 const { neonAuth } = await import('$lib/auth/neon-auth.client');
+const { githubIntegrationApi } = await import('$lib/api/github-integration.api');
 
 const signIn = vi.mocked(neonAuth.signIn.email);
 
@@ -36,10 +40,34 @@ describe('useLoginModel', () => {
   beforeEach(() => {
     vi.mocked(goto).mockClear();
     signIn.mockReset();
+    vi.mocked(githubIntegrationApi.authorize).mockReset();
     signIn.mockResolvedValue({ error: null } as never);
   });
 
   // feliz
+  it('authenticates the local identity before starting GitHub linking and surfaces integration failures', async () => {
+    vi.mocked(githubIntegrationApi.authorize).mockRejectedValue(
+      new Error('Integração indisponível'),
+    );
+    const model = mountModel();
+    model.actions.onChange('email', 'ana@exemplo.com.br');
+    model.actions.onChange('password', 'senha-de-teste');
+    model.actions.onLinkGithub();
+    await waitFor(() => expect(model.state.error).toBe('Integração indisponível'));
+    expect(signIn).toHaveBeenCalled();
+    expect(githubIntegrationApi.authorize).toHaveBeenCalledTimes(1);
+    expect(goto).not.toHaveBeenCalled();
+  });
+
+  it('does not start GitHub linking when the local password is incorrect', async () => {
+    signIn.mockResolvedValue({ error: { status: 401 } } as never);
+    const model = mountModel();
+    model.actions.onChange('email', 'ana@exemplo.com.br');
+    model.actions.onChange('password', 'senha-errada');
+    model.actions.onLinkGithub();
+    await waitFor(() => expect(model.state.error).toBe('E-mail ou senha incorretos.'));
+    expect(githubIntegrationApi.authorize).not.toHaveBeenCalled();
+  });
   it('signs in with what was typed and opens the system', async () => {
     const model = mountModel();
 

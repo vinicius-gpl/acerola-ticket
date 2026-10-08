@@ -85,6 +85,8 @@ export function useSoftwareProjectListModel(): SoftwareProjectListModel {
         syncMessage.set(data.message);
         setTimeout(() => syncMessage.set(null), 5000);
         void queryClient.invalidateQueries({ queryKey: SOFTWARE_PROJECTS_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: ['software-timeline'] });
+        void queryClient.invalidateQueries({ queryKey: ['software-dashboard'] });
       },
     }),
   );

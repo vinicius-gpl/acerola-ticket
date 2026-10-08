@@ -4,6 +4,7 @@ import { loginRequestSchema, type LoginInput } from '@template/shared/schemas/au
 import { goto } from '$app/navigation';
 
 import { neonAuth } from '$lib/auth/neon-auth.client';
+import { githubIntegrationApi } from '$lib/api/github-integration.api';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
@@ -14,6 +15,7 @@ export type LoginModel = {
   data: { fields: Record<LoginField, FormFieldState> };
   state: { isSubmitting: boolean; error: string | null };
   actions: {
+    onLinkGithub: () => void;
     onChange: (field: LoginField, value: string) => void;
     onBlur: (field: LoginField) => void;
     onSubmit: () => void;
@@ -44,6 +46,7 @@ const UNAVAILABLE =
  * não no componente (CONTRIBUTING §3) — navegação é decisão do hook.
  */
 export function useLoginModel(): LoginModel {
+  let shouldLinkGithub = false;
   const login = mirrorStore(
     createMutation({
       mutationFn: async (values: LoginInput) => {
@@ -56,8 +59,15 @@ export function useLoginModel(): LoginModel {
            esta conversão, senha errada passaria como sucesso e a tela navegaria para uma
            rota que a guarda devolveria para cá — um pisca-pisca sem explicação. */
         if (result.error) throw new Error(readSignInError(result.error.status));
+        if (shouldLinkGithub) return githubIntegrationApi.authorize();
       },
-      onSuccess: () => goto('/'),
+      onSuccess: (authorization) => {
+        if (authorization) {
+          window.location.assign(authorization.url);
+          return;
+        }
+        return goto('/');
+      },
     }),
   );
 
@@ -103,7 +113,14 @@ export function useLoginModel(): LoginModel {
         form.setFieldMeta(field, (prev) => ({ ...prev, isTouched: true }));
         void form.validateField(field, 'change');
       },
-      onSubmit: () => void form.handleSubmit(),
+      onSubmit: () => {
+        shouldLinkGithub = false;
+        void form.handleSubmit();
+      },
+      onLinkGithub: () => {
+        shouldLinkGithub = true;
+        void form.handleSubmit();
+      },
     },
   };
 }

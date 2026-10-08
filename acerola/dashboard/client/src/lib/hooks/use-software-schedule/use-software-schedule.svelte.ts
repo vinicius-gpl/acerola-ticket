@@ -34,6 +34,8 @@ export type SoftwareScheduleModel = {
     isLoading: boolean;
     isRefetching: boolean;
     error: string | null;
+    deleteError: string | null;
+    isDeleting: boolean;
   };
   actions: {
     onPrev: () => void;
@@ -41,7 +43,7 @@ export type SoftwareScheduleModel = {
     onToday: () => void;
     onViewModeChange: (mode: ScheduleViewMode) => void;
     onRetry: () => void;
-    onDeleteEvent: (id: number) => void;
+    onDeleteEvent: (id: number) => Promise<boolean>;
   };
 };
 
@@ -214,7 +216,9 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
       return {
         isLoading: query.current.isPending,
         isRefetching: query.current.isRefetching,
-        error: readError(query.current.error),
+        error: readError(query.current.error) ?? readError(projectsQuery.current.error),
+        deleteError: readError(deleteMutation.current.error),
+        isDeleting: deleteMutation.current.isPending,
       };
     },
     actions: {
@@ -234,8 +238,19 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
         currentDate.set(new Date());
       },
       onViewModeChange: (mode) => viewMode.set(mode),
-      onRetry: () => void query.current.refetch(),
-      onDeleteEvent: (id) => void deleteMutation.current.mutate(id),
+      onRetry: () => {
+        void query.current.refetch();
+        void projectsQuery.current.refetch();
+      },
+      onDeleteEvent: async (id) => {
+        if (deleteMutation.current.isPending) return false;
+        try {
+          await deleteMutation.current.mutateAsync(id);
+          return true;
+        } catch {
+          return false;
+        }
+      },
     },
   };
 }

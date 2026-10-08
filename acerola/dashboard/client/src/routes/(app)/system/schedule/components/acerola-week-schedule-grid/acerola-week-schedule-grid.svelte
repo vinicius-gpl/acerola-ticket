@@ -15,6 +15,7 @@
       nowTopPx: number | null;
     };
     state: {
+      canEdit?: boolean;
       isLoading: boolean;
       isRefetching?: boolean;
       error: string | null;
@@ -173,6 +174,7 @@
       <ActionButton
         data={{ label: 'Novo agendamento' }}
         ui={{ variant: 'primary', icon: Plus }}
+        state={{ isDisabled: state?.canEdit === false }}
         actions={{ onClick: actions.onNewEvent }}
       />
     </div>

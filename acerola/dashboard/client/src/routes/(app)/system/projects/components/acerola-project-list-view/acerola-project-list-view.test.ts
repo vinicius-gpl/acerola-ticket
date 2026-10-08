@@ -3,7 +3,9 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import ProjectListView, { type AcerolaProjectListViewProps } from './acerola-project-list-view.svelte';
+import ProjectListView, {
+  type AcerolaProjectListViewProps,
+} from './acerola-project-list-view.svelte';
 
 const project: SoftwareProject = {
   id: 1,
@@ -68,6 +70,15 @@ function renderView(
 }
 
 describe('AcerolaProjectListView', () => {
+  it('keeps team history accessible while hiding edit actions for managers', async () => {
+    const actions = renderView({ state: { canEdit: false } });
+    expect(screen.queryByRole('button', { name: /novo sistema/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sincronizar/i })).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Editar')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Excluir')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /timeline/i }));
+    expect(actions.onViewTimeline).toHaveBeenCalledWith(project);
+  });
   // feliz
   it('renders project list and counters correctly', () => {
     renderView();

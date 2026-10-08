@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -81,11 +81,26 @@ function renderView(
 }
 
 describe('AcerolaSystemKanbanView', () => {
+  it('moves a ticket using the stage selector without opening its details', async () => {
+    const actions = renderView();
+    const trigger = screen.getByRole('combobox', { name: 'Mover CH-0010 para' });
+    await fireEvent.pointerDown(trigger);
+    await fireEvent.click(trigger);
+    await fireEvent.pointerUp(await screen.findByRole('option', { name: 'Em Atendimento' }));
+    expect(actions.onMoveTicket).toHaveBeenCalledWith(10, 'in_progress');
+    expect(actions.onOpenTicket).not.toHaveBeenCalled();
+  });
+
+  it('disables the stage selector while a move is pending', () => {
+    renderView({ state: { isMoving: true } });
+    expect(screen.getByRole('combobox', { name: 'Mover CH-0010 para' })).toBeDisabled();
+  });
+
   // feliz
   it('renders kanban columns and ticket card', () => {
     renderView();
 
-    expect(screen.getByText('Abertos')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Abertos' })).toBeInTheDocument();
     expect(screen.getByText('CH-0010')).toBeInTheDocument();
     expect(screen.getByText('Bug no login')).toBeInTheDocument();
     expect(screen.getByText('#42')).toBeInTheDocument();
