@@ -6,7 +6,7 @@
   import { useAppShellModel } from '$lib/hooks/use-app-shell/use-app-shell.svelte';
   import { SYSTEM_NAV_ITEMS } from '$lib/navigation/navigation';
   import type { LayoutData } from './$types';
-  import GithubLinkGate from '$lib/components/acerola-github-link-gate/acerola-github-link-gate.svelte';
+  import GithubLinkGate from './components/acerola-github-link-gate/acerola-github-link-gate.svelte';
   import { useGithubConnectionModel } from '$lib/hooks/use-github-connection/use-github-connection.svelte';
 
   /**
