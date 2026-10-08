@@ -9,14 +9,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 
 import { type StorageService } from '../../../lib/storage/storage.service';
-import {
-  type TicketsRepository,
-  type TicketWithComputer,
-} from '../repository/tickets.repository';
+import { type TicketsRepository, type TicketWithComputer } from '../repository/tickets.repository';
 import { type TicketHistoriesRepository } from '../repository/ticket-histories.repository';
 import { TicketAccessService } from './ticket-access.service';
 import { type TicketAttachmentsService } from './ticket-attachments.service';
 import { type TicketHistoriesService } from './ticket-histories.service';
+import { type GithubService } from '../../software-projects/service/github.service';
+import { type SoftwareProjectsService } from '../../software-projects/service/software-projects.service';
 import { TicketsService, type UploadedScreenshot } from './tickets.service';
 
 const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
@@ -93,6 +92,8 @@ function makeService(
   repository: Partial<TicketsRepository>,
   storage: Partial<StorageService> = storageStub,
   attachments: Partial<TicketAttachmentsService> = attachmentsStub,
+  github: Partial<GithubService> = {},
+  softwareProjects: Partial<SoftwareProjectsService> = {},
 ) {
   const tickets = { ...defaultRepository, ...repository } as TicketsRepository;
 
@@ -105,6 +106,8 @@ function makeService(
     new TicketAccessService(tickets),
     historiesStub as unknown as TicketHistoriesService,
     historiesRepositoryStub as unknown as TicketHistoriesRepository,
+    github as GithubService,
+    softwareProjects as SoftwareProjectsService,
   );
 }
 
@@ -183,6 +186,47 @@ describe('TicketsService.create', () => {
 
     expect(ticket.protocol).toBe('CH-0007');
     expect(insert).toHaveBeenCalledOnce();
+  });
+
+  it('links a system ticket to the chosen project and schedules its GitHub issue', async () => {
+    const insert = vi.fn().mockResolvedValue(
+      ticketRow({
+        area: 'sistema',
+        projectId: 8,
+        problemType: 'bug',
+        description: 'O sistema não carrega.',
+      }),
+    );
+    const isTicketOption = vi.fn().mockResolvedValue(true);
+    const syncTicketToIssueInBackground = vi.fn();
+    const service = makeService(
+      { insert },
+      storageStub,
+      attachmentsStub,
+      { syncTicketToIssueInBackground },
+      { isTicketOption },
+    );
+
+    await service.create({
+      requesterName: 'Bia Costa',
+      area: 'sistema',
+      department: 'financeiro',
+      problemType: 'bug',
+      contactPhone: '62999999999',
+      description: 'O sistema não carrega.',
+      projectId: '8',
+    });
+
+    expect(insert.mock.calls[0]?.[0]).toMatchObject({ projectId: 8 });
+    expect(isTicketOption).toHaveBeenCalledWith(8);
+    expect(syncTicketToIssueInBackground).toHaveBeenCalledWith(
+      7,
+      8,
+      'CH-0007',
+      'Chamado CH-0007 - bug',
+      'O sistema não carrega.',
+      'Bia Costa',
+    );
   });
 
   /* A linha do tempo começa na abertura: sem ela, o primeiro histórico do chamado seria o
@@ -302,11 +346,10 @@ describe('TicketsService.findByProtocol', () => {
      É o que impede o arquivo de um histórico escondido de vazar pela lista geral. */
   it('keeps the files of a history out of the ticket own files', async () => {
     const file = (id: number, historyId: number | null) => ({ id, historyId });
-    const service = makeService(
-      { findById: vi.fn().mockResolvedValue(ticketRow()) },
-      storageStub,
-      { ...attachmentsStub, list: vi.fn().mockResolvedValue([file(1, null), file(2, 31)]) },
-    );
+    const service = makeService({ findById: vi.fn().mockResolvedValue(ticketRow()) }, storageStub, {
+      ...attachmentsStub,
+      list: vi.fn().mockResolvedValue([file(1, null), file(2, 31)]),
+    });
 
     const ticket = await service.findByProtocol('CH-0007');
 
@@ -384,9 +427,7 @@ describe('TicketsService.update', () => {
     const update = vi.fn();
     const service = makeService({ findById: vi.fn().mockResolvedValue(null), update });
 
-    await expect(service.update(ana, 99, { priority: 'high' })).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.update(ana, 99, { priority: 'high' })).rejects.toThrow(NotFoundException);
     expect(update).not.toHaveBeenCalled();
   });
 });
@@ -509,7 +550,12 @@ describe('TicketsService.dashboard', () => {
 describe('TicketsService — acesso por área', () => {
   const manutencao: RequestUser = { ...ana, id: '2', email: 'carlos@azuos.com.br' };
   /* SUPER administrador: 100%, ponta a ponta, sem fronteira — o único papel com bypass. */
-  const superadmin: RequestUser = { ...ana, id: '3', email: 'root@azuos.com.br', role: 'superadmin' };
+  const superadmin: RequestUser = {
+    ...ana,
+    id: '3',
+    email: 'root@azuos.com.br',
+    role: 'superadmin',
+  };
   /* Administrador GLOBAL (não super): "faz tudo no contexto DELE" — não ganha área nenhuma
      de graça, precisa do mesmo cargo interno que gestor e usuário precisam (#13). */
   const globalAdmin: RequestUser = { ...ana, id: '4', email: 'admin@azuos.com.br', role: 'admin' };

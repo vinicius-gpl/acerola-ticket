@@ -107,6 +107,19 @@ export class TicketsController {
     return this.service.create(body, files?.screenshot?.[0], files?.attachments ?? []);
   }
 
+  @Get('system-project-options')
+  @Public()
+  @ApiOperation({ summary: 'Lista os sistemas disponíveis para abertura pública de chamados' })
+  @ApiOkResponse({
+    schema: {
+      type: 'array',
+      items: { type: 'object', properties: { id: { type: 'integer' }, name: { type: 'string' } } },
+    },
+  })
+  async listSystemProjectOptions(): Promise<{ id: number; name: string }[]> {
+    return this.service.listSystemProjectOptions();
+  }
+
   @Get('protocol/:protocol')
   @Public()
   @ApiOperation({

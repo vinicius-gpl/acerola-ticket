@@ -31,6 +31,14 @@ export class SoftwareProjectsService {
     private readonly githubService: GithubService,
   ) {}
 
+  async listTicketOptions(): Promise<{ id: number; name: string }[]> {
+    return this.repository.listTicketOptions();
+  }
+
+  async isTicketOption(id: number): Promise<boolean> {
+    return this.repository.isTicketOption(id);
+  }
+
   async list(
     user: RequestUser,
     query: SoftwareProjectListQuery,

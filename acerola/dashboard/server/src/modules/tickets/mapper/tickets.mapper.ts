@@ -111,6 +111,7 @@ export function toTicketInsert(
     notifyWhatsapp: input.notifyWhatsapp === true || input.notifyWhatsapp === 'true',
     description: input.description.trim(),
     screenshotKey,
+    projectId: input.projectId ? Number(input.projectId) : null,
   };
 }
 

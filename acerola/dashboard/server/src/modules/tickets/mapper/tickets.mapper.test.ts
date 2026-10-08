@@ -129,6 +129,10 @@ describe('toTicketInsert', () => {
     expect(toTicketInsert(input, null).area).toBe('infra');
   });
 
+  it('stores the selected software project on the ticket', () => {
+    expect(toTicketInsert({ ...input, projectId: '8' }, null).projectId).toBe(8);
+  });
+
   it('keeps the storage key given by whoever stored the file', () => {
     expect(toTicketInsert(input, 'tickets/abc.png').screenshotKey).toBe('tickets/abc.png');
   });
@@ -193,7 +197,16 @@ describe('toTicketUpdate', () => {
 describe('toTicket com máquina', () => {
   // feliz
   it('carries the machine the ticket was linked to, with the name the screen shows', () => {
-    const ticket = toTicket(row({ computerId: 11, projectId: null, githubIssueNumber: null, githubIssueUrl: null, computerName: 'Recepção — balcão' }), null);
+    const ticket = toTicket(
+      row({
+        computerId: 11,
+        projectId: null,
+        githubIssueNumber: null,
+        githubIssueUrl: null,
+        computerName: 'Recepção — balcão',
+      }),
+      null,
+    );
 
     expect(ticket.computerId).toBe(11);
     expect(ticket.computerName).toBe('Recepção — balcão');
