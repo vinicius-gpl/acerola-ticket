@@ -14,7 +14,7 @@ As roles internas controlam o acesso. Gestores consultam os dados sincronizados 
 4. Execute `npm run db:migrate -w server` na pasta `acerola/dashboard` para criar as tabelas de conexão e estados OAuth.
 5. Vincule a conta do admin usando o botão do login ou a tela obrigatória ao entrar em Sistema. Cadastre o repositório no projeto e acione **Sincronizar**. PRs e issues da equipe aparecem na timeline do projeto, inclusive os PRs sem chamado.
 
-Callback de desenvolvimento: `http://localhost:5001/api/integrations/github/callback`.
+Callback de desenvolvimento: `http://localhost:4001/api/integrations/github/callback`.
 
 Callback de produção: `https://os.grupoazuos.com.br/api/integrations/github/callback` (ajuste domínio/protocolo à implantação real).
 
