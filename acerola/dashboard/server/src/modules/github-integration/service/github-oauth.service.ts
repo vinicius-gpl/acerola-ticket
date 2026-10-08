@@ -104,7 +104,6 @@ export class GithubOauthService {
     url.search = new URLSearchParams({
       client_id: config.clientId,
       redirect_uri: config.redirectUri,
-      scope: 'read:user',
       state,
       code_challenge: createHash('sha256').update(verifier).digest('base64url'),
       code_challenge_method: 'S256',
@@ -134,9 +133,6 @@ export class GithubOauthService {
       redirect_uri: config.redirectUri,
       code_verifier: decryptGithubToken(pending.codeVerifier, config.encryptionKey),
     });
-    const scopes = tokens.scope?.split(/[ ,]+/) ?? [];
-    if (!scopes.includes('read:user') && !scopes.includes('user'))
-      throw new ForbiddenException('Autorize a leitura do perfil para concluir a vinculação.');
     const account = await this.account(tokens.access_token);
     try {
       await this.repository.save({
