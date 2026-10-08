@@ -1,5 +1,5 @@
 import { createForm } from '@tanstack/svelte-form';
-import { createMutation } from '@tanstack/svelte-query';
+import { createMutation, createQuery } from '@tanstack/svelte-query';
 import { refuseScreenshot } from '@template/shared/domain/screenshot-catalog.util';
 import { buildWhatsAppLink } from '@template/shared/domain/ticket-whatsapp.util';
 import {
@@ -13,6 +13,7 @@ import { ticketsApi } from '$lib/api/tickets.api';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
+import { writable } from 'svelte/store';
 
 export type OpenTicketField =
   | 'requesterName'
@@ -22,7 +23,8 @@ export type OpenTicketField =
   | 'anydeskId'
   | 'priority'
   | 'contactPhone'
-  | 'description';
+  | 'description'
+  | 'projectId';
 
 /** O que a pessoa vê depois de abrir: o protocolo para anotar. */
 export type OpenedTicket = {
@@ -39,6 +41,7 @@ export type OpenTicketModel = {
     /** Os anexos escolhidos, ainda não enviados. Some quando o chamado é aberto. */
     attachments: File[];
     opened: OpenedTicket | null;
+    systemProjects: { value: string; label: string }[];
   };
   state: {
     isSubmitting: boolean;
@@ -47,6 +50,8 @@ export type OpenTicketModel = {
         são campos diferentes, e misturar as duas faria a tela apontar o campo errado. */
     screenshotError: string | null;
     attachmentError: string | null;
+    systemProjectsLoading: boolean;
+    systemProjectsError: string | null;
   };
   actions: {
     onChange: (field: OpenTicketField, value: string) => void;
@@ -75,6 +80,7 @@ const EMPTY_VALUES: TicketFormValues = {
   contactPhone: '',
   notifyWhatsapp: false,
   description: '',
+  projectId: '',
 };
 
 /**
@@ -94,6 +100,15 @@ export function useOpenTicketModel(): OpenTicketModel {
   let attachmentError = $state<string | null>(null);
   let screenshotError = $state<string | null>(null);
   let opened = $state<OpenedTicket | null>(null);
+
+  const projects = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: ['public', 'ticket-system-project-options'],
+        queryFn: () => ticketsApi.systemProjectOptions(),
+      }),
+    ),
+  );
 
   const save = mirrorStore(
     createMutation({
@@ -134,11 +149,16 @@ export function useOpenTicketModel(): OpenTicketModel {
           priority: fieldOf('priority'),
           contactPhone: fieldOf('contactPhone'),
           description: fieldOf('description'),
+          projectId: fieldOf('projectId'),
         },
         notifyWhatsapp: values.current.notifyWhatsapp,
         screenshotName: screenshot?.name ?? null,
         attachments,
         opened,
+        systemProjects: (projects.current.data ?? []).map((project) => ({
+          value: String(project.id),
+          label: project.name,
+        })),
       };
     },
     get state() {
@@ -147,6 +167,8 @@ export function useOpenTicketModel(): OpenTicketModel {
         error: readError(save.current.error),
         screenshotError,
         attachmentError,
+        systemProjectsLoading: projects.current.isPending,
+        systemProjectsError: projects.current.isError ? readError(projects.current.error) : null,
       };
     },
     actions: {
