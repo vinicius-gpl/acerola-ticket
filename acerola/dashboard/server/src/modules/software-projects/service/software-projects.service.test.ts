@@ -8,11 +8,12 @@ import { type SoftwareTimelineRepository } from '../repository/software-timeline
 import { type GithubService } from './github.service';
 import { SoftwareProjectsService } from './software-projects.service';
 
-const manager: RequestUser = {
+const admin: RequestUser = {
   id: '1',
   email: 'gestor@empresa.com.br',
   name: 'Gestor Sistema',
-  role: 'manager',
+  role: 'admin',
+  roles: { infra: 'user', sistema: 'admin', manutencao: 'user' },
 };
 
 const user: RequestUser = {
@@ -63,6 +64,7 @@ function makeService(
 
   const githubService = {
     fetchPullRequests: vi.fn().mockResolvedValue([]),
+    fetchIssues: vi.fn().mockResolvedValue([]),
     createIssue: vi.fn().mockResolvedValue(null),
     syncTicketToIssueInBackground: vi.fn(),
     ...githubOverrides,
@@ -77,6 +79,17 @@ function makeService(
 }
 
 describe('SoftwareProjectsService', () => {
+  it('rejects internal managers before writing a project even with an external admin role', async () => {
+    const { service, repository } = makeService();
+    const manager: RequestUser = {
+      ...admin,
+      roles: { infra: 'admin', sistema: 'manager', manutencao: 'admin' },
+    };
+    await expect(service.update(manager, 1, { name: 'Forbidden' })).rejects.toThrow(
+      'Somente administradores',
+    );
+    expect(repository.update).not.toHaveBeenCalled();
+  });
   describe('list', () => {
     it('returns projects mapped with counts of open tickets and PRs', async () => {
       const { service } = makeService();
@@ -115,7 +128,7 @@ describe('SoftwareProjectsService', () => {
     it('inserts and returns new project', async () => {
       const { service, repository } = makeService();
 
-      const project = await service.create(manager, {
+      const project = await service.create(admin, {
         name: 'Novo Sistema',
         repositoryUrl: 'owner/repo',
         status: 'active',
@@ -131,7 +144,7 @@ describe('SoftwareProjectsService', () => {
     it('updates existing project and returns updated version', async () => {
       const { service, repository } = makeService();
 
-      const updated = await service.update(manager, 1, {
+      const updated = await service.update(admin, 1, {
         name: 'Nome Atualizado',
       });
 
@@ -144,7 +157,7 @@ describe('SoftwareProjectsService', () => {
     it('removes project when caller has permission', async () => {
       const { service, repository } = makeService();
 
-      await service.remove(manager, 1);
+      await service.remove(admin, 1);
 
       expect(repository.remove).toHaveBeenCalledWith(1);
     });
@@ -169,7 +182,7 @@ describe('SoftwareProjectsService', () => {
         },
       );
 
-      const result = await service.syncGithubPrs(manager, 1);
+      const result = await service.syncGithubPrs(admin, 1);
 
       expect(result.synced).toBe(1);
       expect(timelineRepository.upsertPr).toHaveBeenCalledTimes(1);

@@ -1,12 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type SoftwareTimelineListQuery } from '@template/shared/schemas/software-timeline.schema';
-import {
-  and,
-  count,
-  desc,
-  eq,
-  type SQL,
-} from 'drizzle-orm';
+import { and, count, desc, eq, type SQL } from 'drizzle-orm';
 
 import { runOne, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
@@ -117,6 +111,7 @@ export class SoftwareTimelineRepository {
           and(
             eq(softwareTimelineEvents.projectId, data.projectId),
             eq(softwareTimelineEvents.externalId, data.externalId),
+            eq(softwareTimelineEvents.type, data.type),
           ),
         )
         .limit(1),

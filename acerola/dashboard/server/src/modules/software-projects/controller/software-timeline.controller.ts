@@ -1,18 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-} from '@nestjs/common';
-import {
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
+import { UseGuards } from '@nestjs/common';
+import { GithubLinkedGuard } from '../../github-integration/github-linked.guard';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
   CreateSoftwareTimelineEventDto,
@@ -24,6 +15,7 @@ import { SoftwareTimelineService } from '../service/software-timeline.service';
 
 @ApiTags('Timeline e Pull Requests de Software')
 @Controller('software-timeline')
+@UseGuards(GithubLinkedGuard)
 export class SoftwareTimelineController {
   constructor(private readonly service: SoftwareTimelineService) {}
 

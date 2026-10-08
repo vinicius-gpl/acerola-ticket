@@ -1,3 +1,4 @@
+import { canEditSystem } from '@template/shared/domain/system-access.util';
 import { ForbiddenException } from '@nestjs/common';
 import { roleContextLabel, type RoleContext } from '@template/shared/domain/role-context.util';
 import { type ContextRoles, type UserRole } from '@template/shared/schemas/user.schema';
@@ -91,4 +92,12 @@ export function assertCanModifyRecord(
   throw new ForbiddenException(
     `${what} foi criada por outra pessoa. Só quem criou, um gerente ou um administrador pode alterá-la.`,
   );
+}
+
+export function assertCanEditSystem(
+  user: { role: UserRole; roles?: ContextRoles },
+  what: string,
+): void {
+  if (!canEditSystem(user))
+    throw new ForbiddenException(`Somente administradores do módulo Sistema podem ${what}.`);
 }

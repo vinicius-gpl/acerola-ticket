@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional, BadGatewayException } from '@nestjs/common';
+import { GithubAppService } from '../../github-integration/service/github-app.service';
 import { parseGitHubRepo } from '@template/shared/domain/software-project.util';
 import { eq } from 'drizzle-orm';
 
@@ -21,19 +22,22 @@ export type FetchedPr = {
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
 
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    @Optional() private readonly app?: GithubAppService,
+  ) {}
 
   private get token(): string | undefined {
     return process.env.GITHUB_TOKEN;
   }
 
-  private headers(): Record<string, string> {
+  private headers(token = this.token): Record<string, string> {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'AcerolaTicket-Dashboard',
     };
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
     return headers;
   }
@@ -41,16 +45,23 @@ export class GithubService {
   /**
    * Busca os Pull Requests de um repositório no GitHub.
    */
-  async fetchPullRequests(owner: string, repo: string): Promise<FetchedPr[]> {
-    const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=30`;
+  async fetchPullRequests(owner: string, repo: string, userId?: string): Promise<FetchedPr[]> {
+    const token = this.app ? await this.app.accessToken() : this.token;
+    const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`;
     try {
-      const response = await fetch(url, {
-        headers: this.headers(),
+      let response = await fetch(url, {
+        headers: this.headers(token),
         signal: AbortSignal.timeout(10000),
       });
 
       if (!response.ok) {
-        this.logger.warn(`GitHub API devolveu status ${response.status} ao buscar PRs de ${owner}/${repo}`);
+        if (userId)
+          throw new BadGatewayException(
+            'O GitHub recusou o acesso a este repositório. Confira a autorização da organização e as permissões da sua conta.',
+          );
+        this.logger.warn(
+          `GitHub API devolveu status ${response.status} ao buscar PRs de ${owner}/${repo}`,
+        );
         return [];
       }
 
@@ -63,6 +74,16 @@ export class GithubService {
         merged_at?: string | null;
         created_at: string;
       }>;
+
+      for (let page = 2; response.headers?.get('link')?.includes('rel="next"'); page++) {
+        response = await fetch(`${url}&page=${page}`, {
+          headers: this.headers(token),
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok)
+          throw new BadGatewayException('Não foi possível carregar todos os PRs do repositório.');
+        list.push(...((await response.json()) as typeof list));
+      }
 
       return list.map((pr) => {
         let status: 'open' | 'merged' | 'closed' = 'open';
@@ -82,8 +103,54 @@ export class GithubService {
         };
       });
     } catch (error) {
-      this.logger.warn(`Falha na comunicação com o GitHub para PRs de ${owner}/${repo}: ${String(error)}`);
+      if (userId) {
+        if (error instanceof BadGatewayException) throw error;
+        throw new BadGatewayException(
+          'Não foi possível sincronizar com o GitHub. Tente novamente.',
+        );
+      }
+      this.logger.warn(
+        `Falha na comunicação com o GitHub para PRs de ${owner}/${repo}: ${String(error)}`,
+      );
       return [];
+    }
+  }
+
+  async fetchIssues(owner: string, repo: string): Promise<FetchedPr[]> {
+    const token = this.app ? await this.app.accessToken() : this.token;
+    const items: FetchedPr[] = [];
+    for (let page = 1; ; page++) {
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=100&page=${page}`,
+        {
+          headers: this.headers(token),
+          signal: AbortSignal.timeout(10_000),
+        },
+      );
+      if (!response.ok)
+        throw new BadGatewayException('Não foi possível sincronizar as issues do repositório.');
+      const rows = (await response.json()) as Array<{
+        number: number;
+        title: string;
+        html_url: string;
+        user?: { login?: string };
+        state: string;
+        pull_request?: unknown;
+        updated_at: string;
+      }>;
+      items.push(
+        ...rows
+          .filter((row) => !row.pull_request)
+          .map((row) => ({
+            externalId: `#${row.number}`,
+            title: row.title,
+            url: row.html_url,
+            author: row.user?.login ?? 'github',
+            status: row.state === 'closed' ? ('closed' as const) : ('open' as const),
+            eventDate: new Date(row.updated_at),
+          })),
+      );
+      if (!response.headers.get('link')?.includes('rel="next"')) return items;
     }
   }
 
@@ -95,9 +162,12 @@ export class GithubService {
     repo: string,
     title: string,
     body: string,
+    accessToken = this.token,
   ): Promise<{ issueNumber: number; issueUrl: string } | null> {
-    if (!this.token) {
-      this.logger.log(`GITHUB_TOKEN não configurado. Issue não criada no GitHub para ${owner}/${repo}.`);
+    if (!accessToken) {
+      this.logger.log(
+        `GITHUB_TOKEN não configurado. Issue não criada no GitHub para ${owner}/${repo}.`,
+      );
       return null;
     }
 
@@ -106,7 +176,7 @@ export class GithubService {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          ...this.headers(),
+          ...this.headers(accessToken),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ title, body }),
@@ -140,6 +210,7 @@ export class GithubService {
     title: string,
     description: string,
     requesterName: string,
+    _userId?: string,
   ): void {
     // Dispara promessa sem bloquear a resposta HTTP
     void (async () => {
@@ -162,11 +233,13 @@ export class GithubService {
         const issueTitle = `[${protocol}] ${title}`;
         const issueBody = `### Chamado Aberto no Acerola Ticket\n\n**Protocolo:** ${protocol}\n**Solicitante:** ${requesterName}\n\n**Descrição:**\n${description}\n\n---\n*Gerado automaticamente em segundo plano via Acerola Ticket.*`;
 
+        const token = this.app ? await this.app.accessToken() : this.token;
         const result = await this.createIssue(
           repoInfo.owner,
           repoInfo.repo,
           issueTitle,
           issueBody,
+          token,
         );
 
         if (result) {
@@ -193,10 +266,15 @@ export class GithubService {
             createdBy: 'sistema@acerola.local',
           });
 
-          this.logger.log(`Issue #${result.issueNumber} criada com sucesso para o chamado ${protocol}`);
+          this.logger.log(
+            `Issue #${result.issueNumber} criada com sucesso para o chamado ${protocol}`,
+          );
         }
       } catch (err) {
-        this.logger.error(`Erro ao sincronizar issue em background para o chamado ${ticketId}:`, err);
+        this.logger.error(
+          `Erro ao sincronizar issue em background para o chamado ${ticketId}:`,
+          err,
+        );
       }
     })();
   }

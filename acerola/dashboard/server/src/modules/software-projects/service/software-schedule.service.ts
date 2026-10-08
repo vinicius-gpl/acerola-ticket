@@ -7,10 +7,7 @@ import {
 } from '@template/shared/schemas/software-schedule.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import {
-  assertCanManageInContext,
-  assertCanRead,
-} from '../../../lib/policy/policy-assert.util';
+import { assertCanEditSystem, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { toSoftwareScheduleEvent } from '../mapper/software-projects.mapper';
 import { SoftwareScheduleRepository } from '../repository/software-schedule.repository';
 
@@ -40,7 +37,7 @@ export class SoftwareScheduleService {
     user: RequestUser,
     input: CreateSoftwareScheduleEventInput,
   ): Promise<SoftwareScheduleEvent> {
-    assertCanManageInContext(user, 'sistema', 'agendar no cronograma');
+    assertCanEditSystem(user, 'agendar no cronograma');
 
     const row = await this.repository.insert({
       projectId: input.projectId ?? null,
@@ -62,7 +59,7 @@ export class SoftwareScheduleService {
     id: number,
     input: UpdateSoftwareScheduleEventInput,
   ): Promise<SoftwareScheduleEvent> {
-    assertCanManageInContext(user, 'sistema', 'alterar agendamento do cronograma');
+    assertCanEditSystem(user, 'alterar agendamento do cronograma');
 
     await this.findById(user, id);
 
@@ -83,7 +80,7 @@ export class SoftwareScheduleService {
   }
 
   async remove(user: RequestUser, id: number): Promise<void> {
-    assertCanManageInContext(user, 'sistema', 'excluir agendamento do cronograma');
+    assertCanEditSystem(user, 'excluir agendamento do cronograma');
 
     await this.findById(user, id);
     await this.repository.remove(id);

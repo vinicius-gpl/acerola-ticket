@@ -21,6 +21,8 @@ import {
 } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
+import { UseGuards } from '@nestjs/common';
+import { GithubLinkedGuard } from '../../github-integration/github-linked.guard';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
   CreateSoftwareScheduleEventDto,
@@ -32,6 +34,7 @@ import { SoftwareScheduleService } from '../service/software-schedule.service';
 
 @ApiTags('Cronograma Semanal de Sistemas')
 @Controller('software-schedule')
+@UseGuards(GithubLinkedGuard)
 export class SoftwareScheduleController {
   constructor(private readonly service: SoftwareScheduleService) {}
 

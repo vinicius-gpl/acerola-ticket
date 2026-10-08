@@ -6,10 +6,7 @@ import {
 } from '@template/shared/schemas/software-timeline.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import {
-  assertCanManageInContext,
-  assertCanRead,
-} from '../../../lib/policy/policy-assert.util';
+import { assertCanEditSystem, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { toSoftwareTimelineEvent } from '../mapper/software-projects.mapper';
 import { SoftwareTimelineRepository } from '../repository/software-timeline.repository';
 
@@ -24,7 +21,9 @@ export class SoftwareTimelineService {
     assertCanRead(user.role, 'a linha do tempo dos sistemas');
 
     const page = await this.repository.list(query);
-    const items = page.rows.map((row) => toSoftwareTimelineEvent(row, row.projectName ?? undefined));
+    const items = page.rows.map((row) =>
+      toSoftwareTimelineEvent(row, row.projectName ?? undefined),
+    );
 
     return {
       items,
@@ -38,7 +37,7 @@ export class SoftwareTimelineService {
     user: RequestUser,
     input: CreateSoftwareTimelineEventInput,
   ): Promise<SoftwareTimelineEvent> {
-    assertCanManageInContext(user, 'sistema', 'adicionar evento na timeline');
+    assertCanEditSystem(user, 'adicionar evento na timeline');
 
     const row = await this.repository.insert({
       projectId: input.projectId,

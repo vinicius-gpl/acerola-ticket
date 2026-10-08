@@ -30,9 +30,12 @@ import {
   UpdateSoftwareProjectDto,
 } from '../dto/software-project.dto';
 import { SoftwareProjectsService } from '../service/software-projects.service';
+import { UseGuards } from '@nestjs/common';
+import { GithubLinkedGuard } from '../../github-integration/github-linked.guard';
 
 @ApiTags('Sistemas e Projetos de Software')
 @Controller('software-projects')
+@UseGuards(GithubLinkedGuard)
 export class SoftwareProjectsController {
   constructor(private readonly service: SoftwareProjectsService) {}
 

@@ -12,6 +12,7 @@ import { LoggingModule } from './lib/logging/logging.module';
 import { SecurityModule } from './lib/security/security.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
+import { GithubIntegrationModule } from './modules/github-integration/github-integration.module';
 import { BudgetModule } from './modules/budget/budget.module';
 import { ComputersModule } from './modules/computers/computers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -65,6 +66,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     SecurityModule,
     AuthModule,
     AuthApiModule,
+    GithubIntegrationModule,
     HealthModule,
     TasksModule,
     TicketsModule,

@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { parseGitHubRepo } from '@template/shared/domain/software-project.util';
 import {
   type CreateSoftwareProjectInput,
@@ -11,10 +8,7 @@ import {
 } from '@template/shared/schemas/software-project.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import {
-  assertCanManageInContext,
-  assertCanRead,
-} from '../../../lib/policy/policy-assert.util';
+import { assertCanEditSystem, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import {
   toSoftwareProject,
   toSoftwareProjectInsert,
@@ -78,14 +72,14 @@ export class SoftwareProjectsService {
   }
 
   async create(user: RequestUser, input: CreateSoftwareProjectInput): Promise<SoftwareProject> {
-    assertCanManageInContext(user, 'sistema', 'cadastrar sistema');
+    assertCanEditSystem(user, 'cadastrar sistema');
 
     const row = await this.repository.insert(toSoftwareProjectInsert(input, user.email));
 
     // Se o repositório for válido, dispara a sincronização inicial de PRs em background
     const repoInfo = parseGitHubRepo(row.repositoryUrl);
     if (repoInfo) {
-      void this.syncGithubPrsSilently(row.id, repoInfo.owner, repoInfo.repo, user.email);
+      void this.syncGithubPrsSilently(row.id, repoInfo.owner, repoInfo.repo, user.email, user.id);
     }
 
     return toSoftwareProject(row, 0, 0);
@@ -96,7 +90,7 @@ export class SoftwareProjectsService {
     id: number,
     input: UpdateSoftwareProjectInput,
   ): Promise<SoftwareProject> {
-    assertCanManageInContext(user, 'sistema', 'alterar sistema');
+    assertCanEditSystem(user, 'alterar sistema');
 
     await this.findById(user, id);
 
@@ -111,17 +105,14 @@ export class SoftwareProjectsService {
   }
 
   async remove(user: RequestUser, id: number): Promise<void> {
-    assertCanManageInContext(user, 'sistema', 'excluir sistema');
+    assertCanEditSystem(user, 'excluir sistema');
 
     await this.findById(user, id);
     await this.repository.remove(id);
   }
 
-  async syncGithubPrs(
-    user: RequestUser,
-    id: number,
-  ): Promise<{ synced: number; message: string }> {
-    assertCanManageInContext(user, 'sistema', 'sincronizar PRs com GitHub');
+  async syncGithubPrs(user: RequestUser, id: number): Promise<{ synced: number; message: string }> {
+    assertCanEditSystem(user, 'sincronizar PRs com GitHub');
 
     const project = await this.findById(user, id);
     const repoInfo =
@@ -133,7 +124,7 @@ export class SoftwareProjectsService {
       return { synced: 0, message: 'URL do GitHub não reconhecida.' };
     }
 
-    const prs = await this.githubService.fetchPullRequests(repoInfo.owner, repoInfo.repo);
+    const prs = await this.githubService.fetchPullRequests(repoInfo.owner, repoInfo.repo, user.id);
     for (const pr of prs) {
       await this.timelineRepository.upsertPr({
         projectId: id,
@@ -148,9 +139,19 @@ export class SoftwareProjectsService {
       });
     }
 
+    const issues = await this.githubService.fetchIssues(repoInfo.owner, repoInfo.repo);
+    for (const issue of issues) {
+      await this.timelineRepository.upsertPr({
+        projectId: id,
+        type: 'issue',
+        ...issue,
+        createdBy: user.email,
+      });
+    }
+
     return {
       synced: prs.length,
-      message: `${prs.length} Pull Requests sincronizados com sucesso.`,
+      message: `${prs.length} Pull Requests e ${issues.length} issues sincronizados com sucesso.`,
     };
   }
 
@@ -159,9 +160,10 @@ export class SoftwareProjectsService {
     owner: string,
     repo: string,
     actorEmail: string,
+    userId: string,
   ): Promise<void> {
     try {
-      const prs = await this.githubService.fetchPullRequests(owner, repo);
+      const prs = await this.githubService.fetchPullRequests(owner, repo, userId);
       for (const pr of prs) {
         await this.timelineRepository.upsertPr({
           projectId,

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Optional, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Optional,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { GithubService } from '../../software-projects/service/github.service';
 import {
   ticketAreaLabel,
@@ -44,10 +49,7 @@ import { TicketHistoriesRepository } from '../repository/ticket-histories.reposi
 import { TICKET_NOT_FOUND, TicketAccessService } from './ticket-access.service';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
 import { TicketHistoriesService } from './ticket-histories.service';
-import {
-  TicketsRepository,
-  type TicketWithComputer,
-} from '../repository/tickets.repository';
+import { TicketsRepository, type TicketWithComputer } from '../repository/tickets.repository';
 
 /** Sem repetir — somar a mesma área participante duas vezes não deve duplicar na resposta. */
 function dedupeAreas(areas: readonly TicketArea[]): TicketArea[] {
@@ -306,6 +308,7 @@ export class TicketsService {
         `Chamado ${formatTicketProtocol(row.id)} - ${row.problemType}`,
         row.description,
         row.requesterName,
+        user.id,
       );
     }
 

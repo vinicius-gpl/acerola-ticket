@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { GithubIntegrationModule } from '../github-integration/github-integration.module';
 
 import { SoftwareDashboardController } from './controller/software-dashboard.controller';
 import { SoftwareProjectsController } from './controller/software-projects.controller';
@@ -14,6 +15,7 @@ import { SoftwareScheduleService } from './service/software-schedule.service';
 import { SoftwareTimelineService } from './service/software-timeline.service';
 
 @Module({
+  imports: [GithubIntegrationModule],
   controllers: [
     SoftwareProjectsController,
     SoftwareTimelineController,
