@@ -29,6 +29,7 @@
     "db:migrate": "npm run db:migrate -w server",
     "db:studio": "npm run db:studio -w server",
     "db:reset": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts --reset",
+    "db:reset-system-demo": "npm run build -w @template/shared && tsx scripts/seed/system-demo/seed-system-demo.ts",
     "seed:all": "npm run build -w @template/shared && tsx scripts/seed/seed-all.ts",
     "seed:software-projects": "npm run build -w @template/shared && tsx scripts/seed/software-projects/seed-software-projects.ts",
     "seed:tasks": "npm run build -w @template/shared && tsx scripts/seed/tasks/seed-tasks.ts",
