@@ -176,6 +176,13 @@
       "when": 1791244000000,
       "tag": "0024_software_projects_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791410000000,
+      "tag": "0025_github_oauth_connections",
+      "breakpoints": true
     }
   ]
 }
