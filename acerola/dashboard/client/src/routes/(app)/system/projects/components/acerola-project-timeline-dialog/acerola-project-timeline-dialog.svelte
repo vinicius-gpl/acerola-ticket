@@ -1,19 +1,19 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
-  import {
-    TIMELINE_EVENT_TYPE_LABELS,
-  } from '@template/shared/domain/software-project.util';
+  import { TIMELINE_EVENT_TYPE_LABELS } from '@template/shared/domain/software-project.util';
   import { type SoftwareProject } from '@template/shared/schemas/software-project.schema';
   import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
   import GitMerge from '@lucide/svelte/icons/git-merge';
   import GitPullRequest from '@lucide/svelte/icons/git-pull-request';
   import LifeBuoy from '@lucide/svelte/icons/life-buoy';
-  import { writable } from 'svelte/store';
+  import { derived, writable } from 'svelte/store';
 
   import { readError } from '$lib/api/http-client';
   import { softwareTimelineApi } from '$lib/api/software-timeline.api';
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
+
+  const PAGE_SIZE = 25;
 
   let {
     open = $bindable(false),
@@ -25,14 +25,24 @@
     onClose: () => void;
   } = $props();
 
-  const query = mirrorStore(
-    createQuery(
-      writable({
-        queryKey: ['software-timeline', project.id],
-        queryFn: () => softwareTimelineApi.list({ projectId: project.id, pageSize: 50 }),
+  const pageStore = writable(1);
+  const page = mirrorStore(pageStore);
+  const queryOptions = derived(pageStore, (currentPage) => ({
+    queryKey: ['software-timeline', project.id, currentPage],
+    queryFn: () =>
+      softwareTimelineApi.list({
+        projectId: project.id,
+        page: currentPage,
+        pageSize: PAGE_SIZE,
       }),
-    ),
-  );
+  }));
+  const query = mirrorStore(createQuery(queryOptions));
+  let total = $derived(query.current.data?.total ?? 0);
+  let totalPages = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
+
+  function goToPage(nextPage: number): void {
+    pageStore.set(nextPage);
+  }
 
   function formatDate(iso: string): string {
     const d = new Date(iso);
@@ -48,7 +58,9 @@
 
 {#if open}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-    <div class="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 rounded-surface border border-border bg-card p-6 shadow-xl">
+    <div
+      class="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 rounded-surface border border-border bg-card p-6 shadow-xl"
+    >
       <div class="flex items-center justify-between border-b border-border/60 pb-4">
         <div>
           <h2 class="text-base font-semibold text-foreground">
@@ -67,14 +79,20 @@
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto pr-2">
+      <div class="min-h-0 flex-1 overflow-y-auto py-1 pl-2 pr-2">
         {#if query.current.isPending}
-          <div class="flex h-48 flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-            <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+          <div
+            class="flex h-48 flex-col items-center justify-center gap-2 text-xs text-muted-foreground"
+          >
+            <div
+              class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+            ></div>
             <span>Carregando timeline…</span>
           </div>
         {:else if query.current.error}
-          <div class="rounded-box border border-destructive/40 bg-destructive-soft p-4 text-xs text-destructive">
+          <div
+            class="rounded-box border border-destructive/40 bg-destructive-soft p-4 text-xs text-destructive"
+          >
             {readError(query.current.error)}
           </div>
         {:else}
@@ -85,11 +103,15 @@
               Clique em "Sincronizar" no card do sistema para buscar os PRs do GitHub.
             </div>
           {:else}
-            <div class="relative flex flex-col gap-6 pl-6 before:absolute before:bottom-2 before:left-2.5 before:top-2 before:w-0.5 before:bg-border">
+            <div
+              class="relative flex flex-col gap-6 pl-6 before:absolute before:bottom-2 before:left-2.5 before:top-2 before:w-0.5 before:bg-border"
+            >
               {#each items as event}
                 <div class="relative flex flex-col gap-1">
                   <!-- Ponto na linha do tempo -->
-                  <div class="absolute -left-6 top-1 grid size-5 place-items-center rounded-full bg-card ring-2 ring-border">
+                  <div
+                    class="absolute -left-6 top-1 grid size-5 place-items-center rounded-full bg-card ring-2 ring-border"
+                  >
                     {#if event.type === 'pr' && event.status === 'merged'}
                       <GitMerge class="size-3 text-primary" />
                     {:else if event.type === 'pr'}
@@ -107,7 +129,9 @@
                           {event.title}
                         </span>
                         {#if event.externalId}
-                          <span class="rounded-chip bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                          <span
+                            class="rounded-chip bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground"
+                          >
                             {event.externalId}
                           </span>
                         {/if}
@@ -117,7 +141,9 @@
                       </span>
                     </div>
 
-                    <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <div
+                      class="mt-2 flex items-center justify-between text-xs text-muted-foreground"
+                    >
                       <span>
                         {TIMELINE_EVENT_TYPE_LABELS[event.type] ?? event.type}
                         {event.author ? `· por ${event.author}` : ''}
@@ -142,7 +168,33 @@
         {/if}
       </div>
 
-      <div class="flex items-center justify-end border-t border-border/60 pt-4">
+      <div class="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
+        {#if total > PAGE_SIZE && !query.current.isPending && !query.current.error}
+          <div class="flex min-w-0 items-center gap-3 text-xs text-muted-foreground">
+            <span class="hidden sm:inline">
+              {(page.current - 1) * PAGE_SIZE + 1}–{Math.min(page.current * PAGE_SIZE, total)} de {total}
+            </span>
+            <button
+              type="button"
+              class="rounded-control border border-border px-3 py-1.5 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={page.current <= 1 || query.current.isFetching}
+              onclick={() => goToPage(page.current - 1)}
+            >
+              Anterior
+            </button>
+            <span class="whitespace-nowrap">{page.current} / {totalPages}</span>
+            <button
+              type="button"
+              class="rounded-control border border-border px-3 py-1.5 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={page.current >= totalPages || query.current.isFetching}
+              onclick={() => goToPage(page.current + 1)}
+            >
+              Próxima
+            </button>
+          </div>
+        {:else}
+          <span></span>
+        {/if}
         <ActionButton
           data={{ label: 'Fechar' }}
           ui={{ variant: 'secondary' }}

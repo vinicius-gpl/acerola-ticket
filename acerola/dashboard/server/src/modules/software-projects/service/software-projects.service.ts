@@ -139,7 +139,7 @@ export class SoftwareProjectsService {
       });
     }
 
-    const issues = await this.githubService.fetchIssues(repoInfo.owner, repoInfo.repo);
+    const issues = await this.githubService.fetchIssues(repoInfo.owner, repoInfo.repo, user.id);
     for (const issue of issues) {
       await this.timelineRepository.upsertPr({
         projectId: id,

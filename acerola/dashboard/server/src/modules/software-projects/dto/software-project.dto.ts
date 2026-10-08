@@ -5,7 +5,6 @@ import {
   updateSoftwareProjectSchema,
 } from '@template/shared/schemas/software-project.schema';
 import {
-  createSoftwareTimelineEventSchema,
   softwareTimelineListQuerySchema,
   softwareTimelineEventSchema,
 } from '@template/shared/schemas/software-timeline.schema';
@@ -34,7 +33,6 @@ export class SoftwareProjectListResponseDto extends createZodDto(
 ) {}
 
 export class SoftwareTimelineEventDto extends createZodDto(softwareTimelineEventSchema) {}
-export class CreateSoftwareTimelineEventDto extends createZodDto(createSoftwareTimelineEventSchema) {}
 export class SoftwareTimelineListQueryDto extends createZodDto(softwareTimelineListQuerySchema) {}
 
 export class SoftwareTimelineListResponseDto extends createZodDto(

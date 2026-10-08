@@ -1,14 +1,22 @@
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { type SoftwareProject } from '@template/shared/schemas/software-project.schema';
 import { type SoftwareScheduleEvent } from '@template/shared/schemas/software-schedule.schema';
+import { type SoftwareTimelineEvent } from '@template/shared/schemas/software-timeline.schema';
 import { derived, writable } from 'svelte/store';
 
 import { readError } from '$lib/api/http-client';
 import { softwareProjectsApi } from '$lib/api/software-projects.api';
 import { softwareScheduleApi } from '$lib/api/software-schedule.api';
+import { softwareTimelineApi } from '$lib/api/software-timeline.api';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 
 export type ScheduleViewMode = 'day' | 'week' | 'month';
+
+export type DeveloperActivitySummary = {
+  author: string;
+  mergedPullRequests: number;
+  resolvedIssues: number;
+};
 
 export type DayColumn = {
   dateString: string; // YYYY-MM-DD
@@ -18,6 +26,7 @@ export type DayColumn = {
   /** Na visão de mês, os dias de fora do mês exibido aparecem esmaecidos. */
   isCurrentMonth: boolean;
   events: SoftwareScheduleEvent[];
+  githubEvents?: SoftwareTimelineEvent[];
 };
 
 export type SoftwareScheduleModel = {
@@ -26,6 +35,10 @@ export type SoftwareScheduleModel = {
     viewMode: ScheduleViewMode;
     days: DayColumn[];
     events: SoftwareScheduleEvent[];
+    githubEvents: SoftwareTimelineEvent[];
+    mergedPullRequests: number;
+    resolvedIssues: number;
+    developerStats: DeveloperActivitySummary[];
     projects: SoftwareProject[];
     nowTopPx: number | null; // Posição em pixels da linha vermelha 'agora' (null se fora das 08h-18h ou outro dia)
     currentDate: Date;
@@ -64,6 +77,7 @@ const MONTHS_PT = [
   'Novembro',
   'Dezembro',
 ];
+const TIMELINE_PAGE_SIZE = 200;
 
 function formatDateIso(d: Date): string {
   const year = d.getFullYear();
@@ -135,6 +149,34 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
     ),
   );
 
+  const githubQuery = mirrorStore(
+    createQuery(
+      derived(range, ($range) => ({
+        queryKey: ['software-timeline', 'schedule', $range.startDate, $range.endDate],
+        queryFn: async () => {
+          const startAt = new Date(`${$range.startDate}T00:00:00`);
+          const endBefore = new Date(`${$range.endDate}T00:00:00`);
+          endBefore.setDate(endBefore.getDate() + 1);
+          const filters = {
+            startAt: startAt.toISOString(),
+            endBefore: endBefore.toISOString(),
+            pageSize: TIMELINE_PAGE_SIZE,
+          };
+          const firstPage = await softwareTimelineApi.list({ ...filters, page: 1 });
+          const pageCount = Math.ceil(firstPage.total / TIMELINE_PAGE_SIZE);
+          if (pageCount <= 1) return firstPage.items;
+
+          const remainingPages = await Promise.all(
+            Array.from({ length: pageCount - 1 }, (_, index) =>
+              softwareTimelineApi.list({ ...filters, page: index + 2 }),
+            ),
+          );
+          return [...firstPage.items, ...remainingPages.flatMap((page) => page.items)];
+        },
+      })),
+    ),
+  );
+
   const projectsQuery = mirrorStore(
     createQuery(
       writable({
@@ -162,6 +204,7 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
       const mode = viewModeStore.current;
       const todayIso = formatDateIso(new Date());
       const allEvents = query.current.data ?? [];
+      const githubEvents = githubQuery.current.data ?? [];
       const projects = projectsQuery.current.data?.items ?? [];
 
       const { start, end } = visibleRange(cur, mode);
@@ -182,6 +225,9 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
           events: allEvents
             .filter((e) => e.date === dateString)
             .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+          githubEvents: githubEvents
+            .filter((event) => formatDateIso(new Date(event.eventDate)) === dateString)
+            .sort((a, b) => a.eventDate.localeCompare(b.eventDate)),
         });
       }
 
@@ -190,6 +236,28 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
         mode === 'day'
           ? `${cur.getDate()} de ${monthName} ${cur.getFullYear()}`
           : `${monthName} ${cur.getFullYear()}`;
+
+      const activityByDeveloper = new Map<string, DeveloperActivitySummary>();
+      for (const event of githubEvents) {
+        const isMergedPr = event.type === 'pr' && event.status === 'merged';
+        const isResolvedIssue = event.type === 'issue' && event.status === 'closed';
+        if (!isMergedPr && !isResolvedIssue) continue;
+
+        const author = event.author ?? 'desconhecido';
+        const summary = activityByDeveloper.get(author) ?? {
+          author,
+          mergedPullRequests: 0,
+          resolvedIssues: 0,
+        };
+        if (isMergedPr) summary.mergedPullRequests++;
+        if (isResolvedIssue) summary.resolvedIssues++;
+        activityByDeveloper.set(author, summary);
+      }
+      const developerStats = [...activityByDeveloper.values()].sort(
+        (a, b) =>
+          b.mergedPullRequests + b.resolvedIssues - (a.mergedPullRequests + a.resolvedIssues) ||
+          a.author.localeCompare(b.author),
+      );
 
       // Calcula posição da linha vermelha "Agora"
       const now = new Date();
@@ -207,6 +275,14 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
         viewMode: mode,
         days,
         events: allEvents,
+        githubEvents,
+        mergedPullRequests: githubEvents.filter(
+          (event) => event.type === 'pr' && event.status === 'merged',
+        ).length,
+        resolvedIssues: githubEvents.filter(
+          (event) => event.type === 'issue' && event.status === 'closed',
+        ).length,
+        developerStats,
         projects,
         nowTopPx,
         currentDate: cur,
@@ -214,9 +290,12 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
     },
     get state() {
       return {
-        isLoading: query.current.isPending,
-        isRefetching: query.current.isRefetching,
-        error: readError(query.current.error) ?? readError(projectsQuery.current.error),
+        isLoading: query.current.isPending || githubQuery.current.isPending,
+        isRefetching: query.current.isRefetching || githubQuery.current.isRefetching,
+        error:
+          readError(query.current.error) ??
+          readError(githubQuery.current.error) ??
+          readError(projectsQuery.current.error),
         deleteError: readError(deleteMutation.current.error),
         isDeleting: deleteMutation.current.isPending,
       };
@@ -240,6 +319,7 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
       onViewModeChange: (mode) => viewMode.set(mode),
       onRetry: () => {
         void query.current.refetch();
+        void githubQuery.current.refetch();
         void projectsQuery.current.refetch();
       },
       onDeleteEvent: async (id) => {

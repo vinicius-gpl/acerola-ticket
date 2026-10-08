@@ -118,6 +118,54 @@ function renderView(
 }
 
 describe('AcerolaWeekScheduleGrid', () => {
+  it('shows synchronized GitHub activity, productivity, and event tooltip', async () => {
+    const githubEvent = {
+      id: 41,
+      projectId: 2,
+      projectName: 'paralegal',
+      type: 'pr' as const,
+      externalId: '#41',
+      title: 'Ajusta filtros do painel',
+      description: null,
+      url: 'https://github.com/grupo-azuos/paralegal/pull/41',
+      author: 'vinicius-gpl',
+      status: 'merged' as const,
+      eventDate: '2026-10-06T12:00:00.000Z',
+      createdAt: '2026-10-05T12:00:00.000Z',
+    };
+
+    renderView({
+      data: {
+        githubEvents: [githubEvent],
+        mergedPullRequests: 1,
+        resolvedIssues: 2,
+        developerStats: [{ author: 'vinicius-gpl', mergedPullRequests: 1, resolvedIssues: 2 }],
+        days: [
+          {
+            dateString: '2026-10-06',
+            dayNumber: 6,
+            weekdayShort: 'Ter',
+            isToday: true,
+            isCurrentMonth: true,
+            events: [],
+            githubEvents: [githubEvent],
+          },
+        ],
+      },
+    });
+
+    const calendarEventLink = screen.getAllByRole('link', { name: /Ajusta filtros do painel/ })[0];
+    expect(calendarEventLink).toBeInTheDocument();
+    await userEvent.hover(calendarEventLink!);
+    expect(await screen.findByText('Pull Request #41 · Mergeado')).toBeInTheDocument();
+
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('PRs mergeados no período')).toBeInTheDocument();
+    expect(screen.getByText('Issues resolvidas no período')).toBeInTheDocument();
+    expect(screen.getByText('vinicius-gpl')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Ajusta filtros do painel/ })).toHaveLength(2);
+  });
+
   it('shows a loading state before displaying the calendar', () => {
     renderView({ state: { isLoading: true } });
     expect(screen.getByRole('status')).toHaveTextContent('Carregando cronograma');

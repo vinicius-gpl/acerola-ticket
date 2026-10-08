@@ -1,13 +1,10 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
-import { UseGuards } from '@nestjs/common';
 import { GithubLinkedGuard } from '../../github-integration/github-linked.guard';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
-  CreateSoftwareTimelineEventDto,
-  SoftwareTimelineEventDto,
   SoftwareTimelineListQueryDto,
   SoftwareTimelineListResponseDto,
 } from '../dto/software-project.dto';
@@ -27,15 +24,5 @@ export class SoftwareTimelineController {
     @Query() query: SoftwareTimelineListQueryDto,
   ): Promise<SoftwareTimelineListResponseDto> {
     return this.service.list(user, query);
-  }
-
-  @Post()
-  @ApiOperation({ summary: 'Registra um novo evento manual na timeline do sistema' })
-  @ApiCreatedResponse({ type: SoftwareTimelineEventDto })
-  async create(
-    @CurrentUser() user: RequestUser,
-    @Body() body: CreateSoftwareTimelineEventDto,
-  ): Promise<SoftwareTimelineEventDto> {
-    return this.service.create(user, body);
   }
 }
