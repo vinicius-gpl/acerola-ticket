@@ -115,6 +115,11 @@
     onNewEvent: fn(),
     onSelectEvent: fn(),
     onRetry: fn(),
+    onOpenGithubDay: fn(),
+    onProjectFilterChange: fn(),
+    onAuthorFilterChange: fn(),
+    onTypeFilterChange: fn(),
+    onClearFilters: fn(),
   };
 
   const { Story } = defineMeta({
@@ -128,6 +133,31 @@
   name="Default"
   args={{
     data: baseData,
+    state: baseState,
+    actions: baseActions,
+  }}
+/>
+
+<Story
+  name="Filters"
+  args={{
+    data: {
+      ...baseData,
+      filters: {
+        project: '',
+        author: 'ana',
+        type: 'issue',
+        isActive: true,
+        projectOptions: [
+          { value: '', label: 'Todos os projetos' },
+          { value: '1', label: 'Acerola Ticket' },
+        ],
+        authorOptions: [
+          { value: '', label: 'Todos os autores' },
+          { value: 'ana', label: 'ana' },
+        ],
+      },
+    },
     state: baseState,
     actions: baseActions,
   }}

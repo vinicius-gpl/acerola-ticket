@@ -129,7 +129,9 @@
                   <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       {TIMELINE_EVENT_TYPE_LABELS[event.type] ?? event.type}
-                      {event.author ? `· por ${event.author}` : ''}
+                      {event.author || event.authorName
+                        ? `· por ${event.authorName ?? event.author}`
+                        : ''}
                     </span>
                     {#if event.url}
                       <a

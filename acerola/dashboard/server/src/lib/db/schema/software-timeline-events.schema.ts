@@ -3,15 +3,7 @@ import {
   TIMELINE_EVENT_TYPES,
 } from '@template/shared/domain/software-project.util';
 import { sql } from 'drizzle-orm';
-import {
-  check,
-  index,
-  integer,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core';
+import { check, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { softwareProjects } from './software-projects.schema';
 
@@ -35,14 +27,11 @@ export const softwareTimelineEvents = pgTable(
     description: text('description'),
     url: text('url'),
     author: text('author'),
+    authorName: text('author_name'),
     status: text('status', { enum: TIMELINE_EVENT_STATUSES }).notNull().default('open'),
-    eventDate: timestamp('event_date', { withTimezone: true, mode: 'date' })
-      .notNull()
-      .defaultNow(),
+    eventDate: timestamp('event_date', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
     createdBy: text('created_by').notNull(),
   },
   (table) => [

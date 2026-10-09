@@ -32,6 +32,7 @@
 {/snippet}
 <Story name="Default" {template} />
 <Story name="Compact" args={{ compact: true }} {template} />
+<Story name="TimeGrid" args={{ inTimeGrid: true }} {template} />
 <Story
   name="ResolvedIssue"
   args={{ event: { ...event, type: 'issue', status: 'closed' } }}

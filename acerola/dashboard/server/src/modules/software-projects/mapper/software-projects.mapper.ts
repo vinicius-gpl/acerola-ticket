@@ -4,24 +4,16 @@ import {
   type SoftwareProject,
   type UpdateSoftwareProjectInput,
 } from '@template/shared/schemas/software-project.schema';
-import {
-  type SoftwareScheduleEvent,
-} from '@template/shared/schemas/software-schedule.schema';
-import {
-  type SoftwareTimelineEvent,
-} from '@template/shared/schemas/software-timeline.schema';
+import { type SoftwareScheduleEvent } from '@template/shared/schemas/software-schedule.schema';
+import { type SoftwareTimelineEvent } from '@template/shared/schemas/software-timeline.schema';
 
 import { setIfDefined } from '../../../lib/db/partial-update.util';
 import {
   type SoftwareProjectInsert,
   type SoftwareProjectRow,
 } from '../../../lib/db/schema/software-projects.schema';
-import {
-  type SoftwareScheduleEventRow,
-} from '../../../lib/db/schema/software-schedule-events.schema';
-import {
-  type SoftwareTimelineEventRow,
-} from '../../../lib/db/schema/software-timeline-events.schema';
+import { type SoftwareScheduleEventRow } from '../../../lib/db/schema/software-schedule-events.schema';
+import { type SoftwareTimelineEventRow } from '../../../lib/db/schema/software-timeline-events.schema';
 
 function resolveRepoMeta(
   repositoryUrl: string,
@@ -134,6 +126,7 @@ export function toSoftwareTimelineEvent(
     description: row.description,
     url: row.url,
     author: row.author,
+    authorName: row.authorName,
     status: row.status,
     eventDate: row.eventDate.toISOString(),
     createdAt: row.createdAt.toISOString(),

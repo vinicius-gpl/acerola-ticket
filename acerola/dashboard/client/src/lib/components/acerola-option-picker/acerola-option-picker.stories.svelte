@@ -63,6 +63,11 @@
 />
 
 <Story name="Disabled" args={{ ...baseArgs, state: { isDisabled: true } }} template={inBox} />
+<Story
+  name="SearchWithFewOptions"
+  args={{ ...baseArgs, ui: { ...baseArgs.ui, mode: 'combobox', fullWidth: true } }}
+  template={inBox}
+/>
 
 <!-- Num formulário, o combo estica igual ao campo ao lado — nunca fica mais estreito. -->
 <Story

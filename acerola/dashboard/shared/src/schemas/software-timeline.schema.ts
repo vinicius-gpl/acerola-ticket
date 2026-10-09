@@ -16,6 +16,7 @@ export const softwareTimelineEventSchema = z.object({
   description: z.string().nullable(),
   url: z.string().nullable(),
   author: z.string().nullable(),
+  authorName: z.string().nullable().optional(),
   status: timelineEventStatusSchema,
   eventDate: z.string().datetime(),
   createdAt: z.string().datetime(),

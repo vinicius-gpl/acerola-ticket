@@ -14,6 +14,7 @@ export type FetchedPr = {
   title: string;
   url: string;
   author: string;
+  authorName: string;
   status: 'open' | 'merged' | 'closed';
   eventDate: Date;
 };
@@ -28,6 +29,8 @@ type RawGithubPr = {
   created_at: string;
 };
 
+type RawGithubUser = { name?: string | null };
+
 function resolvePrStatus(mergedAt?: string | null, state?: string): 'open' | 'merged' | 'closed' {
   if (mergedAt) return 'merged';
   if (state === 'closed') return 'closed';
@@ -40,6 +43,7 @@ function mapRawPr(pr: RawGithubPr): FetchedPr {
     title: pr.title,
     url: pr.html_url,
     author: pr.user?.login ?? 'github',
+    authorName: pr.user?.login ?? 'github',
     status: resolvePrStatus(pr.merged_at, pr.state),
     eventDate: new Date(pr.merged_at ?? pr.created_at),
   };
@@ -48,6 +52,7 @@ function mapRawPr(pr: RawGithubPr): FetchedPr {
 @Injectable()
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
+  private readonly authorNames = new Map<string, Promise<string>>();
 
   constructor(
     @Inject(DB) private readonly db: Database,
@@ -69,6 +74,43 @@ export class GithubService {
     return headers;
   }
 
+  private authorName(login: string, token?: string): Promise<string> {
+    const cached = this.authorNames.get(login);
+    if (cached) return cached;
+
+    const lookup = fetch(`https://api.github.com/users/${encodeURIComponent(login)}`, {
+      headers: this.headers(token),
+      signal: AbortSignal.timeout(10_000),
+    })
+      .then(async (response) => {
+        if (!response.ok) return login;
+        const user = (await response.json()) as RawGithubUser;
+        return user.name?.trim() || login;
+      })
+      .catch(() => login);
+
+    this.authorNames.set(login, lookup);
+    return lookup;
+  }
+
+  private async addAuthorNames<T extends { author: string }>(
+    items: T[],
+    token?: string,
+  ): Promise<(T & { authorName: string })[]> {
+    const logins = [...new Set(items.map((item) => item.author))];
+    const names = new Map<string, string>();
+    let nextLogin = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(8, logins.length) }, async () => {
+        while (nextLogin < logins.length) {
+          const login = logins[nextLogin++];
+          if (login) names.set(login, await this.authorName(login, token));
+        }
+      }),
+    );
+    return items.map((item) => ({ ...item, authorName: names.get(item.author) ?? item.author }));
+  }
+
   /**
    * Busca os Pull Requests de um repositório no GitHub.
    */
@@ -88,7 +130,7 @@ export class GithubService {
 
       const list = (await response.json()) as RawGithubPr[];
       await this.fetchSubsequentPrPages(url, token, response, list);
-      return list.map(mapRawPr);
+      return this.addAuthorNames(list.map(mapRawPr), token);
     } catch (error) {
       return this.handlePrCatchError(error, owner, repo, userId);
     }
@@ -167,23 +209,22 @@ export class GithubService {
         closed_at?: string | null;
         closed_by?: { login?: string } | null;
       }>;
-      items.push(
-        ...rows
-          .filter((row) => !row.pull_request)
-          .map((row) => ({
-            externalId: `#${row.number}`,
-            title: row.title,
-            url: row.html_url,
-            author:
-              row.state === 'closed'
-                ? (row.closed_by?.login ?? 'github')
-                : (row.user?.login ?? 'github'),
-            status: row.state === 'closed' ? ('closed' as const) : ('open' as const),
-            eventDate: new Date(
-              row.state === 'closed' && row.closed_at ? row.closed_at : row.created_at,
-            ),
-          })),
-      );
+      const pageItems = rows
+        .filter((row) => !row.pull_request)
+        .map((row) => ({
+          externalId: `#${row.number}`,
+          title: row.title,
+          url: row.html_url,
+          author:
+            row.state === 'closed'
+              ? (row.closed_by?.login ?? 'github')
+              : (row.user?.login ?? 'github'),
+          status: row.state === 'closed' ? ('closed' as const) : ('open' as const),
+          eventDate: new Date(
+            row.state === 'closed' && row.closed_at ? row.closed_at : row.created_at,
+          ),
+        }));
+      items.push(...(await this.addAuthorNames(pageItems, token)));
       if (!response.headers.get('link')?.includes('rel="next"')) return items;
     }
   }
@@ -325,6 +366,7 @@ export class GithubService {
             description: title,
             url: result.issueUrl,
             author: requesterName,
+            authorName: requesterName,
             status: 'open',
             eventDate: new Date(),
             createdBy: 'sistema@acerola.local',

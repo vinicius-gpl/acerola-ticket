@@ -3,7 +3,11 @@
 
   import * as Tooltip from '$lib/components/acerola-tooltip/acerola-tooltip';
 
-  let { event, compact = false }: { event: SoftwareTimelineEvent; compact?: boolean } = $props();
+  let {
+    event,
+    compact = false,
+    inTimeGrid = false,
+  }: { event: SoftwareTimelineEvent; compact?: boolean; inTimeGrid?: boolean } = $props();
 
   const kind = $derived(event.type === 'pr' ? 'Pull Request' : 'Issue');
   const status = $derived(
@@ -29,6 +33,17 @@
   }
 </script>
 
+{#snippet timeLabel()}
+  <time datetime={event.eventDate} class="font-mono tabular-nums"
+    >{new Date(event.eventDate).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}</time
+  >
+  · {event.type === 'pr' ? 'PR' : 'Issue'}
+  {event.externalId}
+{/snippet}
+
 <Tooltip.Root>
   <Tooltip.Trigger>
     {#snippet child({ props })}
@@ -38,12 +53,18 @@
         target="_blank"
         rel="noreferrer"
         aria-label="{kind} {event.externalId ?? ''}: {event.title}"
-        class="block truncate rounded-chip border border-primary/20 bg-primary-soft text-primary transition hover:border-primary/50 {compact
-          ? 'px-1 py-0.5 text-xs'
-          : 'px-1.5 py-1 text-xs'}"
+        class="block overflow-hidden border border-primary/20 bg-primary-soft text-primary transition hover:border-primary/50 {inTimeGrid
+          ? 'h-full rounded-box p-2 text-xs'
+          : compact
+            ? 'truncate rounded-chip px-1 py-0.5 text-xs'
+            : 'truncate rounded-chip px-1.5 py-1 text-xs'}"
       >
-        {event.type === 'pr' ? 'PR' : 'Issue'}
-        {event.externalId} · {event.title}
+        {#if inTimeGrid}
+          <span class="block truncate font-semibold">{event.title}</span>
+          <span class="block truncate">{@render timeLabel()}</span>
+        {:else}
+          {@render timeLabel()} · {event.title}
+        {/if}
       </a>
     {/snippet}
   </Tooltip.Trigger>
@@ -56,7 +77,7 @@
     <span class="font-semibold">{kind} {event.externalId} · {status}</span>
     <span>{event.title}</span>
     <span class="text-background/75">
-      {event.projectName ?? 'Projeto'} · por {event.author ?? 'desconhecido'} · {formatDate(
+      {event.projectName ?? 'Projeto'} · por {event.authorName ?? event.author ?? 'desconhecido'} · {formatDate(
         event.eventDate,
       )}
     </span>

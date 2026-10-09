@@ -41,6 +41,7 @@ export class SoftwareTimelineRepository {
             description: softwareTimelineEvents.description,
             url: softwareTimelineEvents.url,
             author: softwareTimelineEvents.author,
+            authorName: softwareTimelineEvents.authorName,
             status: softwareTimelineEvents.status,
             eventDate: softwareTimelineEvents.eventDate,
             createdAt: softwareTimelineEvents.createdAt,
@@ -76,6 +77,7 @@ export class SoftwareTimelineRepository {
           description: softwareTimelineEvents.description,
           url: softwareTimelineEvents.url,
           author: softwareTimelineEvents.author,
+          authorName: softwareTimelineEvents.authorName,
           status: softwareTimelineEvents.status,
           eventDate: softwareTimelineEvents.eventDate,
           createdAt: softwareTimelineEvents.createdAt,
@@ -127,6 +129,7 @@ export class SoftwareTimelineRepository {
             status: data.status,
             url: data.url,
             author: data.author,
+            authorName: data.authorName,
             eventDate: data.eventDate,
           })
           .where(eq(softwareTimelineEvents.id, existing[0].id))

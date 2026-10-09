@@ -19,6 +19,77 @@ export type DeveloperActivitySummary = {
   resolvedIssues: number;
 };
 
+export type ScheduleFilters = { project: string; author: string; type: string };
+export type ScheduleFilterData = ScheduleFilters & {
+  projectOptions: { value: string; label: string }[];
+  authorOptions: { value: string; label: string }[];
+  isActive: boolean;
+};
+
+function filterGithubEvents(events: SoftwareTimelineEvent[], filters: ScheduleFilters) {
+  return events.filter(
+    (event) =>
+      (!filters.project || String(event.projectId) === filters.project) &&
+      (!filters.author || (event.author ?? '__unknown__') === filters.author) &&
+      (!filters.type || event.type === filters.type),
+  );
+}
+
+function projectFilterOptions(
+  projects: SoftwareProject[],
+  events: SoftwareScheduleEvent[],
+  githubEvents: SoftwareTimelineEvent[],
+) {
+  const projectOptions = new SvelteMap(
+    projects.map((project) => [String(project.id), project.name]),
+  );
+  for (const event of [...events, ...githubEvents]) {
+    if (event.projectId != null)
+      projectOptions.set(
+        String(event.projectId),
+        event.projectName ??
+          projectOptions.get(String(event.projectId)) ??
+          `Projeto ${event.projectId}`,
+      );
+  }
+
+  return [
+    { value: '', label: 'Todos os projetos' },
+    ...[...projectOptions]
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label })),
+  ];
+}
+
+function authorFilterOptions(githubEvents: SoftwareTimelineEvent[], selectedAuthor: string) {
+  const authors = new SvelteMap<string, string>();
+  for (const event of githubEvents) {
+    const login = event.author ?? '__unknown__';
+    authors.set(login, event.authorName || (login === '__unknown__' ? 'Não informado' : login));
+  }
+  if (selectedAuthor && !authors.has(selectedAuthor)) authors.set(selectedAuthor, selectedAuthor);
+  return [
+    { value: '', label: 'Todos os autores' },
+    ...[...authors]
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label })),
+  ];
+}
+
+function scheduleFilterData(
+  filters: ScheduleFilters,
+  githubEvents: SoftwareTimelineEvent[],
+  projects: SoftwareProject[],
+  events: SoftwareScheduleEvent[],
+): ScheduleFilterData {
+  return {
+    ...filters,
+    isActive: Boolean(filters.project || filters.author || filters.type),
+    projectOptions: projectFilterOptions(projects, events, githubEvents),
+    authorOptions: authorFilterOptions(githubEvents, filters.author),
+  };
+}
+
 export type DayColumn = {
   dateString: string; // YYYY-MM-DD
   dayNumber: number;
@@ -43,6 +114,15 @@ export type SoftwareScheduleModel = {
     projects: SoftwareProject[];
     nowTopPx: number | null; // Posição em pixels da linha vermelha 'agora' (null se fora das 08h-18h ou outro dia)
     currentDate: Date;
+    filters: ScheduleFilterData;
+    githubDay: {
+      date: string;
+      type?: 'pr' | 'issue' | 'all';
+      items: SoftwareTimelineEvent[];
+      total: number;
+      page: number;
+      pageSize: number;
+    } | null;
   };
   state: {
     isLoading: boolean;
@@ -58,6 +138,13 @@ export type SoftwareScheduleModel = {
     onViewModeChange: (mode: ScheduleViewMode) => void;
     onRetry: () => void;
     onDeleteEvent: (id: number) => Promise<boolean>;
+    onOpenGithubDay: (date: string, type?: 'pr' | 'issue' | 'all') => void;
+    onCloseGithubDay: () => void;
+    onGithubDayPageChange: (page: number) => void;
+    onProjectFilterChange: (value: string) => void;
+    onAuthorFilterChange: (value: string) => void;
+    onTypeFilterChange: (value: string) => void;
+    onClearFilters: () => void;
   };
 };
 
@@ -139,24 +226,29 @@ function countGithubEvents(
   return events.filter((event) => event.type === type && event.status === status).length;
 }
 
+function developerActivityKind(event: SoftwareTimelineEvent): 'pr' | 'issue' | null {
+  if (event.type === 'pr' && event.status === 'merged') return 'pr';
+  if (event.type === 'issue' && event.status === 'closed') return 'issue';
+  return null;
+}
+
 function summarizeDeveloperActivity(
   githubEvents: SoftwareTimelineEvent[],
 ): DeveloperActivitySummary[] {
   const activityByDeveloper = new SvelteMap<string, DeveloperActivitySummary>();
   for (const event of githubEvents) {
-    const isMergedPr = event.type === 'pr' && event.status === 'merged';
-    const isResolvedIssue = event.type === 'issue' && event.status === 'closed';
-    if (!isMergedPr && !isResolvedIssue) continue;
+    const kind = developerActivityKind(event);
+    if (!kind) continue;
 
-    const author = event.author ?? 'desconhecido';
-    const summary = activityByDeveloper.get(author) ?? {
-      author,
+    const authorKey = event.author ?? 'desconhecido';
+    const summary = activityByDeveloper.get(authorKey) ?? {
+      author: event.authorName || authorKey,
       mergedPullRequests: 0,
       resolvedIssues: 0,
     };
-    if (isMergedPr) summary.mergedPullRequests++;
-    if (isResolvedIssue) summary.resolvedIssues++;
-    activityByDeveloper.set(author, summary);
+    if (kind === 'pr') summary.mergedPullRequests++;
+    else summary.resolvedIssues++;
+    activityByDeveloper.set(authorKey, summary);
   }
   const developerStats = [...activityByDeveloper.values()].sort(
     (a, b) =>
@@ -182,10 +274,38 @@ function currentTimePosition(): number | null {
   return nowTopPx;
 }
 
+function selectedGithubDay(
+  days: DayColumn[],
+  date: string | null,
+  page: number,
+  pageSize: number,
+  type: 'pr' | 'issue' | 'all',
+): SoftwareScheduleModel['data']['githubDay'] {
+  if (!date) return null;
+  const prs =
+    days
+      .find((day) => day.dateString === date)
+      ?.githubEvents?.filter((event) => type === 'all' || event.type === type) ?? [];
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(prs.length / pageSize)));
+  return {
+    date,
+    type,
+    items: prs.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    total: prs.length,
+    page: currentPage,
+    pageSize,
+  };
+}
+
 export function useSoftwareScheduleModel(): SoftwareScheduleModel {
   const queryClient = useQueryClient();
   const currentDate = writable<Date>(new SvelteDate());
   const viewMode = writable<ScheduleViewMode>('week');
+  let githubDayDate = $state<string | null>(null);
+  let githubDayType = $state<'pr' | 'issue' | 'all'>('pr');
+  let filters = $state<ScheduleFilters>({ project: '', author: '', type: '' });
+  let githubDayPage = $state(1);
+  const githubDayPageSize = 5;
 
   const range = derived([currentDate, viewMode], ([$current, $mode]) => {
     const { start, end } = visibleRange($current, $mode);
@@ -255,8 +375,12 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
       const cur = currentDateStore.current;
       const mode = viewModeStore.current;
       const todayIso = formatDateIso(new SvelteDate());
-      const allEvents = query.current.data ?? [];
-      const githubEvents = githubQuery.current.data ?? [];
+      const rawEvents = query.current.data ?? [];
+      const rawGithubEvents = githubQuery.current.data ?? [];
+      const allEvents = rawEvents.filter(
+        (event) => !filters.project || String(event.projectId) === filters.project,
+      );
+      const githubEvents = filterGithubEvents(rawGithubEvents, filters);
       const projects = projectsQuery.current.data?.items ?? [];
 
       const { start, end } = visibleRange(cur, mode);
@@ -279,7 +403,7 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
             .sort((a, b) => a.startTime.localeCompare(b.startTime)),
           githubEvents: githubEvents
             .filter((event) => formatDateIso(new SvelteDate(event.eventDate)) === dateString)
-            .sort((a, b) => a.eventDate.localeCompare(b.eventDate)),
+            .sort((a, b) => Date.parse(a.eventDate) - Date.parse(b.eventDate) || a.id - b.id),
         });
       }
 
@@ -305,6 +429,14 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
         projects,
         nowTopPx,
         currentDate: cur,
+        filters: scheduleFilterData(filters, rawGithubEvents, projects, rawEvents),
+        githubDay: selectedGithubDay(
+          days,
+          githubDayDate,
+          githubDayPage,
+          githubDayPageSize,
+          githubDayType,
+        ),
       };
     },
     get state() {
@@ -320,6 +452,33 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
       };
     },
     actions: {
+      onProjectFilterChange: (value) => {
+        filters.project = value;
+        githubDayPage = 1;
+      },
+      onAuthorFilterChange: (value) => {
+        filters.author = value;
+        githubDayPage = 1;
+      },
+      onTypeFilterChange: (value) => {
+        filters.type = value === 'pr' || value === 'issue' ? value : '';
+        githubDayPage = 1;
+      },
+      onClearFilters: () => {
+        filters = { project: '', author: '', type: '' };
+        githubDayPage = 1;
+      },
+      onOpenGithubDay: (date, type = 'pr') => {
+        githubDayDate = date;
+        githubDayType = type;
+        githubDayPage = 1;
+      },
+      onCloseGithubDay: () => {
+        githubDayDate = null;
+      },
+      onGithubDayPageChange: (nextPage) => {
+        githubDayPage = Math.max(1, nextPage);
+      },
       onPrev: () => {
         const mode = viewModeStore.current;
         currentDate.update((d) =>

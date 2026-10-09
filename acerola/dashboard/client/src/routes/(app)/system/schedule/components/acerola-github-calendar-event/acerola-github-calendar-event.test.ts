@@ -41,6 +41,6 @@ describe('AcerolaGithubCalendarEvent', () => {
   it('does not invent a link when the event has no GitHub URL', () => {
     render(Harness, { event: { ...event, url: null } });
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.getByText('PR #42 · Melhora o calendário')).toBeInTheDocument();
+    expect(screen.getByText(/PR #42 · Melhora o calendário/)).toBeInTheDocument();
   });
 });

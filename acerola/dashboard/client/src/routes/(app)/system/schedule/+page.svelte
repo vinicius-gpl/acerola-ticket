@@ -4,6 +4,7 @@
   import { type SoftwareScheduleEvent } from '@template/shared/schemas/software-schedule.schema';
 
   import WeekScheduleGrid from './components/acerola-week-schedule-grid/acerola-week-schedule-grid.svelte';
+  import GithubDayDialog from './components/acerola-github-day-dialog/acerola-github-day-dialog.svelte';
   import { useSoftwareScheduleModel } from '$lib/hooks/use-software-schedule/use-software-schedule.svelte';
   import ScheduleEventFormSlot from './schedule-event-form-slot.svelte';
 
@@ -30,6 +31,16 @@
     },
   }}
 />
+
+{#if schedule.data.githubDay}
+  <GithubDayDialog
+    data={schedule.data.githubDay}
+    actions={{
+      onClose: schedule.actions.onCloseGithubDay,
+      onPageChange: schedule.actions.onGithubDayPageChange,
+    }}
+  />
+{/if}
 
 {#if isNewOpen}
   <ScheduleEventFormSlot
