@@ -144,7 +144,7 @@
 
   {#if state.isLoading}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each [0, 1, 2] as _}
+      {#each [0, 1, 2] as idx (idx)}
         <div class="h-56 animate-pulse rounded-surface border border-border bg-muted/50"></div>
       {/each}
     </div>
@@ -190,7 +190,7 @@
   {:else}
     <!-- Grid de Projetos -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {#each data.items as project}
+      {#each data.items as project (project.id)}
         <div
           class="flex flex-col justify-between rounded-surface border border-border bg-card p-5 shadow-xs transition hover:border-border/80"
         >

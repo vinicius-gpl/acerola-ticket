@@ -64,7 +64,7 @@
 
   {#if state.isLoading}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {#each [0, 1, 2, 3] as _}
+      {#each [0, 1, 2, 3] as idx (idx)}
         <div class="h-32 animate-pulse rounded-surface border border-border bg-muted/50"></div>
       {/each}
     </div>
@@ -163,7 +163,7 @@
         <p class="mt-1 text-xs text-muted-foreground">Chamados abertos, resolvidos e Pull Requests semana a semana</p>
 
         <div class="mt-6 flex flex-col gap-4">
-          {#each s.weeklyTrend as week}
+          {#each s.weeklyTrend as week (week.weekLabel)}
             <div class="flex flex-col gap-1.5">
               <div class="flex items-center justify-between text-xs font-medium text-foreground">
                 <span>{week.weekLabel}</span>
@@ -205,7 +205,7 @@
           </div>
         {:else}
           <div class="mt-6 flex flex-col gap-4">
-            {#each s.ticketsByProblemType as pt}
+            {#each s.ticketsByProblemType as pt (pt.key)}
               {@const pct = s.ticketsMonthSummary.opened > 0 ? Math.round((pt.count / s.ticketsMonthSummary.opened) * 100) : 0}
               <div class="flex flex-col gap-1.5">
                 <div class="flex items-center justify-between text-xs font-medium text-foreground">
@@ -242,7 +242,7 @@
         </div>
       {:else}
         <div class="mt-6 divide-y divide-border/60">
-          {#each s.recentTimeline as event}
+          {#each s.recentTimeline as event (event.id)}
             <div class="flex items-center justify-between py-3">
               <div class="flex items-center gap-3">
                 <div class="grid size-8 shrink-0 place-items-center rounded-control bg-muted text-muted-foreground">

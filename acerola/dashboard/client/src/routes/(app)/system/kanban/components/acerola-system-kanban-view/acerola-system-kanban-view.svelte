@@ -203,7 +203,7 @@
 
   {#if viewState.isLoading}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {#each [0, 1, 2, 3] as _}
+      {#each [0, 1, 2, 3] as idx (idx)}
         <div class="h-96 animate-pulse rounded-surface border border-border bg-muted/50"></div>
       {/each}
     </div>
@@ -225,7 +225,7 @@
   {:else}
     <!-- 4 Colunas do Kanban com Drag & Drop -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {#each data.columns as column}
+      {#each data.columns as column (column.id)}
         {@const isDropTarget = activeDropColumn === column.id}
         <div
           class="flex flex-col rounded-surface border p-4 transition-colors {isDropTarget
@@ -267,7 +267,7 @@
                 Arraste um card para cá
               </div>
             {:else}
-              {#each column.tickets as ticket}
+              {#each column.tickets as ticket (ticket.id)}
                 {@const ticketTone =
                   (data.cardColors[ticket.id] as StatusBadgeTone | undefined) ?? 'neutral'}
                 {@const isBeingDragged = draggedTicketId === ticket.id}
@@ -342,7 +342,7 @@
                             >
                               Etiqueta
                             </span>
-                            {#each CARD_TONE_OPTIONS as opt}
+                            {#each CARD_TONE_OPTIONS as opt (opt.tone)}
                               <button
                                 type="button"
                                 class="flex items-center justify-between rounded-chip px-2 py-1 text-xs text-foreground transition hover:bg-muted"

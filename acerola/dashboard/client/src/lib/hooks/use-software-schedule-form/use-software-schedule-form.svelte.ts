@@ -1,3 +1,4 @@
+import { SvelteDate } from 'svelte/reactivity';
 import { createForm } from '@tanstack/svelte-form';
 import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 import {
@@ -31,6 +32,55 @@ export type SoftwareScheduleFormModel = {
   };
 };
 
+function resolveInitialScheduleValues(
+  event: SoftwareScheduleEvent | null,
+  defaultDate?: string,
+  todayIso = new SvelteDate().toISOString().slice(0, 10),
+): SoftwareScheduleForm {
+  if (!event) {
+    return {
+      title: '',
+      category: 'other',
+      color: 'blue',
+      date: defaultDate ?? todayIso,
+      startTime: '09:00',
+      endTime: '10:00',
+      projectId: null,
+      note: '',
+    };
+  }
+
+  return {
+    title: event.title,
+    category: event.category,
+    color: event.color,
+    date: event.date,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    projectId: event.projectId,
+    note: event.note ?? '',
+  };
+}
+
+function saveScheduleEvent(event: SoftwareScheduleEvent | null, values: SoftwareScheduleForm) {
+  const payload = {
+    title: values.title,
+    category: values.category,
+    color: values.color,
+    date: values.date,
+    startTime: values.startTime,
+    endTime: values.endTime,
+    projectId: values.projectId ? Number(values.projectId) : null,
+    note: values.note ? values.note.trim() : null,
+  };
+
+  if (event) {
+    return softwareScheduleApi.update(event.id, payload);
+  }
+
+  return softwareScheduleApi.create(payload);
+}
+
 export function useSoftwareScheduleFormModel({
   event,
   defaultDate,
@@ -43,34 +93,9 @@ export function useSoftwareScheduleFormModel({
   const queryClient = useQueryClient();
   const isEdit = event !== null;
 
-  const todayIso = new Date().toISOString().slice(0, 10);
-
   const mutation = mirrorStore(
     createMutation({
-      mutationFn: (values: SoftwareScheduleForm) => {
-        if (isEdit) {
-          return softwareScheduleApi.update(event.id, {
-            title: values.title,
-            category: values.category,
-            color: values.color,
-            date: values.date,
-            startTime: values.startTime,
-            endTime: values.endTime,
-            projectId: values.projectId ? Number(values.projectId) : null,
-            note: values.note || null,
-          });
-        }
-        return softwareScheduleApi.create({
-          title: values.title,
-          category: values.category,
-          color: values.color,
-          date: values.date,
-          startTime: values.startTime,
-          endTime: values.endTime,
-          projectId: values.projectId ? Number(values.projectId) : null,
-          note: values.note || null,
-        });
-      },
+      mutationFn: (values: SoftwareScheduleForm) => saveScheduleEvent(event, values),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: SOFTWARE_SCHEDULE_QUERY_KEY });
         onSaved();
@@ -78,16 +103,7 @@ export function useSoftwareScheduleFormModel({
     }),
   );
 
-  const initialValues: SoftwareScheduleForm = {
-    title: event?.title ?? '',
-    category: event?.category ?? 'other',
-    color: event?.color ?? 'blue',
-    date: event?.date ?? defaultDate ?? todayIso,
-    startTime: event?.startTime ?? '09:00',
-    endTime: event?.endTime ?? '10:00',
-    projectId: event?.projectId ?? null,
-    note: event?.note ?? '',
-  };
+  const initialValues = resolveInitialScheduleValues(event, defaultDate);
 
   const form = createForm(() => ({
     defaultValues: initialValues,

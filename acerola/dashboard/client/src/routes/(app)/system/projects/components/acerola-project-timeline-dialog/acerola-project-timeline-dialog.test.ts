@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/svelte-query';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -22,30 +21,67 @@ const mockProject: SoftwareProject = {
 };
 
 describe('AcerolaProjectTimelineDialog', () => {
+  // feliz
   it('renders dialog header with project name', () => {
-    const queryClient = new QueryClient();
     render(ProjectTimelineDialog, {
       props: {
-        open: true,
-        project: mockProject,
-        onClose: vi.fn(),
+        data: {
+          project: mockProject,
+          items: [],
+        },
+        state: {
+          isOpen: true,
+          isLoading: false,
+          error: null,
+        },
+        actions: {
+          onClose: vi.fn(),
+        },
       },
-      context: new Map([['$$_queryClient', queryClient]]),
     });
 
     expect(screen.getByText('Timeline — Acerola Ticket')).toBeInTheDocument();
   });
 
-  it('calls onClose when close button is clicked', async () => {
-    const onClose = vi.fn();
-    const queryClient = new QueryClient();
+  // triste
+  it('renders error message when state has an error', () => {
     render(ProjectTimelineDialog, {
       props: {
-        open: true,
-        project: mockProject,
-        onClose,
+        data: {
+          project: mockProject,
+          items: [],
+        },
+        state: {
+          isOpen: true,
+          isLoading: false,
+          error: 'Falha ao carregar eventos da timeline',
+        },
+        actions: {
+          onClose: vi.fn(),
+        },
       },
-      context: new Map([['$$_queryClient', queryClient]]),
+    });
+
+    expect(screen.getByText('Falha ao carregar eventos da timeline')).toBeInTheDocument();
+  });
+
+  it('calls onClose when close button is clicked', async () => {
+    const onClose = vi.fn();
+    render(ProjectTimelineDialog, {
+      props: {
+        data: {
+          project: mockProject,
+          items: [],
+        },
+        state: {
+          isOpen: true,
+          isLoading: false,
+          error: null,
+        },
+        actions: {
+          onClose,
+        },
+      },
     });
 
     const closeBtn = screen.getByText('✕');

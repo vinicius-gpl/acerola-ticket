@@ -29,8 +29,17 @@
 <Story
   name="Default"
   args={{
-    open: true,
-    project: mockProject,
-    onClose: fn(),
+    data: {
+      project: mockProject,
+      items: [],
+    },
+    state: {
+      isOpen: true,
+      isLoading: false,
+      error: null,
+    },
+    actions: {
+      onClose: fn(),
+    },
   }}
 />

@@ -5,8 +5,8 @@
 
   import { useSoftwareProjectListModel } from '$lib/hooks/use-software-project-list/use-software-project-list.svelte';
   import ProjectListView from './components/acerola-project-list-view/acerola-project-list-view.svelte';
-  import ProjectTimelineDialog from './components/acerola-project-timeline-dialog/acerola-project-timeline-dialog.svelte';
   import ProjectFormSlot from './project-form-slot.svelte';
+  import ProjectTimelineSlot from './project-timeline-slot.svelte';
 
   const listModel = useSoftwareProjectListModel();
 
@@ -53,8 +53,7 @@
 
 {#if timelineProject}
   {#key timelineProject.id}
-    <ProjectTimelineDialog
-      open={true}
+    <ProjectTimelineSlot
       project={timelineProject}
       onClose={() => {
         timelineProject = null;

@@ -31,36 +31,52 @@ export type SoftwareProjectFormModel = {
   };
 };
 
+function resolveInitialProjectValues(project: SoftwareProject | null): SoftwareProjectForm {
+  if (!project) {
+    return {
+      name: '',
+      description: '',
+      repositoryUrl: '',
+      status: 'active',
+      color: 'blue',
+    };
+  }
+  return {
+    name: project.name,
+    description: project.description ?? '',
+    repositoryUrl: project.repositoryUrl,
+    status: project.status,
+    color: project.color,
+  };
+}
+
+function saveProject(project: SoftwareProject | null, values: SoftwareProjectForm) {
+  const payload = {
+    name: values.name,
+    description: values.description ? values.description.trim() : null,
+    repositoryUrl: values.repositoryUrl,
+    status: values.status,
+    color: values.color,
+  };
+  if (project) {
+    return softwareProjectsApi.update(project.id, payload);
+  }
+  return softwareProjectsApi.create(payload);
+}
+
 export function useSoftwareProjectFormModel({
   project,
   onSaved,
 }: {
   project: SoftwareProject | null;
   onSaved: () => void;
-}): SoftwareProjectFormModel {
+  }): SoftwareProjectFormModel {
   const queryClient = useQueryClient();
   const isEdit = project !== null;
 
   const mutation = mirrorStore(
     createMutation({
-      mutationFn: (values: SoftwareProjectForm) => {
-        if (isEdit) {
-          return softwareProjectsApi.update(project.id, {
-            name: values.name,
-            description: values.description || null,
-            repositoryUrl: values.repositoryUrl,
-            status: values.status,
-            color: values.color,
-          });
-        }
-        return softwareProjectsApi.create({
-          name: values.name,
-          description: values.description || null,
-          repositoryUrl: values.repositoryUrl,
-          status: values.status,
-          color: values.color,
-        });
-      },
+      mutationFn: (values: SoftwareProjectForm) => saveProject(project, values),
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: SOFTWARE_PROJECTS_QUERY_KEY });
         onSaved();
@@ -68,13 +84,7 @@ export function useSoftwareProjectFormModel({
     }),
   );
 
-  const initialValues: SoftwareProjectForm = {
-    name: project?.name ?? '',
-    description: project?.description ?? '',
-    repositoryUrl: project?.repositoryUrl ?? '',
-    status: project?.status ?? 'active',
-    color: project?.color ?? 'blue',
-  };
+  const initialValues = resolveInitialProjectValues(project);
 
   const form = createForm(() => ({
     defaultValues: initialValues,

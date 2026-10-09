@@ -200,7 +200,7 @@
     <div class="overflow-x-auto rounded-surface border border-border bg-card shadow-xs">
       <div class="min-w-[840px]">
         <div class="grid grid-cols-7 border-b border-border">
-          {#each WEEKDAY_HEADERS as weekday, index}
+          {#each WEEKDAY_HEADERS as weekday, index (weekday)}
             <p
               class="px-3 py-2 text-center text-xs uppercase tracking-wider text-muted-foreground {index >
               0
@@ -213,7 +213,7 @@
         </div>
 
         <div class="grid grid-cols-7">
-          {#each data.days as day, index}
+          {#each data.days as day, index (day.dateString)}
             <div
               class="flex min-h-28 flex-col gap-1 border-border p-1.5 {index % 7 > 0
                 ? 'border-l'
@@ -235,7 +235,7 @@
                 </span>
               {/if}
 
-              {#each day.events as event}
+              {#each day.events as event (event.id)}
                 <button
                   type="button"
                   class="truncate rounded-chip border px-1.5 py-0.5 text-left text-xs font-medium text-foreground transition {EVENT_SURFACE[
@@ -264,7 +264,7 @@
           style="grid-template-columns:56px repeat({columns},1fr)"
         >
           <div></div>
-          {#each data.days as day}
+          {#each data.days as day (day.dateString)}
             <div class="border-l border-border px-3 py-3 text-center">
               <p class="text-xs uppercase tracking-wider text-muted-foreground">
                 {day.weekdayShort}
@@ -287,14 +287,14 @@
         <!-- Grade de Horas (08:00 às 18:00) com Colunas e Eventos Absolutos -->
         <div class="relative grid" style="grid-template-columns:56px repeat({columns},1fr)">
           <div class="text-right">
-            {#each hours as hour}
+            {#each hours as hour (hour)}
               <div class="h-14 pr-2 pt-1 font-mono text-xs text-muted-foreground">
                 {hour}
               </div>
             {/each}
           </div>
 
-          {#each data.days as day}
+          {#each data.days as day (day.dateString)}
             <div
               class="relative border-l border-border {day.weekdayShort === 'Sáb' ||
               day.weekdayShort === 'Dom'
@@ -305,7 +305,7 @@
                 class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:100%_56px] opacity-40"
               ></div>
 
-              {#each day.events.filter((event) => event.startTime < '18:00' && event.endTime > '08:00') as event}
+              {#each day.events.filter((event) => event.startTime < '18:00' && event.endTime > '08:00') as event (event.id)}
                 <button
                   type="button"
                   class="absolute inset-x-1 overflow-hidden rounded-box border p-2 text-left shadow-xs transition {EVENT_SURFACE[
@@ -346,7 +346,7 @@
     {#if data.events.some((event) => event.startTime < '08:00' || event.endTime > '18:00')}
       <div class="flex flex-col gap-2 rounded-surface border border-border bg-card p-4">
         <h2 class="text-sm font-semibold">Agendamentos fora do horário da grade</h2>
-        {#each data.events.filter((event) => event.startTime < '08:00' || event.endTime > '18:00') as event}
+        {#each data.events.filter((event) => event.startTime < '08:00' || event.endTime > '18:00') as event (event.id)}
           <button
             type="button"
             class="rounded-control border border-border p-2 text-left text-xs hover:bg-muted"

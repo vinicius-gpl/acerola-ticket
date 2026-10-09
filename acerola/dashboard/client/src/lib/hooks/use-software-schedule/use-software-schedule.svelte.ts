@@ -1,3 +1,4 @@
+import { SvelteDate } from 'svelte/reactivity';
 import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
 import { type SoftwareProject } from '@template/shared/schemas/software-project.schema';
 import { type SoftwareScheduleEvent } from '@template/shared/schemas/software-schedule.schema';
@@ -74,7 +75,7 @@ function formatDateIso(d: Date): string {
 
 /** Pega a segunda-feira da semana de uma data. */
 function getMonday(d: Date): Date {
-  const date = new Date(d);
+  const date = new SvelteDate(d);
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
   date.setDate(diff);
@@ -83,15 +84,15 @@ function getMonday(d: Date): Date {
 }
 
 function addDays(d: Date, amount: number): Date {
-  const next = new Date(d);
+  const next = new SvelteDate(d);
   next.setDate(next.getDate() + amount);
   return next;
 }
 
 /** Soma meses sem estourar o dia (31 de jan + 1 mês = 28/29 de fev, não 3 de mar). */
 function addMonths(d: Date, amount: number): Date {
-  const next = new Date(d.getFullYear(), d.getMonth() + amount, 1);
-  const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  const next = new SvelteDate(d.getFullYear(), d.getMonth() + amount, 1);
+  const lastDay = new SvelteDate(next.getFullYear(), next.getMonth() + 1, 0).getDate();
   next.setDate(Math.min(d.getDate(), lastDay));
   return next;
 }
@@ -99,7 +100,7 @@ function addMonths(d: Date, amount: number): Date {
 /** A janela de datas que a visão mostra: 1 dia, a semana, ou a grade do mês (segunda a domingo). */
 function visibleRange(current: Date, mode: ScheduleViewMode): { start: Date; end: Date } {
   if (mode === 'day') {
-    const day = new Date(current);
+    const day = new SvelteDate(current);
     day.setHours(0, 0, 0, 0);
     return { start: day, end: day };
   }
@@ -109,8 +110,8 @@ function visibleRange(current: Date, mode: ScheduleViewMode): { start: Date; end
     return { start: monday, end: addDays(monday, 6) };
   }
 
-  const first = new Date(current.getFullYear(), current.getMonth(), 1);
-  const last = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+  const first = new SvelteDate(current.getFullYear(), current.getMonth(), 1);
+  const last = new SvelteDate(current.getFullYear(), current.getMonth() + 1, 0);
   const start = getMonday(first);
   const lastMonday = getMonday(last);
   return { start, end: addDays(lastMonday, 6) };
@@ -118,7 +119,7 @@ function visibleRange(current: Date, mode: ScheduleViewMode): { start: Date; end
 
 export function useSoftwareScheduleModel(): SoftwareScheduleModel {
   const queryClient = useQueryClient();
-  const currentDate = writable<Date>(new Date());
+  const currentDate = writable<Date>(new SvelteDate());
   const viewMode = writable<ScheduleViewMode>('week');
 
   const range = derived([currentDate, viewMode], ([$current, $mode]) => {
@@ -160,7 +161,7 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
     get data() {
       const cur = currentDateStore.current;
       const mode = viewModeStore.current;
-      const todayIso = formatDateIso(new Date());
+      const todayIso = formatDateIso(new SvelteDate());
       const allEvents = query.current.data ?? [];
       const projects = projectsQuery.current.data?.items ?? [];
 
@@ -192,7 +193,7 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
           : `${monthName} ${cur.getFullYear()}`;
 
       // Calcula posição da linha vermelha "Agora"
-      const now = new Date();
+      const now = new SvelteDate();
       const nowHour = now.getHours();
       const nowMinutes = now.getMinutes();
       let nowTopPx: number | null = null;
@@ -235,7 +236,7 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
         );
       },
       onToday: () => {
-        currentDate.set(new Date());
+        currentDate.set(new SvelteDate());
       },
       onViewModeChange: (mode) => viewMode.set(mode),
       onRetry: () => {

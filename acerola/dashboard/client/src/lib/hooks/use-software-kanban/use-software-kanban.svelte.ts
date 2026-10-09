@@ -82,11 +82,122 @@ export type SoftwareKanbanModel = {
   };
 };
 
+type KanbanTransitionResult =
+  | { kind: 'noop' }
+  | { kind: 'error'; message: string }
+  | {
+      kind: 'move';
+      historyType: ManualTicketHistoryType;
+      targetStatus: TicketStatus;
+      description: string;
+    };
+
+function resolveInProgressTransition(currentStatus: TicketStatus): {
+  historyType: ManualTicketHistoryType;
+  targetStatus: TicketStatus;
+  description: string;
+} {
+  if (currentStatus === 'open') {
+    return {
+      historyType: 'start',
+      targetStatus: 'in_progress',
+      description: 'Iniciado atendimento via Kanban.',
+    };
+  }
+  if (currentStatus === 'waiting_requester' || currentStatus === 'waiting_third_party') {
+    return {
+      historyType: 'resume',
+      targetStatus: 'in_progress',
+      description: 'Retomado o atendimento via Kanban.',
+    };
+  }
+  return {
+    historyType: 'resume',
+    targetStatus: 'in_progress',
+    description: 'Movido para em atendimento via Kanban.',
+  };
+}
+
+function resolveClosedTransition(targetColumn: KanbanColumnId): KanbanTransitionResult {
+  if (targetColumn === 'waiting') {
+    return {
+      kind: 'error',
+      message: 'Reabra o chamado movendo-o para "Em Atendimento" antes de colocá-lo em espera.',
+    };
+  }
+  if (targetColumn === 'done') {
+    return { kind: 'noop' };
+  }
+  return {
+    kind: 'move',
+    historyType: 'reopening',
+    targetStatus: 'in_progress',
+    description: 'Reaberto via Kanban.',
+  };
+}
+
+function resolveActiveTransition(
+  currentStatus: TicketStatus,
+  targetColumn: KanbanColumnId,
+): KanbanTransitionResult {
+  if (targetColumn === 'in_progress') {
+    return {
+      kind: 'move',
+      ...resolveInProgressTransition(currentStatus),
+    };
+  }
+  if (targetColumn === 'waiting') {
+    return {
+      kind: 'move',
+      historyType: 'waiting_requester',
+      targetStatus: 'waiting_requester',
+      description: 'Movido para aguardando usuário/solicitante via Kanban.',
+    };
+  }
+  if (targetColumn === 'done') {
+    return {
+      kind: 'move',
+      historyType: 'resolution',
+      targetStatus: 'resolved',
+      description: 'Concluído via Kanban.',
+    };
+  }
+  return { kind: 'noop' };
+}
+
 function getTicketColumn(status: TicketStatus): KanbanColumnId {
   if (status === 'open') return 'todo';
   if (status === 'in_progress') return 'in_progress';
   if (status === 'waiting_requester' || status === 'waiting_third_party') return 'waiting';
   return 'done';
+}
+
+function resolveKanbanTransition(
+  currentStatus: TicketStatus,
+  targetColumn: KanbanColumnId,
+): KanbanTransitionResult {
+  const currentColumn = getTicketColumn(currentStatus);
+  if (currentColumn === targetColumn) {
+    return { kind: 'noop' };
+  }
+  if (targetColumn === 'todo') {
+    return {
+      kind: 'error',
+      message:
+        'Um chamado já iniciado não volta para "A Fazer". Para pausá-lo, mova para "Aguardando Usuário".',
+    };
+  }
+
+  const isClosed =
+    currentStatus === 'resolved' ||
+    currentStatus === 'resolved_with_caveats' ||
+    currentStatus === 'cancelled';
+
+  if (isClosed) {
+    return resolveClosedTransition(targetColumn);
+  }
+
+  return resolveActiveTransition(currentStatus, targetColumn);
 }
 
 export function useSoftwareKanbanModel(): SoftwareKanbanModel {
@@ -220,84 +331,29 @@ export function useSoftwareKanbanModel(): SoftwareKanbanModel {
         if (!ticket) return;
 
         const currentEffectiveStatus = optimisticMirror.current[ticketId] ?? ticket.status;
-        const currentColumn = getTicketColumn(currentEffectiveStatus);
+        const transition = resolveKanbanTransition(currentEffectiveStatus, targetColumn);
 
-        // Se já está na mesma coluna, é no-op imediato
-        if (currentColumn === targetColumn) return;
-
-        // Nenhum histórico leva um chamado de volta a "Aberto": a fila só se alcança na abertura.
-        if (targetColumn === 'todo') {
-          moveErrorStore.set(
-            'Um chamado já iniciado não volta para "A Fazer". Para pausá-lo, mova para "Aguardando Usuário".',
-          );
+        if (transition.kind === 'noop') return;
+        if (transition.kind === 'error') {
+          moveErrorStore.set(transition.message);
           return;
         }
 
-        let historyType: ManualTicketHistoryType = 'note';
-        let desc = 'Atualizado pelo Kanban de desenvolvimento.';
-        let targetStatus: TicketStatus = currentEffectiveStatus;
-
-        const isClosed =
-          currentEffectiveStatus === 'resolved' ||
-          currentEffectiveStatus === 'resolved_with_caveats' ||
-          currentEffectiveStatus === 'cancelled';
-
-        if (isClosed) {
-          if (targetColumn === 'waiting') {
-            moveErrorStore.set(
-              'Reabra o chamado movendo-o para "Em Atendimento" antes de colocá-lo em espera.',
-            );
-            return;
-          }
-          // Chamados encerrados no domínio precisam ser reabertos para movimentar
-          if (targetColumn === 'done') return; // Já está encerrado
-
-          historyType = 'reopening';
-          targetStatus = 'in_progress';
-          desc = 'Reaberto via Kanban.';
-        } else {
-          if (targetColumn === 'in_progress') {
-            if (
-              currentEffectiveStatus === 'waiting_requester' ||
-              currentEffectiveStatus === 'waiting_third_party'
-            ) {
-              historyType = 'resume';
-              targetStatus = 'in_progress';
-              desc = 'Retomado o atendimento via Kanban.';
-            } else if (currentEffectiveStatus === 'open') {
-              historyType = 'start';
-              targetStatus = 'in_progress';
-              desc = 'Iniciado atendimento via Kanban.';
-            } else {
-              historyType = 'resume';
-              targetStatus = 'in_progress';
-              desc = 'Movido para em atendimento via Kanban.';
-            }
-          } else if (targetColumn === 'waiting') {
-            historyType = 'waiting_requester';
-            targetStatus = 'waiting_requester';
-            desc = 'Movido para aguardando usuário/solicitante via Kanban.';
-          } else if (targetColumn === 'done') {
-            historyType = 'resolution';
-            targetStatus = 'resolved';
-            desc = 'Concluído via Kanban.';
-          }
-        }
-
-        // Aplica atualização otimista imediata
-        optimisticStatuses.update((prev) => ({ ...prev, [ticketId]: targetStatus }));
+        optimisticStatuses.update((prev) => ({ ...prev, [ticketId]: transition.targetStatus }));
         moveErrorStore.set(null);
 
         try {
-          await moveMutation.current.mutateAsync({ ticketId, historyType, description: desc });
-          // Limpa o override uma vez que a query invalidou
+          await moveMutation.current.mutateAsync({
+            ticketId,
+            historyType: transition.historyType,
+            description: transition.description,
+          });
           optimisticStatuses.update((prev) => {
             const next = { ...prev };
             delete next[ticketId];
             return next;
           });
         } catch (err) {
-          // Em caso de falha, reverte a otimismo e exibe mensagem amigável sem quebrar o Kanban
           optimisticStatuses.update((prev) => {
             const next = { ...prev };
             delete next[ticketId];

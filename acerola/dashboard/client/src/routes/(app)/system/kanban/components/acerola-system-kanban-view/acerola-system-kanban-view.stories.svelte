@@ -1,6 +1,7 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
   import { type SoftwareProject } from '@template/shared/schemas/software-project.schema';
+  import { type Ticket } from '@template/shared/schemas/ticket.schema';
   import { fn } from 'storybook/test';
 
   import SystemKanbanView from './acerola-system-kanban-view.svelte';
@@ -22,41 +23,69 @@
     },
   ];
 
+  function mockTicket(partial: Partial<Ticket> & Pick<Ticket, 'id' | 'protocol' | 'description'>): Ticket {
+    return {
+      status: 'open',
+      priority: 'medium',
+      requesterName: 'Ana Souza',
+      area: 'sistema',
+      department: 'financeiro',
+      problemType: 'bug',
+      participantAreas: [],
+      anydeskId: null,
+      contactPhone: null,
+      notifyWhatsapp: false,
+      screenshotUrl: null,
+      computerId: null,
+      computerName: null,
+      projectId: 1,
+      projectName: 'Acerola Ticket',
+      githubIssueNumber: null,
+      githubIssueUrl: null,
+      assignee: null,
+      solution: null,
+      createdAt: '2026-10-06T12:00:00.000Z',
+      startedAt: null,
+      resolvedAt: null,
+      updatedAt: null,
+      updatedBy: null,
+      ...partial,
+    };
+  }
+
   const mockColumns = [
     {
       id: 'todo' as const,
       title: 'Abertos',
       tickets: [
-        {
+        mockTicket({
           id: 10,
           protocol: 'CH-0010',
-          title: 'Erro na autenticação do sistema',
           description: 'Erro na autenticação do sistema',
-          priority: 'high' as const,
+          priority: 'high',
           projectName: 'Acerola Ticket',
           requesterName: 'Ana Souza',
           githubIssueNumber: 42,
           githubIssueUrl: 'https://github.com/issue/42',
           createdAt: '2026-10-06T12:00:00.000Z',
-        } as any,
+        }),
       ],
     },
     {
       id: 'in_progress' as const,
       title: 'Em Atendimento',
       tickets: [
-        {
+        mockTicket({
           id: 11,
           protocol: 'CH-0011',
-          title: 'Refatoração da sincronização de PRs',
           description: 'Refatoração da sincronização de PRs',
-          priority: 'medium' as const,
+          priority: 'medium',
           projectName: 'Acerola Ticket',
           requesterName: 'Carlos Dev',
           githubIssueNumber: null,
           githubIssueUrl: null,
           createdAt: '2026-10-05T15:00:00.000Z',
-        } as any,
+        }),
       ],
     },
     { id: 'waiting' as const, title: 'Aguardando Terceiros', tickets: [] },

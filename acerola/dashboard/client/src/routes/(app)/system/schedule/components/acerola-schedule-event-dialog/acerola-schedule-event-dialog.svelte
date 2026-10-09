@@ -173,7 +173,7 @@
           </span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          {#each SWATCHES as swatch}
+          {#each SWATCHES as swatch (swatch.value)}
             {@const isSelected = model.data.fields.color.value === swatch.value}
             <button
               type="button"
