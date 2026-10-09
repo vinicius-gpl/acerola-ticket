@@ -115,7 +115,7 @@
   {/if}
 
   <!-- Filtros -->
-  <div class="flex flex-wrap items-center justify-between gap-4">
+  <div class="flex flex-wrap items-end justify-between gap-4">
     <div class="w-full max-w-sm">
       <TextField
         data={{

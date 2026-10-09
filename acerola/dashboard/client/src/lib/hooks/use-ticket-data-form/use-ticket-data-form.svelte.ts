@@ -92,7 +92,8 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
 
   const save = mirrorStore(
     createMutation({
-      mutationFn: (values: TicketDataFormValues) => ticketsApi.update(ticket.id, toUpdateInput(values)),
+      mutationFn: (values: TicketDataFormValues) =>
+        ticketsApi.update(ticket.id, toUpdateInput(values)),
       onSuccess: async () => {
         isSaved = true;
         await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
@@ -219,9 +220,7 @@ export function toFormValues(ticket: Ticket): TicketDataFormValues {
     /* Vazio é "nenhuma máquina": no formulário tudo é texto, e é o view-model que traduz. */
     computerId: ticket.computerId === null ? '' : String(ticket.computerId),
     projectId:
-      ticket.projectId !== null && ticket.projectId !== undefined
-        ? String(ticket.projectId)
-        : '',
+      ticket.projectId !== null && ticket.projectId !== undefined ? String(ticket.projectId) : '',
   };
 }
 
@@ -249,14 +248,14 @@ export function toMachineOptions(
 ) {
   return computers.map((computer) => ({
     value: String(computer.id),
-    label: computer.displayName?.trim() ? `${computer.displayName} (${computer.name})` : computer.name,
+    label: computer.displayName?.trim()
+      ? `${computer.displayName} (${computer.name})`
+      : computer.name,
   }));
 }
 
 /** Os projetos cadastrados, no formato do campo de escolha. */
-export function toProjectOptions(
-  projects: readonly { id: number; name: string }[],
-) {
+export function toProjectOptions(projects: readonly { id: number; name: string }[]) {
   return projects.map((project) => ({
     value: String(project.id),
     label: project.name,

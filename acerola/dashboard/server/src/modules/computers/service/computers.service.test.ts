@@ -62,12 +62,12 @@ function computerRow(over: Partial<ComputerRow> = {}): ComputerRow {
 }
 
 function snapshot(
-  over: { cpu?: number; memory?: number; freeDiskBytes?: number } = {},
+  over: { cpu?: number; memory?: number; freeDiskBytes?: number; hostname?: string } = {},
 ): AgentSnapshot {
   return {
     timestamp: '2026-09-22T12:00:00.000Z',
     host: {
-      hostname: 'RECEPCAO-01',
+      hostname: over.hostname ?? 'RECEPCAO-01',
       os: 'windows',
       platform: 'Windows 11',
       platformVersion: '10.0',
@@ -300,6 +300,7 @@ describe('ComputersService.ingest', () => {
     const findActiveAlert = vi.fn().mockResolvedValue(null);
     const { service } = makeService({
       update,
+      findByName: vi.fn().mockResolvedValue(null),
       insertSample,
       insertAlert,
       updateAlert,
@@ -314,9 +315,10 @@ describe('ComputersService.ingest', () => {
   it('records the hardware and the usage sample', async () => {
     const { service, update, insertSample } = ingestService();
 
-    await service.ingest(computerRow(), snapshot(), '1.0.0');
+    await service.ingest(computerRow(), snapshot({ hostname: 'RECEPCAO-RENOMEADA' }), '1.0.0');
 
     expect(update.mock.calls[0]?.[1].cpuModel).toBe('Intel Core i5');
+    expect(update.mock.calls[0]?.[1].name).toBe('RECEPCAO-RENOMEADA');
     expect(insertSample).toHaveBeenCalledOnce();
   });
 

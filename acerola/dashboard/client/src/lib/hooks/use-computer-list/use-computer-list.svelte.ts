@@ -2,10 +2,7 @@ import { goto } from '$app/navigation';
 import { createQuery } from '@tanstack/svelte-query';
 import { type HealthStatus } from '@template/shared/domain/computer-health.util';
 import { type Department } from '@template/shared/domain/department.util';
-import {
-  type Computer,
-  type ComputerListItem,
-} from '@template/shared/schemas/computer.schema';
+import { type Computer, type ComputerListItem } from '@template/shared/schemas/computer.schema';
 import { MAX_PAGE_SIZE } from '@template/shared/schemas/pagination.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { derived, writable } from 'svelte/store';
@@ -76,6 +73,7 @@ const EMPTY_FILTER: ComputerListFilter = {
 };
 
 export const COMPUTERS_QUERY_KEY = ['computers'] as const;
+export const COMPUTER_NAME_REFRESH_MS = 60_000;
 
 function scopeOf(filter: ComputerListFilter) {
   return {
@@ -125,6 +123,7 @@ export function useComputerListModel(): ComputerListModel {
       derived(filterStore, (current) => ({
         queryKey: [...COMPUTERS_QUERY_KEY, 'list', scopeOf(current)],
         queryFn: () => computersApi.list({ ...scopeOf(current), page: 1, pageSize: MAX_PAGE_SIZE }),
+        refetchInterval: COMPUTER_NAME_REFRESH_MS,
       })),
     ),
   );

@@ -88,13 +88,13 @@ describe('buildReport — xlsx', () => {
     expect(titleCell?.alignment?.horizontal).toBe('center');
   });
 
-  it('usa Arial no título, no cabeçalho e nos dados', async () => {
+  it('usa Arial Narrow no título, no cabeçalho e nos dados', async () => {
     const report = await buildReport(request());
     const sheet = (await loadWorkbook(report)).worksheets[0];
 
-    expect(sheet?.getRow(TITLE_ROW).getCell(1).font?.name).toBe('Arial');
-    expect(sheet?.getRow(HEADER_ROW).getCell(1).font?.name).toBe('Arial');
-    expect(sheet?.getRow(FIRST_DATA_ROW).getCell(1).font?.name).toBe('Arial');
+    expect(sheet?.getRow(TITLE_ROW).getCell(1).font?.name).toBe('Arial Narrow');
+    expect(sheet?.getRow(HEADER_ROW).getCell(1).font?.name).toBe('Arial Narrow');
+    expect(sheet?.getRow(FIRST_DATA_ROW).getCell(1).font?.name).toBe('Arial Narrow');
   });
 
   // triste

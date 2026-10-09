@@ -74,6 +74,7 @@ export const healthWarningSchema = z.object({
  * não sei"; zero diria "medi e deu zero", que é outra coisa.
  */
 export const computerHardwareSchema = z.object({
+  hostname: z.string().nullable().optional(),
   os: z.string().nullable(),
   platform: z.string().nullable(),
   platformVersion: z.string().nullable(),
@@ -93,7 +94,7 @@ export const computerHardwareSchema = z.object({
 
 export const computerSchema = z.object({
   id: z.number().int(),
-  /** O nome que a própria máquina informa. Único: é por ele que o agente se identifica. */
+  /** Nome técnico atual informado pelo agente; antes da primeira coleta, usa o nome do cadastro. */
   name: z.string(),
   /** O apelido que o TI deu. Quando existe, é ele que aparece nas listas. */
   displayName: z.string().nullable(),
