@@ -39,12 +39,9 @@ export function createNeonTokenVerifier(authUrl: string): NeonTokenVerifier {
       const { payload } = await jwtVerify(token, jwks, { issuer: issuers });
 
       return toClaims(payload);
-    } catch (error) {
+    } catch {
       /* Token vencido, assinatura errada, emissor errado, texto que nem é token: tudo isso é
          a mesma resposta para quem chamou — "não sei quem é você". */
-      if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-        console.warn('[NeonTokenVerifier] Falha ao verificar token:', error);
-      }
       return null;
     }
   };

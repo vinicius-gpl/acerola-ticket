@@ -23,12 +23,29 @@ import {
   type SoftwareTimelineEventRow,
 } from '../../../lib/db/schema/software-timeline-events.schema';
 
+function resolveRepoMeta(
+  repositoryUrl: string,
+  githubRepoOwner?: string | null,
+  githubRepoName?: string | null,
+) {
+  const parsedRepo = parseGitHubRepo(repositoryUrl);
+  return {
+    owner: githubRepoOwner ?? parsedRepo?.owner ?? null,
+    name: githubRepoName ?? parsedRepo?.repo ?? null,
+  };
+}
+
+function toNullableIsoString(date?: Date | null): string | null {
+  if (!date) return null;
+  return date.toISOString();
+}
+
 export function toSoftwareProject(
   row: SoftwareProjectRow,
   openTicketsCount = 0,
   pullRequestsCount = 0,
 ): SoftwareProject {
-  const parsedRepo = parseGitHubRepo(row.repositoryUrl);
+  const repoMeta = resolveRepoMeta(row.repositoryUrl, row.githubRepoOwner, row.githubRepoName);
 
   return {
     id: row.id,
@@ -37,12 +54,12 @@ export function toSoftwareProject(
     repositoryUrl: row.repositoryUrl,
     status: row.status,
     color: row.color,
-    githubRepoOwner: row.githubRepoOwner ?? parsedRepo?.owner ?? null,
-    githubRepoName: row.githubRepoName ?? parsedRepo?.repo ?? null,
+    githubRepoOwner: repoMeta.owner,
+    githubRepoName: repoMeta.name,
     openTicketsCount,
     pullRequestsCount,
     createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt?.toISOString() ?? null,
+    updatedAt: toNullableIsoString(row.updatedAt),
   };
 }
 
@@ -64,6 +81,26 @@ export function toSoftwareProjectInsert(
   };
 }
 
+function applyDescriptionUpdate(
+  update: Partial<SoftwareProjectInsert>,
+  description?: string | null,
+): void {
+  if (description === undefined) return;
+  update.description = description?.trim() ? description.trim() : null;
+}
+
+function applyRepositoryUpdate(
+  update: Partial<SoftwareProjectInsert>,
+  repositoryUrl?: string,
+): void {
+  if (repositoryUrl === undefined) return;
+  const trimmed = repositoryUrl.trim();
+  update.repositoryUrl = trimmed;
+  const parsed = parseGitHubRepo(trimmed);
+  update.githubRepoOwner = parsed?.owner ?? null;
+  update.githubRepoName = parsed?.repo ?? null;
+}
+
 export function toSoftwareProjectUpdate(
   input: UpdateSoftwareProjectInput,
   actorEmail: string,
@@ -75,15 +112,8 @@ export function toSoftwareProjectUpdate(
   };
 
   setIfDefined(update, 'name', input.name?.trim());
-  if (input.description !== undefined) {
-    update.description = input.description?.trim() || null;
-  }
-  if (input.repositoryUrl !== undefined) {
-    update.repositoryUrl = input.repositoryUrl.trim();
-    const parsed = parseGitHubRepo(input.repositoryUrl);
-    update.githubRepoOwner = parsed?.owner ?? null;
-    update.githubRepoName = parsed?.repo ?? null;
-  }
+  applyDescriptionUpdate(update, input.description);
+  applyRepositoryUpdate(update, input.repositoryUrl);
   setIfDefined(update, 'status', input.status);
   setIfDefined(update, 'color', input.color);
 

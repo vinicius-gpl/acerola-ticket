@@ -18,6 +18,33 @@ export type FetchedPr = {
   eventDate: Date;
 };
 
+type RawGithubPr = {
+  number: number;
+  title: string;
+  html_url: string;
+  user?: { login?: string };
+  state: string;
+  merged_at?: string | null;
+  created_at: string;
+};
+
+function resolvePrStatus(mergedAt?: string | null, state?: string): 'open' | 'merged' | 'closed' {
+  if (mergedAt) return 'merged';
+  if (state === 'closed') return 'closed';
+  return 'open';
+}
+
+function mapRawPr(pr: RawGithubPr): FetchedPr {
+  return {
+    externalId: `#${pr.number}`,
+    title: pr.title,
+    url: pr.html_url,
+    author: pr.user?.login ?? 'github',
+    status: resolvePrStatus(pr.merged_at, pr.state),
+    eventDate: new Date(pr.merged_at ?? pr.created_at),
+  };
+}
+
 @Injectable()
 export class GithubService {
   private readonly logger = new Logger(GithubService.name);
@@ -48,72 +75,73 @@ export class GithubService {
   async fetchPullRequests(owner: string, repo: string, userId?: string): Promise<FetchedPr[]> {
     const token = this.app ? await this.app.accessToken() : this.token;
     const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`;
+
     try {
-      let response = await fetch(url, {
+      const response = await fetch(url, {
         headers: this.headers(token),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!response.ok) {
-        if (userId)
-          throw new BadGatewayException(
-            'O GitHub recusou o acesso a este repositório. Confira a autorização da organização e as permissões da sua conta.',
-          );
-        this.logger.warn(
-          `GitHub API devolveu status ${response.status} ao buscar PRs de ${owner}/${repo}`,
-        );
-        return [];
+        return this.handlePrFetchFailure(response.status, owner, repo, userId);
       }
 
-      const list = (await response.json()) as Array<{
-        number: number;
-        title: string;
-        html_url: string;
-        user?: { login?: string };
-        state: string;
-        merged_at?: string | null;
-        created_at: string;
-      }>;
-
-      for (let page = 2; response.headers?.get('link')?.includes('rel="next"'); page++) {
-        response = await fetch(`${url}&page=${page}`, {
-          headers: this.headers(token),
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (!response.ok)
-          throw new BadGatewayException('Não foi possível carregar todos os PRs do repositório.');
-        list.push(...((await response.json()) as typeof list));
-      }
-
-      return list.map((pr) => {
-        let status: 'open' | 'merged' | 'closed' = 'open';
-        if (pr.merged_at) {
-          status = 'merged';
-        } else if (pr.state === 'closed') {
-          status = 'closed';
-        }
-
-        return {
-          externalId: `#${pr.number}`,
-          title: pr.title,
-          url: pr.html_url,
-          author: pr.user?.login ?? 'github',
-          status,
-          eventDate: new Date(pr.merged_at ?? pr.created_at),
-        };
-      });
+      const list = (await response.json()) as RawGithubPr[];
+      await this.fetchSubsequentPrPages(url, token, response, list);
+      return list.map(mapRawPr);
     } catch (error) {
-      if (userId) {
-        if (error instanceof BadGatewayException) throw error;
-        throw new BadGatewayException(
-          'Não foi possível sincronizar com o GitHub. Tente novamente.',
-        );
+      return this.handlePrCatchError(error, owner, repo, userId);
+    }
+  }
+
+  private handlePrFetchFailure(
+    status: number,
+    owner: string,
+    repo: string,
+    userId?: string,
+  ): FetchedPr[] {
+    if (userId) {
+      throw new BadGatewayException(
+        'O GitHub recusou o acesso a este repositório. Confira a autorização da organização e as permissões da sua conta.',
+      );
+    }
+    this.logger.warn(`GitHub API devolveu status ${status} ao buscar PRs de ${owner}/${repo}`);
+    return [];
+  }
+
+  private async fetchSubsequentPrPages(
+    url: string,
+    token: string | undefined,
+    initialResponse: Response,
+    list: RawGithubPr[],
+  ): Promise<void> {
+    let response = initialResponse;
+    for (let page = 2; response.headers?.get('link')?.includes('rel="next"'); page++) {
+      response = await fetch(`${url}&page=${page}`, {
+        headers: this.headers(token),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        throw new BadGatewayException('Não foi possível carregar todos os PRs do repositório.');
       }
+      list.push(...((await response.json()) as RawGithubPr[]));
+    }
+  }
+
+  private handlePrCatchError(
+    error: unknown,
+    owner: string,
+    repo: string,
+    userId?: string,
+  ): FetchedPr[] {
+    if (!userId) {
       this.logger.warn(
         `Falha na comunicação com o GitHub para PRs de ${owner}/${repo}: ${String(error)}`,
       );
       return [];
     }
+    if (error instanceof BadGatewayException) throw error;
+    throw new BadGatewayException('Não foi possível sincronizar com o GitHub. Tente novamente.');
   }
 
   async fetchIssues(owner: string, repo: string): Promise<FetchedPr[]> {

@@ -6,12 +6,37 @@ import {
   type UpdateSoftwareScheduleEventInput,
 } from '@template/shared/schemas/software-schedule.schema';
 
+import { type SoftwareScheduleEventInsert } from '../../../lib/db/schema/software-schedule-events.schema';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
+import { setIfDefined } from '../../../lib/db/partial-update.util';
 import { assertCanEditSystem, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { toSoftwareScheduleEvent } from '../mapper/software-projects.mapper';
 import { SoftwareScheduleRepository } from '../repository/software-schedule.repository';
 
 export const SCHEDULE_EVENT_NOT_FOUND = 'Compromisso não encontrado.';
+
+function buildScheduleEventUpdate(
+  input: UpdateSoftwareScheduleEventInput,
+  actorEmail: string,
+): Partial<SoftwareScheduleEventInsert> {
+  const update: Partial<SoftwareScheduleEventInsert> = {
+    updatedAt: new Date(),
+    updatedBy: actorEmail,
+  };
+
+  setIfDefined(update, 'projectId', input.projectId);
+  setIfDefined(update, 'title', input.title?.trim());
+  setIfDefined(update, 'category', input.category);
+  setIfDefined(update, 'color', input.color);
+  setIfDefined(update, 'date', input.date);
+  setIfDefined(update, 'startTime', input.startTime);
+  setIfDefined(update, 'endTime', input.endTime);
+  if (input.note !== undefined) {
+    update.note = input.note?.trim() ? input.note.trim() : null;
+  }
+
+  return update;
+}
 
 @Injectable()
 export class SoftwareScheduleService {
@@ -63,18 +88,8 @@ export class SoftwareScheduleService {
 
     await this.findById(user, id);
 
-    const row = await this.repository.update(id, {
-      ...(input.projectId !== undefined && { projectId: input.projectId }),
-      ...(input.title !== undefined && { title: input.title.trim() }),
-      ...(input.category !== undefined && { category: input.category }),
-      ...(input.color !== undefined && { color: input.color }),
-      ...(input.date !== undefined && { date: input.date }),
-      ...(input.startTime !== undefined && { startTime: input.startTime }),
-      ...(input.endTime !== undefined && { endTime: input.endTime }),
-      ...(input.note !== undefined && { note: input.note?.trim() || null }),
-      updatedAt: new Date(),
-      updatedBy: user.email,
-    });
+    const updatePayload = buildScheduleEventUpdate(input, user.email);
+    const row = await this.repository.update(id, updatePayload);
 
     return toSoftwareScheduleEvent(row);
   }

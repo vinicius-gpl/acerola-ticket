@@ -120,27 +120,46 @@ export class GithubOauthService {
     denied?: string,
   ): Promise<void> {
     const config = this.configuration();
-    if (!state || !browserSecret)
+    if (!state || !browserSecret) {
       throw new BadRequestException('A vinculação expirou. Tente novamente.');
+    }
+    if (denied || !code) {
+      throw new BadRequestException('A autorização do GitHub foi cancelada.');
+    }
+
     const pending = await this.repository.consumeState(
       hashOauthValue(state),
       hashOauthValue(browserSecret),
     );
-    if (!pending)
+    if (!pending) {
       throw new BadRequestException('A vinculação expirou ou já foi utilizada. Tente novamente.');
-    if (denied || !code) throw new BadRequestException('A autorização do GitHub foi cancelada.');
+    }
+
     const tokens = await this.exchange({
       code,
       redirect_uri: config.redirectUri,
       code_verifier: decryptGithubToken(pending.codeVerifier, config.encryptionKey),
     });
-    const scopes = tokens.scope?.split(/[ ,]+/) ?? [];
-    if (!scopes.includes('read:user') && !scopes.includes('user'))
-      throw new ForbiddenException('Autorize a leitura do perfil para concluir a vinculação.');
+    this.assertAuthorizedScopes(tokens.scope);
     const account = await this.account(tokens.access_token);
+    await this.saveConnection(pending.userId, account, tokens);
+  }
+
+  private assertAuthorizedScopes(scopeString?: string): void {
+    const scopes = scopeString?.split(/[ ,]+/) ?? [];
+    if (!scopes.includes('read:user') && !scopes.includes('user')) {
+      throw new ForbiddenException('Autorize a leitura do perfil para concluir a vinculação.');
+    }
+  }
+
+  private async saveConnection(
+    userId: string,
+    account: { id: number; login: string },
+    tokens: z.infer<typeof tokenSchema>,
+  ): Promise<void> {
     try {
       await this.repository.save({
-        userId: pending.userId,
+        userId,
         githubId: String(account.id),
         login: account.login,
         ...this.tokenFields(tokens),
@@ -148,8 +167,10 @@ export class GithubOauthService {
       });
     } catch (error) {
       const dbError = error as { code?: string; cause?: { code?: string } };
-      if (dbError.code === '23505' || dbError.cause?.code === '23505')
+      const isUniqueViolation = dbError.code === '23505' || dbError.cause?.code === '23505';
+      if (isUniqueViolation) {
         throw new BadRequestException('Esta conta do GitHub já está vinculada a outro usuário.');
+      }
       throw error;
     }
   }
