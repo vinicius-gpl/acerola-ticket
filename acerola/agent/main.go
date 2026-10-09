@@ -58,6 +58,7 @@ func main() {
 		BackgroundColour:  &options.RGBA{R: 30, G: 30, B: 46, A: 1}, // catppuccin mocha --base
 		AssetServer:       &assetserver.Options{Assets: assets},
 		OnStartup:         agentApp.startup,
+		OnDomReady:        agentApp.domReady,
 		Bind:              []interface{}{agentApp},
 		Windows: &windows.Options{
 			WebviewGpuIsDisabled: true,

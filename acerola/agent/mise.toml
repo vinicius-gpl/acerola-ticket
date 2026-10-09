@@ -43,15 +43,26 @@ description = "Build estático do Storybook — valida que todas as stories comp
 run = "npm run build-storybook --prefix svelte"
 
 [tasks.build]
-description = "Build de produção via Wails (gera o .exe final)"
+description = "Build de produção via Wails (no Windows gera o .exe final; no Linux, o binário do Linux)"
 # -s -w: remove símbolos de depuração e a tabela DWARF do binário final — o
 # netbird faz o mesmo no build deles (.goreleaser_ui.yaml). Não afeta o
 # funcionamento, só deixa o .exe menor.
-run = "wails build -ldflags \"-s -w\""
+run_windows = "wails build -ldflags \"-s -w\""
+# No Linux o Wails usa o WebKitGTK. As distribuições novas (Fedora, Ubuntu
+# 24.04+) só trazem a versão 4.1, e o Wails só a aceita com a tag webkit2_41.
+run = """
+tags=$(pkg-config --exists webkit2gtk-4.1 && echo "-tags webkit2_41" || true)
+wails build $tags -ldflags "-s -w"
+"""
 
 [tasks.dev]
 description = "Roda em modo dev (bandeja + painel, hot-reload)"
-run = "wails dev"
+run_windows = "wails dev"
+# Mesma tag do build — ver o comentário em tasks.build.
+run = """
+tags=$(pkg-config --exists webkit2gtk-4.1 && echo "-tags webkit2_41" || true)
+wails dev $tags
+"""
 
 [tasks.check]
 description = "Tudo que precisa passar antes de considerar o trabalho pronto"
@@ -68,5 +79,18 @@ depends = [
 ]
 
 [tasks.setup]
-description = "Instala a CLI do Wails (uma vez, ou após trocar versão do Go)"
-run = "go install github.com/wailsapp/wails/v2/cmd/wails@latest"
+description = "Instala a CLI do Wails e, no Linux, as bibliotecas do sistema (uma vez, ou após trocar versão do Go)"
+run_windows = "go install github.com/wailsapp/wails/v2/cmd/wails@latest"
+# No Linux o Wails compila contra o GTK e o WebKitGTK do sistema; sem os
+# pacotes de desenvolvimento deles o `wails dev` nem começa. Pede a senha
+# de administrador (sudo).
+run = """
+if command -v dnf >/dev/null; then
+  sudo dnf install -y gcc pkgconf-pkg-config gtk3-devel webkit2gtk4.1-devel
+elif command -v apt-get >/dev/null; then
+  sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+else
+  echo "Instale à mão o GTK 3 e o WebKitGTK 4.1 (pacotes de desenvolvimento) — rode 'wails doctor' para ver o que falta."
+fi
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+"""

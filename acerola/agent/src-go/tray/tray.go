@@ -5,17 +5,7 @@
 // direito registrado, então não precisamos montar isso na mão.
 package tray
 
-import (
-	"fyne.io/systray"
-	"golang.org/x/sys/windows"
-
-	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/assets"
-)
-
-var (
-	user32                       = windows.NewLazySystemDLL("user32.dll")
-	procAllowSetForegroundWindow = user32.NewProc("AllowSetForegroundWindow")
-)
+import "fyne.io/systray"
 
 // Callbacks são as ações que a janela Wails expõe pra bandeja acionar. A
 // bandeja não sabe nada sobre janelas, snapshots ou WebView — só chama essas
@@ -37,13 +27,12 @@ func Run(callbacks Callbacks) {
 }
 
 func onReady(callbacks Callbacks) {
-	systray.SetIcon(assets.TrayICO)
+	systray.SetIcon(icon())
 	systray.SetTooltip("Acerola Agent")
 	systray.SetOnTapped(func() {
-		// Ao receber o clique nativo na thread da bandeja, autoriza explicitamente
-		// nosso processo a trazer a janela para o primeiro plano, mesmo se o foco
-		// do usuário estava em outro monitor ou aplicativo.
-		_, _, _ = procAllowSetForegroundWindow.Call(uintptr(windows.GetCurrentProcessId()))
+		// Precisa acontecer aqui, na thread da bandeja, ao receber o clique
+		// nativo (ver allowForeground).
+		allowForeground()
 		callbacks.ShowPopup()
 	})
 

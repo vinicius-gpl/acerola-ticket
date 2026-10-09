@@ -13,6 +13,7 @@
 //     existe, e o `border-radius` do CSS só revela a cor de fundo da janela
 //     nos cantos — de longe a janela parece quadrada. A saída no 10 é
 //     recortar a janela numa região arredondada (`SetWindowRgn`).
+
 package window
 
 import (
@@ -21,11 +22,6 @@ import (
 
 	"golang.org/x/sys/windows"
 )
-
-// ClassName é o nome de classe registrado para a janela do agente (ver
-// `WindowClassName` em main.go). É por ele que encontramos o handle da
-// janela: o Wails não expõe esse handle em nenhum ponto da API pública.
-const ClassName = "AcerolaAgentWindow"
 
 const (
 	// SetWindowPos: não mexe na ordem das janelas nem rouba o foco — quem

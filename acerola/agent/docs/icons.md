@@ -51,6 +51,9 @@ go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tra
 cp icons/tray.ico src-go/assets/tray.ico     # cópia embutida no binário — ver architecture.md
 cp icons/tray.ico build/windows/icon.ico     # ícone do .exe e do instalador (convenção do Wails)
 
+go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.png -sizes 64 -zoom 1.44
+cp icons/tray.png src-go/assets/tray.png     # bandeja fora do Windows — o systray de lá só lê PNG
+
 go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out build/appicon.png -sizes 512 -zoom 1.44
 cp icons/ic_launcher_foreground.svg svelte/public/favicon.svg
 ```
