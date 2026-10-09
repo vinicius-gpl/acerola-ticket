@@ -77,7 +77,7 @@
     SidebarRail,
     SidebarTrigger,
   } from '$lib/components/ui/sidebar';
-  import * as Tooltip from '$lib/components/ui/tooltip';
+  import * as Tooltip from '$lib/components/acerola-tooltip/acerola-tooltip';
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import AppShellNavEntry from '$lib/components/acerola-app-shell-nav-entry/acerola-app-shell-nav-entry.svelte';
   import EffectsToggle from '$lib/components/acerola-effects-toggle/acerola-effects-toggle.svelte';
@@ -127,7 +127,7 @@
         <div
           role="group"
           aria-label="Módulos"
-          class="bg-sidebar-accent/40 border-sidebar-border flex w-full flex-col items-center gap-1 rounded-xl border p-1 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0"
+          class="bg-sidebar-accent/40 border-sidebar-border flex w-full flex-col items-center gap-1 rounded-control border p-1 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0"
         >
           {#each data.areaOptions as option (option.value)}
             {@const Icon = option.icon}
@@ -140,7 +140,7 @@
                     aria-label={option.label}
                     aria-pressed={shellState?.areaContext === option.value}
                     onclick={() => actions?.onAreaContextChange?.(option.value)}
-                    class="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors aria-pressed:bg-sidebar-primary aria-pressed:text-sidebar-primary-foreground"
+                    class="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-chip transition-colors aria-pressed:bg-sidebar-primary aria-pressed:text-sidebar-primary-foreground"
                   >
                     {#if Icon}<Icon class="size-[18px]" aria-hidden="true" />{/if}
                   </button>
