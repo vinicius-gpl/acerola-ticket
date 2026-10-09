@@ -49,6 +49,7 @@ export const ticketsApi = {
         area: query.area,
         department: query.department,
         problemType: query.problemType,
+        projectId: query.projectId,
       },
     }),
 
@@ -74,6 +75,7 @@ export const ticketsApi = {
         area: query.area,
         department: query.department,
         problemType: query.problemType,
+        projectId: query.projectId,
       },
     }),
 
@@ -127,8 +129,7 @@ export const ticketsApi = {
     apiRequest<void>(`/tickets/${ticketId}/attachments/${attachmentId}`, { method: 'DELETE' }),
 
   /** A linha do tempo de um chamado — a ordem de serviço. */
-  histories: (ticketId: number) =>
-    apiRequest<TicketHistory[]>(`/tickets/${ticketId}/histories`),
+  histories: (ticketId: number) => apiRequest<TicketHistory[]>(`/tickets/${ticketId}/histories`),
 
   /**
    * Lança um histórico — é o que muda o estágio do chamado.
@@ -136,7 +137,11 @@ export const ticketsApi = {
    * Vai como `FormData` porque os arquivos viajam junto: um envio só significa que ou existe o
    * histórico COM os anexos dele, ou não existe histórico nenhum.
    */
-  createHistory: (ticketId: number, values: TicketHistoryFormValues, files: readonly File[] = []) => {
+  createHistory: (
+    ticketId: number,
+    values: TicketHistoryFormValues,
+    files: readonly File[] = [],
+  ) => {
     const form = new FormData();
 
     form.set('type', values.type);

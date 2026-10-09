@@ -44,6 +44,7 @@
       area: { value: 'infra', error: null },
       problemType: { value: 'other', error: null },
       computerId: { value: '3', error: null },
+      projectId: { value: '', error: null },
     },
     machines,
     availableParticipantAreas: [

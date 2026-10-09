@@ -13,10 +13,10 @@
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
   import { type FormFieldState } from '$lib/types/form-field.type';
 
-  export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId';
+  export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId' | 'projectId';
 
   /**
-   * Os DADOS do chamado que o TI corrige: urgência, área, tipo e máquina.
+   * Os DADOS do chamado que o TI corrige: urgência, área, tipo, máquina e sistema.
    *
    * O RESPONSÁVEL não está aqui, de propósito: ele não se troca à mão. Quem assume o chamado
    * vira responsável ao lançar o primeiro histórico, e a ficha o mostra só para leitura.
@@ -32,6 +32,8 @@
       fields: Record<TicketDataField, FormFieldState>;
       /** As máquinas do inventário, para vincular o chamado a uma delas. */
       machines: { value: string; label: string }[];
+      /** Os projetos/sistemas para vincular o chamado. */
+      projects?: { value: string; label: string }[];
       /** As áreas que ainda podem entrar como participante — todas, menos as que já são. */
       availableParticipantAreas: { value: TicketArea; label: string }[];
     };
@@ -79,6 +81,7 @@
   /* "Nenhuma" precisa ser uma opção de verdade: é assim que se desfaz um vínculo errado. O
      valor vazio é o que o view-model traduz de volta para nulo ao salvar. */
   const machineOptions = $derived([{ value: '', label: 'Nenhuma' }, ...data.machines]);
+  const projectOptions = $derived([{ value: '', label: 'Nenhum' }, ...(data.projects ?? [])]);
 
   /* As opções de tipo de problema dependem da ÁREA escolhida — Manutenção não tem
      "ar-condicionado" na lista de Infra, nem Infra tem "rede caiu" na de Manutenção. */
@@ -147,6 +150,17 @@
       actions={{ onChange: (value: string) => actions.onChange('computerId', value) }}
     />
   </FilterField>
+
+  {#if fields.projectId && (fields.area.value === 'sistema' || (data.projects && data.projects.length > 0))}
+    <FilterField data={{ label: 'Sistema / Software' }}>
+      <OptionPicker
+        data={{ value: fields.projectId.value, options: projectOptions }}
+        ui={{ ariaLabel: 'Sistema / Software', placeholder: 'Nenhum', fullWidth: true }}
+        state={{ isDisabled: formState?.isSubmitting }}
+        actions={{ onChange: (value: string) => actions.onChange('projectId', value) }}
+      />
+    </FilterField>
+  {/if}
 
   {#if formState?.error}
     <ErrorState data={{ message: formState.error }} ui={{ variant: 'inline' }} />

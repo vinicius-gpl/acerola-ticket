@@ -9,7 +9,7 @@
     password: { value: '', error: null },
   };
 
-  const baseActions = { onChange: fn(), onBlur: fn(), onSubmit: fn() };
+  const baseActions = { onChange: fn(), onBlur: fn(), onSubmit: fn(), onLinkGithub: fn() };
 
   const { Story } = defineMeta({
     title: 'Features/Login/AcerolaLoginScreen',
@@ -34,7 +34,10 @@
   name="Submitting"
   args={{
     data: {
-      fields: { email: { value: 'ana@empresa.com.br', error: null }, password: { value: '••••••••', error: null } },
+      fields: {
+        email: { value: 'ana@empresa.com.br', error: null },
+        password: { value: '••••••••', error: null },
+      },
     },
     state: { isSubmitting: true },
     actions: baseActions,
@@ -46,7 +49,10 @@
   name="WithServerError"
   args={{
     data: {
-      fields: { email: { value: 'ana@empresa.com.br', error: null }, password: { value: '', error: null } },
+      fields: {
+        email: { value: 'ana@empresa.com.br', error: null },
+        password: { value: '', error: null },
+      },
     },
     state: { error: 'E-mail ou senha incorretos.' },
     actions: baseActions,

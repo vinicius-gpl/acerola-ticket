@@ -16,6 +16,9 @@ function row(over: Partial<TicketWithComputer> = {}): TicketWithComputer {
     area: 'infra',
     department: 'financeiro',
     computerId: null,
+    projectId: null,
+    githubIssueNumber: null,
+    githubIssueUrl: null,
     computerName: null,
     problemType: 'printer',
     anydeskId: null,
@@ -190,7 +193,7 @@ describe('toTicketUpdate', () => {
 describe('toTicket com máquina', () => {
   // feliz
   it('carries the machine the ticket was linked to, with the name the screen shows', () => {
-    const ticket = toTicket(row({ computerId: 11, computerName: 'Recepção — balcão' }), null);
+    const ticket = toTicket(row({ computerId: 11, projectId: null, githubIssueNumber: null, githubIssueUrl: null, computerName: 'Recepção — balcão' }), null);
 
     expect(ticket.computerId).toBe(11);
     expect(ticket.computerName).toBe('Recepção — balcão');

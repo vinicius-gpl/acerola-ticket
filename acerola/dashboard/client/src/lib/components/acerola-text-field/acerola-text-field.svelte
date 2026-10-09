@@ -11,7 +11,7 @@
    */
   /* `date` entra aqui, e não num componente separado, porque só o `type` do `input` muda —
      rótulo, erro e acessibilidade são exatamente os mesmos. */
-  export type TextFieldType = 'text' | 'email' | 'password' | 'date' | 'tel';
+  export type TextFieldType = 'text' | 'email' | 'password' | 'date' | 'time' | 'tel';
 
   export type AcerolaTextFieldProps = {
     data: {

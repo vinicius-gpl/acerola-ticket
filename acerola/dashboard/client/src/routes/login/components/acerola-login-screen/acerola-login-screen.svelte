@@ -16,6 +16,7 @@
     data: { fields: Record<LoginField, FormFieldState> };
     state?: { isSubmitting?: boolean; error?: string | null };
     actions: {
+      onLinkGithub?: () => void;
       onChange: (field: LoginField, value: string) => void;
       onBlur: (field: LoginField) => void;
       onSubmit: () => void;
@@ -25,6 +26,8 @@
 
 <script lang="ts">
   import BrandMark from '$lib/components/acerola-brand-mark/acerola-brand-mark.svelte';
+  import GitBranch from '@lucide/svelte/icons/git-branch';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
@@ -52,7 +55,12 @@
 
       <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
         <TextField
-          data={{ label: 'E-mail', name: 'email', value: fields.email.value, placeholder: 'voce@empresa.com' }}
+          data={{
+            label: 'E-mail',
+            name: 'email',
+            value: fields.email.value,
+            placeholder: 'voce@empresa.com',
+          }}
           ui={{ type: 'email' }}
           state={{
             error: fields.email.error,
@@ -93,6 +101,18 @@
           state={{ isLoading: isSubmitting }}
         />
       </form>
+      {#if actions.onLinkGithub}
+        <ActionButton
+          data={{ label: 'Vincular GitHub' }}
+          ui={{ icon: GitBranch, variant: 'secondary', size: 'lg', className: 'w-full' }}
+          state={{ isDisabled: isSubmitting }}
+          actions={{ onClick: actions.onLinkGithub }}
+        />
+        <p class="text-xs text-muted-foreground">
+          Informe seu e-mail e senha acima. Após entrar, você poderá vincular sua conta para acessar
+          o módulo Sistema.
+        </p>
+      {/if}
     </div>
   </div>
 

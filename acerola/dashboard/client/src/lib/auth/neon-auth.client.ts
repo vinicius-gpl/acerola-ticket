@@ -67,8 +67,8 @@ export const neonAuth: typeof activeClient = new Proxy(activeClient, {
     if (typeof value === 'function') {
       return async (...args: unknown[]) => {
         await ensureNeonAuthClient();
-        const fn = Reflect.get(activeClient, prop, receiver) as (...a: unknown[]) => unknown;
-        return fn(...args);
+        const fn = Reflect.get(activeClient, prop) as (...a: unknown[]) => unknown;
+        return Reflect.apply(fn, activeClient, args);
       };
     }
 
@@ -93,8 +93,20 @@ export async function readAuthToken(): Promise<string | null> {
     if (!resolvedUrl) return null;
 
     const result = await neonAuth.token();
+    if (!result) return null;
 
-    return result.data?.token ?? null;
+    const anyResult = result as unknown as { token?: string; data?: string | { token?: string } };
+    if (typeof anyResult.token === 'string') {
+      return anyResult.token;
+    }
+    if (typeof anyResult.data === 'string') {
+      return anyResult.data;
+    }
+    if (anyResult.data && typeof anyResult.data.token === 'string') {
+      return anyResult.data.token;
+    }
+
+    return null;
   } catch {
     /* Sem rede, ou o Neon Auth fora do ar: sem token. A chamada seguinte recebe 401 e a
        guarda manda para o login, que é exatamente o que a pessoa precisa fazer. */

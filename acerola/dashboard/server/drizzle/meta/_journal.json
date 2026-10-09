@@ -169,6 +169,20 @@
       "when": 1791241477241,
       "tag": "0023_equal_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791244000000,
+      "tag": "0024_software_projects_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791410000000,
+      "tag": "0025_github_oauth_connections",
+      "breakpoints": true
     }
   ]
 }

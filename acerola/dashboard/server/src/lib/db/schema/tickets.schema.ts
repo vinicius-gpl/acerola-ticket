@@ -23,6 +23,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { computers } from './computers.schema';
+import { softwareProjects } from './software-projects.schema';
 
 /** Monta a lista de valores aceitos para a checagem do banco, a partir da lista do domínio. */
 function valuesFor(values: readonly string[]) {
@@ -89,6 +90,13 @@ export const tickets = pgTable(
      */
     computerId: integer('computer_id').references(() => computers.id, { onDelete: 'set null' }),
 
+    /**
+     * O SISTEMA/PROJETO de software vinculado ao chamado (área de Sistema).
+     */
+    projectId: integer('project_id').references(() => softwareProjects.id, { onDelete: 'set null' }),
+    githubIssueNumber: integer('github_issue_number'),
+    githubIssueUrl: text('github_issue_url'),
+
     /* O endereço do print DENTRO do bucket, não uma URL. O link é assinado na leitura e
        expira; guardar URL pronta seria guardar um acesso permanente à imagem. */
     screenshotKey: text('screenshot_key'),
@@ -119,6 +127,7 @@ export const tickets = pgTable(
     index('tickets_created_at_idx').on(table.createdAt),
     /* "Os chamados desta máquina" é a consulta da ficha do computador. */
     index('tickets_computer_idx').on(table.computerId),
+    index('tickets_project_idx').on(table.projectId),
     /* O `enum` do Drizzle só existe no TypeScript. Estas checagens são o que faz o BANCO
        recusar um valor inventado — inclusive o que chegar por um seed ou pelo Drizzle
        Studio. Elas são geradas das MESMAS listas do domínio que o formulário usa. */

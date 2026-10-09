@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Optional,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { GithubService } from '../../software-projects/service/github.service';
 import {
   ticketAreaLabel,
   ticketDepartmentLabel,
@@ -43,10 +49,7 @@ import { TicketHistoriesRepository } from '../repository/ticket-histories.reposi
 import { TICKET_NOT_FOUND, TicketAccessService } from './ticket-access.service';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
 import { TicketHistoriesService } from './ticket-histories.service';
-import {
-  TicketsRepository,
-  type TicketWithComputer,
-} from '../repository/tickets.repository';
+import { TicketsRepository, type TicketWithComputer } from '../repository/tickets.repository';
 
 /** Sem repetir — somar a mesma área participante duas vezes não deve duplicar na resposta. */
 function dedupeAreas(areas: readonly TicketArea[]): TicketArea[] {
@@ -127,6 +130,7 @@ export class TicketsService {
     private readonly access: TicketAccessService,
     private readonly histories: TicketHistoriesService,
     private readonly historiesRepository: TicketHistoriesRepository,
+    @Optional() private readonly githubService?: GithubService,
   ) {}
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
@@ -230,6 +234,17 @@ export class TicketsService {
     await this.attachments.attach(row.id, attachments, null, 'requester');
 
     /* Chamado nasce sem área participante — só a original, escolhida por quem abriu. */
+    if (row.area === 'sistema' && row.projectId && this.githubService) {
+      this.githubService.syncTicketToIssueInBackground(
+        row.id,
+        row.projectId,
+        formatTicketProtocol(row.id),
+        `Chamado ${formatTicketProtocol(row.id)} - ${row.problemType}`,
+        row.description,
+        row.requesterName,
+      );
+    }
+
     return this.toFullTicket(row, []);
   }
 
@@ -282,6 +297,18 @@ export class TicketsService {
     if (changes) {
       await this.historiesRepository.record(
         toUpdateHistory(row, changes, { name: user.name, email: user.email }),
+      );
+    }
+
+    if (row.area === 'sistema' && row.projectId && !row.githubIssueNumber && this.githubService) {
+      this.githubService.syncTicketToIssueInBackground(
+        row.id,
+        row.projectId,
+        formatTicketProtocol(row.id),
+        `Chamado ${formatTicketProtocol(row.id)} - ${row.problemType}`,
+        row.description,
+        row.requesterName,
+        user.id,
       );
     }
 
