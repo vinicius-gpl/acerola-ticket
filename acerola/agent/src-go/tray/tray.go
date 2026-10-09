@@ -36,15 +36,22 @@ func onReady(callbacks Callbacks) {
 		callbacks.ShowPopup()
 	})
 
+	// Vem antes dos outros para ser a primeira entrada do menu, onde existir.
+	popupClicks := popupMenuClicks()
 	dashboardItem := systray.AddMenuItem("Abrir Dashboard", "Abre o painel completo")
 	quitItem := systray.AddMenuItem("Sair", "Encerra o agente")
 
-	go watchMenu(dashboardItem, quitItem, callbacks)
+	go watchMenu(popupClicks, dashboardItem, quitItem, callbacks)
 }
 
-func watchMenu(dashboardItem, quitItem *systray.MenuItem, callbacks Callbacks) {
+// watchMenu recebe os cliques de "Abrir Minificado" como canal solto porque
+// a entrada só existe em alguns sistemas (ver popupMenuClicks): onde não
+// existe o canal é nil, e um canal nil nunca dispara no select.
+func watchMenu(popupClicks <-chan struct{}, dashboardItem, quitItem *systray.MenuItem, callbacks Callbacks) {
 	for {
 		select {
+		case <-popupClicks:
+			callbacks.ShowPopup()
 		case <-dashboardItem.ClickedCh:
 			callbacks.ShowDashboard()
 		case <-quitItem.ClickedCh:
