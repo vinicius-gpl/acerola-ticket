@@ -332,8 +332,8 @@
 
   <PageHeader
     data={{
-      title: computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name,
-      description: `${computer.hardware.hostname?.trim() || computer.name} · ${computer.department ? departmentLabel(computer.department) : 'Sem departamento'} · ${computer.responsibleName ?? 'Sem responsável'}`,
+      title: computer.displayName?.trim() || computer.hardware?.hostname?.trim() || computer.name,
+      description: `${computer.hardware?.hostname?.trim() || computer.name} · ${computer.department ? departmentLabel(computer.department) : 'Sem departamento'} · ${computer.responsibleName ?? 'Sem responsável'}`,
     }}
   >
     {#if disposed}
@@ -855,7 +855,7 @@
 <ConfirmDialog
   data={{
     title: 'Arquivar esta máquina?',
-    description: `${computer.hardware.hostname?.trim() || computer.name} sai das listas do dia a dia, mas nada é apagado: o histórico dela continua aqui e ela pode voltar quando quiser.`,
+    description: `${computer.hardware?.hostname?.trim() || computer.name} sai das listas do dia a dia, mas nada é apagado: o histórico dela continua aqui e ela pode voltar quando quiser.`,
     confirmLabel: 'Arquivar',
     confirmingLabel: 'Arquivando…',
   }}
@@ -867,7 +867,7 @@
 <ConfirmDialog
   data={{
     title: 'Tirar esta máquina do arquivo?',
-    description: `${computer.hardware.hostname?.trim() || computer.name} volta a aparecer nas listas do dia a dia.`,
+    description: `${computer.hardware?.hostname?.trim() || computer.name} volta a aparecer nas listas do dia a dia.`,
     confirmLabel: 'Tirar do arquivo',
     confirmingLabel: 'Salvando…',
   }}
@@ -878,7 +878,7 @@
 <ConfirmDialog
   data={{
     title: 'Desbloquear esta máquina?',
-    description: `O agente de ${computer.hardware.hostname?.trim() || computer.name} volta a ser aceito na próxima tentativa de conexão, e a máquina volta a enviar leituras.`,
+    description: `O agente de ${computer.hardware?.hostname?.trim() || computer.name} volta a ser aceito na próxima tentativa de conexão, e a máquina volta a enviar leituras.`,
     confirmLabel: 'Desbloquear',
     confirmingLabel: 'Salvando…',
   }}
@@ -889,7 +889,7 @@
 <ConfirmDialog
   data={{
     title: 'Gerar um token novo?',
-    description: `O token atual para de funcionar na hora, e o agente instalado em ${computer.hardware.hostname?.trim() || computer.name} vai parar de enviar até ser reconfigurado com o código novo.`,
+    description: `O token atual para de funcionar na hora, e o agente instalado em ${computer.hardware?.hostname?.trim() || computer.name} vai parar de enviar até ser reconfigurado com o código novo.`,
     confirmLabel: 'Gerar token novo',
     confirmingLabel: 'Gerando…',
   }}
@@ -901,7 +901,7 @@
 <ConfirmDialog
   data={{
     title: 'Devolver esta máquina ao inventário?',
-    description: `${computer.hardware.hostname?.trim() || computer.name} volta para as listas do dia a dia, e o motivo do descarte é apagado. O histórico dela continua inteiro.`,
+    description: `${computer.hardware?.hostname?.trim() || computer.name} volta para as listas do dia a dia, e o motivo do descarte é apagado. O histórico dela continua inteiro.`,
     confirmLabel: 'Voltar ao inventário',
     confirmingLabel: 'Devolvendo…',
   }}
@@ -910,7 +910,7 @@
 />
 
 <ComputerDisposalDialog
-  data={{ computerName: computer.hardware.hostname?.trim() || computer.name }}
+  data={{ computerName: computer.hardware?.hostname?.trim() || computer.name }}
   state={{ isOpen: pending === 'dispose', isConfirming: viewState?.isSaving }}
   actions={{
     onConfirm: (input) => {
@@ -922,7 +922,7 @@
 />
 
 <ComputerBlockDialog
-  data={{ computerName: computer.hardware.hostname?.trim() || computer.name }}
+  data={{ computerName: computer.hardware?.hostname?.trim() || computer.name }}
   state={{ isOpen: pending === 'block', isConfirming: viewState?.isSaving }}
   actions={{
     onConfirm: (reason: string) => {

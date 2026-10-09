@@ -65,7 +65,7 @@
   }
 
   export function machineLabelOf(computer: Computer): string {
-    return computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name;
+    return computer.displayName?.trim() || computer.hardware?.hostname?.trim() || computer.name;
   }
 
   /** A peça e quantas unidades dela estão na máquina. */
@@ -138,7 +138,7 @@
           {#if goingToShelf}
             <span class="text-muted-foreground text-xs">
               A máquina volta a ser reserva: ela perde o responsável e passa a se chamar "Reserva — {data
-                .computer.hardware.hostname || data.computer.name}".
+                .computer.hardware?.hostname || data.computer.name}".
             </span>
           {/if}
         </div>

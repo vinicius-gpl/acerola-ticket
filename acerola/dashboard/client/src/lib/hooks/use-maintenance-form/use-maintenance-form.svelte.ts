@@ -151,8 +151,8 @@ function toMachineOptions(computers: readonly Computer[]): MachineOption[] {
   return computers.map((computer) => ({
     value: String(computer.id),
     label: computer.displayName?.trim()
-      ? `${computer.displayName} (${computer.hardware.hostname?.trim() || computer.name})`
-      : computer.hardware.hostname?.trim() || computer.name,
+      ? `${computer.displayName} (${computer.hardware?.hostname?.trim() || computer.name})`
+      : computer.hardware?.hostname?.trim() || computer.name,
   }));
 }
 

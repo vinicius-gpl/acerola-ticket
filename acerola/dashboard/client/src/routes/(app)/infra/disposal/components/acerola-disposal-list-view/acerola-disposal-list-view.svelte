@@ -59,7 +59,7 @@
 
   /** O nome que a pessoa reconhece: o apelido ganha do nome técnico da máquina. */
   export function machineLabelOf(computer: Computer): string {
-    return computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name;
+    return computer.displayName?.trim() || computer.hardware?.hostname?.trim() || computer.name;
   }
 </script>
 
@@ -246,7 +246,7 @@
                 {machineLabelOf(computer)}
               </span>
               <span class="block text-xs text-ink-500 break-words">
-                {computer.hardware.hostname || computer.name}
+                {computer.hardware?.hostname || computer.name}
                 {#if computer.department}
                   · {departmentLabel(computer.department)}
                 {/if}
@@ -316,7 +316,7 @@
                   {machineLabelOf(computer)}
                 </span>
                 <span class="block text-xs text-ink-500 break-words">
-                  {computer.hardware.hostname || computer.name}
+                  {computer.hardware?.hostname || computer.name}
                   {#if computer.department}
                     · {departmentLabel(computer.department)}
                   {/if}

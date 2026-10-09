@@ -94,7 +94,7 @@
    * embaixo, porque é por ele que o agente aparece no log.
    */
   export function displayNameOf(computer: Computer): string {
-    return computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name;
+    return computer.displayName?.trim() || computer.hardware?.hostname?.trim() || computer.name;
   }
 </script>
 
@@ -336,7 +336,7 @@
                 {displayNameOf(computer)}
               </span>
               <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5"
-                >{computer.hardware.hostname || computer.name}</span
+                >{computer.hardware?.hostname || computer.name}</span
               >
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
@@ -423,7 +423,7 @@
                   {displayNameOf(computer)}
                 </span>
                 <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5"
-                  >{computer.hardware.hostname || computer.name}</span
+                  >{computer.hardware?.hostname || computer.name}</span
                 >
               </TableCell>
               <TableCell class="max-w-[220px]">
