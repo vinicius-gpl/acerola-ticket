@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type SoftwareTimelineEvent } from '@template/shared/schemas/software-timeline.schema';
 
-  import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+  import * as Tooltip from '$lib/components/acerola-tooltip/acerola-tooltip';
 
   let { event, compact = false }: { event: SoftwareTimelineEvent; compact?: boolean } = $props();
 
@@ -39,8 +39,8 @@
         rel="noreferrer"
         aria-label="{kind} {event.externalId ?? ''}: {event.title}"
         class="block truncate rounded-chip border border-primary/20 bg-primary-soft text-primary transition hover:border-primary/50 {compact
-          ? 'px-1 py-0.5 text-[10px]'
-          : 'px-1.5 py-1 text-[10px]'}"
+          ? 'px-1 py-0.5 text-xs'
+          : 'px-1.5 py-1 text-xs'}"
       >
         {event.type === 'pr' ? 'PR' : 'Issue'}
         {event.externalId} · {event.title}

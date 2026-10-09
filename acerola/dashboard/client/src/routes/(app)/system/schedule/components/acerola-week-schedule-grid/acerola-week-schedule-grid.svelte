@@ -92,7 +92,7 @@
 
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
-  import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+  import * as Tooltip from '$lib/components/acerola-tooltip/acerola-tooltip';
   import GithubCalendarEvent from '../acerola-github-calendar-event/acerola-github-calendar-event.svelte';
 
   let { data, state, actions }: AcerolaWeekScheduleGridProps = $props();
@@ -310,7 +310,7 @@
                       <GithubCalendarEvent {event} compact />
                     {/each}
                     {#if day.githubEvents.length > 2}
-                      <span class="block px-1 text-[10px] text-muted-foreground">
+                      <span class="block px-1 text-xs text-muted-foreground">
                         +{day.githubEvents.length - 2} atividades
                       </span>
                     {/if}
@@ -372,20 +372,20 @@
             style="grid-template-columns:56px repeat({columns},1fr)"
           >
             <div
-              class="flex items-start justify-end px-2 pt-2 text-[10px] font-medium text-muted-foreground"
+              class="flex items-start justify-end px-2 pt-2 text-xs font-medium text-muted-foreground"
             >
               GitHub
             </div>
             {#each data.days as day (day.dateString)}
               <div class="max-h-32 min-h-14 space-y-1 overflow-y-auto border-l border-border p-1.5">
                 {#if !day.githubEvents?.length}
-                  <span class="text-[10px] text-muted-foreground/60">—</span>
+                  <span class="text-xs text-muted-foreground/60">—</span>
                 {:else}
                   {#each day.githubEvents.slice(0, 3) as event (event.id)}
                     <GithubCalendarEvent {event} />
                   {/each}
                   {#if day.githubEvents.length > 3}
-                    <span class="block px-1 text-[10px] text-muted-foreground">
+                    <span class="block px-1 text-xs text-muted-foreground">
                       +{day.githubEvents.length - 3} no histórico abaixo
                     </span>
                   {/if}
@@ -516,7 +516,7 @@
                           'desconhecido'}
                       </span>
                     </span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">
+                    <span class="shrink-0 text-xs text-muted-foreground">
                       {timelineDate(event.eventDate)}
                     </span>
                   </a>
