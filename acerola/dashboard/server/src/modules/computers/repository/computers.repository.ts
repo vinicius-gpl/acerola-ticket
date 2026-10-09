@@ -136,6 +136,13 @@ export class ComputersRepository {
     );
   }
 
+  async findByName(name: string): Promise<ComputerRow | null> {
+    return runMaybe(
+      this.db.select().from(computers).where(eq(computers.name, name)).limit(1),
+      'verificar hostname existente',
+    );
+  }
+
   /**
    * Pelo HASH do token: é assim que o agente se identifica, a cada conexão.
    *
@@ -250,10 +257,7 @@ export class ComputersRepository {
    * trazer todos para cortar no navegador gasta o banco, a rede e a memória do navegador
    * para jogar fora 95% do que veio.
    */
-  async listAlerts(
-    computerId: number,
-    query: ComputerAlertListQuery,
-  ): Promise<ComputerAlertRow[]> {
+  async listAlerts(computerId: number, query: ComputerAlertListQuery): Promise<ComputerAlertRow[]> {
     return runQuery(
       this.db
         .select()
@@ -311,6 +315,7 @@ function buildWhere(query: ComputerFilter): SQL | undefined {
       or(
         ilike(computers.name, term),
         ilike(computers.displayName, term),
+        sql`(${computers.lastSnapshot}->'host'->>'hostname') ilike ${term}`,
         ilike(computers.responsibleName, term),
         ilike(computers.cpuModel, term),
       ),

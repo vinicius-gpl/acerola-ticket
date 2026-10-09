@@ -65,7 +65,7 @@
   }
 
   export function machineLabelOf(computer: Computer): string {
-    return computer.displayName?.trim() || computer.name;
+    return computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name;
   }
 
   /** A peça e quantas unidades dela estão na máquina. */
@@ -112,10 +112,14 @@
     <form novalidate class="flex flex-col gap-4.5" onsubmit={handleSubmit}>
       <DialogHeader class="gap-1.5">
         <div class="flex items-center gap-2.5">
-          <span class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary">
+          <span
+            class="flex size-7 shrink-0 items-center justify-center rounded-chip bg-primary/10 text-primary"
+          >
             <ArrowRightLeft class="size-4" aria-hidden="true" />
           </span>
-          <DialogTitle class="text-lg font-semibold tracking-tight">Transferir de departamento</DialogTitle>
+          <DialogTitle class="text-lg font-semibold tracking-tight"
+            >Transferir de departamento</DialogTitle
+          >
         </div>
         <DialogDescription class="text-xs text-muted-foreground">
           {machineLabelOf(data.computer)} · hoje em <strong>{currentPlaceOf(data.computer)}</strong>
@@ -133,8 +137,8 @@
           />
           {#if goingToShelf}
             <span class="text-muted-foreground text-xs">
-              A máquina volta a ser reserva: ela perde o responsável e passa a se chamar
-              "Reserva — {data.computer.name}".
+              A máquina volta a ser reserva: ela perde o responsável e passa a se chamar "Reserva — {data
+                .computer.hardware.hostname || data.computer.name}".
             </span>
           {/if}
         </div>

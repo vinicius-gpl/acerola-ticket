@@ -366,7 +366,12 @@ export class ComputersService {
     snapshot: AgentSnapshot,
     agentVersion: string,
   ): Promise<void> {
-    await this.repository.update(computer.id, toSnapshotUpdate(snapshot, agentVersion));
+    const update = toSnapshotUpdate(snapshot, agentVersion);
+    if (update.name && update.name !== computer.name) {
+      const nameOwner = await this.repository.findByName(update.name);
+      if (nameOwner && nameOwner.id !== computer.id) delete update.name;
+    }
+    await this.repository.update(computer.id, update);
 
     const sample = toSample(computer.id, snapshot);
     await this.repository.insertSample(sample);

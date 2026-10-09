@@ -12,10 +12,7 @@
     departmentLabel,
     type Department,
   } from '@template/shared/domain/department.util';
-  import {
-    type Computer,
-    type ComputerListItem,
-  } from '@template/shared/schemas/computer.schema';
+  import { type Computer, type ComputerListItem } from '@template/shared/schemas/computer.schema';
   import { type ReportFormat } from '@template/shared/schemas/report.schema';
 
   export type ComputerListFilter = {
@@ -97,7 +94,7 @@
    * embaixo, porque é por ele que o agente aparece no log.
    */
   export function displayNameOf(computer: Computer): string {
-    return computer.displayName?.trim() || computer.name;
+    return computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name;
   }
 </script>
 
@@ -141,9 +138,9 @@
   const hasActiveFilter = $derived(
     Boolean(
       data.filter.search ||
-        data.filter.department ||
-        data.filter.healthStatus ||
-        data.filter.includeArchived,
+      data.filter.department ||
+      data.filter.healthStatus ||
+      data.filter.includeArchived,
     ),
   );
 
@@ -338,7 +335,9 @@
               <span class="block font-medium text-ink-900 break-words leading-snug">
                 {displayNameOf(computer)}
               </span>
-              <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5">{computer.name}</span>
+              <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5"
+                >{computer.hardware.hostname || computer.name}</span
+              >
             </div>
             <div class="flex flex-col items-end gap-1 shrink-0">
               <StatusBadge
@@ -354,7 +353,9 @@
           <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
             <div>
               <span class="text-muted-foreground block text-xs">Responsável</span>
-              <span class="font-medium text-ink-700 break-words">{computer.responsibleName ?? '—'}</span>
+              <span class="font-medium text-ink-700 break-words"
+                >{computer.responsibleName ?? '—'}</span
+              >
               <span class="block text-ink-500 text-xs">
                 {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
               </span>
@@ -409,7 +410,9 @@
             <TableHead class="min-w-[120px]">Chamados no mês</TableHead>
             <TableHead class="min-w-[120px]">Situação</TableHead>
             <TableHead class="min-w-[110px]">Vista</TableHead>
-            <TableHead class="min-w-[100px] text-right"><span class="sr-only">Ações</span></TableHead>
+            <TableHead class="min-w-[100px] text-right"
+              ><span class="sr-only">Ações</span></TableHead
+            >
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -419,10 +422,14 @@
                 <span class="block font-medium text-ink-900 break-words leading-snug">
                   {displayNameOf(computer)}
                 </span>
-                <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5">{computer.name}</span>
+                <span class="block text-xs text-ink-500 break-words leading-tight mt-0.5"
+                  >{computer.hardware.hostname || computer.name}</span
+                >
               </TableCell>
               <TableCell class="max-w-[220px]">
-                <span class="block text-ink-700 break-words leading-snug">{computer.responsibleName ?? '—'}</span>
+                <span class="block text-ink-700 break-words leading-snug"
+                  >{computer.responsibleName ?? '—'}</span
+                >
                 <span class="block text-xs text-ink-500 mt-0.5">
                   {computer.department ? departmentLabel(computer.department) : 'Sem departamento'}
                 </span>
@@ -485,8 +492,8 @@
     <!-- Truncar calado é mentir sobre o tamanho do parque. -->
     {#if state.isTruncated}
       <p class="text-ink-500 text-xs">
-        Mostrando {data.computers.length} de {data.total} computadores. Use os filtros para chegar
-        ao que procura.
+        Mostrando {data.computers.length} de {data.total} computadores. Use os filtros para chegar ao
+        que procura.
       </p>
     {/if}
   {/if}

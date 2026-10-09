@@ -42,7 +42,7 @@ export const computers = pgTable(
   {
     id: serial('id').primaryKey(),
 
-    /* O nome que a própria máquina informa. Único: é a chave pela qual o agente se encontra. */
+    /* O hostname mais recente do agente. Antes da primeira leitura, mantém o nome do cadastro. */
     name: text('name').notNull().unique(),
     displayName: text('display_name'),
     responsibleName: text('responsible_name'),
@@ -52,10 +52,8 @@ export const computers = pgTable(
      * O HASH do token, nunca o token. Mesmo princípio de senha: um vazamento do banco não
      * pode entregar a credencial que faz uma máquina falsa se passar por uma de verdade.
      *
-     * É ÚNICO porque é por ele que o agente se identifica — ele não manda o nome da máquina.
-     * Fosse pelo nome, o hostname real e o nome digitado no cadastro poderiam divergir (alguém
-     * renomeia a máquina no Windows) e a telemetria pararia de achar a ficha. O token não tem
-     * esse problema: ele é a identidade, e o hostname vira apenas mais um dado medido.
+     * O token é a identidade: renomear a máquina não interrompe a telemetria. O hostname pode
+     * mudar a cada reinicialização e atualiza `name` quando não pertence a outro computador.
      */
     tokenHash: text('token_hash').notNull().unique(),
 
@@ -89,7 +87,9 @@ export const computers = pgTable(
 
     healthScore: integer('health_score').notNull().default(100),
     healthStatus: text('health_status', { enum: HEALTH_STATUSES }).notNull().default('good'),
-    warnings: jsonb('warnings').notNull().default(sql`'[]'::jsonb`),
+    warnings: jsonb('warnings')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
 
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true, mode: 'date' }),
     agentVersion: text('agent_version'),
@@ -113,9 +113,7 @@ export const computers = pgTable(
     disposalType: text('disposal_type', { enum: DISPOSAL_TYPES }),
     disposalReason: text('disposal_reason'),
 
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
     createdBy: text('created_by').notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }),
     updatedBy: text('updated_by'),
@@ -136,10 +134,7 @@ export const computers = pgTable(
       'computers_department_valid',
       sql`${table.department} is null or ${table.department} in (${valuesFor(DEPARTMENTS)})`,
     ),
-    check(
-      'computers_health_score_range',
-      sql`${table.healthScore} between 0 and 100`,
-    ),
+    check('computers_health_score_range', sql`${table.healthScore} between 0 and 100`),
     /* Máquina descartada sem tipo e sem motivo é uma saída que não explica nada — e o mapa
        de "o que saiu de uso e por quê" é justamente para isso que existe. */
     check(

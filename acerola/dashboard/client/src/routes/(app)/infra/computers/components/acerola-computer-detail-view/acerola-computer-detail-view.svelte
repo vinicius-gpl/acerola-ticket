@@ -24,10 +24,7 @@
     maintenanceTypeTone,
   } from '@template/shared/domain/maintenance.util';
   import { type Maintenance } from '@template/shared/schemas/maintenance.schema';
-  import {
-    movementTypeLabel,
-    movementTypeTone,
-  } from '@template/shared/domain/part-catalog.util';
+  import { movementTypeLabel, movementTypeTone } from '@template/shared/domain/part-catalog.util';
   import { type PartMovement } from '@template/shared/schemas/part.schema';
   import { type Transfer } from '@template/shared/schemas/transfer.schema';
 
@@ -99,10 +96,7 @@
   import { type ComputerLive } from '@template/shared/schemas/computer-live.schema';
   import { type Ticket } from '@template/shared/schemas/ticket.schema';
   import { ticketProblemTypeLabel } from '@template/shared/domain/ticket-catalog.util';
-  import {
-    ticketStatusLabel,
-    ticketStatusTone,
-  } from '@template/shared/domain/ticket-status.util';
+  import { ticketStatusLabel, ticketStatusTone } from '@template/shared/domain/ticket-status.util';
 
   /** Onde a pessoa está numa lista paginada, e de que tamanho é a lista inteira. */
   export type ListPaging = { page: number; pageSize: number; total: number };
@@ -338,8 +332,8 @@
 
   <PageHeader
     data={{
-      title: computer.displayName?.trim() || computer.name,
-      description: `${computer.name} · ${computer.department ? departmentLabel(computer.department) : 'Sem departamento'} · ${computer.responsibleName ?? 'Sem responsável'}`,
+      title: computer.displayName?.trim() || computer.hardware.hostname?.trim() || computer.name,
+      description: `${computer.hardware.hostname?.trim() || computer.name} · ${computer.department ? departmentLabel(computer.department) : 'Sem departamento'} · ${computer.responsibleName ?? 'Sem responsável'}`,
     }}
   >
     {#if disposed}
@@ -463,7 +457,9 @@
   {/if}
 
   {#if computer.isBlocked && computer.blockReason}
-    <p class="text-ink-700 rounded-box border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+    <p
+      class="text-ink-700 rounded-box border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm"
+    >
       <span class="font-semibold">Motivo do bloqueio:</span>
       {computer.blockReason}
     </p>
@@ -566,8 +562,8 @@
       <p class="text-ink-500 py-6 text-center text-sm">Carregando os alertas…</p>
     {:else if data.alerts.length === 0}
       <p class="text-ink-500 text-sm">
-        Nenhum alerta registrado. Um alerta abre quando a medida passa do limite e fecha quando
-        ela volta ao normal.
+        Nenhum alerta registrado. Um alerta abre quando a medida passa do limite e fecha quando ela
+        volta ao normal.
       </p>
     {:else}
       <!-- Lista de cartões para mobile (< xl) -->
@@ -654,7 +650,9 @@
                     />
                   {/if}
                 </TableCell>
-                <TableCell class="text-ink-500 break-words text-xs">{alert.causeProcess ?? '—'}</TableCell>
+                <TableCell class="text-ink-500 break-words text-xs"
+                  >{alert.causeProcess ?? '—'}</TableCell
+                >
               </TableRow>
             {/each}
           </TableBody>
@@ -696,8 +694,8 @@
       <p class="text-ink-500 py-6 text-center text-sm">Carregando o histórico…</p>
     {:else if data.maintenances.length === 0}
       <p class="text-ink-500 text-sm">
-        Nada registrado ainda. É por este histórico que se enxerga quando vale trocar a máquina
-        em vez de remendar.
+        Nada registrado ainda. É por este histórico que se enxerga quando vale trocar a máquina em
+        vez de remendar.
       </p>
     {:else}
       <ul class="flex flex-col divide-y">
@@ -788,7 +786,9 @@
         {#each data.transfers as transfer (transfer.id)}
           <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
             <div class="min-w-0 flex-1">
-              <p class="text-ink-900 text-sm break-words leading-tight">{transferRouteOf(transfer)}</p>
+              <p class="text-ink-900 text-sm break-words leading-tight">
+                {transferRouteOf(transfer)}
+              </p>
               <p class="text-ink-500 text-xs mt-1 break-words leading-normal">
                 {formatDateTime(transfer.createdAt)}
                 {#if transfer.responsible}
@@ -855,7 +855,7 @@
 <ConfirmDialog
   data={{
     title: 'Arquivar esta máquina?',
-    description: `${computer.name} sai das listas do dia a dia, mas nada é apagado: o histórico dela continua aqui e ela pode voltar quando quiser.`,
+    description: `${computer.hardware.hostname?.trim() || computer.name} sai das listas do dia a dia, mas nada é apagado: o histórico dela continua aqui e ela pode voltar quando quiser.`,
     confirmLabel: 'Arquivar',
     confirmingLabel: 'Arquivando…',
   }}
@@ -867,7 +867,7 @@
 <ConfirmDialog
   data={{
     title: 'Tirar esta máquina do arquivo?',
-    description: `${computer.name} volta a aparecer nas listas do dia a dia.`,
+    description: `${computer.hardware.hostname?.trim() || computer.name} volta a aparecer nas listas do dia a dia.`,
     confirmLabel: 'Tirar do arquivo',
     confirmingLabel: 'Salvando…',
   }}
@@ -878,7 +878,7 @@
 <ConfirmDialog
   data={{
     title: 'Desbloquear esta máquina?',
-    description: `O agente de ${computer.name} volta a ser aceito na próxima tentativa de conexão, e a máquina volta a enviar leituras.`,
+    description: `O agente de ${computer.hardware.hostname?.trim() || computer.name} volta a ser aceito na próxima tentativa de conexão, e a máquina volta a enviar leituras.`,
     confirmLabel: 'Desbloquear',
     confirmingLabel: 'Salvando…',
   }}
@@ -889,7 +889,7 @@
 <ConfirmDialog
   data={{
     title: 'Gerar um token novo?',
-    description: `O token atual para de funcionar na hora, e o agente instalado em ${computer.name} vai parar de enviar até ser reconfigurado com o código novo.`,
+    description: `O token atual para de funcionar na hora, e o agente instalado em ${computer.hardware.hostname?.trim() || computer.name} vai parar de enviar até ser reconfigurado com o código novo.`,
     confirmLabel: 'Gerar token novo',
     confirmingLabel: 'Gerando…',
   }}
@@ -901,7 +901,7 @@
 <ConfirmDialog
   data={{
     title: 'Devolver esta máquina ao inventário?',
-    description: `${computer.name} volta para as listas do dia a dia, e o motivo do descarte é apagado. O histórico dela continua inteiro.`,
+    description: `${computer.hardware.hostname?.trim() || computer.name} volta para as listas do dia a dia, e o motivo do descarte é apagado. O histórico dela continua inteiro.`,
     confirmLabel: 'Voltar ao inventário',
     confirmingLabel: 'Devolvendo…',
   }}
@@ -910,7 +910,7 @@
 />
 
 <ComputerDisposalDialog
-  data={{ computerName: computer.name }}
+  data={{ computerName: computer.hardware.hostname?.trim() || computer.name }}
   state={{ isOpen: pending === 'dispose', isConfirming: viewState?.isSaving }}
   actions={{
     onConfirm: (input) => {
@@ -922,7 +922,7 @@
 />
 
 <ComputerBlockDialog
-  data={{ computerName: computer.name }}
+  data={{ computerName: computer.hardware.hostname?.trim() || computer.name }}
   state={{ isOpen: pending === 'block', isConfirming: viewState?.isSaving }}
   actions={{
     onConfirm: (reason: string) => {

@@ -202,14 +202,17 @@ function machineChoices(computers: readonly Computer[], leavingId: number): Mach
     .map((computer) => ({
       value: String(computer.id),
       label: computer.displayName?.trim()
-        ? `${computer.displayName} (${computer.name})`
-        : computer.name,
+        ? `${computer.displayName} (${computer.hardware.hostname?.trim() || computer.name})`
+        : computer.hardware.hostname?.trim() || computer.name,
     }));
 }
 
 type Choices = Record<number, { destiny: PeripheralDestiny; destination: string }>;
 
-function peripheralChoices(installed: readonly InstalledPart[], choices: Choices): PeripheralChoice[] {
+function peripheralChoices(
+  installed: readonly InstalledPart[],
+  choices: Choices,
+): PeripheralChoice[] {
   return installed.map((part) => ({
     partId: part.partId,
     label: `${part.name} — ${partCategoryLabel(part.category)}`,
