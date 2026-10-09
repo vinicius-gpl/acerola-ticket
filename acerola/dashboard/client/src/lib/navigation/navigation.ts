@@ -1,5 +1,8 @@
 import type { LucideIcon } from '@lucide/svelte';
 import Boxes from '@lucide/svelte/icons/boxes';
+import Calendar from '@lucide/svelte/icons/calendar';
+import Code2 from '@lucide/svelte/icons/code-2';
+import Columns3 from '@lucide/svelte/icons/columns-3';
 import FileText from '@lucide/svelte/icons/file-text';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import Lightbulb from '@lucide/svelte/icons/lightbulb';
@@ -105,9 +108,13 @@ export const INFRA_NAV_ITEMS: readonly NavItem[] = [
   navItem('infra', 'tasks', 'Tarefas', ListChecks),
 ];
 
-/** SISTEMA — os sistemas da empresa e os chamados deles. */
+/** SISTEMA — os sistemas da empresa, cronograma, kanban e os chamados deles. */
 export const SYSTEM_NAV_ITEMS: readonly NavItem[] = [
+  navItem('sistema', 'dashboard', 'Painel', LayoutDashboard),
   navItem('sistema', 'tickets', 'Chamados', LifeBuoy),
+  navItem('sistema', 'kanban', 'Kanban', Columns3),
+  navItem('sistema', 'schedule', 'Cronograma', Calendar),
+  navItem('sistema', 'projects', 'Projetos', Code2),
 ];
 
 /**

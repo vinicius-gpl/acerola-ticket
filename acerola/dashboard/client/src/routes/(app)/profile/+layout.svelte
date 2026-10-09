@@ -33,6 +33,12 @@
   });
 </script>
 
-<AppShell data={shell.data} ui={shell.ui} state={shell.state} actions={shell.actions}>
+<AppShell
+  initialSidebarOpen={data.sidebarOpen}
+  data={shell.data}
+  ui={shell.ui}
+  state={shell.state}
+  actions={shell.actions}
+>
   {@render children()}
 </AppShell>

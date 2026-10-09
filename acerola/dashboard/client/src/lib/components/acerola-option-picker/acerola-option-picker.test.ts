@@ -1,8 +1,31 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import OptionPicker from './acerola-option-picker.svelte';
+
+it('keeps search available with few options when combobox mode is requested', async () => {
+  const onChange = vi.fn();
+  render(OptionPicker, {
+    data: {
+      value: '',
+      options: [
+        { value: '', label: 'Todos' },
+        { value: '1', label: 'Acerola Ticket' },
+      ],
+    },
+    ui: { ariaLabel: 'Sistema', mode: 'combobox' },
+    actions: { onChange },
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Sistema' }));
+  // jsdom has no floating-element geometry, so the popover is present but marked hidden.
+  const search = await screen.findByPlaceholderText('Buscar…');
+  const popup = search.closest('[data-slot="popover-content"]') as HTMLElement;
+  await fireEvent.input(search, { target: { value: 'ACEROLA' } });
+  expect(within(popup).queryByText('Todos')).not.toBeInTheDocument();
+  await fireEvent.click(within(popup).getByText('Acerola Ticket'));
+  expect(onChange).toHaveBeenCalledWith('1');
+});
 
 const few = [
   { value: 'open', label: 'Abertos' },

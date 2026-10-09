@@ -16,6 +16,7 @@
     priority: field('medium'),
     contactPhone: field(''),
     description: field(''),
+    projectId: field(''),
   };
 
   const filledFields: Record<OpenTicketField, FormFieldState> = {
@@ -27,6 +28,7 @@
     priority: field('high'),
     contactPhone: field('62 99999-9999'),
     description: field('A impressora da sala não puxa papel.'),
+    projectId: field(''),
   };
 
   const actions = {

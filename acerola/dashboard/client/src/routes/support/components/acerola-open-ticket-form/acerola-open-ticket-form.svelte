@@ -26,7 +26,8 @@
     | 'anydeskId'
     | 'priority'
     | 'contactPhone'
-    | 'description';
+    | 'description'
+    | 'projectId';
 
   /**
    * O formulário PÚBLICO de abrir chamado — em ETAPAS, uma por vez, tipo onboarding.
@@ -51,12 +52,15 @@
       /** Os arquivos escolhidos, ainda não enviados. */
       attachments: File[];
       opened: { protocol: string; whatsAppLink: string | null } | null;
+      systemProjects?: { value: string; label: string }[];
     };
     state: {
       isSubmitting?: boolean;
       error?: string | null;
       screenshotError?: string | null;
       attachmentError?: string | null;
+      systemProjectsLoading?: boolean;
+      systemProjectsError?: string | null;
     };
     actions: {
       onChange: (field: OpenTicketField, value: string) => void;
@@ -99,7 +103,7 @@
   const STEP_FIELDS: Record<StepId, OpenTicketField[]> = {
     area: ['area'],
     who: ['requesterName', 'contactPhone'],
-    problem: ['department', 'problemType', 'priority', 'anydeskId'],
+    problem: ['department', 'problemType', 'priority', 'anydeskId', 'projectId'],
     what: ['description'],
     notify: [],
   };
@@ -121,8 +125,12 @@
   function missingRequiredFields(
     step: StepId,
     fields: Record<OpenTicketField, FormFieldState>,
+    area: string,
   ): OpenTicketField[] {
-    return (REQUIRED_FIELDS[step] ?? []).filter((name) => fields[name].value.trim() === '');
+    const required = [...(REQUIRED_FIELDS[step] ?? [])];
+    if (step === 'problem' && area === 'sistema') required.push('projectId');
+
+    return required.filter((name) => fields[name].value.trim() === '');
   }
 
   /** A primeira etapa com campo em erro — pra onde pular quando um envio falha. */
@@ -160,6 +168,7 @@
   let { data, state: formState, actions }: AcerolaOpenTicketFormProps = $props();
 
   const fields = $derived(data.fields);
+  const systemProjects = $derived(data.systemProjects ?? []);
 
   /* As opções de tipo de problema dependem da ÁREA escolhida — Manutenção não tem "rede
      caiu" na lista, nem Infra tem "ar-condicionado". */
@@ -169,6 +178,7 @@
 
   function handleAreaChange(value: string): void {
     actions.onChange('area', value);
+    if (value !== 'sistema') actions.onChange('projectId', '');
     /* Trocar de área pode deixar o tipo escolhido fora da lista nova — o primeiro tipo da
        área nova é sempre válido, e evita mandar um tipo órfão no envio. */
     const firstOfArea = ticketProblemTypeOptionsForArea(value as TicketArea)[0];
@@ -220,7 +230,7 @@
 
     /* Trava o avanço quando falta campo obrigatório — e força o erro a aparecer (`onBlur`)
        pra pessoa ver O QUÊ falta, não só que não avançou. */
-    const missing = missingRequiredFields(stepId, fields);
+    const missing = missingRequiredFields(stepId, fields, fields.area.value);
     if (missing.length > 0) {
       missing.forEach((name) => actions.onBlur(name));
       return;
@@ -408,6 +418,44 @@
                   actions={{ onChange: (value: string) => actions.onChange('department', value) }}
                 />
               </div>
+
+              {#if fields.area.value === 'sistema'}
+                <div class="flex flex-col gap-1.5">
+                  <span class="text-ink-700 text-sm font-medium">
+                    Sistema relacionado <span class="text-destructive">*</span>
+                  </span>
+                  <OptionPicker
+                    data={{ value: fields.projectId.value, options: systemProjects }}
+                    ui={{
+                      ariaLabel: 'Sistema relacionado',
+                      placeholder: formState.systemProjectsLoading
+                        ? 'Carregando sistemas…'
+                        : 'Pesquise e selecione o sistema',
+                      fullWidth: true,
+                    }}
+                    state={{
+                      isDisabled:
+                        formState.isSubmitting ||
+                        formState.systemProjectsLoading ||
+                        systemProjects.length === 0,
+                    }}
+                    actions={{ onChange: (value: string) => actions.onChange('projectId', value) }}
+                  />
+                  {#if fields.projectId.error}
+                    <p class="text-destructive text-xs">{fields.projectId.error}</p>
+                  {:else if formState.systemProjectsError}
+                    <p class="text-destructive text-xs">{formState.systemProjectsError}</p>
+                  {:else if !formState.systemProjectsLoading && systemProjects.length === 0}
+                    <p class="text-muted-foreground text-xs">
+                      Nenhum sistema está disponível para abrir este chamado agora.
+                    </p>
+                  {:else}
+                    <p class="text-muted-foreground text-xs">
+                      O chamado será vinculado a uma Issue no repositório selecionado.
+                    </p>
+                  {/if}
+                </div>
+              {/if}
 
               <div class="flex flex-col gap-1.5">
                 <span class="text-ink-700 text-sm font-medium">Tipo de problema</span>

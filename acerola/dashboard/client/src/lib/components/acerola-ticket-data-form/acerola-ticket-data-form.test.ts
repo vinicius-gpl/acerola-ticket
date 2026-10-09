@@ -40,6 +40,7 @@ function data(over: Partial<AcerolaTicketDataFormProps['data']> = {}): AcerolaTi
       area: { value: 'infra', error: null },
       problemType: { value: 'other', error: null },
       computerId: { value: '', error: null },
+      projectId: { value: '', error: null },
     },
     machines: [{ value: '3', label: 'FISCAL-02' }],
     availableParticipantAreas: [

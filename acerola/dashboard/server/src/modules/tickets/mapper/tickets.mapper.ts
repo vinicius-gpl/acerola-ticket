@@ -20,15 +20,29 @@ import { type TicketWithComputer } from '../repository/tickets.repository';
  * O link do print entra por parâmetro, já assinado: gerar link é ida ao R2, e uma função de
  * tradução que faz chamada de rede não dá para testar sem subir nada.
  */
+function toNullableIsoString(date?: Date | null): string | null {
+  if (!date) return null;
+  return date.toISOString();
+}
+
+function resolveTicketProjectMeta(row: TicketWithComputer) {
+  return {
+    projectId: row.projectId ?? null,
+    projectName: row.projectName ?? null,
+    githubIssueNumber: row.githubIssueNumber ?? null,
+    githubIssueUrl: row.githubIssueUrl ?? null,
+  };
+}
+
 export function toTicket(
   row: TicketWithComputer,
   screenshotUrl: string | null,
   participantAreas: readonly TicketArea[] = [],
 ): Ticket {
+  const projectMeta = resolveTicketProjectMeta(row);
+
   return {
     id: row.id,
-    /* O protocolo vem pronto do servidor: se cada tela formatasse por conta própria, o
-       número do aviso sairia diferente do número da tela. */
     protocol: formatTicketProtocol(row.id),
     status: row.status,
     priority: row.priority,
@@ -44,14 +58,13 @@ export function toTicket(
     screenshotUrl,
     computerId: row.computerId,
     computerName: row.computerName,
+    ...projectMeta,
     assignee: row.assignee,
     solution: row.solution,
-    /* O contrato publica data como texto ISO; o Drizzle devolve `Date`. Converter em cada
-       tela faria cada uma inventar o próprio formato. */
     createdAt: row.createdAt.toISOString(),
-    startedAt: row.startedAt?.toISOString() ?? null,
-    resolvedAt: row.resolvedAt?.toISOString() ?? null,
-    updatedAt: row.updatedAt?.toISOString() ?? null,
+    startedAt: toNullableIsoString(row.startedAt),
+    resolvedAt: toNullableIsoString(row.resolvedAt),
+    updatedAt: toNullableIsoString(row.updatedAt),
     updatedBy: row.updatedBy,
   };
 }
@@ -107,6 +120,7 @@ export function toTicketInsert(
     notifyWhatsapp: input.notifyWhatsapp === true || input.notifyWhatsapp === 'true',
     description: input.description.trim(),
     screenshotKey,
+    projectId: input.projectId ? Number(input.projectId) : null,
   };
 }
 
@@ -135,6 +149,8 @@ export function toTicketUpdate(
   setIfDefined(update, 'problemType', input.problemType);
   /* Nulo aqui DESVINCULA a máquina — é como se desfaz um vínculo errado. */
   setIfDefined(update, 'computerId', input.computerId);
+  /* Nulo aqui DESVINCULA o projeto de software */
+  setIfDefined(update, 'projectId', input.projectId);
 
   return update;
 }

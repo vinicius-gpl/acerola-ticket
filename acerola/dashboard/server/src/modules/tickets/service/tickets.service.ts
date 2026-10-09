@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Optional,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { GithubService } from '../../software-projects/service/github.service';
+import { SoftwareProjectsService } from '../../software-projects/service/software-projects.service';
 import {
   ticketAreaLabel,
   ticketDepartmentLabel,
@@ -43,10 +50,7 @@ import { TicketHistoriesRepository } from '../repository/ticket-histories.reposi
 import { TICKET_NOT_FOUND, TicketAccessService } from './ticket-access.service';
 import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
 import { TicketHistoriesService } from './ticket-histories.service';
-import {
-  TicketsRepository,
-  type TicketWithComputer,
-} from '../repository/tickets.repository';
+import { TicketsRepository, type TicketWithComputer } from '../repository/tickets.repository';
 
 /** Sem repetir — somar a mesma área participante duas vezes não deve duplicar na resposta. */
 function dedupeAreas(areas: readonly TicketArea[]): TicketArea[] {
@@ -127,7 +131,13 @@ export class TicketsService {
     private readonly access: TicketAccessService,
     private readonly histories: TicketHistoriesService,
     private readonly historiesRepository: TicketHistoriesRepository,
+    @Optional() private readonly githubService?: GithubService,
+    @Optional() private readonly softwareProjectsService?: SoftwareProjectsService,
   ) {}
+
+  async listSystemProjectOptions(): Promise<{ id: number; name: string }[]> {
+    return (await this.softwareProjectsService?.listTicketOptions()) ?? [];
+  }
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
     assertCanRead(user.role, 'os chamados');
@@ -215,6 +225,18 @@ export class TicketsService {
     screenshot?: UploadedScreenshot,
     attachments: readonly UploadedAttachment[] = [],
   ): Promise<Ticket> {
+    if (input.area === 'sistema') {
+      const projectId = Number(input.projectId);
+      if (
+        !Number.isInteger(projectId) ||
+        !(await this.softwareProjectsService?.isTicketOption(projectId))
+      ) {
+        throw new UnprocessableEntityException(
+          'Selecione um sistema disponível para abrir o chamado.',
+        );
+      }
+    }
+
     const screenshotKey = await this.storeScreenshot(screenshot);
     const row = await this.repository.insert(toTicketInsert(input, screenshotKey));
 
@@ -230,6 +252,17 @@ export class TicketsService {
     await this.attachments.attach(row.id, attachments, null, 'requester');
 
     /* Chamado nasce sem área participante — só a original, escolhida por quem abriu. */
+    if (row.area === 'sistema' && row.projectId && this.githubService) {
+      this.githubService.syncTicketToIssueInBackground(
+        row.id,
+        row.projectId,
+        formatTicketProtocol(row.id),
+        `Chamado ${formatTicketProtocol(row.id)} - ${row.problemType}`,
+        row.description,
+        row.requesterName,
+      );
+    }
+
     return this.toFullTicket(row, []);
   }
 
@@ -282,6 +315,18 @@ export class TicketsService {
     if (changes) {
       await this.historiesRepository.record(
         toUpdateHistory(row, changes, { name: user.name, email: user.email }),
+      );
+    }
+
+    if (row.area === 'sistema' && row.projectId && !row.githubIssueNumber && this.githubService) {
+      this.githubService.syncTicketToIssueInBackground(
+        row.id,
+        row.projectId,
+        formatTicketProtocol(row.id),
+        `Chamado ${formatTicketProtocol(row.id)} - ${row.problemType}`,
+        row.description,
+        row.requesterName,
+        user.id,
       );
     }
 

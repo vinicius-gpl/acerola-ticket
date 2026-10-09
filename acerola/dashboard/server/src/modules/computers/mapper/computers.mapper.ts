@@ -31,6 +31,11 @@ export function toComputerListItem(row: ComputerWithTickets, isOnline: boolean):
   return { ...toComputer(row, isOnline), ticketsThisMonth: row.ticketsThisMonth };
 }
 
+function hostnameFromSnapshot(value: unknown): string | null {
+  const parsed = agentSnapshotSchema.safeParse(value);
+  return parsed.success ? parsed.data.host.hostname : null;
+}
+
 export function toComputer(row: ComputerRow, isOnline: boolean): Computer {
   return {
     id: row.id,
@@ -40,6 +45,7 @@ export function toComputer(row: ComputerRow, isOnline: boolean): Computer {
     department: row.department,
 
     hardware: {
+      hostname: hostnameFromSnapshot(row.lastSnapshot),
       os: row.os,
       platform: row.platform,
       platformVersion: row.platformVersion,
@@ -143,6 +149,7 @@ export function toSnapshotUpdate(
   });
 
   return {
+    name: host.hostname.trim() || undefined,
     ...hardwareOf(host),
     lastSnapshot: snapshot,
     healthScore: health.score,

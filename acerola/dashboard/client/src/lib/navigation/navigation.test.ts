@@ -212,14 +212,14 @@ describe('os menus dos módulos', () => {
   });
 
   /* Cada painel é do módulo dele, com endereço próprio: o de Infraestrutura resume máquinas,
-     o da Manutenção resume depósito e orçamentos. Sistema ainda não tem painel. */
+     o da Manutenção resume depósito e orçamentos, o de Sistema resume projetos e sprints. */
   it('gives a panel of its own to each module that has one', () => {
     const panelOf = (context: RoleContext) =>
       NAV_ITEMS_BY_CONTEXT[context].find((entry) => entry.feature === 'dashboard')?.to;
 
     expect(panelOf('infra')).toBe('/infra/dashboard');
     expect(panelOf('manutencao')).toBe('/maintenance/dashboard');
-    expect(panelOf('sistema')).toBeUndefined();
+    expect(panelOf('sistema')).toBe('/system/dashboard');
   });
 
   /* O que a Manutenção pediu: painel, depósito, descarte e orçamentos, além do inventário. */
@@ -234,9 +234,15 @@ describe('os menus dos módulos', () => {
     ]);
   });
 
-  /* Infraestrutura é o módulo com o sistema inteiro; Sistema é só chamado, por enquanto. */
+  /* Infraestrutura é o módulo com o sistema inteiro; Sistema tem 5 telas focadas em software e chamados. */
   it('gives the leaner module a shorter menu', () => {
-    expect(SYSTEM_NAV_ITEMS.map((entry) => entry.feature)).toEqual(['tickets']);
+    expect(SYSTEM_NAV_ITEMS.map((entry) => entry.feature)).toEqual([
+      'dashboard',
+      'tickets',
+      'kanban',
+      'schedule',
+      'projects',
+    ]);
     expect(INFRA_NAV_ITEMS.length).toBeGreaterThan(SYSTEM_NAV_ITEMS.length);
   });
 

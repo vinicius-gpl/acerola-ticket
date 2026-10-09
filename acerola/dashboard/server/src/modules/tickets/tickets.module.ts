@@ -14,11 +14,14 @@ import { TicketAttachmentsService } from './service/ticket-attachments.service';
 import { TicketHistoriesService } from './service/ticket-histories.service';
 import { TicketsService } from './service/tickets.service';
 
+import { SoftwareProjectsModule } from '../software-projects/software-projects.module';
+
 /**
  * O índice da pasta: é o único arquivo fora das subpastas, e aponta para todo o resto.
  * Módulo novo precisa ser registrado em `app.module.ts`.
  */
 @Module({
+  imports: [SoftwareProjectsModule],
   controllers: [
     TicketServiceOrdersController,
     TicketsController,

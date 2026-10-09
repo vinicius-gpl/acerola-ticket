@@ -6,6 +6,7 @@ import {
   userRoleSchema,
   type ContextRoles,
   type SessionUser,
+  type UserRole,
 } from '@template/shared/schemas/user.schema';
 import { eq, or } from 'drizzle-orm';
 
@@ -49,28 +50,47 @@ export class IdentityProvider {
     const claims = await this.verifyToken(token);
     if (!claims) return null;
 
-    const row = await runMaybe(
-      this.db.select().from(neonAuthUsers).where(eq(neonAuthUsers.id, claims.userId)).limit(1),
-      'ler a pessoa no cadastro do Neon Auth',
-    );
-    if (!row) return null;
-    if (isBanned(row)) return null;
+    const row = await this.findUserRow(claims.userId, claims.email);
+    if (!row || isBanned(row)) return null;
 
     const email = row.email || claims.email;
+    const roleRows = await this.fetchInternalRoles(claims.userId, row.id, email);
 
-    const conditions = [eq(internalRoles.userId, claims.userId)];
+    return toSessionUser(row, email, roleRows);
+  }
+
+  private async findUserRow(
+    userId: string,
+    email?: string | null,
+  ): Promise<NeonAuthUserRow | null> {
+    const row = await runMaybe(
+      this.db.select().from(neonAuthUsers).where(eq(neonAuthUsers.id, userId)).limit(1),
+      'ler a pessoa no cadastro do Neon Auth',
+    );
+    if (row || !email) return row;
+
+    return runMaybe(
+      this.db.select().from(neonAuthUsers).where(eq(neonAuthUsers.email, email)).limit(1),
+      'ler a pessoa no cadastro do Neon Auth por e-mail',
+    );
+  }
+
+  private async fetchInternalRoles(
+    claimsUserId: string,
+    rowId: string,
+    email: string | null,
+  ): Promise<InternalRoleRow[]> {
+    const conditions = [eq(internalRoles.userId, claimsUserId), eq(internalRoles.userId, rowId)];
     if (email) {
       conditions.push(eq(internalRoles.userEmail, email));
       conditions.push(eq(internalRoles.userId, email));
     }
     const whereClause = conditions.length === 1 ? conditions[0] : or(...conditions);
 
-    const roleRows = await runQuery(
+    return runQuery(
       this.db.select().from(internalRoles).where(whereClause),
       'consultar cargos internos da pessoa',
     );
-
-    return toSessionUser(row, email, roleRows);
   }
 }
 
@@ -128,12 +148,23 @@ function resolveContextRoles(
   return contextRoles;
 }
 
+function resolveSafeName(name: string | null | undefined, email: string | null): string {
+  const trimmed = name?.trim();
+  if (trimmed) return trimmed;
+  if (email) {
+    const handle = email.split('@')[0];
+    if (handle) return handle.trim();
+  }
+  return 'Usuário';
+}
+
+function resolvePrimaryRole(isSuper: boolean, contextRoles: ContextRoles): UserRole {
+  if (isSuper) return 'superadmin';
+  return contextRoles.sistema ?? DEFAULT_USER_ROLE;
+}
+
 /**
  * A linha do cadastro combinada com os cargos internos vira identidade completa.
- *
- * Se não houver registro na tabela de cargos internos:
- *  1. Verifica se a conta já possuía papel legado em `neon_auth.user` (migração suave);
- *  2. Caso contrário, cai em `user` (mais restrito) para todos os contextos.
  */
 function toSessionUser(
   row: NeonAuthUserRow,
@@ -143,12 +174,13 @@ function toSessionUser(
   const parsedNeonRole = userRoleSchema.safeParse(row.role);
   const isSuper = parsedNeonRole.success && parsedNeonRole.data === 'superadmin';
   const contextRoles = resolveContextRoles(row, roleRows, isSuper, parsedNeonRole);
-  const primaryRole = isSuper ? 'superadmin' : (contextRoles.sistema ?? DEFAULT_USER_ROLE);
+  const primaryRole = resolvePrimaryRole(isSuper, contextRoles);
+  const safeName = resolveSafeName(row.name, email);
 
   const parsed = sessionUserSchema.safeParse({
     id: row.id,
     email,
-    name: row.name,
+    name: safeName,
     image: row.image,
     role: primaryRole,
     roles: contextRoles,

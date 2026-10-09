@@ -122,7 +122,17 @@ describe('toComputer', () => {
     const computer = toComputer(computerRow(), false);
 
     expect(computer.hardware.cpuModel).toBeNull();
+    expect(computer.hardware.hostname).toBeNull();
     expect(computer.hardware.totalMemoryBytes).toBeNull();
+  });
+
+  it('publishes the latest hostname from the agent snapshot', () => {
+    const computer = toComputer(
+      computerRow({ lastSnapshot: snapshot({ hostname: 'RECEPCAO-RENOMEADA' }) }),
+      false,
+    );
+
+    expect(computer.hardware.hostname).toBe('RECEPCAO-RENOMEADA');
   });
 
   // triste
@@ -224,9 +234,11 @@ describe('toSnapshotUpdate', () => {
   });
 
   // triste
-  /* O nome é a chave de encontro: alterá-lo por um envio faria a máquina trocar de ficha. */
-  it('never changes the machine name from a reading', () => {
-    expect(toSnapshotUpdate(snapshot(), '1.0.0', NOW)).not.toHaveProperty('name');
+  /* O token mantém a identidade; o nome acompanha o hostname informado pelo agente. */
+  it('updates the technical name from the reported hostname', () => {
+    expect(toSnapshotUpdate(snapshot({ hostname: 'RECEPCAO-NOVA' }), '1.0.0', NOW).name).toBe(
+      'RECEPCAO-NOVA',
+    );
   });
 
   it('never changes the identification the IT team typed', () => {

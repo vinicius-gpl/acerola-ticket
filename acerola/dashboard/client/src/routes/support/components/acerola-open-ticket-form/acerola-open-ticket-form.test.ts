@@ -17,6 +17,7 @@ const fields: Record<OpenTicketField, FormFieldState> = {
   priority: field('medium'),
   contactPhone: field('62 99999-9999'),
   description: field('A impressora não puxa papel.'),
+  projectId: field(''),
 };
 
 const actions = {
@@ -77,7 +78,15 @@ describe('AcerolaOpenTicketForm', () => {
      pingando seria confundir, não ajudar (#13). */
   it('hides the AnyDesk field outside the infra area', async () => {
     const user = userEvent.setup();
-    setup({ data: { fields: { ...fields, area: field('manutencao') }, notifyWhatsapp: false, screenshotName: null, attachments: [], opened: null } });
+    setup({
+      data: {
+        fields: { ...fields, area: field('manutencao') },
+        notifyWhatsapp: false,
+        screenshotName: null,
+        attachments: [],
+        opened: null,
+      },
+    });
 
     await advanceTo(user, 2);
 
@@ -91,6 +100,31 @@ describe('AcerolaOpenTicketForm', () => {
     await advanceTo(user, 2);
 
     expect(screen.getByPlaceholderText(/123 456 789/i)).toBeInTheDocument();
+  });
+
+  it('offers searchable systems for a system ticket', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    setup({
+      data: {
+        fields: { ...fields, area: field('sistema') },
+        notifyWhatsapp: false,
+        screenshotName: null,
+        attachments: [],
+        opened: null,
+        systemProjects: ['admin-console', 'paralegal', 'api-publica', 'gestao-rh'].map(
+          (name, index) => ({ value: String(index + 1), label: name }),
+        ),
+      },
+      actions: { ...actions, onChange },
+    });
+
+    await advanceTo(user, 2);
+    await user.click(screen.getByRole('button', { name: 'Sistema relacionado' }));
+    await user.type(screen.getByPlaceholderText('Buscar…'), 'paralegal');
+    await user.click(screen.getByText('paralegal'));
+
+    expect(onChange).toHaveBeenCalledWith('projectId', '2');
   });
 
   it('moves forward and back between steps without losing what was typed elsewhere', async () => {
@@ -309,7 +343,13 @@ describe('AcerolaOpenTicketForm', () => {
     const user = userEvent.setup();
     const onBlur = vi.fn();
     setup({
-      data: { fields: { ...fields, area: field('', 'Escolha a área do chamado') }, notifyWhatsapp: false, screenshotName: null, attachments: [], opened: null },
+      data: {
+        fields: { ...fields, area: field('', 'Escolha a área do chamado') },
+        notifyWhatsapp: false,
+        screenshotName: null,
+        attachments: [],
+        opened: null,
+      },
       actions: { ...actions, onBlur },
     });
 

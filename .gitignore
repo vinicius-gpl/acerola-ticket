@@ -17,6 +17,7 @@ test-results/
 .eslintcache
 *.tsbuildinfo
 *.log
+.tmp/
 
 .env
 .env.*

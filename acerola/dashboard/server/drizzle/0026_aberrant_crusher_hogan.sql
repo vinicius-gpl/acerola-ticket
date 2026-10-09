@@ -1,0 +1,1 @@
+ALTER TABLE "software_timeline_events" ADD COLUMN "author_name" text;

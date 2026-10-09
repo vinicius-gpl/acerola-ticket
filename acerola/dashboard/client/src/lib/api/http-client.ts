@@ -24,6 +24,7 @@ export class ApiError extends Error {
 }
 
 export type RequestOptions = {
+  credentials?: RequestCredentials;
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
@@ -45,6 +46,7 @@ export async function apiRequest<TResponse>(
   options: RequestOptions = {},
 ): Promise<TResponse> {
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
+    credentials: options.credentials,
     method: options.method ?? 'GET',
     signal: options.signal,
     headers: await buildHeaders(options),
@@ -63,10 +65,7 @@ export type Downloaded = { blob: Blob; fileName: string };
  * Baixa um relatório. Existe separado de `apiRequest` porque a resposta é o ARQUIVO, não
  * JSON — chamar `.json()` nela quebraria antes mesmo de a pessoa ver o motivo.
  */
-export async function apiDownload(
-  path: string,
-  options: RequestOptions = {},
-): Promise<Downloaded> {
+export async function apiDownload(path: string, options: RequestOptions = {}): Promise<Downloaded> {
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
     method: options.method ?? 'GET',
     signal: options.signal,

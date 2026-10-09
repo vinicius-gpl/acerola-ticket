@@ -36,6 +36,9 @@
        * de todo campo (`control-lg`), a mesma do `TextField`, do `SelectField` e do
        * `DatePicker`. */
       fullWidth?: boolean;
+      /** Mantém a busca disponível mesmo com poucas opções. */
+      mode?: 'auto' | 'combobox';
+      searchPlaceholder?: string;
     };
     state?: { isDisabled?: boolean };
     actions: { onChange: (value: string) => void };
@@ -106,16 +109,32 @@
       tone: { neutral: '', info: '', success: '', warning: '', danger: '', brand: '' },
     },
     compoundVariants: [
-      { isSelected: true, tone: 'neutral', class: 'border-foreground bg-foreground text-background' },
+      {
+        isSelected: true,
+        tone: 'neutral',
+        class: 'border-foreground bg-foreground text-background',
+      },
       { isSelected: true, tone: 'info', class: 'border-info bg-info text-primary-foreground' },
-      { isSelected: true, tone: 'success', class: 'border-success bg-success text-primary-foreground' },
-      { isSelected: true, tone: 'warning', class: 'border-warning bg-warning text-primary-foreground' },
+      {
+        isSelected: true,
+        tone: 'success',
+        class: 'border-success bg-success text-primary-foreground',
+      },
+      {
+        isSelected: true,
+        tone: 'warning',
+        class: 'border-warning bg-warning text-primary-foreground',
+      },
       {
         isSelected: true,
         tone: 'danger',
         class: 'border-destructive bg-destructive text-destructive-foreground',
       },
-      { isSelected: true, tone: 'brand', class: 'border-primary bg-primary text-primary-foreground' },
+      {
+        isSelected: true,
+        tone: 'brand',
+        class: 'border-primary bg-primary text-primary-foreground',
+      },
     ],
     defaultVariants: { layout: 'filter', isSelected: false, tone: 'neutral' },
   });
@@ -143,7 +162,10 @@
     return count === 2 ? 2 : 3;
   }
 
-  function resolveOptions(data: AcerolaOptionPickerProps['data'], allLabel: string | undefined): OptionPickerOption[] {
+  function resolveOptions(
+    data: AcerolaOptionPickerProps['data'],
+    allLabel: string | undefined,
+  ): OptionPickerOption[] {
     return allLabel ? [{ value: '', label: allLabel }, ...data.options] : data.options;
   }
 </script>
@@ -163,7 +185,9 @@
 
   const options = $derived(resolveOptions(data, ui?.allLabel));
   const layout = $derived(ui?.fullWidth ? 'form' : 'filter');
-  const isPillMode = $derived(options.length <= PILL_MAX_OPTIONS[layout]);
+  const isPillMode = $derived(
+    ui?.mode !== 'combobox' && options.length <= PILL_MAX_OPTIONS[layout],
+  );
   const gridColumns = $derived(resolveGridColumns(options.length));
   const selectedOption = $derived(options.find((option) => option.value === data.value) ?? null);
 
@@ -250,7 +274,8 @@
         <input
           type="text"
           bind:value={query}
-          placeholder="Buscar…"
+          placeholder={ui?.searchPlaceholder ?? 'Buscar…'}
+          aria-label={ui?.searchPlaceholder ?? 'Buscar opções'}
           class={cn(
             /* A busca do balão é um controle como os outros: degrau `sm` da régua. */
             'control-sm rounded-control',
@@ -270,7 +295,9 @@
             class={cn(
               /* Item de lista dentro de um balão é MIUDEZA, não controle: raio `chip`. */
               'flex w-full cursor-pointer items-center gap-2 rounded-chip px-2.5 py-1.5 text-left text-xs transition-colors',
-              isSelected ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted/60',
+              isSelected
+                ? 'bg-primary/10 font-semibold text-primary'
+                : 'text-foreground hover:bg-muted/60',
             )}
           >
             {#if option.icon}

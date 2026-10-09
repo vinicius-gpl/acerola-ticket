@@ -35,6 +35,15 @@ function renderShell(props: Omit<AcerolaAppShellProps, 'children'>): ReturnType<
 }
 
 describe('AcerolaAppShell', () => {
+  it('renders with the server-provided sidebar state on the first render', () => {
+    renderShell({ initialSidebarOpen: false });
+
+    expect(document.querySelector('[data-slot="sidebar"]')).toHaveAttribute(
+      'data-state',
+      'collapsed',
+    );
+  });
+
   // feliz
   it('draws the content and the menu items', () => {
     renderShell({ ui: { items } });
@@ -57,9 +66,8 @@ describe('AcerolaAppShell', () => {
     expect(screen.getByText('Administrador')).toBeInTheDocument();
   });
 
-  /* O contexto fica À VISTA, em pastilhas no cabeçalho: a pessoa vê em qual área está e troca
-     com um clique, sem abrir lista nenhuma. */
-  it('shows the area contexts as pills and asks to switch on a click', async () => {
+  /* Os módulos ficam no cabeçalho da sidebar e permanecem acessíveis com um clique. */
+  it('shows the module switcher in the sidebar and asks to switch on a click', async () => {
     const onAreaContextChange = vi.fn();
     renderShell({
       data: {
@@ -73,7 +81,7 @@ describe('AcerolaAppShell', () => {
       actions: { onAreaContextChange },
     });
 
-    const group = screen.getByRole('group', { name: 'Área que você está vendo' });
+    const group = screen.getByRole('group', { name: 'Módulos' });
     expect(within(group).getAllByRole('button')).toHaveLength(3);
 
     await userEvent.click(within(group).getByRole('button', { name: 'Manutenção' }));
@@ -94,7 +102,7 @@ describe('AcerolaAppShell', () => {
       state: { areaContext: 'manutencao' },
     });
 
-    const group = screen.getByRole('group', { name: 'Área que você está vendo' });
+    const group = screen.getByRole('group', { name: 'Módulos' });
 
     expect(
       within(group).getByRole('button', { name: 'Manutenção' }).querySelector('svg'),
@@ -104,15 +112,14 @@ describe('AcerolaAppShell', () => {
     ).not.toBeNull();
     /* Opção sem ícone continua valendo: só o texto. */
     expect(within(group).getByRole('button', { name: 'Sistema' }).querySelector('svg')).toBeNull();
-    /* A lista suspensa das telas estreitas mostra o ícone da área atual também. */
-    expect(
-      screen.getByRole('combobox', { name: 'Área que você está vendo' }).querySelector('svg'),
-    ).not.toBeNull();
+    expect(within(group).getByRole('button', { name: 'Sistema' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 
-  /* No tablet e no celular as pastilhas não cabem: o mesmo contexto vira uma lista suspensa,
-     que mostra a área atual. Os dois desenhos existem na tela; o CSS mostra um por largura. */
-  it('offers the same context as a compact list for narrow screens', () => {
+  /* O seletor de módulos é sempre só ícones; o nome aparece no tooltip, aberto ou recolhido. */
+  it('keeps the modules horizontal when expanded and vertical when collapsed with accessible names', () => {
     renderShell({
       data: {
         areaOptions: [
@@ -123,13 +130,10 @@ describe('AcerolaAppShell', () => {
       state: { areaContext: 'infra' },
     });
 
-    const list = screen.getByRole('combobox', { name: 'Área que você está vendo' });
-
-    expect(list).toHaveTextContent('Infraestrutura');
-    expect(list.className).toContain('lg:hidden');
-    expect(screen.getByRole('group', { name: 'Área que você está vendo' }).className).toContain(
-      'hidden',
-    );
+    const group = screen.getByRole('group', { name: 'Módulos' });
+    expect(group).toHaveClass('flex-row', 'group-data-[collapsible=icon]:flex-col');
+    expect(within(group).getByRole('button', { name: 'Infraestrutura' })).toBeInTheDocument();
+    expect(within(group).queryByText('Infraestrutura')).not.toBeInTheDocument();
   });
 
   // triste
@@ -137,9 +141,7 @@ describe('AcerolaAppShell', () => {
   it('draws no context selector when there is nothing to choose', () => {
     renderShell({ data: { areaOptions: [] } });
 
-    expect(
-      screen.queryByRole('group', { name: 'Área que você está vendo' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Módulos' })).not.toBeInTheDocument();
   });
 
   /* Zero não vira selo: um "0" ao lado de cada item seria ruído. */

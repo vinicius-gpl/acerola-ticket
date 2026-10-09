@@ -11,6 +11,17 @@ import { z } from 'zod';
  * na primeira gravação.
  */
 export const envSchema = z.object({
+  GITHUB_APP_ID: z.string().regex(/^\d+$/).optional(),
+  GITHUB_APP_INSTALLATION_ID: z.string().regex(/^\d+$/).optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
+  GITHUB_OAUTH_CLIENT_ID: z.string().trim().min(1).optional(),
+  GITHUB_OAUTH_CLIENT_SECRET: z.string().trim().min(1).optional(),
+  GITHUB_OAUTH_REDIRECT_URI: z.string().url().optional(),
+  GITHUB_OAUTH_FRONTEND_URL: z.string().url().optional(),
+  GITHUB_OAUTH_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[a-fA-F0-9]{64}$/)
+    .optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3005),
@@ -100,7 +111,11 @@ export const envSchema = z.object({
    * Opcional porque o resto do sistema sobe sem ela: quem não usa UniFi registra as quedas
    * à mão, pela própria tela.
    */
-  UNIFI_WEBHOOK_TOKEN: z.string().trim().min(16, 'O segredo do webhook precisa ser longo').optional(),
+  UNIFI_WEBHOOK_TOKEN: z
+    .string()
+    .trim()
+    .min(16, 'O segredo do webhook precisa ser longo')
+    .optional(),
 
   /**
    * O endereço do Neon Auth — quem faz o login das pessoas.

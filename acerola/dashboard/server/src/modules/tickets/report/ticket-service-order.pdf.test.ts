@@ -19,6 +19,9 @@ const ticket: TicketWithComputer = {
   area: 'infra',
   department: 'financeiro',
   computerId: 11,
+  projectId: null,
+  githubIssueNumber: null,
+  githubIssueUrl: null,
   computerName: 'RECEPCAO-01',
   problemType: 'printer',
   anydeskId: null,
@@ -145,7 +148,7 @@ describe('buildServiceOrderPdf', () => {
   it('still builds the document for a ticket with no history and no solution', async () => {
     const buffer = await buildServiceOrderPdf(
       {
-        ticket: { ...ticket, solution: null, computerName: null, assignee: null },
+        ticket: { ...ticket, solution: null, projectId: null, githubIssueNumber: null, githubIssueUrl: null, computerName: null, assignee: null },
         protocol: 'CH-0007',
         histories: [],
       },

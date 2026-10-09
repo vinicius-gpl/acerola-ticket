@@ -10,17 +10,19 @@ import { writable } from 'svelte/store';
 
 import { computersApi } from '$lib/api/computers.api';
 import { readError } from '$lib/api/http-client';
+import { softwareProjectsApi } from '$lib/api/software-projects.api';
 import { ticketsApi } from '$lib/api/tickets.api';
 import { COMPUTERS_QUERY_KEY } from '$lib/hooks/use-computer-list/use-computer-list.svelte';
 import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
+import { SOFTWARE_PROJECTS_QUERY_KEY } from '$lib/hooks/use-software-project-list/use-software-project-list.svelte';
 import { TICKETS_QUERY_KEY } from '$lib/hooks/use-ticket-list/use-ticket-list.svelte';
 import { type FormFieldState } from '$lib/types/form-field.type';
 
 /** Uma página grande o bastante para caber o parque inteiro num campo de escolha. */
 const MACHINE_OPTIONS_PAGE_SIZE = 200;
 
-export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId';
+export type TicketDataField = 'priority' | 'area' | 'problemType' | 'computerId' | 'projectId';
 
 export type TicketDataFormModel = {
   data: {
@@ -28,6 +30,8 @@ export type TicketDataFormModel = {
     fields: Record<TicketDataField, FormFieldState>;
     /** As máquinas do inventário, para vincular o chamado a uma delas. */
     machines: { value: string; label: string }[];
+    /** Os sistemas/projetos para vincular o chamado a um deles. */
+    projects: { value: string; label: string }[];
     /** As áreas que ainda PODEM entrar como participante — todas, menos as que já estão. */
     availableParticipantAreas: { value: TicketArea; label: string }[];
   };
@@ -75,11 +79,21 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
     ),
   );
 
+  const projects = mirrorStore(
+    createQuery(
+      writable({
+        queryKey: [...SOFTWARE_PROJECTS_QUERY_KEY, 'options'],
+        queryFn: () => softwareProjectsApi.list({ page: 1, pageSize: 200 }),
+      }),
+    ),
+  );
+
   let isSaved = $state(false);
 
   const save = mirrorStore(
     createMutation({
-      mutationFn: (values: TicketDataFormValues) => ticketsApi.update(ticket.id, toUpdateInput(values)),
+      mutationFn: (values: TicketDataFormValues) =>
+        ticketsApi.update(ticket.id, toUpdateInput(values)),
       onSuccess: async () => {
         isSaved = true;
         await queryClient.invalidateQueries({ queryKey: TICKETS_QUERY_KEY });
@@ -152,8 +166,10 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
           area: fieldOf('area'),
           problemType: fieldOf('problemType'),
           computerId: fieldOf('computerId'),
+          projectId: fieldOf('projectId'),
         },
         machines: toMachineOptions(machines.current.data?.items ?? []),
+        projects: toProjectOptions(projects.current.data?.items ?? []),
         availableParticipantAreas: toAvailableParticipantAreas(currentTicket),
       };
     },
@@ -203,6 +219,8 @@ export function toFormValues(ticket: Ticket): TicketDataFormValues {
     problemType: ticket.problemType,
     /* Vazio é "nenhuma máquina": no formulário tudo é texto, e é o view-model que traduz. */
     computerId: ticket.computerId === null ? '' : String(ticket.computerId),
+    projectId:
+      ticket.projectId !== null && ticket.projectId !== undefined ? String(ticket.projectId) : '',
   };
 }
 
@@ -218,6 +236,9 @@ export function toUpdateInput(values: TicketDataFormValues) {
     area: values.area,
     problemType: values.problemType,
     computerId: values.computerId === '' ? null : Number(values.computerId),
+    ...(values.projectId !== undefined
+      ? { projectId: values.projectId === '' ? null : Number(values.projectId) }
+      : {}),
   };
 }
 
@@ -227,6 +248,16 @@ export function toMachineOptions(
 ) {
   return computers.map((computer) => ({
     value: String(computer.id),
-    label: computer.displayName?.trim() ? `${computer.displayName} (${computer.name})` : computer.name,
+    label: computer.displayName?.trim()
+      ? `${computer.displayName} (${computer.name})`
+      : computer.name,
+  }));
+}
+
+/** Os projetos cadastrados, no formato do campo de escolha. */
+export function toProjectOptions(projects: readonly { id: number; name: string }[]) {
+  return projects.map((project) => ({
+    value: String(project.id),
+    label: project.name,
   }));
 }

@@ -12,6 +12,7 @@ import { LoggingModule } from './lib/logging/logging.module';
 import { SecurityModule } from './lib/security/security.module';
 import { StorageModule } from './lib/storage/storage.module';
 import { AuthApiModule } from './modules/auth/auth.module';
+import { GithubIntegrationModule } from './modules/github-integration/github-integration.module';
 import { BudgetModule } from './modules/budget/budget.module';
 import { ComputersModule } from './modules/computers/computers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -24,6 +25,7 @@ import { MaintenanceDashboardModule } from './modules/maintenance-dashboard/main
 import { MaintenanceQuotesModule } from './modules/maintenance-quotes/maintenance-quotes.module';
 import { PartsModule } from './modules/parts/parts.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { SoftwareProjectsModule } from './modules/software-projects/software-projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
@@ -64,6 +66,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     SecurityModule,
     AuthModule,
     AuthApiModule,
+    GithubIntegrationModule,
     HealthModule,
     TasksModule,
     TicketsModule,
@@ -79,6 +82,7 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     BudgetModule,
     TransfersModule,
     RolesModule,
+    SoftwareProjectsModule,
   ],
   providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
 })

@@ -27,6 +27,26 @@ describe('createTicketSchema', () => {
     expect(parsed.department).toBe('financeiro');
   });
 
+  it('requires and converts the selected system for a system ticket', () => {
+    const parsed = createTicketSchema.parse({
+      ...validInput,
+      area: 'sistema',
+      problemType: 'bug',
+      projectId: '3',
+    });
+    expect(parsed.projectId).toBe(3);
+  });
+
+  it('refuses a system ticket without a selected repository', () => {
+    const result = createTicketSchema.safeParse({
+      ...validInput,
+      area: 'sistema',
+      problemType: 'bug',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((issue) => issue.path.includes('projectId'))).toBe(true);
+  });
+
   it('opens with medium urgency when nobody chose one', () => {
     expect(createTicketSchema.parse(validInput).priority).toBe('medium');
   });
@@ -130,7 +150,9 @@ describe('createTicketSchema', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe('Escolha um tipo de problema da área selecionada');
+    expect(result.error?.issues[0]?.message).toBe(
+      'Escolha um tipo de problema da área selecionada',
+    );
     expect(result.error?.issues[0]?.path).toEqual(['problemType']);
   });
 
@@ -189,7 +211,9 @@ describe('ticketFormSchema', () => {
       notifyWhatsapp: false,
     });
 
-    expect(result.error?.issues[0]?.message).toBe('Escolha um tipo de problema da área selecionada');
+    expect(result.error?.issues[0]?.message).toBe(
+      'Escolha um tipo de problema da área selecionada',
+    );
   });
 });
 
@@ -265,7 +289,12 @@ describe('publicTicketSchema', () => {
       ...stored,
       attachments: [
         file({ id: 1, origin: 'requester' }),
-        file({ id: 2, origin: 'support', fileName: 'laudo-do-ti.pdf', createdBy: 'ti@azuos.local' }),
+        file({
+          id: 2,
+          origin: 'support',
+          fileName: 'laudo-do-ti.pdf',
+          createdBy: 'ti@azuos.local',
+        }),
       ],
     });
 

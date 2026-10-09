@@ -72,6 +72,21 @@ function checkProblemTypeMatchesArea(
   });
 }
 
+function checkSystemProjectSelected(
+  value: { area: string; projectId?: string | number | null },
+  ctx: z.RefinementCtx,
+): void {
+  if (value.area !== 'sistema') return;
+  if (typeof value.projectId === 'number' && value.projectId > 0) return;
+  if (typeof value.projectId === 'string' && value.projectId.trim() !== '') return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: 'Selecione o sistema relacionado ao chamado',
+    path: ['projectId'],
+  });
+}
+
 const requesterNameSchema = z
   .string({ required_error: 'Informe seu nome' })
   .trim()
@@ -128,6 +143,12 @@ export const ticketSchema = z.object({
    */
   computerId: z.number().int().nullable(),
   computerName: z.string().nullable(),
+
+  /** O sistema/projeto vinculado ao chamado (quando aplicável, ex: área de Sistema). */
+  projectId: z.number().int().nullable().optional(),
+  projectName: z.string().nullable().optional(),
+  githubIssueNumber: z.number().int().nullable().optional(),
+  githubIssueUrl: z.string().nullable().optional(),
 
   assignee: z.string().nullable(),
   solution: z.string().nullable(),
@@ -208,8 +229,17 @@ export const createTicketSchema = z
       .preprocess((value) => value === true || value === 'true', z.boolean())
       .default(false),
     description: descriptionSchema,
+    projectId: z
+      .preprocess(
+        (value) => (value === '' ? null : value),
+        z.coerce.number().int().positive().nullable(),
+      )
+      .optional(),
   })
-  .superRefine(checkProblemTypeMatchesArea);
+  .superRefine((value, ctx) => {
+    checkProblemTypeMatchesArea(value, ctx);
+    checkSystemProjectSelected(value, ctx);
+  });
 
 export type CreateTicketInput = z.input<typeof createTicketSchema>;
 
@@ -231,8 +261,12 @@ export const ticketFormSchema = z
     contactPhone: contactPhoneSchema,
     notifyWhatsapp: z.boolean(),
     description: descriptionSchema,
+    projectId: z.string().default(''),
   })
-  .superRefine(checkProblemTypeMatchesArea);
+  .superRefine((value, ctx) => {
+    checkProblemTypeMatchesArea(value, ctx);
+    checkSystemProjectSelected(value, ctx);
+  });
 
 export type TicketFormValues = z.input<typeof ticketFormSchema>;
 
@@ -265,6 +299,8 @@ export const updateTicketSchema = z.object({
   problemType: ticketProblemTypeSchema.optional(),
   /** A máquina do chamado. Nulo DESVINCULA — é como se corrige um vínculo errado. */
   computerId: z.number().int().positive().nullable().optional(),
+  /** O sistema do chamado. Nulo DESVINCULA. */
+  projectId: z.number().int().positive().nullable().optional(),
   /* O RESPONSÁVEL não entra aqui: ele não se troca à mão. Quem assume o chamado vira
      responsável ao lançar o primeiro histórico (`toTicketMove`). Um `assignee` no corpo é
      ignorado, como `status` e `solution`. */
@@ -289,6 +325,8 @@ export const ticketDataFormSchema = z
      * Quem traduz para número (ou nulo) é o view-model, na hora de enviar.
      */
     computerId: z.string(),
+    /** O sistema de software selecionado no select. */
+    projectId: z.string().optional(),
   })
   .superRefine(checkProblemTypeMatchesArea);
 
@@ -308,6 +346,8 @@ export const ticketListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
   /** Os chamados DESTA máquina — é a consulta da ficha do computador. */
   computerId: z.coerce.number().int().positive().optional(),
+  /** Os chamados DESTE sistema de software. */
+  projectId: z.coerce.number().int().positive().optional(),
   status: ticketStatusSchema.optional(),
   /**
    * Um GRUPO de estágios de uma vez — "aguardando" (os dois) ou "resolvidos" (com e sem

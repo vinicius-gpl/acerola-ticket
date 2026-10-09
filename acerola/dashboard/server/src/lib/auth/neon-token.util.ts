@@ -29,18 +29,19 @@ export type NeonTokenVerifier = (token: string) => Promise<NeonTokenClaims | nul
  * cada clique da pessoa.
  */
 export function createNeonTokenVerifier(authUrl: string): NeonTokenVerifier {
-  const jwks = createRemoteJWKSet(new URL(`${trimSlash(authUrl)}/.well-known/jwks.json`));
-  const issuer = new URL(authUrl).origin;
+  const normalizedUrl = trimSlash(authUrl);
+  const jwks = createRemoteJWKSet(new URL(`${normalizedUrl}/.well-known/jwks.json`));
+  const issuerOrigin = new URL(authUrl).origin;
+  const issuers = Array.from(new Set([issuerOrigin, normalizedUrl, `${normalizedUrl}/`]));
 
   return async (token: string): Promise<NeonTokenClaims | null> => {
     try {
-      const { payload } = await jwtVerify(token, jwks, { issuer });
+      const { payload } = await jwtVerify(token, jwks, { issuer: issuers });
 
       return toClaims(payload);
     } catch {
       /* Token vencido, assinatura errada, emissor errado, texto que nem é token: tudo isso é
-         a mesma resposta para quem chamou — "não sei quem é você". Distinguir os motivos na
-         resposta contaria a quem está tentando adivinhar o que faltou acertar. */
+         a mesma resposta para quem chamou — "não sei quem é você". */
       return null;
     }
   };

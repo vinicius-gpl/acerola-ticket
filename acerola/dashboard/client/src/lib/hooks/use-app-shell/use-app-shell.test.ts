@@ -75,7 +75,9 @@ describe('useAppShellModel contexts', () => {
 
     openScreen('/system/tickets');
     const system = mountModel({}, { context: 'sistema', items: SYSTEM_NAV_ITEMS });
-    expect(system.ui.items.map((item) => item.key)).toEqual(['system/tickets']);
+    expect(system.ui.items.map((item) => item.key)).toEqual(
+      SYSTEM_NAV_ITEMS.map((item) => item.key),
+    );
     expect(system.state.areaContext).toBe('sistema');
     expect(system.state.activeKey).toBe('system/tickets');
   });
@@ -114,14 +116,14 @@ describe('useAppShellModel contexts', () => {
   });
 
   /* O perfil não é de módulo nenhum, e não existe "trocar só o menu": a casca de cada módulo
-     é a pasta dele. Escolher um contexto ali é entrar nele, pela primeira tela. */
+     é a pasta dele. Escolher um contexto ali é entrar nele, pela primeira tela (o Painel do módulo). */
   it('takes the person into the chosen context from a screen without a module', async () => {
     openScreen('/profile');
     const model = mountModel();
 
     model.actions.onAreaContextChange('sistema');
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/system/tickets'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/system/dashboard'));
   });
 
   /* Sem cargo em área nenhuma, o seletor não aparece — não há o que escolher. */
