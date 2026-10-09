@@ -38,6 +38,15 @@ export async function buildDocxReport<TRow>(request: ReportRequest<TRow>): Promi
   const fieldColumns = request.columns.filter((column) => !column.isTitle);
 
   const document = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: 'Arial Narrow',
+          },
+        },
+      },
+    },
     sections: [
       {
         children: [

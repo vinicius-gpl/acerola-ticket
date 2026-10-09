@@ -19,7 +19,7 @@ const CLIENT_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, CLIENT_DIR, '');
-  const apiPort = env.VITE_API_PORT || '3001';
+  const apiPort = env.VITE_API_PORT || '3005';
 
   return {
     plugins: [tailwindcss(), sveltekit()],
