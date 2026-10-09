@@ -31,6 +31,14 @@ export class SoftwareProjectsService {
     private readonly githubService: GithubService,
   ) {}
 
+  async listTicketOptions(): Promise<{ id: number; name: string }[]> {
+    return this.repository.listTicketOptions();
+  }
+
+  async isTicketOption(id: number): Promise<boolean> {
+    return this.repository.isTicketOption(id);
+  }
+
   async list(
     user: RequestUser,
     query: SoftwareProjectListQuery,
@@ -139,7 +147,7 @@ export class SoftwareProjectsService {
       });
     }
 
-    const issues = await this.githubService.fetchIssues(repoInfo.owner, repoInfo.repo);
+    const issues = await this.githubService.fetchIssues(repoInfo.owner, repoInfo.repo, user.id);
     for (const issue of issues) {
       await this.timelineRepository.upsertPr({
         projectId: id,

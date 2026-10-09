@@ -19,6 +19,8 @@
   data={{
     project,
     items: model.data.items,
+    page: model.data.page,
+    totalPages: model.data.totalPages,
   }}
   state={{
     isOpen: true,
@@ -27,5 +29,6 @@
   }}
   actions={{
     onClose,
+    onPageChange: model.actions.onPageChange,
   }}
 />

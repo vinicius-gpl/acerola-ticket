@@ -1,5 +1,4 @@
 import {
-  type CreateSoftwareTimelineEventInput,
   type SoftwareTimelineEvent,
   type SoftwareTimelineListQuery,
 } from '@template/shared/schemas/software-timeline.schema';
@@ -15,12 +14,8 @@ export const softwareTimelineApi = {
         pageSize: query.pageSize,
         projectId: query.projectId,
         type: query.type,
+        startAt: query.startAt,
+        endBefore: query.endBefore,
       },
-    }),
-
-  create: (input: CreateSoftwareTimelineEventInput) =>
-    apiRequest<SoftwareTimelineEvent>('/software-timeline', {
-      method: 'POST',
-      body: input,
     }),
 };

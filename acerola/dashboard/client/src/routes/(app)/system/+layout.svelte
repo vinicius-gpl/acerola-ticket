@@ -31,7 +31,13 @@
 {#if requiresSystemGithub(data.user) && !github.state.isLinked}
   <GithubLinkGate state={github.state} actions={github.actions} />
 {:else}
-  <AppShell data={shell.data} ui={shell.ui} state={shell.state} actions={shell.actions}>
+  <AppShell
+    initialSidebarOpen={data.sidebarOpen}
+    data={shell.data}
+    ui={shell.ui}
+    state={shell.state}
+    actions={shell.actions}
+  >
     {@render children()}
   </AppShell>
 {/if}

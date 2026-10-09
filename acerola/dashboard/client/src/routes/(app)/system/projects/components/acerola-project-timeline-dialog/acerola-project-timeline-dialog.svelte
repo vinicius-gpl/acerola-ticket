@@ -1,7 +1,5 @@
 <script lang="ts">
-  import {
-    TIMELINE_EVENT_TYPE_LABELS,
-  } from '@template/shared/domain/software-project.util';
+  import { TIMELINE_EVENT_TYPE_LABELS } from '@template/shared/domain/software-project.util';
   import { type SoftwareProject } from '@template/shared/schemas/software-project.schema';
   import { type SoftwareTimelineEvent } from '@template/shared/schemas/software-timeline.schema';
   import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
@@ -19,6 +17,8 @@
     data: {
       project: SoftwareProject;
       items: readonly SoftwareTimelineEvent[];
+      page?: number;
+      totalPages?: number;
     };
     state: {
       isOpen: boolean;
@@ -27,6 +27,7 @@
     };
     actions: {
       onClose: () => void;
+      onPageChange?: (page: number) => void;
     };
   } = $props();
 
@@ -44,7 +45,9 @@
 
 {#if state.isOpen}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-    <div class="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 rounded-surface border border-border bg-card p-6 shadow-xl">
+    <div
+      class="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 rounded-surface border border-border bg-card p-6 shadow-xl"
+    >
       <div class="flex items-center justify-between border-b border-border/60 pb-4">
         <div>
           <h2 class="text-base font-semibold text-foreground">
@@ -63,14 +66,20 @@
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto pr-2">
+      <div class="min-h-0 flex-1 overflow-y-auto py-1 pl-2 pr-2">
         {#if state.isLoading}
-          <div class="flex h-48 flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-            <div class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+          <div
+            class="flex h-48 flex-col items-center justify-center gap-2 text-xs text-muted-foreground"
+          >
+            <div
+              class="size-6 animate-spin rounded-full border-2 border-border border-t-primary"
+            ></div>
             <span>Carregando timeline…</span>
           </div>
         {:else if state.error}
-          <div class="rounded-box border border-destructive/40 bg-destructive-soft p-4 text-xs text-destructive">
+          <div
+            class="rounded-box border border-destructive/40 bg-destructive-soft p-4 text-xs text-destructive"
+          >
             {state.error}
           </div>
         {:else if data.items.length === 0}
@@ -79,11 +88,15 @@
             Clique em "Sincronizar" no card do sistema para buscar os PRs do GitHub.
           </div>
         {:else}
-          <div class="relative flex flex-col gap-6 pl-6 before:absolute before:bottom-2 before:left-2.5 before:top-2 before:w-0.5 before:bg-border">
+          <div
+            class="relative flex flex-col gap-6 pl-6 before:absolute before:bottom-2 before:left-2.5 before:top-2 before:w-0.5 before:bg-border"
+          >
             {#each data.items as event (event.id)}
               <div class="relative flex flex-col gap-1">
                 <!-- Ponto na linha do tempo -->
-                <div class="absolute -left-6 top-1 grid size-5 place-items-center rounded-full bg-card ring-2 ring-border">
+                <div
+                  class="absolute -left-6 top-1 grid size-5 place-items-center rounded-full bg-card ring-2 ring-border"
+                >
                   {#if event.type === 'pr' && event.status === 'merged'}
                     <GitMerge class="size-3 text-primary" />
                   {:else if event.type === 'pr'}
@@ -101,7 +114,9 @@
                         {event.title}
                       </span>
                       {#if event.externalId}
-                        <span class="rounded-chip bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                        <span
+                          class="rounded-chip bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground"
+                        >
                           {event.externalId}
                         </span>
                       {/if}
@@ -135,6 +150,21 @@
         {/if}
       </div>
 
+      {#if actions.onPageChange && (data.totalPages ?? 1) > 1}
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <button
+            type="button"
+            disabled={state.isLoading || (data.page ?? 1) <= 1}
+            onclick={() => actions.onPageChange?.((data.page ?? 1) - 1)}>Anterior</button
+          >
+          <span>Página {data.page ?? 1} de {data.totalPages}</span>
+          <button
+            type="button"
+            disabled={state.isLoading || (data.page ?? 1) >= (data.totalPages ?? 1)}
+            onclick={() => actions.onPageChange?.((data.page ?? 1) + 1)}>Próxima</button
+          >
+        </div>
+      {/if}
       <div class="flex items-center justify-end border-t border-border/60 pt-4">
         <ActionButton
           data={{ label: 'Fechar' }}

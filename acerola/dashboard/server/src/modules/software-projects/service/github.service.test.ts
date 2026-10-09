@@ -8,22 +8,20 @@ describe('GithubService', () => {
   it('syncs PRs from multiple developers using the organization token', async () => {
     const app = { accessToken: vi.fn().mockResolvedValue('installation-token') };
     const service = new GithubService({} as Database, app as unknown as GithubAppService);
-    const fetcher = vi
-      .spyOn(global, 'fetch')
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify(
-            ['dev-a', 'dev-b'].map((login, index) => ({
-              number: index + 1,
-              title: login,
-              html_url: `https://github.com/org/repo/pull/${index + 1}`,
-              user: { login },
-              state: 'open',
-              created_at: '2026-10-01T12:00:00Z',
-            })),
-          ),
+    const fetcher = vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify(
+          ['dev-a', 'dev-b'].map((login, index) => ({
+            number: index + 1,
+            title: login,
+            html_url: `https://github.com/org/repo/pull/${index + 1}`,
+            user: { login },
+            state: 'open',
+            created_at: '2026-10-01T12:00:00Z',
+          })),
         ),
-      );
+      ),
+    );
     const result = await service.fetchPullRequests('org', 'repo', 'admin-local-id');
     expect(result.map((pr) => pr.author)).toEqual(['dev-a', 'dev-b']);
     expect(fetcher.mock.calls[0]?.[1]?.headers).toMatchObject({
@@ -41,14 +39,49 @@ describe('GithubService', () => {
             html_url: 'https://github.com/org/repo/issues/1',
             user: { login: 'dev' },
             state: 'open',
-            updated_at: '2026-10-01T12:00:00Z',
+            created_at: '2026-10-01T12:00:00Z',
           },
           { number: 2, pull_request: {}, title: 'PR' },
         ]),
       ),
     );
     expect(await service.fetchIssues('org', 'repo')).toMatchObject([
-      { externalId: '#1', title: 'Issue', author: 'dev' },
+      {
+        externalId: '#1',
+        title: 'Issue',
+        author: 'dev',
+        status: 'open',
+        eventDate: new Date('2026-10-01T12:00:00Z'),
+      },
+    ]);
+  });
+
+  it('attributes resolved issues to the closer and uses the close date', async () => {
+    const service = new GithubService({} as Database);
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify([
+          {
+            number: 3,
+            title: 'Issue resolvida',
+            html_url: 'https://github.com/org/repo/issues/3',
+            user: { login: 'reporter' },
+            state: 'closed',
+            created_at: '2026-10-01T12:00:00Z',
+            closed_at: '2026-10-05T15:30:00Z',
+            closed_by: { login: 'resolver' },
+          },
+        ]),
+      ),
+    );
+
+    await expect(service.fetchIssues('org', 'repo')).resolves.toMatchObject([
+      {
+        externalId: '#3',
+        author: 'resolver',
+        status: 'closed',
+        eventDate: new Date('2026-10-05T15:30:00Z'),
+      },
     ]);
   });
   const originalEnv = process.env.GITHUB_TOKEN;
@@ -113,6 +146,30 @@ describe('GithubService', () => {
 
     const result = await service.fetchPullRequests('owner', 'invalid-repo');
     expect(result).toEqual([]);
+  });
+
+  it('explains that a private repository must be selected in the App installation', async () => {
+    const service = new GithubService(mockDb as Database);
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    } as unknown as Response);
+
+    await expect(
+      service.fetchPullRequests('grupo-azuos', 'admin-console', 'admin-id'),
+    ).rejects.toThrow('O GitHub App não tem acesso a grupo-azuos/admin-console');
+  });
+
+  it('explains which installation permission is missing when issues are denied', async () => {
+    const service = new GithubService(mockDb as Database);
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+    } as unknown as Response);
+
+    await expect(service.fetchIssues('grupo-azuos', 'admin-console', 'admin-id')).rejects.toThrow(
+      'Issues: read',
+    );
   });
 
   it('fetchPullRequests returns empty array on network exception without throwing', async () => {

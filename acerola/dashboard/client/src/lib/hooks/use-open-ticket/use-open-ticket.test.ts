@@ -7,7 +7,7 @@ import Harness from './use-open-ticket-harness.test.svelte';
 import { type OpenTicketModel } from './use-open-ticket.svelte';
 
 vi.mock('$lib/api/tickets.api', () => ({
-  ticketsApi: { create: vi.fn() },
+  ticketsApi: { create: vi.fn(), systemProjectOptions: vi.fn() },
 }));
 
 const { ticketsApi } = await import('$lib/api/tickets.api');
@@ -64,6 +64,10 @@ describe('useOpenTicketModel', () => {
   beforeEach(() => {
     vi.mocked(ticketsApi.create).mockReset();
     vi.mocked(ticketsApi.create).mockResolvedValue(ticket());
+    vi.mocked(ticketsApi.systemProjectOptions).mockResolvedValue([
+      { id: 3, name: 'admin-console' },
+      { id: 4, name: 'paralegal' },
+    ]);
   });
 
   // feliz

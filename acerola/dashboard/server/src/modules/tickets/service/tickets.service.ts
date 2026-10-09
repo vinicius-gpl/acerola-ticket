@@ -5,6 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { GithubService } from '../../software-projects/service/github.service';
+import { SoftwareProjectsService } from '../../software-projects/service/software-projects.service';
 import {
   ticketAreaLabel,
   ticketDepartmentLabel,
@@ -131,7 +132,12 @@ export class TicketsService {
     private readonly histories: TicketHistoriesService,
     private readonly historiesRepository: TicketHistoriesRepository,
     @Optional() private readonly githubService?: GithubService,
+    @Optional() private readonly softwareProjectsService?: SoftwareProjectsService,
   ) {}
+
+  async listSystemProjectOptions(): Promise<{ id: number; name: string }[]> {
+    return (await this.softwareProjectsService?.listTicketOptions()) ?? [];
+  }
 
   async list(user: RequestUser, query: TicketListQuery): Promise<Paginated<Ticket>> {
     assertCanRead(user.role, 'os chamados');
@@ -219,6 +225,18 @@ export class TicketsService {
     screenshot?: UploadedScreenshot,
     attachments: readonly UploadedAttachment[] = [],
   ): Promise<Ticket> {
+    if (input.area === 'sistema') {
+      const projectId = Number(input.projectId);
+      if (
+        !Number.isInteger(projectId) ||
+        !(await this.softwareProjectsService?.isTicketOption(projectId))
+      ) {
+        throw new UnprocessableEntityException(
+          'Selecione um sistema disponível para abrir o chamado.',
+        );
+      }
+    }
+
     const screenshotKey = await this.storeScreenshot(screenshot);
     const row = await this.repository.insert(toTicketInsert(input, screenshotKey));
 

@@ -101,9 +101,7 @@ export class GithubService {
     userId?: string,
   ): FetchedPr[] {
     if (userId) {
-      throw new BadGatewayException(
-        'O GitHub recusou o acesso a este repositório. Confira a autorização da organização e as permissões da sua conta.',
-      );
+      throw this.repositoryAccessError(status, owner, repo, 'Pull requests: read');
     }
     this.logger.warn(`GitHub API devolveu status ${status} ao buscar PRs de ${owner}/${repo}`);
     return [];
@@ -144,7 +142,7 @@ export class GithubService {
     throw new BadGatewayException('Não foi possível sincronizar com o GitHub. Tente novamente.');
   }
 
-  async fetchIssues(owner: string, repo: string): Promise<FetchedPr[]> {
+  async fetchIssues(owner: string, repo: string, userId?: string): Promise<FetchedPr[]> {
     const token = this.app ? await this.app.accessToken() : this.token;
     const items: FetchedPr[] = [];
     for (let page = 1; ; page++) {
@@ -155,8 +153,9 @@ export class GithubService {
           signal: AbortSignal.timeout(10_000),
         },
       );
-      if (!response.ok)
-        throw new BadGatewayException('Não foi possível sincronizar as issues do repositório.');
+      if (!response.ok) {
+        throw this.issueFetchError(response.status, owner, repo, userId);
+      }
       const rows = (await response.json()) as Array<{
         number: number;
         title: string;
@@ -164,7 +163,9 @@ export class GithubService {
         user?: { login?: string };
         state: string;
         pull_request?: unknown;
-        updated_at: string;
+        created_at: string;
+        closed_at?: string | null;
+        closed_by?: { login?: string } | null;
       }>;
       items.push(
         ...rows
@@ -173,13 +174,48 @@ export class GithubService {
             externalId: `#${row.number}`,
             title: row.title,
             url: row.html_url,
-            author: row.user?.login ?? 'github',
+            author:
+              row.state === 'closed'
+                ? (row.closed_by?.login ?? 'github')
+                : (row.user?.login ?? 'github'),
             status: row.state === 'closed' ? ('closed' as const) : ('open' as const),
-            eventDate: new Date(row.updated_at),
+            eventDate: new Date(
+              row.state === 'closed' && row.closed_at ? row.closed_at : row.created_at,
+            ),
           })),
       );
       if (!response.headers.get('link')?.includes('rel="next"')) return items;
     }
+  }
+
+  private issueFetchError(
+    status: number,
+    owner: string,
+    repo: string,
+    userId?: string,
+  ): BadGatewayException {
+    return userId
+      ? this.repositoryAccessError(status, owner, repo, 'Issues: read')
+      : new BadGatewayException('Não foi possível sincronizar as issues do repositório.');
+  }
+
+  private repositoryAccessError(
+    status: number,
+    owner: string,
+    repo: string,
+    permission: string,
+  ): BadGatewayException {
+    if (status === 404)
+      return new BadGatewayException(
+        `O GitHub App não tem acesso a ${owner}/${repo}. Inclua o repositório na instalação da organização e confirme as permissões do App.`,
+      );
+    if (status === 403)
+      return new BadGatewayException(
+        `A instalação do GitHub App não tem a permissão ${permission} para ${owner}/${repo}, ou a organização ainda precisa aprovar a atualização.`,
+      );
+    return new BadGatewayException(
+      `O GitHub recusou a consulta de ${permission} para ${owner}/${repo} (HTTP ${status}).`,
+    );
   }
 
   /**

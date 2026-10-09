@@ -1,15 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type SoftwareProjectListQuery } from '@template/shared/schemas/software-project.schema';
-import {
-  and,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  or,
-  type SQL,
-} from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, or, type SQL } from 'drizzle-orm';
 
 import { runMaybe, runOne, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
@@ -57,39 +48,63 @@ export class SoftwareProjectsRepository {
 
   async listAll(): Promise<SoftwareProjectRow[]> {
     return runQuery(
-      this.db
-        .select()
-        .from(softwareProjects)
-        .orderBy(desc(softwareProjects.createdAt)),
+      this.db.select().from(softwareProjects).orderBy(desc(softwareProjects.createdAt)),
       'listar todos os sistemas',
     );
   }
 
+  /** Projetos que podem receber chamados públicos e virar issues no GitHub. */
+  async listTicketOptions(): Promise<{ id: number; name: string }[]> {
+    return runQuery(
+      this.db
+        .select({ id: softwareProjects.id, name: softwareProjects.name })
+        .from(softwareProjects)
+        .where(
+          and(
+            inArray(softwareProjects.status, ['active', 'maintenance']),
+            isNotNull(softwareProjects.githubRepoOwner),
+            isNotNull(softwareProjects.githubRepoName),
+          ),
+        )
+        .orderBy(asc(softwareProjects.name)),
+      'listar sistemas para abertura de chamado',
+    );
+  }
+
+  async isTicketOption(id: number): Promise<boolean> {
+    const [project] = await runQuery(
+      this.db
+        .select({ id: softwareProjects.id })
+        .from(softwareProjects)
+        .where(
+          and(
+            eq(softwareProjects.id, id),
+            inArray(softwareProjects.status, ['active', 'maintenance']),
+            isNotNull(softwareProjects.githubRepoOwner),
+            isNotNull(softwareProjects.githubRepoName),
+          ),
+        )
+        .limit(1),
+      'validar sistema do chamado',
+    );
+
+    return Boolean(project);
+  }
+
   async findById(id: number): Promise<SoftwareProjectRow | null> {
     return runMaybe(
-      this.db
-        .select()
-        .from(softwareProjects)
-        .where(eq(softwareProjects.id, id))
-        .limit(1),
+      this.db.select().from(softwareProjects).where(eq(softwareProjects.id, id)).limit(1),
       'buscar sistema por id',
     );
   }
 
   async insert(data: SoftwareProjectInsert): Promise<SoftwareProjectRow> {
-    return runOne(
-      this.db.insert(softwareProjects).values(data).returning(),
-      'cadastrar sistema',
-    );
+    return runOne(this.db.insert(softwareProjects).values(data).returning(), 'cadastrar sistema');
   }
 
   async update(id: number, data: Partial<SoftwareProjectInsert>): Promise<SoftwareProjectRow> {
     return runOne(
-      this.db
-        .update(softwareProjects)
-        .set(data)
-        .where(eq(softwareProjects.id, id))
-        .returning(),
+      this.db.update(softwareProjects).set(data).where(eq(softwareProjects.id, id)).returning(),
       'atualizar sistema',
     );
   }
@@ -114,7 +129,12 @@ export class SoftwareProjectsRepository {
         .where(
           and(
             inArray(tickets.projectId, projectIds),
-            inArray(tickets.status, ['open', 'in_progress', 'waiting_requester', 'waiting_third_party']),
+            inArray(tickets.status, [
+              'open',
+              'in_progress',
+              'waiting_requester',
+              'waiting_third_party',
+            ]),
           ),
         )
         .groupBy(tickets.projectId),

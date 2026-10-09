@@ -57,6 +57,7 @@ describe('Github OAuth linking', () => {
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
     expect(url.searchParams.get('code_challenge')).toBeTruthy();
     expect(url.searchParams.get('redirect_uri')).toBe(env.GITHUB_OAUTH_REDIRECT_URI);
+    expect(url.searchParams.has('scope')).toBe(false);
     expect(saved.codeVerifier).not.toBe(url.searchParams.get('code_challenge'));
   });
 
@@ -92,7 +93,7 @@ describe('Github OAuth linking', () => {
         json({
           access_token: 'access-secret',
           refresh_token: 'refresh-secret',
-          scope: 'repo,read:user',
+          scope: '',
           expires_in: 3600,
           refresh_token_expires_in: 86400,
         }),
@@ -110,15 +111,19 @@ describe('Github OAuth linking', () => {
     });
   });
 
-  it('does not link an account without profile authorization', async () => {
+  it('links a GitHub App account even when the token has no OAuth scopes', async () => {
     const { service, repository } = setup();
     repository.consumeState.mockResolvedValue({
       userId: 'user-1',
       codeVerifier: encryptGithubToken('verifier', key),
     });
-    vi.mocked(fetch).mockResolvedValueOnce(json({ access_token: 'token', scope: '' }));
-    await expect(service.complete('code', 'state', 'browser')).rejects.toThrow('perfil');
-    expect(repository.save).not.toHaveBeenCalled();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(json({ access_token: 'token', scope: '' }))
+      .mockResolvedValueOnce(json({ id: 42, login: 'developer' }));
+    await service.complete('code', 'state', 'browser');
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ githubId: '42', login: 'developer' }),
+    );
   });
 
   it('refreshes expired access tokens and rotates the refresh token', async () => {

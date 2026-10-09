@@ -72,6 +72,21 @@ function checkProblemTypeMatchesArea(
   });
 }
 
+function checkSystemProjectSelected(
+  value: { area: string; projectId?: string | number | null },
+  ctx: z.RefinementCtx,
+): void {
+  if (value.area !== 'sistema') return;
+  if (typeof value.projectId === 'number' && value.projectId > 0) return;
+  if (typeof value.projectId === 'string' && value.projectId.trim() !== '') return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: 'Selecione o sistema relacionado ao chamado',
+    path: ['projectId'],
+  });
+}
+
 const requesterNameSchema = z
   .string({ required_error: 'Informe seu nome' })
   .trim()
@@ -214,8 +229,17 @@ export const createTicketSchema = z
       .preprocess((value) => value === true || value === 'true', z.boolean())
       .default(false),
     description: descriptionSchema,
+    projectId: z
+      .preprocess(
+        (value) => (value === '' ? null : value),
+        z.coerce.number().int().positive().nullable(),
+      )
+      .optional(),
   })
-  .superRefine(checkProblemTypeMatchesArea);
+  .superRefine((value, ctx) => {
+    checkProblemTypeMatchesArea(value, ctx);
+    checkSystemProjectSelected(value, ctx);
+  });
 
 export type CreateTicketInput = z.input<typeof createTicketSchema>;
 
@@ -237,8 +261,12 @@ export const ticketFormSchema = z
     contactPhone: contactPhoneSchema,
     notifyWhatsapp: z.boolean(),
     description: descriptionSchema,
+    projectId: z.string().default(''),
   })
-  .superRefine(checkProblemTypeMatchesArea);
+  .superRefine((value, ctx) => {
+    checkProblemTypeMatchesArea(value, ctx);
+    checkSystemProjectSelected(value, ctx);
+  });
 
 export type TicketFormValues = z.input<typeof ticketFormSchema>;
 
