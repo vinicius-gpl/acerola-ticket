@@ -76,6 +76,7 @@
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import PageHeader from '$lib/components/acerola-page-header/acerola-page-header.svelte';
   import SelectField from '$lib/components/acerola-select-field/acerola-select-field.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
 
   let { data, state: viewState, actions }: AcerolaSystemKanbanViewProps = $props();
 
@@ -165,12 +166,18 @@
   >
     <div class="flex items-center gap-2">
       <div class="w-64">
-        <SelectField
+        <OptionPicker
           data={{
             value: data.selectedProjectId ? String(data.selectedProjectId) : '',
             options: projectOptions,
           }}
-          ui={{ ariaLabel: 'Filtrar por sistema', placeholder: 'Todos os sistemas' }}
+          ui={{
+            ariaLabel: 'Filtrar por sistema',
+            placeholder: 'Todos os sistemas',
+            fullWidth: true,
+            mode: 'combobox',
+            searchPlaceholder: 'Buscar sistema…',
+          }}
           actions={{
             onChange: (val) => actions.onSelectProject(val ? Number(val) : null),
           }}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -79,6 +79,22 @@ function renderView(
 
   return actions;
 }
+
+it('searches systems and restores the all-systems filter', async () => {
+  const actions = renderView();
+  await userEvent.click(screen.getByRole('button', { name: 'Filtrar por sistema' }));
+  const search = await screen.findByPlaceholderText('Buscar sistema…');
+  const popup = search.closest('[data-slot="popover-content"]') as HTMLElement;
+  await fireEvent.input(search, { target: { value: 'acerola' } });
+  expect(within(popup).queryByText('Todos os sistemas')).not.toBeInTheDocument();
+  await fireEvent.click(within(popup).getByText('Acerola Ticket'));
+  expect(actions.onSelectProject).toHaveBeenCalledWith(1);
+  await userEvent.click(screen.getByRole('button', { name: 'Filtrar por sistema' }));
+  const reopenedSearch = await screen.findByPlaceholderText('Buscar sistema…');
+  const reopenedPopup = reopenedSearch.closest('[data-slot="popover-content"]') as HTMLElement;
+  await fireEvent.click(within(reopenedPopup).getByText('Todos os sistemas'));
+  expect(actions.onSelectProject).toHaveBeenLastCalledWith(null);
+});
 
 describe('AcerolaSystemKanbanView', () => {
   it('moves a ticket using the stage selector without opening its details', async () => {
