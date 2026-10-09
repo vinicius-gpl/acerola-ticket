@@ -29,6 +29,22 @@ func TestAreaOfCurrentScreenWithoutScreens(testingContext *testing.T) {
 	}
 }
 
+func TestFrontendAnswersTimesOutWithoutFrontend(testingContext *testing.T) {
+	// triste: sem tela nenhuma ouvindo, a pergunta desiste em vez de travar a fila de ações
+	if NewApp().frontendAnswers(func() {}) {
+		testingContext.Error("frontendAnswers = true, want false with no frontend listening")
+	}
+}
+
+func TestFrontendAnswersHappyPath(testingContext *testing.T) {
+	// feliz: a tela confirma (ViewReady) assim que recebe a pergunta
+	agentApp := NewApp()
+
+	if !agentApp.frontendAnswers(agentApp.ViewReady) {
+		testingContext.Error("frontendAnswers = false, want true once the frontend confirmed")
+	}
+}
+
 // screenOfSize monta a tela campo a campo: o tipo do tamanho mora num pacote
 // interno do Wails e não pode ser escrito por extenso aqui.
 func screenOfSize(width, height int) runtime.Screen {
