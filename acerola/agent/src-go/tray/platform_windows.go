@@ -22,9 +22,3 @@ func icon() []byte {
 func allowForeground() {
 	_, _, _ = procAllowSetForegroundWindow.Call(uintptr(windows.GetCurrentProcessId()))
 }
-
-// popupMenuClicks não cria entrada nenhuma no Windows: lá o clique esquerdo
-// no ícone já abre a telinha, e repetir isso no menu seria ruído.
-func popupMenuClicks() <-chan struct{} {
-	return nil
-}

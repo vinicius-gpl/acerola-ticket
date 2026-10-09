@@ -46,7 +46,7 @@ func TestWatchMenuRoutesEachItemToItsAction(testingContext *testing.T) {
 	dashboard, quit := newClickChannels()
 	done := make(chan string, 2)
 
-	go watchMenu(nil, dashboard, quit, Callbacks{
+	go watchMenu(dashboard, quit, Callbacks{
 		ShowPopup:     func() { done <- "popup" },
 		ShowDashboard: func() { done <- "dashboard" },
 		Quit:          func() { done <- "quit" },
@@ -56,22 +56,6 @@ func TestWatchMenuRoutesEachItemToItsAction(testingContext *testing.T) {
 	expectDone(testingContext, done, "dashboard")
 }
 
-func TestWatchMenuRoutesPopupEntry(testingContext *testing.T) {
-	// feliz: onde existe a entrada "Abrir Minificado", o clique nela abre a telinha
-	dashboard, quit := newClickChannels()
-	popupClicks := make(chan struct{}, 1)
-	done := make(chan string, 2)
-
-	go watchMenu(popupClicks, dashboard, quit, Callbacks{
-		ShowPopup:     func() { done <- "popup" },
-		ShowDashboard: func() { done <- "dashboard" },
-		Quit:          func() { done <- "quit" },
-	})
-
-	popupClicks <- struct{}{}
-	expectDone(testingContext, done, "popup")
-}
-
 func TestWatchMenuStopsAfterQuit(testingContext *testing.T) {
 	// triste: depois de Sair, ninguém continua esperando clique de janela
 	dashboard, quit := newClickChannels()
@@ -79,7 +63,7 @@ func TestWatchMenuStopsAfterQuit(testingContext *testing.T) {
 	finished := make(chan struct{})
 
 	go func() {
-		watchMenu(nil, dashboard, quit, Callbacks{
+		watchMenu(dashboard, quit, Callbacks{
 			ShowPopup:     func() { done <- "popup" },
 			ShowDashboard: func() { done <- "dashboard" },
 			Quit:          func() { done <- "quit" },
