@@ -119,7 +119,7 @@ describe('AcerolaAppShell', () => {
   });
 
   /* O seletor de módulos é sempre só ícones; o nome aparece no tooltip, aberto ou recolhido. */
-  it('keeps the modules as a vertical icon-only switcher with accessible names', () => {
+  it('keeps the modules horizontal when expanded and vertical when collapsed with accessible names', () => {
     renderShell({
       data: {
         areaOptions: [
@@ -131,7 +131,7 @@ describe('AcerolaAppShell', () => {
     });
 
     const group = screen.getByRole('group', { name: 'Módulos' });
-    expect(group.className).toContain('flex-col');
+    expect(group).toHaveClass('flex-row', 'group-data-[collapsible=icon]:flex-col');
     expect(within(group).getByRole('button', { name: 'Infraestrutura' })).toBeInTheDocument();
     expect(within(group).queryByText('Infraestrutura')).not.toBeInTheDocument();
   });

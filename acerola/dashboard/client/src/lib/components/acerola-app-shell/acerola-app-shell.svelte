@@ -127,7 +127,7 @@
         <div
           role="group"
           aria-label="Módulos"
-          class="bg-sidebar-accent/40 border-sidebar-border flex w-full flex-col items-center gap-1 rounded-control border p-1 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0"
+          class="bg-sidebar-accent/40 border-sidebar-border flex w-full flex-row items-center justify-center gap-1 rounded-control border p-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0"
         >
           {#each data.areaOptions as option (option.value)}
             {@const Icon = option.icon}
@@ -140,9 +140,12 @@
                     aria-label={option.label}
                     aria-pressed={shellState?.areaContext === option.value}
                     onclick={() => actions?.onAreaContextChange?.(option.value)}
-                    class="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-chip transition-colors aria-pressed:bg-sidebar-primary aria-pressed:text-sidebar-primary-foreground"
+                    class="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-10 min-w-0 flex-1 items-center justify-center rounded-chip transition-colors aria-pressed:bg-sidebar-primary aria-pressed:text-sidebar-primary-foreground group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none"
                   >
-                    {#if Icon}<Icon class="size-[18px]" aria-hidden="true" />{/if}
+                    {#if Icon}<Icon
+                        class="size-6 group-data-[collapsible=icon]:size-[18px]"
+                        aria-hidden="true"
+                      />{/if}
                   </button>
                 {/snippet}
               </Tooltip.Trigger>
