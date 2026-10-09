@@ -6,8 +6,8 @@ import { type ReportRequest } from './report.types';
 /** O nome da planilha aceita no máximo 31 caracteres — regra do próprio Excel. */
 const SHEET_NAME_MAX_LENGTH = 31;
 
-/** Arial em vez da Calibri padrão do Excel — mais parecida com a fonte do sistema. */
-const FONT_NAME = 'Arial';
+/** Arial Narrow — identidade visual padronizada com os documentos Typst e Word. */
+const FONT_NAME = 'Arial Narrow';
 
 const MIN_COLUMN_WIDTH = 14;
 const MAX_COLUMN_WIDTH = 46;
@@ -143,11 +143,11 @@ function writeHeaderRow(sheet: ExcelJS.Worksheet, headers: string[]): void {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: excelColor(REPORT_PALETTE.foreground) },
+      fgColor: { argb: excelColor(REPORT_PALETTE.primary) },
     };
     cell.alignment = { vertical: 'middle', indent: 1 };
     /* Só embaixo: é o que separa o cabeçalho do corpo sem desenhar uma grade na lista inteira. */
-    cell.border = { bottom: { style: 'medium', color: { argb: excelColor(REPORT_PALETTE.primary) } } };
+    cell.border = { bottom: { style: 'medium', color: { argb: excelColor(REPORT_PALETTE.docHeading) } } };
   });
 }
 

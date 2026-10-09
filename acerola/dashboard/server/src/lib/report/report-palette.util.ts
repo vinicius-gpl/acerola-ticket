@@ -9,19 +9,17 @@ import { type ReportTone } from './report.types';
  * que precisa do `#` na frente, e por isso `pdfColor` o acrescenta.
  */
 export const REPORT_PALETTE = {
-  primary: '8839EF',
+  primary: '0A3D62',
   primaryForeground: 'FFFFFF',
-  foreground: '4C4F69',
-  subtext: '6C6F85',
-  border: 'ACB0BE',
-  surfaceAlt: 'E6E9EF',
+  foreground: '1F2937',
+  subtext: '4B5563',
+  border: 'E5E7EB',
+  surfaceAlt: 'F8FAFC',
   background: 'FFFFFF',
   /**
-   * O cinza-chumbo dos relatórios de escritório — usado só no Word. A cor da marca (roxa)
-   * funciona bem como destaque numa tela ou num PDF colorido; num documento de texto ela lê
-   * como informal. Um cabeçalho escuro neutro é o que os modelos corporativos usam.
+   * O azul marinho corporativo da Azuos (alinhado com o Typst template.typ e documentos oficiais).
    */
-  docHeading: '1F2937',
+  docHeading: '0A3D62',
 } as const;
 
 /**
@@ -30,12 +28,12 @@ export const REPORT_PALETTE = {
  * mesma cor batendo de lado a lado da célula pesa demais e briga com as listras da lista.
  */
 export const REPORT_TONE_COLORS: Record<ReportTone, { fill: string; text: string }> = {
-  neutral: { fill: 'ACB0BE', text: '4C4F69' },
-  info: { fill: '209FB5', text: 'FFFFFF' },
-  success: { fill: '40A02B', text: 'FFFFFF' },
-  warning: { fill: 'DF8E1D', text: '4C4F69' },
-  danger: { fill: 'D20F39', text: 'FFFFFF' },
-  brand: { fill: '8839EF', text: 'FFFFFF' },
+  neutral: { fill: 'E5E7EB', text: '1F2937' },
+  info: { fill: '2563EB', text: 'FFFFFF' },
+  success: { fill: '059669', text: 'FFFFFF' },
+  warning: { fill: 'D97706', text: '1F2937' },
+  danger: { fill: 'DC2626', text: 'FFFFFF' },
+  brand: { fill: '0A3D62', text: 'FFFFFF' },
 };
 
 /**
@@ -50,7 +48,7 @@ export const REPORT_TONE_SOFT_COLORS: Record<ReportTone, { fill: string; text: s
   success: { fill: 'D1FAE5', text: '047857' },
   warning: { fill: 'FEF3C7', text: '92400E' },
   danger: { fill: 'FEE2E2', text: 'B91C1C' },
-  brand: { fill: 'F3E8FD', text: '8839EF' },
+  brand: { fill: 'EAF2F8', text: '0A3D62' },
 };
 
 /** O hexadecimal com `FF` de opacidade na frente — o formato ARGB que o ExcelJS pede. */
