@@ -12,6 +12,9 @@
 # `bookworm-slim` por simplicidade — nenhuma dependência atual exige compilar nada na
 # imagem, então trocar para `alpine` é uma otimização possível, não uma necessidade.
 
+# Compilador usado em runtime para os PDFs; mesma versão dos mise.toml e do CI.
+FROM ghcr.io/typst/typst:0.15.1 AS typst
+
 FROM node:24-bookworm-slim AS deps
 WORKDIR /repo
 COPY package.json package-lock.json ./
@@ -36,6 +39,8 @@ RUN npm run build -w @template/shared \
 FROM node:24-bookworm-slim AS app
 WORKDIR /repo
 ENV NODE_ENV=production
+COPY --from=typst /bin/typst /usr/local/bin/typst
+RUN typst --version
 COPY --from=build /repo/node_modules node_modules
 COPY --from=build /repo/shared/package.json shared/package.json
 COPY --from=build /repo/shared/dist shared/dist

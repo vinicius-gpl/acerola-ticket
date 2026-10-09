@@ -177,6 +177,18 @@ desenvolvimento: sem `DATABASE_URL` no `.env`, o server recusa subir.
 
 ## Comandos
 
+Os PDFs dependem do compilador Typst 0.15.1, configurado nos `mise.toml` da raiz e do
+painel. Instale as ferramentas e inicie o servidor com o ambiente do mise:
+
+```bash
+mise install
+cd acerola/dashboard
+mise exec -- npm run dev
+```
+
+Depois de instalar uma ferramenta nova, reinicie o servidor para atualizar seu `PATH`.
+
+
 Todos rodam dentro de `acerola/dashboard/`:
 
 | Comando                           | O que faz                                                                    |
@@ -195,6 +207,11 @@ Todos rodam dentro de `acerola/dashboard/`:
 | `npm run storybook`               | Catálogo de componentes em :6006                                             |
 
 ### Docker
+
+A imagem final inclui o executável Typst 0.15.1 e os templates, fontes e imagens copiados
+pelo build do Nest. O host Docker não precisa de uma instalação separada do Typst.
+O build verifica `typst --version` para falhar antes do deploy se o binário não executar.
+
 
 ```bash
 cd acerola/dashboard
