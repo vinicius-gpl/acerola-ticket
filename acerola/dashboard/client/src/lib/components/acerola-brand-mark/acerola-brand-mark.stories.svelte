@@ -10,16 +10,16 @@
   });
 </script>
 
-<!-- O tamanho do meio é o da barra lateral aberta. -->
+<!-- O tamanho do meio: a logo sozinha, sem o nome ao lado. -->
 <Story name="Default" args={{}} />
 
-<!-- Pequeno: cabe na barra recolhida e no rodapé. -->
+<!-- Pequeno: é o do topo da barra lateral aberta. -->
 <Story name="Small" args={{ ui: { size: 'sm' } }} />
 
 <!-- Grande: é o tamanho da tela de entrar, onde a marca é o assunto. -->
 <Story name="Large" args={{ ui: { size: 'lg' } }} />
 
-<!-- Caso limite: sobre o fundo da barra lateral, que é de onde a cor do texto vem. -->
+<!-- Caso limite: sobre o fundo da barra lateral, onde a logo precisa continuar legível. -->
 <Story name="OnSidebar">
   <div class="bg-sidebar rounded-box p-4">
     <BrandMark />

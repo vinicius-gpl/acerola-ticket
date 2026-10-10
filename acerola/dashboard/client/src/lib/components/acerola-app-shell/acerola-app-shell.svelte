@@ -75,6 +75,7 @@
     SidebarMenuItem,
     SidebarProvider,
     SidebarRail,
+    SidebarSeparator,
     SidebarTrigger,
   } from '$lib/components/ui/sidebar';
   import * as Tooltip from '$lib/components/acerola-tooltip/acerola-tooltip';
@@ -119,7 +120,7 @@
        Sumir por inteiro tiraria da tela a única pista de onde estão as outras telas. -->
   <Sidebar collapsible="icon" variant="inset">
     <SidebarHeader class="group-data-[collapsible=icon]:p-1">
-      <div class="flex items-center px-2 py-1.5 group-data-[collapsible=icon]:hidden">
+      <div class="flex items-center px-1 group-data-[collapsible=icon]:hidden">
         <BrandMark ui={{ size: 'sm' }} />
       </div>
 
@@ -153,6 +154,12 @@
             </Tooltip.Root>
           {/each}
         </div>
+
+        <!-- Só com a barra recolhida: aberta, a caixa em volta dos módulos já os separa do menu;
+             recolhida, a caixa some e os ícones de módulo e de tela viram uma fila só.
+             `h-px` vai explícito: a altura do componente baixado depende de um atributo de
+             orientação que aqui não chega, e sem ela o fio sai com altura zero. -->
+        <SidebarSeparator class="mx-1 mt-1 hidden h-px group-data-[collapsible=icon]:block" />
       {/if}
     </SidebarHeader>
 

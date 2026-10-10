@@ -136,12 +136,29 @@ describe('AcerolaAppShell', () => {
     expect(within(group).queryByText('Infraestrutura')).not.toBeInTheDocument();
   });
 
+  /* Recolhida, a barra é uma fila só de ícones: o divisor separa os de módulo dos de tela. */
+  it('separates the module icons from the screen icons only when collapsed', () => {
+    const { container } = renderShell({
+      data: { areaOptions: [{ value: 'infra', label: 'Infraestrutura' }] },
+    });
+
+    const separator = container.querySelector('[data-sidebar="header"] [data-sidebar="separator"]');
+    expect(separator).toHaveClass('hidden', 'h-px', 'group-data-[collapsible=icon]:block');
+  });
+
   // triste
   /* Quem atende uma área só (ou nenhuma) não tem o que escolher: o seletor nem aparece. */
   it('draws no context selector when there is nothing to choose', () => {
     renderShell({ data: { areaOptions: [] } });
 
     expect(screen.queryByRole('group', { name: 'Módulos' })).not.toBeInTheDocument();
+  });
+
+  /* Sem módulos para separar, o divisor também não aparece. */
+  it('draws no separator when there are no modules', () => {
+    const { container } = renderShell({ data: { areaOptions: [] } });
+
+    expect(container.querySelector('[data-sidebar="header"] [data-sidebar="separator"]')).toBeNull();
   });
 
   /* Zero não vira selo: um "0" ao lado de cada item seria ruído. */
