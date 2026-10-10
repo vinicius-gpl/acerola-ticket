@@ -9,6 +9,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { TICKET_UPLOAD_MAX_BYTES, uploadLimit } from '../../../lib/http/upload-limit.util';
+import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -60,7 +62,10 @@ export class TicketHistoriesController {
   }
 
   @Post('histories')
-  @UseInterceptors(FilesInterceptor('attachments', MAX_FILES_PER_REQUEST))
+  @UseInterceptors(
+    UploadTooLargeInterceptor,
+    FilesInterceptor('attachments', MAX_FILES_PER_REQUEST, uploadLimit(TICKET_UPLOAD_MAX_BYTES)),
+  )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Lança um histórico no chamado',
