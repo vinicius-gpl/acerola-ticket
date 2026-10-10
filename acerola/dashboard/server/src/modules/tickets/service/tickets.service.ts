@@ -41,7 +41,8 @@ import {
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type TicketRow } from '../../../lib/db/schema/tickets.schema';
-import { type BuiltReport, type ReportColumn } from '../../../lib/report/report.types';
+import { type BuiltDocument } from '../../../lib/report/document.type';
+import { type ReportColumn } from '../../../lib/report/report.type';
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import { StorageService } from '../../../lib/storage/storage.service';
 import { describeTicketChanges, toUpdateHistory } from '../mapper/ticket-histories.mapper';
@@ -161,7 +162,7 @@ export class TicketsService {
    * Baixar o relatório: os MESMOS filtros da fila, mas sem página — o arquivo leva tudo que
    * casou, no formato escolhido.
    */
-  async exportList(user: RequestUser, query: TicketReportQuery): Promise<BuiltReport> {
+  async exportList(user: RequestUser, query: TicketReportQuery): Promise<BuiltDocument> {
     assertCanRead(user.role, 'os chamados');
 
     const areas = await this.access.accessibleAreas(user);

@@ -28,11 +28,8 @@ import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { assertCanCreate, assertCanRead } from '../../../lib/policy/policy-assert.util';
 import { type ComputerRow } from '../../../lib/db/schema/computers.schema';
-import {
-  type BuiltReport,
-  type ReportColumn,
-  type ReportTone,
-} from '../../../lib/report/report.types';
+import { type BuiltDocument, type DocumentTone } from '../../../lib/report/document.type';
+import { type ReportColumn } from '../../../lib/report/report.type';
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
 import {
   toComputer,
@@ -71,7 +68,7 @@ function situationOf(row: ComputerRow): string {
   return 'Em uso';
 }
 
-function situationTone(row: ComputerRow): ReportTone {
+function situationTone(row: ComputerRow): DocumentTone {
   if (row.isArchived) return 'neutral';
   if (row.isBlocked) return 'danger';
 
@@ -157,7 +154,7 @@ export class ComputersService {
    * Baixar o relatório: os MESMOS filtros da lista, mas sem página — o arquivo leva todo o
    * parque que casou, no formato escolhido.
    */
-  async exportList(user: RequestUser, query: ComputerReportQuery): Promise<BuiltReport> {
+  async exportList(user: RequestUser, query: ComputerReportQuery): Promise<BuiltDocument> {
     assertCanRead(user.role, 'os computadores');
 
     const rows = await this.repository.listAll(query);

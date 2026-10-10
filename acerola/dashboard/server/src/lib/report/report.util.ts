@@ -1,33 +1,40 @@
-import { type ReportFormat } from '@template/shared/schemas/report.schema';
+import { type BuiltDocument, type DocumentDefinition } from './document.type';
+import { buildDocument } from './document.util';
+import { type ReportRequest } from './report.type';
 
-import { buildDocxReport } from './report-docx.builder';
-import { buildPdfReport } from './report-pdf.builder';
-import { buildXlsxReport } from './report-xlsx.builder';
-import { type BuiltReport, type ReportRequest } from './report.types';
-
-const CONTENT_TYPES: Record<ReportFormat, string> = {
-  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  pdf: 'application/pdf',
-};
+const REPORT_TIME_ZONE = 'America/Sao_Paulo';
+const EMPTY_REPORT_TEXT = 'Nenhum registro encontrado com esse filtro.';
 
 /**
- * O ÚNICO caminho para virar uma lista em arquivo. Quem chama monta as colunas e as linhas já
- * traduzidas para português — este arquivo só decide qual biblioteca desenha o quê.
+ * Uma lista da tela virando arquivo. Quem chama monta as colunas e as linhas já traduzidas
+ * para português; aqui a lista vira a definição de um documento com uma tabela só, e o
+ * documento segue o mesmo caminho de todos os outros (`buildDocument`).
  */
-export async function buildReport<TRow>(request: ReportRequest<TRow>): Promise<BuiltReport> {
-  return {
-    buffer: await renderBuffer(request),
-    fileName: `${request.fileName}.${request.format}`,
-    contentType: CONTENT_TYPES[request.format],
-  };
+export async function buildReport<TRow>(request: ReportRequest<TRow>): Promise<BuiltDocument> {
+  return buildDocument(reportDocument(request), request.format, request.fileName);
 }
 
-async function renderBuffer<TRow>(request: ReportRequest<TRow>): Promise<Buffer> {
-  if (request.format === 'xlsx') return buildXlsxReport(request);
-  if (request.format === 'docx') return buildDocxReport(request);
+/** A definição do documento de uma lista: deitado, para caber muita coluna, e uma tabela. */
+export function reportDocument<TRow>(request: ReportRequest<TRow>): DocumentDefinition {
+  const titleColumnIndex = request.columns.findIndex((column) => column.isTitle);
 
-  return buildPdfReport(request);
+  return {
+    title: request.title,
+    subtitle: request.subtitle,
+    reference: request.title,
+    orientation: 'landscape',
+    blocks: [
+      {
+        kind: 'table',
+        headers: request.columns.map((column) => column.header),
+        rows: request.rows.map((row) =>
+          request.columns.map((column) => ({ text: column.value(row), tone: column.tone?.(row) })),
+        ),
+        titleColumnIndex: titleColumnIndex === -1 ? undefined : titleColumnIndex,
+        emptyText: EMPTY_REPORT_TEXT,
+      },
+    ],
+  };
 }
 
 /**
@@ -37,13 +44,13 @@ async function renderBuffer<TRow>(request: ReportRequest<TRow>): Promise<Buffer>
 export function formatReportDate(value: Date | null): string {
   if (!value) return '—';
 
-  return value.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  return value.toLocaleString('pt-BR', { timeZone: REPORT_TIME_ZONE });
 }
 
 /** A linha padrão embaixo do título: quantos vieram, e quando o arquivo foi gerado. */
 export function reportSubtitle(count: number, singular: string, plural: string): string {
   const noun = count === 1 ? singular : plural;
-  const generatedAt = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const generatedAt = new Date().toLocaleString('pt-BR', { timeZone: REPORT_TIME_ZONE });
 
   return `${count} ${noun} · gerado em ${generatedAt}`;
 }

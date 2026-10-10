@@ -19,9 +19,14 @@ import {
   shortServiceOrderCode,
 } from '@template/shared/domain/service-order.util';
 import { type TicketHistory } from '@template/shared/schemas/ticket-history.schema';
-import QRCode from 'qrcode';
 
-import { compileTypstDocument } from '../../../lib/report/typst/typst-compiler.util';
+import { renderPdfDocument } from '../../../lib/report/document-pdf.util';
+import {
+  type DocumentBlock,
+  type DocumentDefinition,
+  type DocumentEntry,
+  type DocumentField,
+} from '../../../lib/report/document.type';
 import { formatReportDate } from '../../../lib/report/report.util';
 import { type TicketWithComputer } from '../repository/tickets.repository';
 
@@ -52,81 +57,93 @@ const MINUTES_PER_HOUR = 60;
 const EMPTY = '—';
 
 /**
- * A ORDEM DE SERVIÇO de um chamado, compilada em Typst: os dados dele e a linha do tempo inteira.
+ * A ORDEM DE SERVIÇO de um chamado em PDF: os dados dele e a linha do tempo inteira.
  *
- * É um documento oficial que segue o padrão visual do sistema (template.typ + service-order.typ),
- * com logotipo Azuos, selos coloridos de status/prioridade, grade de atributos e QR code vetorial.
+ * O que o documento diz está em `serviceOrderDocument`; quem desenha é o mesmo gerador de PDF
+ * de todos os documentos do sistema.
  */
 export async function buildServiceOrderPdf(
   order: ServiceOrder,
   issue: ServiceOrderIssue,
 ): Promise<Buffer> {
+  return renderPdfDocument(serviceOrderDocument(order, issue));
+}
+
+/** A definição da ordem de serviço: os blocos, na ordem em que a pessoa lê. */
+function serviceOrderDocument(
+  order: ServiceOrder,
+  issue: ServiceOrderIssue,
+): DocumentDefinition {
+  const { ticket } = order;
   const shortCode = shortServiceOrderCode(issue.code);
-  const verifyLink = verifyUrl(issue, issue.code);
-  const verifyDisplay = verifyUrl(issue, shortCode);
 
-  /* O QR code leva o código CURTO: com o inteiro ele ficaria miúdo demais para a câmera ler
-     num rodapé. É só para o papel impresso — na tela, o link (com o código inteiro) resolve. */
-  const qrSvg = await QRCode.toString(verifyDisplay, {
-    type: 'svg',
-    margin: 0,
-    errorCorrectionLevel: 'M',
-  });
-
-  const fields = fieldsOf(order).map((field) => [field.label, field.value]);
-
-  const historyEntries = order.histories.map((history) => ({
-    type: ticketHistoryTypeLabel(history.type),
-    tone: ticketHistoryTone(history.type),
-    author: history.authorName,
-    date: formatReportDate(new Date(history.createdAt)),
-    minutes: history.minutesSpent,
-    description: history.description,
-    details: detailsOf(history),
-    attachments:
-      history.attachments.length > 0
-        ? history.attachments.map((attachment) => attachment.fileName).join(', ')
-        : '',
-  }));
-
-  const data = {
-    protocol: order.protocol,
-    status: ticketStatusLabel(order.ticket.status),
-    statusTone: ticketStatusTone(order.ticket.status),
-    priority: ticketPriorityLabel(order.ticket.priority),
-    priorityTone: ticketPriorityTone(order.ticket.priority),
-    area: ticketAreaLabel(order.ticket.area),
-    department: ticketDepartmentLabel(order.ticket.department),
-    fields,
-    problemLabel: ticketProblemTypeLabel(order.ticket.problemType),
-    description: order.ticket.description,
-    solution: order.ticket.solution ?? '',
-    resolvedAt: order.ticket.resolvedAt ? formatReportDate(order.ticket.resolvedAt) : '',
-    technician: order.ticket.assignee ?? '',
-    histories: historyEntries,
-    verifyUrl: verifyLink,
-    verifyDisplayUrl: verifyDisplay,
-    code: shortCode,
-    version: issue.version.toString(),
-    issuedByName: issue.issuedByName,
-    issuedAt: formatReportDate(issue.issuedAt),
-    qrSvg,
+  return {
+    title: `Ordem de serviço nº ${order.protocol}`,
+    subtitle: 'Comprovante técnico de atendimento',
+    reference: `Ordem de serviço ${order.protocol} · Versão ${issue.version}`,
+    orientation: 'portrait',
+    /* A data gravada no arquivo é a da emissão, nunca a de agora — senão o mesmo documento
+       desenhado amanhã sairia diferente, e a conferência deixaria de conferir. */
+    createdAt: issue.issuedAt,
+    blocks: [
+      {
+        kind: 'badges',
+        items: [
+          { text: ticketStatusLabel(ticket.status), tone: ticketStatusTone(ticket.status) },
+          { text: ticketPriorityLabel(ticket.priority), tone: ticketPriorityTone(ticket.priority) },
+        ],
+      },
+      { kind: 'fields', items: fieldsOf(order) },
+      { kind: 'heading', text: 'Descrição do problema' },
+      { kind: 'paragraph', text: ticket.description },
+      ...solutionBlocksOf(ticket),
+      { kind: 'heading', text: 'Linha do tempo' },
+      {
+        kind: 'entries',
+        items: order.histories.map(entryOf),
+        emptyText: 'Nenhum histórico registrado neste chamado.',
+      },
+    ],
+    verification: {
+      url: verifyUrl(issue, issue.code),
+      /* O QR code leva o código CURTO: com o inteiro ele ficaria miúdo demais para a câmera
+         ler. É só para o papel impresso — na tela, o link (com o código inteiro) resolve. */
+      displayUrl: verifyUrl(issue, shortCode),
+      lines: [
+        `Emitida em ${formatReportDate(issue.issuedAt)} por ${issue.issuedByName}`,
+        `Código de verificação: ${shortCode}`,
+      ],
+    },
   };
+}
 
-  return compileTypstDocument({
-    documentPath: 'documents/service-order.typ',
-    data,
-    creationTimestamp: issue.issuedAt,
-  });
+/** A solução só aparece quando alguém a escreveu — um título sem texto embaixo confunde. */
+function solutionBlocksOf(ticket: TicketWithComputer): DocumentBlock[] {
+  if (!ticket.solution) return [];
+
+  return [
+    { kind: 'heading', text: 'Solução' },
+    { kind: 'paragraph', text: ticket.solution },
+  ];
+}
+
+function entryOf(history: TicketHistory): DocumentEntry {
+  const attachments = history.attachments.map((attachment) => attachment.fileName).join(', ');
+
+  return {
+    badge: { text: ticketHistoryTypeLabel(history.type), tone: ticketHistoryTone(history.type) },
+    caption: `${history.authorName} · ${formatReportDate(new Date(history.createdAt))}`,
+    details: detailsOf(history),
+    body: history.description,
+    note: attachments ? `Anexos: ${attachments}` : undefined,
+  };
 }
 
 function verifyUrl(issue: ServiceOrderIssue, reference: string): string {
   return `${issue.webOrigin}${serviceOrderVerifyPath(reference)}`;
 }
 
-type Field = { label: string; value: string };
-
-function fieldsOf({ ticket, histories }: ServiceOrder): Field[] {
+function fieldsOf({ ticket, histories }: ServiceOrder): DocumentField[] {
   return [
     { label: 'Quem abriu', value: ticket.requesterName },
     { label: 'Telefone', value: ticket.contactPhone ?? EMPTY },

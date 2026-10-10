@@ -7,7 +7,11 @@
     "tsConfigPath": "tsconfig.build.json",
     "assets": [
       {
-        "include": "lib/report/typst/**/*",
+        "include": "lib/report/fonts/**/*",
+        "outDir": "dist"
+      },
+      {
+        "include": "lib/report/assets/**/*",
         "outDir": "dist"
       }
     ]

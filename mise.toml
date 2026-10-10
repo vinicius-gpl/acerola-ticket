@@ -7,7 +7,6 @@
 
 [tools]
 node = "24"
-typst = "0.15.1"
 
 [tasks."design:check"]
 description = "Regras de design (skills design-system e ui-standards) nos dois apps — só reprova o que é novo"
