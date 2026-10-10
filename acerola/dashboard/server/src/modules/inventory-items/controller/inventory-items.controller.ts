@@ -14,6 +14,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { INVENTORY_PHOTO_MAX_BYTES } from '@template/shared/domain/inventory-photo.util';
+import { uploadLimit } from '../../../lib/http/upload-limit.util';
+import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
   ApiBody,
   ApiConsumes,
@@ -122,7 +125,10 @@ export class InventoryItemsController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('photo'))
+  @UseInterceptors(
+    UploadTooLargeInterceptor,
+    FileInterceptor('photo', uploadLimit(INVENTORY_PHOTO_MAX_BYTES)),
+  )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Cadastra um produto no inventário',
@@ -144,7 +150,10 @@ export class InventoryItemsController {
   }
 
   @Patch(':id')
-  @UseInterceptors(FileInterceptor('photo'))
+  @UseInterceptors(
+    UploadTooLargeInterceptor,
+    FileInterceptor('photo', uploadLimit(INVENTORY_PHOTO_MAX_BYTES)),
+  )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Altera um produto do inventário',

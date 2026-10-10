@@ -14,6 +14,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { TICKET_UPLOAD_MAX_BYTES, uploadLimit } from '../../../lib/http/upload-limit.util';
+import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
   ApiBody,
   ApiConsumes,
@@ -84,10 +86,14 @@ export class TicketsController {
   @Post()
   @Public()
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'screenshot', maxCount: 1 },
-      { name: 'attachments', maxCount: MAX_ATTACHMENTS_PER_REQUEST },
-    ]),
+    UploadTooLargeInterceptor,
+    FileFieldsInterceptor(
+      [
+        { name: 'screenshot', maxCount: 1 },
+        { name: 'attachments', maxCount: MAX_ATTACHMENTS_PER_REQUEST },
+      ],
+      uploadLimit(TICKET_UPLOAD_MAX_BYTES),
+    ),
   )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({

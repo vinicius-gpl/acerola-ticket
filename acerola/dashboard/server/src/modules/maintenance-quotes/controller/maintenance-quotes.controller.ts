@@ -14,6 +14,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { QUOTE_ATTACHMENT_MAX_BYTES } from '@template/shared/domain/maintenance-quote.util';
+import { uploadLimit } from '../../../lib/http/upload-limit.util';
+import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
   ApiBody,
   ApiConsumes,
@@ -81,7 +84,10 @@ export class MaintenanceQuotesController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('attachment'))
+  @UseInterceptors(
+    UploadTooLargeInterceptor,
+    FileInterceptor('attachment', uploadLimit(QUOTE_ATTACHMENT_MAX_BYTES)),
+  )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Guarda um orçamento feito com uma empresa de fora',
@@ -103,7 +109,10 @@ export class MaintenanceQuotesController {
   }
 
   @Patch(':id')
-  @UseInterceptors(FileInterceptor('attachment'))
+  @UseInterceptors(
+    UploadTooLargeInterceptor,
+    FileInterceptor('attachment', uploadLimit(QUOTE_ATTACHMENT_MAX_BYTES)),
+  )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Altera um orçamento da Manutenção',
