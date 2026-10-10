@@ -223,6 +223,10 @@ Uma imagem só: o Nest serve `/api` **e** a tela na mesma porta. O banco (Neon) 
 (R2) são remotos, então não há volume de dados — o container precisa só das variáveis do
 `server/.env` (`DATABASE_URL`, `R2_*`) para subir.
 
+Em produção o container fica atrás de um proxy (Traefik, Caddy ou nginx), e parte da proteção é
+configurada nele — tamanho máximo de upload, limite das rotas públicas, `API_TRUST_PROXY_HOPS`.
+Os exemplos prontos estão em [`acerola/dashboard/docs/reverse-proxy.md`](acerola/dashboard/docs/reverse-proxy.md).
+
 ---
 
 ## Autenticação e autorização
