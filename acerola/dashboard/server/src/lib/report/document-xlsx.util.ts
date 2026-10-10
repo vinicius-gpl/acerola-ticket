@@ -1,5 +1,6 @@
 import ExcelJS, { type Cell, type Worksheet } from 'exceljs';
 
+import { BRAND_LOGO, brandLogoWidth } from './document-brand.util';
 import {
   DOCUMENT_FONT_NAME,
   DOCUMENT_PALETTE,
@@ -46,7 +47,11 @@ const WIDTH_SAMPLE_SIZE = 200;
 const LABEL_COLUMN_WIDTH = 26;
 const TEXT_COLUMN_WIDTH = 40;
 
-const TITLE_ROW_HEIGHT = 30;
+const TITLE_ROW_HEIGHT = 48;
+/* A logo, em pixels, e o quanto ela se afasta do canto da célula (em fração de célula) — cabe
+   dentro da linha do título com uma folga em cima e embaixo. */
+const BRAND_LOGO_HEIGHT = 54;
+const BRAND_LOGO_OFFSET = 0.08;
 const HEADER_ROW_HEIGHT = 22;
 const DATA_ROW_HEIGHT = 20;
 const TEXT_LINE_HEIGHT = 15;
@@ -125,15 +130,26 @@ function measuredWidth(header: string, rows: DocumentCell[][], columnIndex: numb
   return Math.min(Math.max(width, MIN_COLUMN_WIDTH), MAX_COLUMN_WIDTH);
 }
 
+/**
+ * O topo da planilha: a logo no canto, o título centralizado na cor principal do tema e um fio
+ * da mesma cor embaixo — o mesmo cabeçalho do PDF e do Word. O fundo é branco de propósito: a
+ * logo é colorida, e sobre uma faixa cheia ela perderia o contorno.
+ */
 function writeTitle(cursor: SheetCursor, definition: DocumentDefinition): void {
   writeMergedRow(cursor, TITLE_ROW, definition.title, {
     bold: true,
     size: 16,
-    color: DOCUMENT_PALETTE.primaryForeground,
-    fill: DOCUMENT_PALETTE.primary,
+    color: DOCUMENT_PALETTE.primary,
     horizontal: 'center',
   });
-  cursor.sheet.getRow(TITLE_ROW).height = TITLE_ROW_HEIGHT;
+  const titleRow = cursor.sheet.getRow(TITLE_ROW);
+  titleRow.height = TITLE_ROW_HEIGHT;
+  for (let column = 1; column <= cursor.columnCount; column += 1) {
+    titleRow.getCell(column).border = {
+      bottom: { style: 'medium', color: { argb: excelColor(DOCUMENT_PALETTE.primary) } },
+    };
+  }
+  writeBrandLogo(cursor);
 
   if (!definition.subtitle) return;
 
@@ -142,6 +158,22 @@ function writeTitle(cursor: SheetCursor, definition: DocumentDefinition): void {
     size: 10,
     color: DOCUMENT_PALETTE.subtext,
     horizontal: 'center',
+  });
+}
+
+/** A logo flutua sobre o canto da linha do título — imagem em planilha não mora dentro de célula. */
+function writeBrandLogo(cursor: SheetCursor): void {
+  /* `Buffer` deste projeto e o `Buffer` que o ExcelJS espera vêm de versões diferentes de
+     `@types/node` — o mesmo valor em tempo de execução, o TypeScript é que enxerga dois tipos. */
+  const imageId = cursor.sheet.workbook.addImage({
+    buffer: BRAND_LOGO as unknown as ExcelJS.Buffer,
+    extension: 'png',
+  });
+
+  cursor.sheet.addImage(imageId, {
+    tl: { col: BRAND_LOGO_OFFSET, row: BRAND_LOGO_OFFSET },
+    ext: { width: brandLogoWidth(BRAND_LOGO_HEIGHT), height: BRAND_LOGO_HEIGHT },
+    editAs: 'oneCell',
   });
 }
 

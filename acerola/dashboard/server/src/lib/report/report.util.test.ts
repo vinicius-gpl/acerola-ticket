@@ -129,13 +129,26 @@ describe('buildReport — xlsx', () => {
     expect(goodFill.fgColor?.argb).toBe(excelColor(DOCUMENT_TONE_SOFT_COLORS.success.fill));
   });
 
-  it('uses the brand color on the title, centered', async () => {
+  it('writes the title in the brand color, centered', async () => {
     const sheet = await loadSheet(await buildReport(request()));
     const titleCell = sheet?.getRow(TITLE_ROW).getCell(1);
 
-    const titleFill = titleCell?.fill as ExcelJS.FillPattern;
-    expect(titleFill.fgColor?.argb).toBe(excelColor(DOCUMENT_PALETTE.primary));
+    expect(titleCell?.font?.color?.argb).toBe(excelColor(DOCUMENT_PALETTE.primary));
     expect(titleCell?.alignment?.horizontal).toBe('center');
+  });
+
+  it('draws a line in the theme color under the title', async () => {
+    const sheet = await loadSheet(await buildReport(request()));
+    const underline = sheet?.getRow(TITLE_ROW).getCell(1).border?.bottom;
+
+    expect(underline?.color?.argb).toBe(excelColor(DOCUMENT_PALETTE.primary));
+  });
+
+  it('paints the table header with the brand color', async () => {
+    const sheet = await loadSheet(await buildReport(request()));
+
+    const headerFill = sheet?.getRow(HEADER_ROW).getCell(1).fill as ExcelJS.FillPattern;
+    expect(headerFill.fgColor?.argb).toBe(excelColor(DOCUMENT_PALETTE.primary));
   });
 
   it('uses the document font on the title, the header and the rows', async () => {
