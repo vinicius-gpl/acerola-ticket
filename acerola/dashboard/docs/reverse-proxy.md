@@ -115,11 +115,11 @@ chamados.exemplo.com {
 	}
 
 	# A documentação da API só abre para a rede interna.
-	@docs path /docs /docs/* /docs-json
-	@outside not remote_ip 10.0.0.0/8 192.168.0.0/16
-	handle @docs {
-		respond @outside 403
+	@docsFromOutside {
+		path /docs /docs/* /docs-json
+		not remote_ip 10.0.0.0/8 192.168.0.0/16
 	}
+	respond @docsFromOutside 403
 
 	# As duas rotas públicas: 10 por minuto por IP.
 	@openTicket {
@@ -148,12 +148,19 @@ chamados.exemplo.com {
 
 ## nginx
 
-O certificado fica por sua conta (Certbot, por exemplo). As duas linhas `limit_req_zone` e o bloco
+O certificado fica por sua conta (Certbot, por exemplo). As linhas `limit_req_zone` e os blocos
 `map` vão no contexto `http`, fora do `server`.
 
 ```nginx
+# Abrir chamado e listar chamados usam o MESMO caminho (/api/tickets): o POST é público, o GET
+# exige login. A chave fica vazia para tudo que não é POST, e o nginx não limita chave vazia.
+map $request_method $acerola_open_key {
+    POST    $binary_remote_addr;
+    default '';
+}
+
 # 10 por minuto por IP, um balde para cada rota pública.
-limit_req_zone $binary_remote_addr zone=acerola_open:10m rate=10r/m;
+limit_req_zone $acerola_open_key zone=acerola_open:10m rate=10r/m;
 limit_req_zone $binary_remote_addr zone=acerola_lookup:10m rate=10r/m;
 
 # Para o WebSocket do agente.
@@ -180,12 +187,9 @@ server {
     proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
 
-    # Abrir chamado. A lista de chamados (GET) usa o mesmo caminho e exige login: só o POST,
-    # que é público, entra no limite.
+    # Abrir chamado. Só o POST entra no limite (ver o `map` lá em cima).
     location = /api/tickets {
-        limit_except GET HEAD OPTIONS {
-            limit_req zone=acerola_open burst=5 nodelay;
-        }
+        limit_req zone=acerola_open burst=5 nodelay;
         proxy_pass http://app:3005;
     }
 
