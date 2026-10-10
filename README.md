@@ -177,8 +177,9 @@ desenvolvimento: sem `DATABASE_URL` no `.env`, o server recusa subir.
 
 ## Comandos
 
-Os PDFs dependem do compilador Typst 0.15.1, configurado nos `mise.toml` da raiz e do
-painel. Instale as ferramentas e inicie o servidor com o ambiente do mise:
+Os documentos (PDF, Word e Excel) são gerados por bibliotecas do próprio projeto — `pdfmake`,
+`docx` e `exceljs` —, instaladas pelo `npm install`: nenhum programa à parte é necessário.
+Instale as ferramentas e inicie o servidor com o ambiente do mise:
 
 ```bash
 mise install
@@ -208,9 +209,9 @@ Todos rodam dentro de `acerola/dashboard/`:
 
 ### Docker
 
-A imagem final inclui o executável Typst 0.15.1 e os templates, fontes e imagens copiados
-pelo build do Nest. O host Docker não precisa de uma instalação separada do Typst.
-O build verifica `typst --version` para falhar antes do deploy se o binário não executar.
+A imagem final inclui as fontes e a logo dos documentos, copiadas pelo build do Nest. O
+`dockerfile` ainda traz o executável do Typst, de quando os PDFs eram compilados por ele: o
+sistema não o usa mais, e a remoção é de quem administra o projeto (o arquivo é protegido).
 
 
 ```bash
