@@ -9,6 +9,7 @@ import {
   type TDocumentDefinitions,
 } from 'pdfmake/interfaces';
 
+import { BRAND_LOGO_PATH, brandLogoWidth } from './document-brand.util';
 import {
   DOCUMENT_PALETTE,
   DOCUMENT_TONE_COLORS,
@@ -25,15 +26,14 @@ import {
   type DocumentVerification,
 } from './document.type';
 
-/* As fontes e a logo moram ao lado deste arquivo — o build do Nest as copia para o `dist`
-   (ver `assets` em nest-cli.json), então o mesmo caminho vale em desenvolvimento e em produção. */
+/* As fontes moram ao lado deste arquivo — o build do Nest as copia para o `dist` (ver `assets`
+   em nest-cli.json), então o mesmo caminho vale em desenvolvimento e em produção. */
 const FONTS_DIRECTORY = join(__dirname, 'fonts');
-const BRAND_IMAGE_PATH = join(__dirname, 'assets', 'brand.png');
 const FONT_FAMILY = 'LiberationSansNarrow';
 
 const PAGE_MARGIN = 36;
 const FOOTER_HEIGHT = 44;
-const BRAND_WIDTH = 96;
+const BRAND_LOGO_HEIGHT = 46;
 const QR_CODE_SIZE = 56;
 const FIELDS_PER_ROW = 2;
 
@@ -96,22 +96,27 @@ function drawHeader(definition: DocumentDefinition): Content {
   return {
     margin: [0, 0, 0, 12],
     table: {
-      widths: [BRAND_WIDTH, '*'],
-      body: [
-        [
-          { image: BRAND_IMAGE_PATH, width: BRAND_WIDTH },
-          { stack: titleLines, alignment: 'right', margin: [0, 10, 0, 0] },
-        ],
-      ],
+      widths: ['auto', '*'],
+      body: [[drawBrand(), { stack: titleLines, alignment: 'right', margin: [0, 10, 0, 0] }]],
     },
-    /* Só a linha de baixo, na cor da marca: separa o cabeçalho do corpo. */
+    /* Só o fio de baixo, na cor principal do tema: separa o cabeçalho do corpo. */
     layout: {
       hLineWidth: (index) => (index === 1 ? 1.5 : 0),
       vLineWidth: () => 0,
       hLineColor: () => COLOR.primary,
       paddingLeft: () => 0,
       paddingRight: () => 0,
+      paddingBottom: () => 8,
     },
+  };
+}
+
+/** A assinatura da marca: só a logo, sem nome ao lado. */
+function drawBrand(): TableCell {
+  return {
+    image: BRAND_LOGO_PATH,
+    width: brandLogoWidth(BRAND_LOGO_HEIGHT),
+    height: BRAND_LOGO_HEIGHT,
   };
 }
 

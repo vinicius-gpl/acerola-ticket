@@ -4,6 +4,7 @@ import {
   Document,
   ExternalHyperlink,
   Footer,
+  ImageRun,
   type ISectionOptions,
   Packer,
   PageNumber,
@@ -14,8 +15,11 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  VerticalAlignTable,
   WidthType,
 } from 'docx';
+
+import { BRAND_LOGO, BRAND_NAME, brandLogoWidth } from './document-brand.util';
 
 import {
   DOCUMENT_FONT_NAME,
@@ -39,8 +43,21 @@ const FULL_WIDTH_PERCENT = 100;
 const LABEL_WIDTH_PERCENT = 28;
 const VALUE_WIDTH_PERCENT = 72;
 const BADGE_SEPARATOR = '   ·   ';
+const BRAND_WIDTH_PERCENT = 25;
+const TITLE_WIDTH_PERCENT = 75;
+/* A altura da logo, em pixels — a unidade que a biblioteca pede para imagem. */
+const BRAND_LOGO_HEIGHT = 64;
 
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: DOCUMENT_PALETTE.background };
+/* O fio de baixo do cabeçalho, na cor principal do tema. Vai declarado na tabela E nas células:
+   o Word obedece à célula, o LibreOffice obedece à tabela. */
+const HEADER_UNDERLINE = { style: BorderStyle.SINGLE, size: 12, color: DOCUMENT_PALETTE.primary };
+const HEADER_CELL_BORDERS = {
+  top: NO_BORDER,
+  left: NO_BORDER,
+  right: NO_BORDER,
+  bottom: HEADER_UNDERLINE,
+};
 const NO_BORDERS = {
   top: NO_BORDER,
   bottom: NO_BORDER,
@@ -62,7 +79,7 @@ export async function renderDocxDocument(definition: DocumentDefinition): Promis
     properties: { page: { size: { orientation: pageOrientationOf(definition) } } },
     footers: { default: writeFooter(definition.reference) },
     children: [
-      ...writeTitle(definition.title, definition.subtitle),
+      ...writeHeader(definition.title, definition.subtitle),
       ...definition.blocks.flatMap(writeBlock),
       ...(definition.verification ? writeVerification(definition.verification) : []),
     ],
@@ -88,11 +105,54 @@ function writeFooter(reference: string): Footer {
     children: [
       new Paragraph({
         alignment: AlignmentType.RIGHT,
+        /* Um trecho por pedaço, cada um com o seu tamanho: num trecho só, o número da página
+           (que é um campo calculado) saía no tamanho padrão, maior que o texto em volta. */
         children: [
-          new TextRun({
-            children: [`${reference} · Página `, PageNumber.CURRENT, ' de ', PageNumber.TOTAL_PAGES],
-            size: 16,
-            color: DOCUMENT_PALETTE.subtext,
+          writeFooterRun(`${reference} · Página `),
+          writeFooterRun(PageNumber.CURRENT),
+          writeFooterRun(' de '),
+          writeFooterRun(PageNumber.TOTAL_PAGES),
+        ],
+      }),
+    ],
+  });
+}
+
+function writeFooterRun(content: string): TextRun {
+  return new TextRun({ children: [content], size: 16, color: DOCUMENT_PALETTE.subtext });
+}
+
+/**
+ * O topo do documento, igual ao do PDF: a logo à esquerda, o título à direita, e um fio na
+ * cor principal embaixo. É uma tabela sem contorno — o jeito de pôr duas coisas
+ * lado a lado no Word sem que a pessoa as desalinhe ao editar.
+ */
+function writeHeader(title: string, subtitle: string | undefined): DocxChild[] {
+  return [
+    new Table({
+      width: { size: FULL_WIDTH_PERCENT, type: WidthType.PERCENTAGE },
+      borders: { ...NO_BORDERS, bottom: HEADER_UNDERLINE },
+      rows: [new TableRow({ children: [writeBrandCell(), writeTitleCell(title, subtitle)] })],
+    }),
+    /* Um respiro entre o cabeçalho e o primeiro bloco. */
+    new Paragraph({ spacing: { after: 160 } }),
+  ];
+}
+
+function writeBrandCell(): TableCell {
+  return new TableCell({
+    width: { size: BRAND_WIDTH_PERCENT, type: WidthType.PERCENTAGE },
+    borders: HEADER_CELL_BORDERS,
+    verticalAlign: VerticalAlignTable.CENTER,
+    children: [
+      new Paragraph({
+        spacing: { after: 80 },
+        children: [
+          new ImageRun({
+            type: 'png',
+            data: BRAND_LOGO,
+            transformation: { width: brandLogoWidth(BRAND_LOGO_HEIGHT), height: BRAND_LOGO_HEIGHT },
+            altText: { name: BRAND_NAME, title: BRAND_NAME, description: `Logo ${BRAND_NAME}` },
           }),
         ],
       }),
@@ -100,22 +160,32 @@ function writeFooter(reference: string): Footer {
   });
 }
 
-function writeTitle(title: string, subtitle: string | undefined): Paragraph[] {
-  const heading = new Paragraph({
-    children: [new TextRun({ text: title, bold: true, size: 40, color: DOCUMENT_PALETTE.primary })],
-    spacing: { after: subtitle ? 60 : 240 },
-  });
-  if (!subtitle) return [heading];
-
-  return [
-    heading,
+function writeTitleCell(title: string, subtitle: string | undefined): TableCell {
+  const paragraphs = [
     new Paragraph({
-      children: [
-        new TextRun({ text: subtitle, italics: true, size: 18, color: DOCUMENT_PALETTE.subtext }),
-      ],
-      spacing: { after: 240 },
+      alignment: AlignmentType.RIGHT,
+      spacing: { after: subtitle ? 40 : 80 },
+      children: [new TextRun({ text: title, bold: true, size: 36, color: DOCUMENT_PALETTE.primary })],
     }),
   ];
+  if (subtitle) {
+    paragraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        spacing: { after: 80 },
+        children: [
+          new TextRun({ text: subtitle, italics: true, size: 18, color: DOCUMENT_PALETTE.subtext }),
+        ],
+      }),
+    );
+  }
+
+  return new TableCell({
+    width: { size: TITLE_WIDTH_PERCENT, type: WidthType.PERCENTAGE },
+    borders: HEADER_CELL_BORDERS,
+    verticalAlign: VerticalAlignTable.CENTER,
+    children: paragraphs,
+  });
 }
 
 function writeBlock(block: DocumentBlock): DocxChild[] {

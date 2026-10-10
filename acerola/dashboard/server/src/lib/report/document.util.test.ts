@@ -102,6 +102,19 @@ describe('buildDocument', () => {
     expect(xlsx.buffer.subarray(0, 2).toString('ascii')).toBe('PK');
   });
 
+  /* A logo vai embutida nos TRÊS arquivos — é ela que assina o documento. Cada formato guarda
+     a imagem do seu jeito: o PDF como objeto de imagem, o Word e o Excel numa pasta `media`
+     dentro do zip (o nome da pasta fica em texto puro no arquivo). */
+  it('carries the brand logo inside the three files', async () => {
+    const pdf = await buildDocument(definition(), 'pdf', 'documento');
+    const docx = await buildDocument(definition(), 'docx', 'documento');
+    const xlsx = await buildDocument(definition(), 'xlsx', 'documento');
+
+    expect(pdf.buffer.toString('latin1')).toMatch(/\/Subtype\s*\/Image/);
+    expect(docx.buffer.toString('latin1')).toContain('word/media/');
+    expect(xlsx.buffer.toString('latin1')).toContain('xl/media/');
+  });
+
   it('writes in the spreadsheet what the definition says, block after block', async () => {
     const xlsx = await buildDocument(definition(), 'xlsx', 'documento');
     const texts = await sheetTexts(xlsx.buffer);
@@ -145,6 +158,17 @@ describe('buildDocument', () => {
     const after = await buildDocument(definition({ subtitle: 'Outro subtítulo' }), 'pdf', 'documento');
 
     expect(fingerprint(after.buffer)).not.toBe(fingerprint(before.buffer));
+  });
+
+  /* Um documento sem bloco nenhum ainda é um documento da casa: a logo não depende do conteúdo. */
+  it('still signs with the logo a document with no blocks at all', async () => {
+    const bare = definition({ blocks: [], verification: undefined });
+
+    const docx = await buildDocument(bare, 'docx', 'vazio');
+    const xlsx = await buildDocument(bare, 'xlsx', 'vazio');
+
+    expect(docx.buffer.toString('latin1')).toContain('word/media/');
+    expect(xlsx.buffer.toString('latin1')).toContain('xl/media/');
   });
 
   it('still builds the three files for a document with nothing in it', async () => {
