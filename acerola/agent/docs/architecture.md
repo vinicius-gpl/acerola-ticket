@@ -242,6 +242,24 @@ não protegia nada de verdade; tirá-la resolve o problema de import sem perder 
 não tem esse problema — o `//go:embed all:svelte/dist` em `main.go` aponta direto pro build do
 Vite.
 
+## Rodar no Linux (desenvolvimento)
+
+O agente é feito para o Windows, mas compila e roda no Linux para quem desenvolve nele:
+`mise run setup` (instala o GTK 3 e o WebKitGTK, pede a senha de administrador) e
+`mise run dev`. Tudo que fala com a API do Windows mora em arquivos `*_windows.go`, e cada um
+tem um par `*_other.go` (`//go:build !windows`) com o que o Linux consegue fazer:
+
+| Onde | No Windows | Fora dele |
+|---|---|---|
+| `app_windows.go` / `app_other.go` | posiciona pela API nativa, em qualquer monitor | posiciona pelo Wails, na tela atual; **abre o Dashboard ao iniciar** |
+| `src-go/memory` | `EmptyWorkingSet` no processo e nos filhos do WebView2 | só o coletor de lixo do Go |
+| `src-go/tray` | ícone `.ico`, libera o foco no clique | ícone `.png` |
+| `src-go/screen`, `src-go/window` | área útil, cantos arredondados | só o tipo `Area` e o nome da classe |
+
+Limites conhecidos no Linux: o GNOME não mostra ícone de bandeja sem a extensão
+*AppIndicator* (por isso o Dashboard abre sozinho — fechou, só reiniciando o `mise run dev`), e
+no Wayland o sistema ignora o pedido de posição: a janela aparece onde ele decidir.
+
 ## Segurança e escopo desta fase
 
 - Nenhum dado sai da máquina. Não há cliente HTTP de saída, não há token, não há telemetria — e,

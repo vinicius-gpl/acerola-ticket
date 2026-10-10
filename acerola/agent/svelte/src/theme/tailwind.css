@@ -149,6 +149,18 @@
 	}
 }
 
+/* No Linux a janela nativa é transparente (ver main.go, WindowIsTranslucent)
+   e não há sistema arredondando os cantos por nós, como faz o Windows 11:
+   o fundo sai do body e vai para o #app, que é quem ganha o canto. */
+html[data-platform='linux'] body {
+	background: transparent;
+}
+
+html[data-platform='linux'] #app {
+	background: var(--background);
+	border-radius: var(--radius-box);
+}
+
 /* A janela é frameless (sem chrome nativo); estes elementos viram a "barra de
    título" arrastável. O Wails lê essa propriedade CSS, não um atributo HTML
    (diferente do data-tauri-drag-region do projeto de referência). */

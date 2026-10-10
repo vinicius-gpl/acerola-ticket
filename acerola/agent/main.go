@@ -10,6 +10,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/window"
@@ -58,6 +59,7 @@ func main() {
 		BackgroundColour:  &options.RGBA{R: 30, G: 30, B: 46, A: 1}, // catppuccin mocha --base
 		AssetServer:       &assetserver.Options{Assets: assets},
 		OnStartup:         agentApp.startup,
+		OnDomReady:        agentApp.domReady,
 		Bind:              []interface{}{agentApp},
 		Windows: &windows.Options{
 			WebviewGpuIsDisabled: true,
@@ -65,6 +67,13 @@ func main() {
 			// ele que o pacote src-go/window encontra o handle da janela
 			// nativa, que o Wails não expõe (ver window.ClassName).
 			WindowClassName: window.ClassName,
+		},
+		Linux: &linux.Options{
+			// No Linux ninguém arredonda a janela por nós (no Windows 11 é o
+			// próprio sistema): a janela nasce transparente e quem desenha
+			// o canto arredondado é a página (ver tailwind.css,
+			// data-platform='linux').
+			WindowIsTranslucent: true,
 		},
 	})
 	if runError != nil {
