@@ -1,9 +1,15 @@
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 
-import { excelColor, REPORT_PALETTE, REPORT_TONE_SOFT_COLORS } from './report-palette.util';
-import { type ReportRequest } from './report.types';
-import { buildReport } from './report.util';
+import {
+  DOCUMENT_FONT_NAME,
+  DOCUMENT_PALETTE,
+  DOCUMENT_TONE_SOFT_COLORS,
+  excelColor,
+} from './document-palette.util';
+import { type BuiltDocument } from './document.type';
+import { type ReportRequest } from './report.type';
+import { buildReport, formatReportDate, reportDocument, reportSubtitle } from './report.util';
 
 type Row = { name: string; department: string; status: 'Crítica' | 'Boa' };
 
@@ -14,13 +20,13 @@ const SUBTITLE_ROW = 2;
 const HEADER_ROW = 4;
 const FIRST_DATA_ROW = 5;
 
-async function loadWorkbook(report: Awaited<ReturnType<typeof buildReport<Row>>>) {
+async function loadSheet(report: BuiltDocument) {
   const workbook = new ExcelJS.Workbook();
   /* `Buffer` deste projeto e o `Buffer` que o ExcelJS espera vêm de versões diferentes de
      `@types/node` — o mesmo valor em tempo de execução, o TypeScript é que enxerga dois tipos. */
   await workbook.xlsx.load(report.buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
 
-  return workbook;
+  return workbook.worksheets[0];
 }
 
 function request(overrides: Partial<ReportRequest<Row>> = {}): ReportRequest<Row> {
@@ -46,9 +52,55 @@ function request(overrides: Partial<ReportRequest<Row>> = {}): ReportRequest<Row
   };
 }
 
+/** O total de páginas, lido de dentro do PDF — não tem biblioteca leitora instalada, mas o
+ * dicionário `/Pages` sempre guarda a contagem em texto puro. */
+function pdfPageCount(buffer: Buffer): number {
+  const match = /\/Type\s*\/Pages[\s\S]{0,80}?\/Count\s+(\d+)/.exec(buffer.toString('latin1'));
+
+  return match ? Number(match[1]) : 0;
+}
+
+describe('reportDocument', () => {
+  // feliz
+  it('turns the list into one landscape table, cell by cell', () => {
+    const definition = reportDocument(request());
+
+    expect(definition.orientation).toBe('landscape');
+    expect(definition.blocks).toEqual([
+      {
+        kind: 'table',
+        headers: ['Máquina', 'Departamento', 'Saúde'],
+        rows: [
+          [
+            { text: 'RECEPCAO-01', tone: undefined },
+            { text: 'RECEPÇÃO', tone: undefined },
+            { text: 'Crítica', tone: 'danger' },
+          ],
+          [
+            { text: 'FISCAL-03', tone: undefined },
+            { text: 'FISCAL', tone: undefined },
+            { text: 'Boa', tone: 'success' },
+          ],
+        ],
+        titleColumnIndex: 0,
+        emptyText: 'Nenhum registro encontrado com esse filtro.',
+      },
+    ]);
+  });
+
+  // triste
+  it('leaves the title column out when no column identifies the row', () => {
+    const definition = reportDocument(
+      request({ columns: [{ header: 'Departamento', value: (row) => row.department }] }),
+    );
+
+    expect(definition.blocks[0]).toMatchObject({ kind: 'table', titleColumnIndex: undefined });
+  });
+});
+
 describe('buildReport — xlsx', () => {
   // feliz
-  it('monta o título, o subtítulo, o cabeçalho e as linhas, nessa ordem', async () => {
+  it('writes the title, the subtitle, the header and the rows, in this order', async () => {
     const report = await buildReport(request());
 
     expect(report.fileName).toBe('inventario.xlsx');
@@ -56,7 +108,7 @@ describe('buildReport — xlsx', () => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
 
-    const sheet = (await loadWorkbook(report)).worksheets[0];
+    const sheet = await loadSheet(report);
 
     expect(sheet?.getRow(TITLE_ROW).getCell(1).text).toBe('Computadores');
     expect(sheet?.getRow(SUBTITLE_ROW).getCell(1).text).toBe(
@@ -67,49 +119,54 @@ describe('buildReport — xlsx', () => {
     expect(sheet?.getRow(FIRST_DATA_ROW + 1).getCell(2).text).toBe('FISCAL');
   });
 
-  it('pinta a etiqueta da situação com a mesma cor suave do selo da tela', async () => {
-    const report = await buildReport(request());
-    const sheet = (await loadWorkbook(report)).worksheets[0];
+  it('paints the status label with the same soft color as the badge on screen', async () => {
+    const sheet = await loadSheet(await buildReport(request()));
 
     const criticalFill = sheet?.getRow(FIRST_DATA_ROW).getCell(3).fill as ExcelJS.FillPattern;
-    expect(criticalFill.fgColor?.argb).toBe(excelColor(REPORT_TONE_SOFT_COLORS.danger.fill));
+    expect(criticalFill.fgColor?.argb).toBe(excelColor(DOCUMENT_TONE_SOFT_COLORS.danger.fill));
 
     const goodFill = sheet?.getRow(FIRST_DATA_ROW + 1).getCell(3).fill as ExcelJS.FillPattern;
-    expect(goodFill.fgColor?.argb).toBe(excelColor(REPORT_TONE_SOFT_COLORS.success.fill));
+    expect(goodFill.fgColor?.argb).toBe(excelColor(DOCUMENT_TONE_SOFT_COLORS.success.fill));
   });
 
-  it('usa a cor da marca no título, centralizado', async () => {
-    const report = await buildReport(request());
-    const sheet = (await loadWorkbook(report)).worksheets[0];
+  it('uses the brand color on the title, centered', async () => {
+    const sheet = await loadSheet(await buildReport(request()));
     const titleCell = sheet?.getRow(TITLE_ROW).getCell(1);
 
     const titleFill = titleCell?.fill as ExcelJS.FillPattern;
-    expect(titleFill.fgColor?.argb).toBe(excelColor(REPORT_PALETTE.primary));
+    expect(titleFill.fgColor?.argb).toBe(excelColor(DOCUMENT_PALETTE.primary));
     expect(titleCell?.alignment?.horizontal).toBe('center');
   });
 
-  it('usa Arial Narrow no título, no cabeçalho e nos dados', async () => {
-    const report = await buildReport(request());
-    const sheet = (await loadWorkbook(report)).worksheets[0];
+  it('uses the document font on the title, the header and the rows', async () => {
+    const sheet = await loadSheet(await buildReport(request()));
+    const fontNames = [TITLE_ROW, HEADER_ROW, FIRST_DATA_ROW].map(
+      (row) => sheet?.getRow(row).getCell(1).font?.name,
+    );
 
-    expect(sheet?.getRow(TITLE_ROW).getCell(1).font?.name).toBe('Arial Narrow');
-    expect(sheet?.getRow(HEADER_ROW).getCell(1).font?.name).toBe('Arial Narrow');
-    expect(sheet?.getRow(FIRST_DATA_ROW).getCell(1).font?.name).toBe('Arial Narrow');
+    expect(fontNames).toEqual([DOCUMENT_FONT_NAME, DOCUMENT_FONT_NAME, DOCUMENT_FONT_NAME]);
+  });
+
+  it('keeps the header in sight while the list scrolls', async () => {
+    const sheet = await loadSheet(await buildReport(request()));
+
+    expect(sheet?.views[0]).toMatchObject({ state: 'frozen', ySplit: HEADER_ROW });
   });
 
   // triste
-  it('gera um arquivo válido mesmo sem nenhuma linha', async () => {
-    const report = await buildReport(request({ rows: [] }));
-    const sheet = (await loadWorkbook(report)).worksheets[0];
+  it('still writes the header, and says so, when no row matched the filter', async () => {
+    const sheet = await loadSheet(await buildReport(request({ rows: [] })));
 
     expect(sheet?.getRow(HEADER_ROW).getCell(1).text).toBe('Máquina');
-    expect(sheet?.rowCount).toBe(HEADER_ROW);
+    expect(sheet?.getRow(FIRST_DATA_ROW).getCell(1).text).toBe(
+      'Nenhum registro encontrado com esse filtro.',
+    );
   });
 });
 
 describe('buildReport — docx', () => {
   // feliz
-  it('monta um Word válido, com o nome e o tipo certos', async () => {
+  it('builds a valid Word file, with the right name and type', async () => {
     const report = await buildReport(request({ format: 'docx' }));
 
     expect(report.fileName).toBe('inventario.docx');
@@ -121,24 +178,26 @@ describe('buildReport — docx', () => {
   });
 
   // triste
-  it('gera um arquivo válido mesmo sem nenhuma linha', async () => {
+  it('builds a valid file even with no rows', async () => {
     const report = await buildReport(request({ format: 'docx', rows: [] }));
 
-    expect(report.buffer.length).toBeGreaterThan(0);
+    expect(report.buffer.subarray(0, 2).toString('ascii')).toBe('PK');
+  });
+
+  /* O Word recusa uma tabela sem linhas: uma lista cuja única coluna é a do título (a que
+     vira a faixa da ficha) não sobra com campo nenhum, e não pode derrubar a exportação. */
+  it('builds a valid file when the only column is the one that titles each record', async () => {
+    const report = await buildReport(
+      request({ format: 'docx', columns: [{ header: 'Máquina', value: (row) => row.name, isTitle: true }] }),
+    );
+
+    expect(report.buffer.subarray(0, 2).toString('ascii')).toBe('PK');
   });
 });
 
-/** O total de páginas, lido de dentro do PDF — não tem biblioteca leitora instalada, mas o
- * dicionário `/Pages` sempre guarda a contagem em texto puro. */
-function pdfPageCount(buffer: Buffer): number {
-  const match = /\/Type\s*\/Pages[\s\S]{0,80}?\/Count\s+(\d+)/.exec(buffer.toString('latin1'));
-
-  return match ? Number(match[1]) : 0;
-}
-
 describe('buildReport — pdf', () => {
   // feliz
-  it('monta um PDF válido, com o nome e o tipo certos', async () => {
+  it('builds a valid PDF, with the right name and type', async () => {
     const report = await buildReport(request({ format: 'pdf' }));
 
     expect(report.fileName).toBe('inventario.pdf');
@@ -146,19 +205,17 @@ describe('buildReport — pdf', () => {
     expect(report.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
   });
 
-  /* Bug real: escrever "Página X de Y" dentro da margem inferior fazia o pdfkit abrir uma
-     página extra, em branco, só para caber o rodapé — um relatório de 3 linhas saía com 2
-     páginas, a segunda vazia. */
-  it('não abre uma página extra em branco só para caber o rodapé', async () => {
+  /* O rodapé com "Página X de Y" mora na margem de baixo: um relatório curto não pode ganhar
+     uma segunda página, em branco, só por causa dele. */
+  it('does not open a blank extra page just to fit the footer', async () => {
     const report = await buildReport(request({ format: 'pdf' }));
 
     expect(pdfPageCount(report.buffer)).toBe(1);
   });
 
-  /* Bug real: com colunas estreitas, um título de coluna comprido ("Nome técnico") quebra em
-     duas linhas — e a faixa escura do cabeçalho tinha altura fixa de uma linha só, então a
-     segunda linha vazava para fora dela, por cima da primeira linha de dados. */
-  it('cresce a faixa do cabeçalho para caber um título de coluna que quebra em duas linhas', async () => {
+  /* Com colunas estreitas, um título de coluna comprido quebra em duas linhas — a faixa do
+     cabeçalho cresce junto, em vez de vazar por cima da primeira linha de dados. */
+  it('fits a long column title that wraps in a narrow column', async () => {
     const manyColumns: ReportRequest<Row>['columns'] = Array.from({ length: 10 }, (_, index) => ({
       header: index === 3 ? 'Um título de coluna bem comprido' : `Coluna ${index}`,
       value: () => 'x',
@@ -166,12 +223,11 @@ describe('buildReport — pdf', () => {
 
     const report = await buildReport(request({ format: 'pdf', columns: manyColumns }));
 
-    expect(report.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     expect(pdfPageCount(report.buffer)).toBe(1);
   });
 
   // triste
-  it('quebra para uma página nova em vez de sumir com o resto da lista', async () => {
+  it('breaks into a new page instead of dropping the rest of the list', async () => {
     const manyRows: Row[] = Array.from({ length: 200 }, (_, index) => ({
       name: `MAQUINA-${index}`,
       department: 'FINANCEIRO',
@@ -180,7 +236,37 @@ describe('buildReport — pdf', () => {
 
     const report = await buildReport(request({ format: 'pdf', rows: manyRows }));
 
-    expect(report.buffer.subarray(0, 5).toString('ascii')).toBe('%PDF-');
     expect(pdfPageCount(report.buffer)).toBeGreaterThan(1);
+  });
+
+  it('builds a valid file even with no rows', async () => {
+    const report = await buildReport(request({ format: 'pdf', rows: [] }));
+
+    expect(pdfPageCount(report.buffer)).toBe(1);
+  });
+});
+
+describe('formatReportDate', () => {
+  // feliz
+  it('writes the date in the company time zone', () => {
+    expect(formatReportDate(new Date('2026-03-01T12:00:00.000Z'))).toBe('01/03/2026, 09:00:00');
+  });
+
+  // triste
+  it('shows a dash for a date that never happened', () => {
+    expect(formatReportDate(null)).toBe('—');
+  });
+});
+
+describe('reportSubtitle', () => {
+  // feliz
+  it('counts in the plural', () => {
+    expect(reportSubtitle(2, 'chamado', 'chamados')).toMatch(/^2 chamados · gerado em /);
+  });
+
+  // triste
+  it('counts a single record in the singular, and none in the plural', () => {
+    expect(reportSubtitle(1, 'chamado', 'chamados')).toMatch(/^1 chamado · gerado em /);
+    expect(reportSubtitle(0, 'chamado', 'chamados')).toMatch(/^0 chamados · gerado em /);
   });
 });
