@@ -16,24 +16,24 @@
 
 {#snippet exportAndCreate()}
   <ActionButton data={{ label: 'Exportar' }} ui={{ variant: 'secondary', icon: Download }} />
-  <ActionButton data={{ label: 'Nova tarefa' }} ui={{ icon: Plus }} />
+  <ActionButton data={{ label: 'Novo chamado' }} ui={{ icon: Plus }} />
 {/snippet}
 
 {#snippet createOnly()}
-  <ActionButton data={{ label: 'Nova tarefa' }} ui={{ icon: Plus }} />
+  <ActionButton data={{ label: 'Novo chamado' }} ui={{ icon: Plus }} />
 {/snippet}
 
 <Story
   name="Default"
   args={{
-    data: { title: 'Tarefas', description: 'O que a equipe precisa fazer, e em que pé está.' },
+    data: { title: 'Chamados', description: 'O que chegou para a equipe, e em que pé está.' },
   }}
 />
 
 <Story
   name="WithActions"
   args={{
-    data: { title: 'Tarefas', description: 'O que a equipe precisa fazer, e em que pé está.' },
+    data: { title: 'Chamados', description: 'O que chegou para a equipe, e em que pé está.' },
     children: exportAndCreate,
   }}
 />
@@ -45,7 +45,7 @@
   name="LongTextOnNarrowScreen"
   args={{
     data: {
-      title: 'Acompanhamento de tarefas da equipe comercial',
+      title: 'Acompanhamento de chamados da equipe de infraestrutura',
       description: 'Tudo o que foi combinado com clientes nas últimas reuniões, por responsável.',
     },
     children: createOnly,

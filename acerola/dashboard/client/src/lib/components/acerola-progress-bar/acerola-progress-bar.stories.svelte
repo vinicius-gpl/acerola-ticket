@@ -19,7 +19,7 @@
 
 <Story
   name="Default"
-  args={{ data: { percentage: 62, done: 8, total: 13 }, ui: { itemLabel: 'tarefas' } }}
+  args={{ data: { percentage: 62, done: 8, total: 13 }, ui: { itemLabel: 'chamados' } }}
   template={inBox}
 />
 
@@ -44,7 +44,7 @@
 <!-- Nada a cumprir NÃO é 0%: uma barra vermelha zerada acusaria atraso onde não há. -->
 <Story
   name="NothingToDo"
-  args={{ data: { percentage: 0, done: 0, total: 0 }, ui: { emptyLabel: 'Sem tarefas' } }}
+  args={{ data: { percentage: 0, done: 0, total: 0 }, ui: { emptyLabel: 'Sem chamados' } }}
   template={inBox}
 />
 

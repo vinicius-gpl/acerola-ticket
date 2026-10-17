@@ -27,26 +27,26 @@
   </div>
 {/snippet}
 
-<Story name="Default" args={{ data: { slices, seriesLabel: 'Tarefas' } }} template={inBox} />
+<Story name="Default" args={{ data: { slices, seriesLabel: 'Chamados' } }} template={inBox} />
 
 <!-- Com clique: a coluna vira o caminho para a lista filtrada. -->
 <Story
   name="Clickable"
-  args={{ data: { slices, seriesLabel: 'Tarefas' }, actions: { onSelect: fn() } }}
+  args={{ data: { slices, seriesLabel: 'Chamados' }, actions: { onSelect: fn() } }}
   template={inBox}
 />
 
 <Story
   name="Loading"
-  args={{ data: { slices, seriesLabel: 'Tarefas' }, state: { isLoading: true } }}
+  args={{ data: { slices, seriesLabel: 'Chamados' }, state: { isLoading: true } }}
   template={inBox}
 />
 
 <Story
   name="Empty"
   args={{
-    data: { slices: [], seriesLabel: 'Tarefas' },
-    ui: { emptyLabel: 'Nenhuma tarefa ainda' },
+    data: { slices: [], seriesLabel: 'Chamados' },
+    ui: { emptyLabel: 'Nenhum chamado ainda' },
   }}
   template={inBox}
 />
@@ -61,7 +61,7 @@
         { label: 'Outro nome igualmente comprido', value: 5 },
         { label: 'Curto', value: 2 },
       ],
-      seriesLabel: 'Tarefas',
+      seriesLabel: 'Chamados',
     },
   }}
   template={inBox}
@@ -70,7 +70,7 @@
 <!-- Caso limite: uma coluna só. -->
 <Story
   name="SingleColumn"
-  args={{ data: { slices: [{ label: 'Ana', value: 1 }], seriesLabel: 'Tarefas' } }}
+  args={{ data: { slices: [{ label: 'Ana', value: 1 }], seriesLabel: 'Chamados' } }}
   template={inBox}
 />
 

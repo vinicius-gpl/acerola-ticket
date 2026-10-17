@@ -39,9 +39,9 @@ describe('AcerolaColumnChart', () => {
   /* O desenho é SVG, e SVG não se tabula nem se lê: quem usa leitor de tela ou só o teclado
      chega aos números por esta lista. */
   it('announces every slice with its own value', () => {
-    render(ColumnChart, { props: { data: { slices, seriesLabel: 'Tarefas' } } });
+    render(ColumnChart, { props: { data: { slices, seriesLabel: 'Chamados' } } });
 
-    expect(screen.getByRole('img', { name: 'Tarefas' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Chamados' })).toBeInTheDocument();
     expect(screen.getByLabelText('Ana: 12')).toBeInTheDocument();
     expect(screen.getByLabelText('Bia: 9')).toBeInTheDocument();
   });
@@ -50,7 +50,7 @@ describe('AcerolaColumnChart', () => {
   it('turns each slice into a button and reports which one was chosen', async () => {
     const onSelect = vi.fn();
     render(ColumnChart, {
-      props: { data: { slices, seriesLabel: 'Tarefas' }, actions: { onSelect } },
+      props: { data: { slices, seriesLabel: 'Chamados' }, actions: { onSelect } },
     });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Ana: 12' }));
@@ -60,7 +60,7 @@ describe('AcerolaColumnChart', () => {
 
   it('draws lying down when asked, and still announces the same slices', () => {
     render(ColumnChart, {
-      props: { data: { slices, seriesLabel: 'Tarefas' }, ui: { orientation: 'horizontal' } },
+      props: { data: { slices, seriesLabel: 'Chamados' }, ui: { orientation: 'horizontal' } },
     });
 
     expect(screen.getByLabelText('Ana: 12')).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('AcerolaColumnChart', () => {
   // triste
   /* Um `<button>` que não leva a lugar nenhum aparece na tabulação como se levasse. */
   it('is not clickable when there is nowhere to go', () => {
-    render(ColumnChart, { props: { data: { slices, seriesLabel: 'Tarefas' } } });
+    render(ColumnChart, { props: { data: { slices, seriesLabel: 'Chamados' } } });
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Ana: 12')).toBeInTheDocument();
@@ -79,19 +79,19 @@ describe('AcerolaColumnChart', () => {
   it('says there is nothing instead of drawing an empty chart (edge case)', () => {
     render(ColumnChart, {
       props: {
-        data: { slices: [], seriesLabel: 'Tarefas' },
-        ui: { emptyLabel: 'Nenhuma tarefa ainda' },
+        data: { slices: [], seriesLabel: 'Chamados' },
+        ui: { emptyLabel: 'Nenhum chamado ainda' },
       },
     });
 
-    expect(screen.getByText('Nenhuma tarefa ainda')).toBeInTheDocument();
+    expect(screen.getByText('Nenhum chamado ainda')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   /* Durante o carregamento não se diz "sem dados": faria a pessoa achar que sumiram. */
   it('shows neither the chart nor the empty message while loading (edge case)', () => {
     render(ColumnChart, {
-      props: { data: { slices: [], seriesLabel: 'Tarefas' }, state: { isLoading: true } },
+      props: { data: { slices: [], seriesLabel: 'Chamados' }, state: { isLoading: true } },
     });
 
     expect(screen.queryByText('Sem dados para mostrar')).not.toBeInTheDocument();

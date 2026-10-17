@@ -26,7 +26,7 @@ export type UploadInput = {
   fileName: string;
   contentType: string;
   content: Buffer;
-  /** A pasta lógica dentro do bucket, por feature: `tarefas`, `contratos`. */
+  /** A pasta lógica dentro do bucket, por feature: `tickets`, `computers`. */
   folder: string;
 };
 

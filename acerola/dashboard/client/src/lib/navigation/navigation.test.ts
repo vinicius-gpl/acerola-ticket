@@ -29,8 +29,8 @@ function item(context: RoleContext, feature: string, label: string): NavItem {
 /** Três menus de mentira, no mesmo formato do real: um por módulo, nada compartilhado. */
 const byContext: Record<RoleContext, readonly NavItem[]> = {
   infra: [
-    item('infra', 'tasks', 'Tarefas'),
-    item('infra', 'tasks/archive', 'Arquivo'),
+    item('infra', 'computers', 'Computadores'),
+    item('infra', 'computers/archive', 'Arquivo'),
     item('infra', 'tickets', 'Chamados'),
   ],
   sistema: [item('sistema', 'tickets', 'Chamados')],
@@ -83,11 +83,11 @@ describe('activeNavKeyOf', () => {
 
   /* Abrir um registro não pode apagar a referência de onde a pessoa está. */
   it('keeps the item lit inside its subroutes', () => {
-    expect(activeNavKeyOf('/infra/tasks/42', byContext.infra)).toBe('infra/tasks');
+    expect(activeNavKeyOf('/infra/computers/42', byContext.infra)).toBe('infra/computers');
   });
 
   it('prefers the most specific item when two match', () => {
-    expect(activeNavKeyOf('/infra/tasks/archive', byContext.infra)).toBe('infra/tasks/archive');
+    expect(activeNavKeyOf('/infra/computers/archive', byContext.infra)).toBe('infra/computers/archive');
   });
 
   /* Chamados existe nos três: quem acende é o menu DO MÓDULO que recebeu o endereço. */
@@ -97,7 +97,7 @@ describe('activeNavKeyOf', () => {
 
   // triste
   it('does not light an item that only shares the beginning of the name', () => {
-    expect(activeNavKeyOf('/infra/tasksheet', byContext.infra)).toBeUndefined();
+    expect(activeNavKeyOf('/infra/computersheet', byContext.infra)).toBeUndefined();
   });
 
   it('lights nothing on a route that is not in the menu', () => {
@@ -127,14 +127,14 @@ describe('contextSwitchPath', () => {
 
   // triste
   it('goes to the first screen of the new context when the open one does not exist there', () => {
-    expect(contextSwitchPath('/infra/tasks', 'manutencao', byContext)).toBe(
+    expect(contextSwitchPath('/infra/computers', 'manutencao', byContext)).toBe(
       '/maintenance/tickets',
     );
   });
 
   it('goes nowhere when the new context has no screen at all', () => {
     expect(
-      contextSwitchPath('/infra/tasks', 'sistema', { ...byContext, sistema: [] }),
+      contextSwitchPath('/infra/computers', 'sistema', { ...byContext, sistema: [] }),
     ).toBeUndefined();
   });
 

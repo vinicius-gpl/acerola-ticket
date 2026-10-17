@@ -9,27 +9,27 @@ describe('AcerolaEmptyState', () => {
   it('says what is empty and what to do next', () => {
     render(EmptyState, {
       props: {
-        data: { title: 'Nenhuma tarefa ainda', description: 'Cadastre a primeira.' },
+        data: { title: 'Nenhum chamado ainda', description: 'Cadastre a primeira.' },
       },
     });
 
-    expect(screen.getByText('Nenhuma tarefa ainda')).toBeInTheDocument();
+    expect(screen.getByText('Nenhum chamado ainda')).toBeInTheDocument();
     expect(screen.getByText('Cadastre a primeira.')).toBeInTheDocument();
   });
 
   it('shows the suggested action', () => {
     const children = createRawSnippet(() => ({
-      render: () => '<button type="button">Nova tarefa</button>',
+      render: () => '<button type="button">Novo chamado</button>',
     }));
 
     render(EmptyState, {
       props: {
-        data: { title: 'Nenhuma tarefa' },
+        data: { title: 'Nenhum chamado' },
         children,
       },
     });
 
-    expect(screen.getByRole('button', { name: 'Nova tarefa' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Novo chamado' })).toBeInTheDocument();
   });
 
   // triste

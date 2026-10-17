@@ -4,8 +4,6 @@ MVP para validar uma ideia com gente de verdade usando, construído a partir de 
 
 Foi feito para ser usado **com o Claude Code no VS Code**. Você descreve o que o sistema precisa fazer, em português; o Claude constrói seguindo as regras deste repositório. As regras não dependem de você decorar nada: elas estão escritas para o Claude (`CLAUDE.md`), viram passo a passo nas skills (`.claude/skills/`) e são conferidas por máquina (lint, testes, commit).
 
-O template já vem com uma funcionalidade de exemplo — **Tarefas** — funcionando de ponta a ponta: banco, API, tela, testes e dados de teste. Ela é o molde para as próximas. Quando não servir mais, peça ao Claude: **"remove o exemplo de tarefas"**.
-
 ---
 
 ## O que você precisa ter instalado
@@ -91,7 +89,6 @@ Skills são receitas prontas. O Claude usa sozinho quando o pedido combina, e vo
 | `/git-fluxo`         | O ciclo de toda mudança: branch de feature → trabalho → seu OK → develop  |
 | `/resolver-conflito` | Explica e resolve conflito pela tela afetada, com quem mudou e quando     |
 | `/verificar`         | Conferir se está tudo pronto para entregar (lint, testes, build)          |
-| `/remover-exemplo`   | Tirar a feature de exemplo de Tarefas                                     |
 | `/socorro`           | Os problemas mais comuns e como resolver                                  |
 | `/limites-do-mvp`    | O que o MVP não faz e a quem pedir                                        |
 | `/suporte`           | Erro grande: para, guarda o trabalho e prepara o relatório para o suporte |

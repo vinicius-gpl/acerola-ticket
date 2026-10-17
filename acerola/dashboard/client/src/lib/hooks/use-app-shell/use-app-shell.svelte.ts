@@ -85,7 +85,7 @@ export type AppShellModel = {
  * nem pelo que está guardado no navegador —, e por isso não tem como montar o menu de um
  * módulo dentro de outro.
  *
- * Contador de menu (ex.: "3 tarefas atrasadas") é buscado AQUI, uma vez, e não em cada rota:
+ * Contador de menu (ex.: "3 chamados atrasados") é buscado AQUI, uma vez, e não em cada rota:
  * o menu é o mesmo em todas, e buscar de novo a cada navegação repetiria a mesma consulta a
  * cada clique. Falha de contador NÃO derruba o menu — `useQuery` sem `throwOnError`, e o selo
  * simplesmente não aparece.

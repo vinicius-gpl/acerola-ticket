@@ -7,15 +7,14 @@ import { seedNetwork } from './network/seed-network';
 import { seedParts } from './parts/seed-parts';
 import { openSeedDatabase, report, resetDatabase } from './seed.util';
 import { seedSoftwareProjects } from './software-projects/seed-software-projects';
-import { seedTasks } from './tasks/seed-tasks';
 import { seedTickets } from './tickets/seed-tickets';
 import { seedTransfers } from './transfers/seed-transfers';
 
 /**
  * Todos os seeds, NA ORDEM DE DEPENDÊNCIA.
  *
- * Quem é referenciado vem antes de quem referencia: se `comentarios` aponta para `tarefas`,
- * `seedTasks` roda primeiro — senão a chave estrangeira recusa a linha. Seed novo entra nesta
+ * Quem é referenciado vem antes de quem referencia: se `historicos` aponta para `chamados`,
+ * `seedTickets` roda primeiro — senão a chave estrangeira recusa a linha. Seed novo entra nesta
  * lista, no lugar certo da ordem.
  *
  *   npm run seed:all   → grava por cima do que existe (idempotente)
@@ -30,7 +29,6 @@ async function main(): Promise<void> {
   const { db, close } = await openSeedDatabase();
 
   try {
-    report('tarefas', await seedTasks(db));
     report('computadores', await seedComputers(db));
     report('sistemas e projetos', await seedSoftwareProjects(db));
     /* Depois dos computadores e projetos: o chamado APONTA para eles. */

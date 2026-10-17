@@ -94,7 +94,7 @@ export function useMovementFormModel({
       note: '',
     } satisfies MovementFormValues,
     /* As MESMAS regras que o servidor usa. Um validador só, em `onChange` — ver o
-       comentário em `use-task-form`. */
+       comentário em `use-open-ticket`. */
     validators: { onChange: movementFormSchema },
     /* `mutate`, e não `await mutateAsync`: a recusa do servidor (inclusive "só há 2 no
        depósito") já chega à tela por `save.error`. */

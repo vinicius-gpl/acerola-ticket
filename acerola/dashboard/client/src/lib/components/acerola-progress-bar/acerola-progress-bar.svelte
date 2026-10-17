@@ -3,7 +3,7 @@
     data: { percentage: number; done: number; total: number };
     ui?: {
       showCount?: boolean;
-      /** O que está sendo contado, no plural, para o leitor de tela: "tarefas", "etapas". */
+      /** O que está sendo contado, no plural, para o leitor de tela: "chamados", "etapas". */
       itemLabel?: string;
       /** O texto quando não há nada a cumprir. */
       emptyLabel?: string;

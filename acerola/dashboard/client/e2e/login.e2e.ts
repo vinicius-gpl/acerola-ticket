@@ -5,8 +5,8 @@ import { E2E_USER, NO_E2E_USER } from './e2e-user';
 test.skip(!process.env.TEST_DATABASE_URL, 'Precisa de TEST_DATABASE_URL no server/.env');
 
 /* Esta não precisa de conta nenhuma: prova só que a porta está trancada. */
-test('sends an unauthenticated visitor to /login instead of /tasks', async ({ page }) => {
-  await page.goto('/infra/tasks');
+test('sends an unauthenticated visitor to /login instead of /tickets', async ({ page }) => {
+  await page.goto('/infra/tickets');
 
   /* Espera a TELA antes do endereço: o SvelteKit desenha o login primeiro e sincroniza a barra
      de endereço depois, então olhar só a URL testa a parte que chega por último — e falha sem
@@ -35,12 +35,12 @@ test.describe('with a real Neon Auth account', () => {
     await page.getByLabel('E-mail').fill(E2E_USER!.email);
     await page.getByLabel('Senha').fill(E2E_USER!.password);
     await page.getByRole('button', { name: 'Entrar' }).click();
-    await expect(page.getByRole('heading', { name: 'Tarefas' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Chamados' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Sair' }).click();
 
     await expect(page).toHaveURL(/\/login/);
-    await page.goto('/infra/tasks');
+    await page.goto('/infra/tickets');
     await expect(page).toHaveURL(/\/login/);
   });
 });

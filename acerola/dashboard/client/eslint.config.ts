@@ -59,7 +59,7 @@ export default tseslint.config(
     },
   },
   {
-    /* As rotas ainda são strings soltas (`/tasks`) — a rota tipada do SvelteKit, que esta
+    /* As rotas ainda são strings soltas (`/tickets`) — a rota tipada do SvelteKit, que esta
        regra cobra, chega junto com a conversão de `src/routes/` na próxima etapa. Vale para
        `.svelte.ts` também: é onde `goto` mora, por decisão do CONTRIBUTING §3 (navegação é
        do hook, nunca do componente). */
