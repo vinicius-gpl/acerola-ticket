@@ -253,6 +253,13 @@
       "when": 1792250205515,
       "tag": "0035_module_access_by_account",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792250954316,
+      "tag": "0036_whatsapp_operator_name",
+      "breakpoints": true
     }
   ]
 }
