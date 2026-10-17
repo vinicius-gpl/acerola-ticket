@@ -35,6 +35,17 @@ e é separado do resto: o servidor de chamados não conhece o WhatsApp, só a AP
   quem escreveu e, quando o responsável atende uma área só, a área. O chamado é
   preenchido na tela, e a confirmação com o protocolo chega pelo WhatsApp do responsável.
   O link vale 30 minutos e não pode ser alterado: a assinatura é conferida pelo servidor.
+- **Pedido de usuário (`/acesso`).** É para quem ainda não tem conta. O bot pergunta, uma por
+  mensagem, o nome completo, o e-mail, o telefone (só quando o WhatsApp esconde) e o setor, e
+  abre UM chamado de Sistema do tipo "Pedido de acesso", sem sistema — quem atende cria a conta.
+  Depois do nome, o bot procura a pessoa nas contas do Neon Auth: achou uma, o pedido fica
+  ligado a ela e o e-mail não é perguntado; achou várias, desempata por quem já abriu chamado
+  com aquele telefone e, sem desempate, pergunta "qual delas é você?". Falhou ao registrar, a
+  pessoa recebe o aviso na hora, e nada fica aberto pela metade. O chamado entra no histórico
+  do sistema, sem autor (quem fez foi o bot).
+- **Assinatura.** Toda mensagem do bot começa com "*<nome de quem vinculou> BOT*": quem recebe
+  sabe que a resposta é automática e de qual atendimento vem. O nome é guardado no vínculo do
+  número (`whatsapp_connections.operator_name`).
 - **Link de consulta.** Toda mensagem de um chamado ("recebi o seu chamado", "ficou pronto")
   leva um link assinado que abre direto AQUELE chamado na consulta, sem digitar protocolo —
   depois do login, e só para quem abriu o chamado ou atende uma área dele. Não vence. Trocar o
