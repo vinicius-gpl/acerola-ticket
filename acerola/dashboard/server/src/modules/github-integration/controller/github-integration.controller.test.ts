@@ -67,7 +67,7 @@ describe('GitHub OAuth HTTP flow', () => {
         next: () => void,
       ) => {
         if (req.headers.authorization === 'Bearer local-session')
-          req.user = { id: 'local-admin', role: 'admin' };
+          req.user = { id: 'local-admin', role: 'admin', roles: { sistema: 'admin' } };
         next();
       },
     );
