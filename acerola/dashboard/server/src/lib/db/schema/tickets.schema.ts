@@ -33,7 +33,7 @@ function valuesFor(values: readonly string[]) {
 /**
  * Chamados de suporte de TI.
  *
- * Duas coisas fogem do molde de `tasks.schema.ts`, e as duas de propósito:
+ * Duas coisas fogem do padrão das outras tabelas, e as duas de propósito:
  *
  * 1. **Não existe `createdBy`.** O chamado é aberto por quem não tem login — o formulário é
  *    público. Quem pediu está em `requester_name` e `contact_phone`, digitados pela própria
