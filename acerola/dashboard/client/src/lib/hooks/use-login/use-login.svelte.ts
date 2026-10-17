@@ -41,7 +41,7 @@ const UNAVAILABLE =
  * a senha de ninguém. Deu certo, a sessão passa a existir no navegador e o sistema já abre;
  * a guarda de rota confirma com `/api/auth/me` e é ali que o papel da pessoa aparece.
  *
- * Mesmo padrão do `useTaskFormModel`: o MESMO schema que valida o formulário, TanStack Form
+ * Mesmo padrão do `usePartFormModel`: o MESMO schema que valida o formulário, TanStack Form
  * para o estado dos campos, `mirrorStore` para a mutação virar runes. E o `goto` mora aqui,
  * não no componente (CONTRIBUTING §3) — navegação é decisão do hook.
  */
