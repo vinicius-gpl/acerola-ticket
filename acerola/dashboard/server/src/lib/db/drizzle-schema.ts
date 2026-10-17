@@ -4,6 +4,7 @@ import { computerAlerts } from './schema/computer-alerts.schema';
 import { computerSamples } from './schema/computer-samples.schema';
 import { computerTransfers } from './schema/computer-transfers.schema';
 import { computers } from './schema/computers.schema';
+import { history } from './schema/history.schema';
 import { internalRoles } from './schema/internal-roles.schema';
 import { inventoryItems } from './schema/inventory-items.schema';
 import { inventoryMovements } from './schema/inventory-movements.schema';
@@ -68,6 +69,7 @@ export const drizzleSchema = {
   maintenanceQuotes,
   networkEvents,
   internalRoles,
+  history,
   /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */
   neonAuthUsers,
 };
