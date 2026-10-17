@@ -35,6 +35,7 @@ export type SoftwareScheduleFormModel = {
 function resolveInitialScheduleValues(
   event: SoftwareScheduleEvent | null,
   defaultDate?: string,
+  defaultStartTime = '09:00',
   todayIso = new SvelteDate().toISOString().slice(0, 10),
 ): SoftwareScheduleForm {
   if (!event) {
@@ -43,8 +44,8 @@ function resolveInitialScheduleValues(
       category: 'other',
       color: 'blue',
       date: defaultDate ?? todayIso,
-      startTime: '09:00',
-      endTime: '10:00',
+      startTime: defaultStartTime,
+      endTime: oneHourAfter(defaultStartTime),
       projectId: null,
       note: '',
     };
@@ -60,6 +61,15 @@ function resolveInitialScheduleValues(
     projectId: event.projectId,
     note: event.note ?? '',
   };
+}
+
+/* O agendamento novo nasce com uma hora de duração: "09:00" → "10:00". Perto da meia-noite, o
+   fim fica em 23:59 para não virar o dia. */
+export function oneHourAfter(time: string): string {
+  const [hours = 0, minutes = 0] = time.split(':').map(Number);
+  if (hours >= 23) return '23:59';
+
+  return `${String(hours + 1).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 function saveScheduleEvent(event: SoftwareScheduleEvent | null, values: SoftwareScheduleForm) {
@@ -84,10 +94,13 @@ function saveScheduleEvent(event: SoftwareScheduleEvent | null, values: Software
 export function useSoftwareScheduleFormModel({
   event,
   defaultDate,
+  defaultStartTime,
   onSaved,
 }: {
   event: SoftwareScheduleEvent | null;
   defaultDate?: string;
+  /** O horário em que a pessoa clicou na grade, quando foi por lá que ela abriu. */
+  defaultStartTime?: string;
   onSaved: () => void;
 }): SoftwareScheduleFormModel {
   const queryClient = useQueryClient();
@@ -103,7 +116,7 @@ export function useSoftwareScheduleFormModel({
     }),
   );
 
-  const initialValues = resolveInitialScheduleValues(event, defaultDate);
+  const initialValues = resolveInitialScheduleValues(event, defaultDate, defaultStartTime);
 
   const form = createForm(() => ({
     defaultValues: initialValues,

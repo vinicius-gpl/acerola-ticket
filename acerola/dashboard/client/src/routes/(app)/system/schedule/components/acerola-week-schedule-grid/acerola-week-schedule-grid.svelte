@@ -37,6 +37,8 @@
       onToday: () => void;
       onViewModeChange: (mode: ScheduleViewMode) => void;
       onNewEvent: () => void;
+      /** Clique num espaço vazio do calendário: o dia e, na grade de horas, o horário. */
+      onNewEventAt?: (date: string, startTime?: string) => void;
       onSelectEvent: (event: SoftwareScheduleEvent) => void;
       onRetry: () => void;
       onOpenGithubDay?: (date: string, type?: 'pr' | 'issue' | 'all') => void;
@@ -60,6 +62,17 @@
     const height = Math.max(4, Math.round((durationMinutes / 60) * 56) - 4);
 
     return `top:${top}px;height:${height}px;`;
+  }
+
+  /**
+   * O horário do ponto clicado na grade (08:00 às 18:00, 56px por hora), de meia em meia hora.
+   * O último horário possível é 17:30: depois disso o agendamento sairia da grade.
+   */
+  export function timeAtOffset(offsetPx: number): string {
+    const halfHours = Math.min(19, Math.max(0, Math.floor(offsetPx / 28)));
+    const hours = 8 + Math.floor(halfHours / 2);
+
+    return `${String(hours).padStart(2, '0')}:${halfHours % 2 === 0 ? '00' : '30'}`;
   }
 
   /** A cor escolhida no compromisso vira um dos 6 tons canônicos do sistema. */
@@ -503,10 +516,23 @@
           <div class="grid grid-cols-7">
             {#each data.days as day, index (day.dateString)}
               <div
-                class="flex min-h-28 flex-col gap-1 border-border p-1.5 {index % 7 > 0
+                class="relative flex min-h-28 flex-col border-border p-1.5 {index % 7 > 0
                   ? 'border-l'
                   : ''} {index >= 7 ? 'border-t' : ''} {day.isCurrentMonth ? '' : 'bg-muted/30'}"
               >
+                <!-- O espaço vazio do dia é um botão: clicar nele abre um agendamento naquela data.
+                     O conteúdo fica por cima e deixa o clique passar, menos nos próprios botões. -->
+                {#if gridState.canEdit}
+                  <button
+                    type="button"
+                    aria-label="Novo agendamento em {day.dateString.split('-').reverse().join('/')}"
+                    class="absolute inset-0 cursor-pointer transition hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-none"
+                    onclick={() => actions.onNewEventAt?.(day.dateString)}
+                  ></button>
+                {/if}
+                <div
+                  class="pointer-events-none relative flex flex-col gap-1 [&_button]:pointer-events-auto"
+                >
                 {#if day.isToday}
                   <Tooltip.Root
                     ><Tooltip.Trigger
@@ -593,6 +619,7 @@
                   >
                 {/each}
                 {@render dayPullRequests(day)}
+                </div>
               </div>
             {/each}
           </div>
@@ -700,6 +727,17 @@
                 <div
                   class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:100%_56px] opacity-40"
                 ></div>
+                <!-- Clique numa hora vazia: agendamento novo naquele dia e horário. Os blocos vêm
+                     depois no HTML e ficam por cima, então clicar num deles continua abrindo ele. -->
+                {#if gridState.canEdit}
+                  <button
+                    type="button"
+                    aria-label="Novo agendamento em {day.dateString.split('-').reverse().join('/')}"
+                    class="absolute inset-0 cursor-pointer transition hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-none"
+                    onclick={(event) =>
+                      actions.onNewEventAt?.(day.dateString, timeAtOffset(event.offsetY))}
+                  ></button>
+                {/if}
 
                 {#each timedEvents as event (event.id)}
                   <Tooltip.Root
