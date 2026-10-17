@@ -35,6 +35,8 @@ function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithCompu
     id: 7,
     status: 'open',
     priority: 'medium',
+    requesterId: null,
+    requesterEmail: null,
     requesterName: 'Bia Costa',
     area: 'infra',
     department: 'financeiro',
@@ -177,7 +179,7 @@ describe('TicketsService.findById', () => {
 
 describe('TicketsService.create', () => {
   // feliz
-  it('opens a ticket without any login at all', async () => {
+  it('opens a ticket for whoever is logged in', async () => {
     const insert = vi.fn().mockResolvedValue(ticketRow());
     const service = makeService({ insert });
 
@@ -324,14 +326,16 @@ describe('TicketsService.findByProtocol', () => {
   it('finds the ticket from the protocol as it was printed', async () => {
     const service = makeService({ findById: vi.fn().mockResolvedValue(ticketRow()) });
 
-    await expect(service.findByProtocol('CH-0007')).resolves.toMatchObject({ protocol: 'CH-0007' });
+    await expect(service.findByProtocol(ana, 'CH-0007')).resolves.toMatchObject({
+      protocol: 'CH-0007',
+    });
   });
 
   it('accepts the protocol typed from memory, with no dash and no zeros', async () => {
     const findById = vi.fn().mockResolvedValue(ticketRow());
     const service = makeService({ findById });
 
-    await service.findByProtocol('7');
+    await service.findByProtocol(ana, '7');
 
     expect(findById).toHaveBeenCalledWith(7);
   });
@@ -341,7 +345,7 @@ describe('TicketsService.findByProtocol', () => {
     const answered = ticketRow({ assignee: 'Carlos do TI', solution: 'Troquei o rolete.' });
     const service = makeService({ findById: vi.fn().mockResolvedValue(answered) });
 
-    const ticket = await service.findByProtocol('CH-0007');
+    const ticket = await service.findByProtocol(ana, 'CH-0007');
 
     expect(ticket).not.toHaveProperty('contactPhone');
     expect(ticket).not.toHaveProperty('assignee');
@@ -357,7 +361,7 @@ describe('TicketsService.findByProtocol', () => {
       list: vi.fn().mockResolvedValue([file(1, null), file(2, 31)]),
     });
 
-    const ticket = await service.findByProtocol('CH-0007');
+    const ticket = await service.findByProtocol(ana, 'CH-0007');
 
     expect(ticket.attachments.map((attachment) => attachment.id)).toEqual([1]);
   });
@@ -366,14 +370,14 @@ describe('TicketsService.findByProtocol', () => {
     const findById = vi.fn();
     const service = makeService({ findById });
 
-    await expect(service.findByProtocol('meu chamado')).rejects.toThrow(NotFoundException);
+    await expect(service.findByProtocol(ana, 'meu chamado')).rejects.toThrow(NotFoundException);
     expect(findById).not.toHaveBeenCalled();
   });
 
   it('says not found for a protocol that does not exist', async () => {
     const service = makeService({ findById: vi.fn().mockResolvedValue(null) });
 
-    await expect(service.findByProtocol('CH-9999')).rejects.toThrow(NotFoundException);
+    await expect(service.findByProtocol(ana, 'CH-9999')).rejects.toThrow(NotFoundException);
   });
 });
 
@@ -1049,7 +1053,7 @@ describe('TicketsService.findByAccessToken', () => {
   it('opens the ticket of a signed link, with the public fields only', async () => {
     const { service, repository } = makeAssigneeService();
 
-    const ticket = await service.findByAccessToken(signTicketAccess(7, LINK_SECRET));
+    const ticket = await service.findByAccessToken(ana, signTicketAccess(7, LINK_SECRET));
 
     expect(repository.findById).toHaveBeenCalledWith(7);
     expect(ticket.protocol).toBe('CH-0007');
@@ -1061,10 +1065,10 @@ describe('TicketsService.findByAccessToken', () => {
   it('refuses a link that was tampered with, without reading any ticket', async () => {
     const { service, repository } = makeAssigneeService();
 
-    await expect(service.findByAccessToken(`${signTicketAccess(7, LINK_SECRET)}x`)).rejects.toThrow(
-      NotFoundException,
-    );
-    await expect(service.findByAccessToken('lixo')).rejects.toThrow(NotFoundException);
+    await expect(
+      service.findByAccessToken(ana, `${signTicketAccess(7, LINK_SECRET)}x`),
+    ).rejects.toThrow(NotFoundException);
+    await expect(service.findByAccessToken(ana, 'lixo')).rejects.toThrow(NotFoundException);
     expect(repository.findById).not.toHaveBeenCalled();
   });
 });
@@ -1123,5 +1127,101 @@ describe('TicketsService WhatsApp notices', () => {
     notifier.retry.mockResolvedValueOnce(null);
 
     await expect(service.retryWhatsappNotice(adminUser, 7, 4)).rejects.toThrow(ConflictException);
+  });
+});
+
+describe('TicketsService — quem pede, logado', () => {
+  const bia: RequestUser = {
+    id: '22222222-2222-4222-8222-222222222222',
+    email: 'bia@exemplo.com',
+    name: 'Bia Costa',
+    role: 'user',
+  };
+  /* Bia não atende área nenhuma: é só quem pede. */
+  const noAreas = { contextRolesFor: vi.fn().mockResolvedValue({}) };
+  const input = {
+    requesterName: 'Nome digitado no corpo',
+    area: 'infra' as const,
+    department: 'financeiro' as const,
+    problemType: 'printer' as const,
+    contactPhone: '62999999999',
+    description: 'A impressora não puxa papel.',
+  };
+
+  // feliz
+  /* Autoria vem da identidade: o chamado é de quem está logado, com o nome da conta. */
+  it('links the ticket to the person and takes the name from the identity, not the body', async () => {
+    const insert = vi.fn().mockResolvedValue(ticketRow());
+    const service = makeService({ insert });
+
+    await service.create(input, undefined, [], {
+      requester: { id: bia.id, email: bia.email, name: bia.name },
+    });
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requesterId: bia.id,
+        requesterEmail: bia.email,
+        requesterName: 'Bia Costa',
+      }),
+    );
+  });
+
+  it('lets the person look up her own ticket by number, without attending any area', async () => {
+    const service = makeService({
+      ...noAreas,
+      findById: vi.fn().mockResolvedValue(ticketRow({ requesterId: bia.id })),
+    });
+
+    await expect(service.findByProtocol(bia, 'CH-0007')).resolves.toMatchObject({ id: 7 });
+  });
+
+  it('lists the tickets the person opened', async () => {
+    const listByRequester = vi.fn().mockResolvedValue([ticketRow({ requesterId: bia.id })]);
+    const service = makeService({ listByRequester });
+
+    const mine = await service.listMine(bia);
+
+    expect(listByRequester).toHaveBeenCalledWith(bia.id);
+    expect(mine).toEqual([expect.objectContaining({ id: 7, protocol: 'CH-0007' })]);
+  });
+
+  /* O nome é da conta; telefone e departamento vêm do último chamado que ela abriu. */
+  it('prefills the form from the account and the last ticket', async () => {
+    const lastContactOf = vi
+      .fn()
+      .mockResolvedValue({ contactPhone: '62988887777', department: 'fiscal' });
+    const service = makeService({ lastContactOf });
+
+    await expect(service.requesterDefaults(bia)).resolves.toEqual({
+      name: 'Bia Costa',
+      email: bia.email,
+      phone: '62988887777',
+      department: 'fiscal',
+    });
+    expect(lastContactOf).toHaveBeenCalledWith(bia.id);
+  });
+
+  // triste
+  /* 404, e não 403: dizer "é de outra pessoa" contaria que o número existe. */
+  it('hides the ticket of someone else from who does not attend its area', async () => {
+    const service = makeService({
+      ...noAreas,
+      findById: vi.fn().mockResolvedValue(ticketRow({ requesterId: 'outra-pessoa' })),
+    });
+
+    await expect(service.findByProtocol(bia, 'CH-0007')).rejects.toThrow(NotFoundException);
+  });
+
+  /* Quem nunca abriu chamado digita telefone e departamento: só o nome vem da conta. */
+  it('prefills only name and e-mail for who never opened a ticket', async () => {
+    const service = makeService({ lastContactOf: vi.fn().mockResolvedValue(null) });
+
+    await expect(service.requesterDefaults(bia)).resolves.toEqual({
+      name: 'Bia Costa',
+      email: bia.email,
+      phone: null,
+      department: null,
+    });
   });
 });

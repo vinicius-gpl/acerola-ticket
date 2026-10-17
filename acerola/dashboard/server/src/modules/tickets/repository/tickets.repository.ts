@@ -193,6 +193,40 @@ export class TicketsRepository {
   }
 
   /**
+   * Os chamados que UMA PESSOA abriu — "Meus chamados". Mais recentes primeiro, com teto: é
+   * uma lista para acompanhar o que está em andamento, não o arquivo da vida inteira.
+   */
+  async listByRequester(requesterId: string, limit = 50): Promise<TicketRow[]> {
+    return runQuery(
+      this.db
+        .select()
+        .from(tickets)
+        .where(eq(tickets.requesterId, requesterId))
+        .orderBy(desc(tickets.createdAt), desc(tickets.id))
+        .limit(limit),
+      'listar os chamados de quem abriu',
+    );
+  }
+
+  /**
+   * O telefone e o departamento que a pessoa deixou no ÚLTIMO chamado — o que o formulário
+   * sugere no próximo. A conta do Neon Auth não guarda nenhum dos dois.
+   */
+  async lastContactOf(
+    requesterId: string,
+  ): Promise<Pick<TicketRow, 'contactPhone' | 'department'> | null> {
+    return runMaybe(
+      this.db
+        .select({ contactPhone: tickets.contactPhone, department: tickets.department })
+        .from(tickets)
+        .where(eq(tickets.requesterId, requesterId))
+        .orderBy(desc(tickets.createdAt), desc(tickets.id))
+        .limit(1),
+      'ler o último contato de quem abriu',
+    );
+  }
+
+  /**
    * As colunas que os indicadores usam, de TODOS os chamados — sem paginação de propósito:
    * média e contagem calculadas só sobre a página visível responderiam outra pergunta que
    * não a que o painel faz.
