@@ -1,3 +1,5 @@
+import { STAGING_KEY_PATTERN } from '@template/shared/schemas/staged-file.schema';
+
 import { type HistoryChange, type HistoryInsert } from '../../../lib/db/schema/history.schema';
 
 /** O que a requisição que mudou dado deixa para o histórico, já sem nada do Express. */
@@ -106,4 +108,41 @@ function safeValue(field: string, value: unknown): unknown {
   if (typeof value !== 'string' || value.length <= TEXT_MAX_LENGTH) return value;
 
   return `${value.slice(0, TEXT_MAX_LENGTH)}…`;
+}
+
+/**
+ * Tira do corpo os arquivos enviados por link assinado e devolve só os NOMES deles.
+ *
+ * Arquivo entra no histórico pelo nome: o conteúdo já está no storage, e a chave da área
+ * temporária não diz nada a quem lê — no dia seguinte ela nem existe mais.
+ */
+export function withoutStagedFiles(body: unknown): { body: unknown; fileNames: string[] } {
+  const record = recordOf(body);
+  if (!record) return { body, fileNames: [] };
+
+  const fileNames: string[] = [];
+  const rest: Record<string, unknown> = {};
+  for (const [field, value] of Object.entries(record)) {
+    const staged = stagedFileNamesOf(value);
+    if (staged) fileNames.push(...staged);
+    else rest[field] = value;
+  }
+
+  return { body: rest, fileNames };
+}
+
+/* Um arquivo enviado (`{ storageKey, fileName }`) ou uma lista deles; nulo para o resto. */
+function stagedFileNamesOf(value: unknown): string[] | null {
+  const list = Array.isArray(value) ? value : [value];
+  if (list.length === 0) return null;
+
+  const names = list.map((item) => {
+    const file = recordOf(item);
+    const isStaged =
+      typeof file?.storageKey === 'string' && STAGING_KEY_PATTERN.test(file.storageKey);
+
+    return isStaged && typeof file.fileName === 'string' ? file.fileName : null;
+  });
+
+  return names.every((name) => name !== null) ? (names as string[]) : null;
 }

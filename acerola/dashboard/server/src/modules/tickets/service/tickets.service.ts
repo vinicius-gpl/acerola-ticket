@@ -33,6 +33,11 @@ import {
 } from '@template/shared/domain/ticket-status.util';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
 import {
+  type StagedFile,
+  type UploadRequest,
+  type UploadTicket,
+} from '@template/shared/schemas/staged-file.schema';
+import {
   type CreateTicketInput,
   type MyTicket,
   type PublicTicket,
@@ -59,7 +64,9 @@ import { type BuiltDocument } from '../../../lib/report/document.type';
 import { type ReportColumn } from '../../../lib/report/report.type';
 import { capReportRows } from '../../../lib/report/report-limit.util';
 import { buildReport, formatReportDate, reportSubtitle } from '../../../lib/report/report.util';
-import { StorageService } from '../../../lib/storage/storage.service';
+import { DOWNLOAD_URL_TTL_SECONDS, type FileStorage } from '../../../lib/storage/file-storage.type';
+import { StagedUploadsService } from '../../../lib/storage/staged-uploads.service';
+import { STORAGE } from '../../../lib/storage/storage.token';
 import { describeTicketChanges, toUpdateHistory } from '../mapper/ticket-histories.mapper';
 import {
   toMyTicket,
@@ -71,7 +78,7 @@ import {
 } from '../mapper/tickets.mapper';
 import { TicketHistoriesRepository } from '../repository/ticket-histories.repository';
 import { TICKET_NOT_FOUND, TicketAccessService } from './ticket-access.service';
-import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
+import { TicketAttachmentsService } from './ticket-attachments.service';
 import { TicketAssigneesService } from './ticket-assignees.service';
 import { verifyTicketAccess, verifyTicketInvite } from './ticket-invite.util';
 import { TicketHistoriesService } from './ticket-histories.service';
@@ -117,17 +124,6 @@ const NOT_FOUND = TICKET_NOT_FOUND;
 /** A pasta do print dentro do bucket. */
 const SCREENSHOT_FOLDER = 'tickets';
 
-/**
- * O arquivo como o multer o entrega. Declarado aqui em vez de instalar `@types/multer`: são
- * quatro campos, e uma dependência a mais para tipar quatro campos não se paga.
- */
-export type UploadedScreenshot = {
-  originalname: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-};
-
 export type TicketDashboard = TicketSummary & {
   byProblemType: { key: string; count: number }[];
   byDepartment: { key: string; count: number }[];
@@ -156,7 +152,8 @@ export type TicketDashboard = TicketSummary & {
 export class TicketsService {
   constructor(
     private readonly repository: TicketsRepository,
-    private readonly storage: StorageService,
+    @Inject(STORAGE) private readonly storage: FileStorage,
+    private readonly staging: StagedUploadsService,
     private readonly attachments: TicketAttachmentsService,
     private readonly access: TicketAccessService,
     private readonly histories: TicketHistoriesService,
@@ -167,6 +164,11 @@ export class TicketsService {
     @Optional() private readonly notifier?: TicketWhatsappNotifierService,
     @Optional() @Inject(ENV) private readonly env?: Env,
   ) {}
+
+  /** O link para enviar o print ou um anexo do chamado que vai ser aberto. */
+  createUploadTicket(input: UploadRequest): Promise<UploadTicket> {
+    return this.attachments.createOpeningUploadTicket(input);
+  }
 
   /** Quem pode ser escolhido como responsável por um chamado desta área (lista pública). */
   async listAssigneeOptions(area: TicketArea): Promise<TicketAssigneeOption[]> {
@@ -370,14 +372,14 @@ export class TicketsService {
    * só entra o bot do WhatsApp quando não reconheceu quem escreve; reconhecendo, ele passa a
    * conta da pessoa como `requester`.
    *
-   * O print é guardado ANTES do chamado existir. Se a gravação do chamado falhar depois,
-   * sobra um arquivo órfão no bucket — o contrário (chamado apontando para um arquivo que
-   * não subiu) mostraria uma imagem quebrada para o TI, e essa é a falha pior.
+   * O print e os anexos chegam já enviados pelo navegador, na área temporária
+   * (`input.screenshot`, `input.attachments`). O print sai de lá ANTES do chamado existir: se a
+   * gravação do chamado falhar depois, sobra um arquivo órfão no bucket — o contrário (chamado
+   * apontando para um arquivo que não existe) mostraria uma imagem quebrada para o TI, e essa é
+   * a falha pior.
    */
   async create(
     input: CreateTicketInput,
-    screenshot?: UploadedScreenshot,
-    attachments: readonly UploadedAttachment[] = [],
     /* Quem abriu pela CONVERSA já recebe a confirmação na própria conversa: mandar também o
        aviso de "chamado aberto" seriam duas mensagens dizendo a mesma coisa. */
     options: { skipOpeningNotice?: boolean; requester?: TicketRequester } = {},
@@ -385,7 +387,7 @@ export class TicketsService {
     await this.assertSystemProject(input);
 
     const assignee = await this.resolveAssignee(input.area, input.assigneeId);
-    const screenshotKey = await this.storeScreenshot(screenshot);
+    const screenshotKey = await this.storeScreenshot(input.screenshot);
     const row = await this.repository.insert(
       toTicketInsert(input, screenshotKey, assignee, options.requester),
     );
@@ -401,7 +403,7 @@ export class TicketsService {
     /* A linha do tempo começa aqui: a abertura é o primeiro histórico, de quem abriu. */
     await this.histories.recordOpening(row);
 
-    await this.attachments.attach(row.id, attachments, null, 'requester');
+    await this.attachments.attach(row.id, input.attachments ?? [], null, 'requester');
 
     /* Chamado nasce sem área participante — só a original, escolhida por quem abriu. */
     if (row.area === 'sistema' && row.projectId && this.githubService) {
@@ -622,25 +624,23 @@ export class TicketsService {
   private async screenshotUrl(row: TicketRow): Promise<string | null> {
     if (!row.screenshotKey) return null;
 
-    return this.storage.createDownloadUrl(row.screenshotKey);
+    return this.storage.downloadUrl(row.screenshotKey, DOWNLOAD_URL_TTL_SECONDS, null);
   }
 
-  private async storeScreenshot(screenshot?: UploadedScreenshot): Promise<string | null> {
+  /**
+   * Tira o print da área temporária, depois de conferir o arquivo que o storage MEDIU. O que não
+   * serve é recusado com o motivo e sai da área temporária.
+   */
+  private async storeScreenshot(screenshot?: StagedFile): Promise<string | null> {
     if (!screenshot) return null;
 
-    const refusal = refuseScreenshot({
-      contentType: screenshot.mimetype,
-      sizeBytes: screenshot.size,
-    });
-    if (refusal) throw new UnprocessableEntityException(refusal.message);
+    const measured = await this.staging.inspect(screenshot);
+    const refusal = refuseScreenshot(measured);
+    if (refusal) {
+      await this.staging.discard([screenshot.storageKey]);
+      throw new UnprocessableEntityException(refusal.message);
+    }
 
-    const stored = await this.storage.upload({
-      fileName: screenshot.originalname,
-      contentType: screenshot.mimetype,
-      content: screenshot.buffer,
-      folder: SCREENSHOT_FOLDER,
-    });
-
-    return stored.key;
+    return this.staging.promote(screenshot, SCREENSHOT_FOLDER);
   }
 }

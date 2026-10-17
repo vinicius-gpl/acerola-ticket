@@ -10,6 +10,10 @@ import {
   inventoryMovementSchema,
 } from '@template/shared/schemas/inventory-movement.schema';
 import { paginatedSchema } from '@template/shared/schemas/pagination.schema';
+import {
+  uploadRequestSchema,
+  uploadTicketSchema,
+} from '@template/shared/schemas/staged-file.schema';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -34,9 +38,11 @@ export class InventoryItemListResponseDto extends createZodDto(
 /* O DEPÓSITO: cada entrada, saída e descarte de um produto. */
 export class InventoryMovementDto extends createZodDto(inventoryMovementSchema) {}
 export class CreateInventoryMovementDto extends createZodDto(createInventoryMovementSchema) {}
-export class InventoryMovementListQueryDto extends createZodDto(
-  inventoryMovementListQuerySchema,
-) {}
+export class InventoryMovementListQueryDto extends createZodDto(inventoryMovementListQuerySchema) {}
 export class InventoryMovementListResponseDto extends createZodDto(
   paginatedSchema(inventoryMovementSchema),
 ) {}
+
+/** O pedido do link para enviar a foto, e a resposta com o link (PUT) e a chave temporária. */
+export class PhotoUploadRequestDto extends createZodDto(uploadRequestSchema) {}
+export class PhotoUploadTicketDto extends createZodDto(uploadTicketSchema) {}

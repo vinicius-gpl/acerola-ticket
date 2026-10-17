@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { refuseInventoryPhoto } from '@template/shared/domain/inventory-photo.util';
 import { fitsInInventoryStock, stockAfter } from '@template/shared/domain/inventory-stock.util';
 import {
@@ -13,14 +18,19 @@ import {
   type InventoryMovementListQuery,
 } from '@template/shared/schemas/inventory-movement.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import {
+  type StagedFile,
+  type UploadRequest,
+  type UploadTicket,
+} from '@template/shared/schemas/staged-file.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type InventoryItemRow } from '../../../lib/db/schema/inventory-items.schema';
-import {
-  assertCanManageInContext,
-  assertCanRead,
-} from '../../../lib/policy/policy-assert.util';
-import { StorageService } from '../../../lib/storage/storage.service';
+import { assertCanManageInContext, assertCanRead } from '../../../lib/policy/policy-assert.util';
+import { DOWNLOAD_URL_TTL_SECONDS, type FileStorage } from '../../../lib/storage/file-storage.type';
+import { buildObjectKey } from '../../../lib/storage/object-key.util';
+import { StagedUploadsService } from '../../../lib/storage/staged-uploads.service';
+import { STORAGE } from '../../../lib/storage/storage.token';
 import {
   toInventoryItem,
   toInventoryItemInsert,
@@ -31,19 +41,10 @@ import {
 import { InventoryItemsRepository } from '../repository/inventory-items.repository';
 import { optimizePhoto } from './inventory-photo.util';
 
-const ITEM_NOT_FOUND =
-  'Produto não encontrado. Ele pode ter sido excluído — recarregue a lista.';
+const ITEM_NOT_FOUND = 'Produto não encontrado. Ele pode ter sido excluído — recarregue a lista.';
 
 /** A pasta do bucket. Nome em inglês: é infraestrutura, o usuário não vê (CONTRIBUTING §1). */
 const PHOTO_FOLDER = 'inventory';
-
-/** A foto como o upload a entrega. */
-export type UploadedPhoto = {
-  originalname: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-};
 
 /**
  * O ÚNICO caminho de escrita do inventário da Manutenção.
@@ -53,21 +54,32 @@ export type UploadedPhoto = {
  * altera e exclui. Um gestor de Infraestrutura não mexe na cadeira do escritório, do mesmo
  * jeito que a Manutenção não mexe no parque de máquinas.
  *
- * A foto é tratada aqui, e não no controller: o controller só recebe e entrega. A imagem é
- * recusada pelo domínio, encolhida pelo ffmpeg e guardada no R2 — e a chave dela é o que vai
- * para o banco, nunca o link.
+ * A foto vai do navegador direto para o R2, por link assinado. Aqui ela é conferida pelo
+ * domínio (com o que o storage mediu), encolhida pelo ffmpeg e gravada no lugar definitivo — e a
+ * chave dela é o que vai para o banco, nunca o link.
  */
 @Injectable()
 export class InventoryItemsService {
   constructor(
     private readonly repository: InventoryItemsRepository,
-    private readonly storage: StorageService,
+    private readonly staging: StagedUploadsService,
+    @Inject(STORAGE) private readonly storage: FileStorage,
   ) {}
 
-  async list(
-    user: RequestUser,
-    query: InventoryItemListQuery,
-  ): Promise<Paginated<InventoryItem>> {
+  /**
+   * O link para enviar a foto de um produto. Só quem cadastra no inventário recebe — e a foto
+   * que nem é imagem aceita é recusada antes de ser enviada.
+   */
+  async createPhotoUploadTicket(user: RequestUser, input: UploadRequest): Promise<UploadTicket> {
+    assertCanManageInContext(user, 'manutencao', 'enviar fotos de produtos');
+
+    const refusal = refuseInventoryPhoto(input);
+    if (refusal) throw new UnprocessableEntityException(refusal.message);
+
+    return this.staging.createUploadTicket(input.fileName);
+  }
+
+  async list(user: RequestUser, query: InventoryItemListQuery): Promise<Paginated<InventoryItem>> {
     assertCanRead(user.role, 'o inventário da Manutenção');
 
     const page = await this.repository.list(query);
@@ -82,17 +94,11 @@ export class InventoryItemsService {
     return this.toItem(await this.require(id));
   }
 
-  async create(
-    user: RequestUser,
-    input: CreateInventoryItemInput,
-    photo?: UploadedPhoto,
-  ): Promise<InventoryItem> {
+  async create(user: RequestUser, input: CreateInventoryItemInput): Promise<InventoryItem> {
     assertCanManageInContext(user, 'manutencao', 'cadastrar produtos');
 
-    const photoKey = await this.storePhoto(photo);
-    const row = await this.repository.insert(
-      toInventoryItemInsert(input, user.email, photoKey),
-    );
+    const photoKey = await this.storePhoto(input.photo);
+    const row = await this.repository.insert(toInventoryItemInsert(input, user.email, photoKey));
 
     return this.toItem(row);
   }
@@ -108,12 +114,11 @@ export class InventoryItemsService {
     user: RequestUser,
     id: number,
     input: UpdateInventoryItemInput,
-    photo?: UploadedPhoto,
   ): Promise<InventoryItem> {
     assertCanManageInContext(user, 'manutencao', 'alterar produtos');
 
     const current = await this.require(id);
-    const photoKey = photo ? await this.storePhoto(photo) : undefined;
+    const photoKey = input.photo ? await this.storePhoto(input.photo) : undefined;
 
     const row = await this.repository.update(
       id,
@@ -212,38 +217,40 @@ export class InventoryItemsService {
     if (!key) return null;
 
     try {
-      return await this.storage.createDownloadUrl(key, { as: 'inline' });
+      return await this.storage.downloadUrl(key, DOWNLOAD_URL_TTL_SECONDS, null);
     } catch {
       return null;
     }
   }
 
   /**
-   * Guarda a foto e devolve a chave dela.
+   * Tira a foto da área temporária e devolve a chave definitiva.
    *
-   * A imagem é encolhida antes de subir (ver `inventory-photo.util`). Se o ffmpeg não der
-   * conta, sobe o original: perder o cadastro por causa de uma conversão seria trocar um
-   * problema pequeno (arquivo maior) por um grande (produto não cadastrado).
+   * Confere o arquivo que o storage MEDIU — a foto que não serve sai da área temporária, com o
+   * motivo. A imagem é encolhida antes de ir para o lugar definitivo (ver
+   * `inventory-photo.util`): o servidor a lê do storage, sem ela passar pela requisição. Se o
+   * ffmpeg não der conta, vai o original: perder o cadastro por causa de uma conversão seria
+   * trocar um problema pequeno (arquivo maior) por um grande (produto não cadastrado).
    */
-  private async storePhoto(photo?: UploadedPhoto): Promise<string | null> {
+  private async storePhoto(photo?: StagedFile): Promise<string | null> {
     if (!photo) return null;
 
-    const refusal = refuseInventoryPhoto({
-      contentType: photo.mimetype,
-      sizeBytes: photo.size,
-    });
-    if (refusal) throw new UnprocessableEntityException(refusal.message);
+    const measured = await this.staging.inspect(photo);
+    const refusal = refuseInventoryPhoto(measured);
+    if (refusal) {
+      await this.staging.discard([photo.storageKey]);
+      throw new UnprocessableEntityException(refusal.message);
+    }
 
-    const optimized = await optimizePhoto(photo.buffer);
+    const original = await this.storage.get(photo.storageKey);
+    const optimized = original ? await optimizePhoto(original.content) : null;
+    if (!optimized) return this.staging.promote(photo, PHOTO_FOLDER);
 
-    const stored = await this.storage.upload({
-      fileName: optimized ? 'foto.webp' : photo.originalname,
-      contentType: optimized?.contentType ?? photo.mimetype,
-      content: optimized?.content ?? photo.buffer,
-      folder: PHOTO_FOLDER,
-    });
+    const key = buildObjectKey(PHOTO_FOLDER, 'foto.webp');
+    await this.storage.put(key, optimized.content, optimized.contentType);
+    await this.staging.discard([photo.storageKey]);
 
-    return stored.key;
+    return key;
   }
 
   /**
@@ -261,7 +268,7 @@ export class InventoryItemsService {
     if (previousKey === currentKey) return;
 
     try {
-      await this.storage.remove(previousKey);
+      await this.storage.remove([previousKey]);
     } catch {
       // segue adiante: o banco já tem a verdade.
     }

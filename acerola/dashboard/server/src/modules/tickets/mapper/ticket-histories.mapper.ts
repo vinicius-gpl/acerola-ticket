@@ -30,8 +30,11 @@ import { type TicketWithComputer } from '../repository/tickets.repository';
 /** `id` é opcional só por causa de quem ainda não o informa; com ele, o responsável fica achável. */
 export type HistoryAuthor = { name: string; email: string; id?: string };
 
-/** O que a pessoa informou ao lançar — já validado (e normalizado) pelo contrato. */
-export type HistoryEntry = z.infer<typeof createTicketHistorySchema>;
+/**
+ * O que a pessoa informou ao lançar — já validado (e normalizado) pelo contrato. Os arquivos
+ * ficam de fora: eles chegam ao service à parte, e o histórico em si não os guarda.
+ */
+export type HistoryEntry = Omit<z.infer<typeof createTicketHistorySchema>, 'attachments'>;
 
 export function toTicketHistory(
   row: TicketHistoryRow,

@@ -1,4 +1,5 @@
 import { readAuthToken } from '$lib/auth/neon-auth.client';
+import { type StagedFile, type UploadTicket } from '@template/shared/schemas/staged-file.schema';
 
 import { type ApiErrorBody } from './api-error.type';
 
@@ -59,6 +60,46 @@ export async function apiRequest<TResponse>(
   throw await toApiError(response);
 }
 
+/**
+ * Envia o arquivo DIRETO para o storage, pelo link assinado que a API emitiu.
+ *
+ * O arquivo nunca passa pela API: um vídeo de 50 MB ocuparia o processo do servidor durante o
+ * envio inteiro. O link é de vida curta e só aceita este arquivo, nesta chave.
+ *
+ * O tipo vai no cabeçalho porque é ele que o storage guarda — e é o que a API confere depois.
+ * Arquivo sem tipo (um `.docx` num Windows sem Office) vai como `application/octet-stream`, e a
+ * API decide pela extensão, como sempre decidiu.
+ */
+export async function uploadToSignedUrl(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+
+  if (response.ok) return;
+
+  throw new ApiError(
+    response.status,
+    `Não consegui enviar ${file.name} (${response.status}). Nada foi gravado — tente de novo.`,
+  );
+}
+
+/**
+ * Os dois primeiros passos do envio: pede o link em `uploadPath` (a API confere quem pode) e
+ * envia o arquivo por ele. Devolve o que vai no corpo da gravação — a chave e o nome.
+ */
+export async function uploadFile(uploadPath: string, file: File): Promise<StagedFile> {
+  const ticket = await apiRequest<UploadTicket>(uploadPath, {
+    method: 'POST',
+    body: { fileName: file.name, contentType: file.type, sizeBytes: file.size },
+  });
+
+  await uploadToSignedUrl(ticket.uploadUrl, file);
+
+  return { storageKey: ticket.storageKey, fileName: file.name };
+}
+
 export type Downloaded = { blob: Blob; fileName: string };
 
 /**
@@ -103,26 +144,18 @@ async function toApiError(response: Response): Promise<ApiError> {
 }
 
 /**
- * O corpo da requisição.
- *
- * `FormData` passa inteiro, sem virar texto: é assim que um arquivo (o print de um chamado)
- * viaja junto dos campos. Serializá-lo como JSON mandaria `{}` e o arquivo sumiria em
- * silêncio — o pior tipo de falha, porque a requisição dá certo.
+ * O corpo da requisição — sempre JSON. Arquivo não passa pela API: ele vai direto para o
+ * storage (`uploadFile`), e o corpo leva só a chave dele.
  */
 function toRequestBody(body: unknown): BodyInit | undefined {
   if (body === undefined) return undefined;
-  if (body instanceof FormData) return body;
 
   return JSON.stringify(body);
 }
 
 async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
-  /* Com `FormData` o cabeçalho NÃO é escrito aqui: o navegador precisa montá-lo sozinho para
-     incluir o `boundary` que separa os campos. Escrevê-lo à mão quebra a leitura no servidor. */
-  if (options.body !== undefined && !(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
 
   const token = await readAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;

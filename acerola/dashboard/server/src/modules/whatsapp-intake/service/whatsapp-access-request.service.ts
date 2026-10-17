@@ -283,7 +283,7 @@ export class WhatsappAccessRequestService {
 
     /* Falhou (o diretório não confirmou quem atende, por exemplo): a pessoa recebe o aviso de
        erro em `finish`, e o motivo fica no log para quem administra. */
-    return this.tickets.create(input, undefined, [], options).catch((error: unknown) => {
+    return this.tickets.create(input, options).catch((error: unknown) => {
       this.logger.error(
         'failed to create user request from WhatsApp',
         error instanceof Error ? error.stack : '',

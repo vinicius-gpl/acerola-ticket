@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { QUOTE_KINDS, QUOTE_STATUSES, parseAmountToCents } from '../domain/maintenance-quote.util';
 import { paginationQuerySchema } from './pagination.schema';
+import { stagedFileSchema } from './staged-file.schema';
 
 /**
  * O CONTRATO dos orçamentos da Manutenção. Um schema, duas pontas: a API o usa como DTO e
@@ -91,8 +92,9 @@ export const maintenanceQuoteSchema = z.object({
 export type MaintenanceQuote = z.infer<typeof maintenanceQuoteSchema>;
 
 /**
- * Guardar um orçamento. O DOCUMENTO NÃO ENTRA AQUI: ele viaja como arquivo, no mesmo envio, e
- * quem o valida é o domínio (`refuseQuoteAttachment`).
+ * Guardar um orçamento. O DOCUMENTO vai pela chave: o navegador já o enviou direto para o
+ * storage, por link assinado (ver `staged-file.schema`). Quem o valida é o domínio
+ * (`refuseQuoteAttachment`), com o que o storage mediu.
  */
 export const createMaintenanceQuoteSchema = z.object({
   supplier: supplierSchema,
@@ -102,6 +104,7 @@ export const createMaintenanceQuoteSchema = z.object({
   quotedOn: quotedOnSchema,
   status: quoteStatusSchema.optional(),
   note: noteSchema.optional(),
+  attachment: stagedFileSchema.optional(),
 });
 
 export type CreateMaintenanceQuoteInput = z.input<typeof createMaintenanceQuoteSchema>;
@@ -115,7 +118,9 @@ export const updateMaintenanceQuoteSchema = z.object({
   quotedOn: quotedOnSchema.optional(),
   status: quoteStatusSchema.optional(),
   note: noteSchema.optional(),
-  /** `true` tira o documento. O documento novo vem como arquivo, não por aqui. */
+  /** O documento novo, já enviado — substitui o anterior. */
+  attachment: stagedFileSchema.optional(),
+  /** `true` tira o documento sem pôr outro. */
   removeAttachment: z.coerce.boolean().optional(),
 });
 

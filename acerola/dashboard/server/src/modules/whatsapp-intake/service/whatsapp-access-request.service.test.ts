@@ -102,7 +102,7 @@ describe('WhatsappAccessRequestService — quem está pedindo', () => {
 
     expect(directory.searchUsers).toHaveBeenCalledWith('maria');
     expect(tickets.create.mock.calls[0]?.[0]).toMatchObject({ requesterName: 'Maria Clara Souza' });
-    expect(tickets.create.mock.calls[0]?.[3]).toEqual({
+    expect(tickets.create.mock.calls[0]?.[1]).toEqual({
       skipOpeningNotice: true,
       requester: { id: 'maria-id', email: 'maria@empresa.com.br', name: 'Maria Clara Souza' },
     });
@@ -117,7 +117,7 @@ describe('WhatsappAccessRequestService — quem está pedindo', () => {
     for (const text of ['/acesso', 'Maria Clara', '11']) await say(text);
 
     expect(tickets.phoneOwnersOf).toHaveBeenCalledWith('5562999990002');
-    expect(tickets.create.mock.calls[0]?.[3]).toMatchObject({ requester: { id: 'lima-id' } });
+    expect(tickets.create.mock.calls[0]?.[1]).toMatchObject({ requester: { id: 'lima-id' } });
   });
 
   it('asks who is who when the name fits several people, and links the one picked', async () => {
@@ -129,7 +129,7 @@ describe('WhatsappAccessRequestService — quem está pedindo', () => {
     expect(await say('2')).toEqual({ reply: 'text:access_department', isOpen: true });
     await say('11');
 
-    expect(tickets.create.mock.calls[0]?.[3]).toMatchObject({ requester: { id: 'lima-id' } });
+    expect(tickets.create.mock.calls[0]?.[1]).toMatchObject({ requester: { id: 'lima-id' } });
   });
 
   // triste
@@ -141,7 +141,7 @@ describe('WhatsappAccessRequestService — quem está pedindo', () => {
     expect(await say('0')).toEqual({ reply: 'text:access_email', isOpen: true });
     for (const text of ['maria@outra.com', '11']) await say(text);
 
-    expect(tickets.create.mock.calls[0]?.[3]).toEqual({
+    expect(tickets.create.mock.calls[0]?.[1]).toEqual({
       skipOpeningNotice: true,
       requester: undefined,
     });
@@ -183,8 +183,6 @@ describe('WhatsappAccessRequestService', () => {
         assigneeId: 'u-ana',
         description: expect.stringContaining('E-mail: maria@empresa.com.br'),
       }),
-      undefined,
-      [],
       { skipOpeningNotice: true },
     );
     expect(messaging.reply.mock.calls.at(-1)?.[0]).toMatchObject({

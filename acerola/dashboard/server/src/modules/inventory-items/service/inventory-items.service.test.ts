@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { inventoryItemListQuerySchema } from '@template/shared/schemas/inventory-item.schema';
 import { inventoryMovementListQuerySchema } from '@template/shared/schemas/inventory-movement.schema';
 import { describe, expect, it, vi } from 'vitest';
@@ -6,9 +10,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type InventoryItemRow } from '../../../lib/db/schema/inventory-items.schema';
 import { type InventoryMovementRow } from '../../../lib/db/schema/inventory-movements.schema';
-import { type StorageService } from '../../../lib/storage/storage.service';
+import { type FileStorage } from '../../../lib/storage/file-storage.type';
+import { MemoryStorage } from '../../../lib/storage/memory-storage';
+import { StagedUploadsService } from '../../../lib/storage/staged-uploads.service';
 import { type InventoryItemsRepository } from '../repository/inventory-items.repository';
-import { InventoryItemsService, type UploadedPhoto } from './inventory-items.service';
+import { optimizePhoto } from './inventory-photo.util';
+import { InventoryItemsService } from './inventory-items.service';
 
 /* O ffmpeg é um PROCESSO de fora: deixá-lo rodar aqui tornaria o teste do service dependente
    de um programa instalado na máquina, e lento. O que ele faz tem teste próprio
@@ -70,14 +77,16 @@ function row(overrides: Partial<InventoryItemRow> = {}): InventoryItemRow {
   };
 }
 
-function photo(overrides: Partial<UploadedPhoto> = {}): UploadedPhoto {
-  return {
-    originalname: 'cadeira.jpg',
-    mimetype: 'image/jpeg',
-    size: 2048,
-    buffer: Buffer.from('nao-e-uma-imagem-de-verdade'),
-    ...overrides,
-  };
+const PHOTO_KEY = 'tmp/00000000-0000-4000-8000-000000000001.jpg';
+
+/** O que o navegador faz com o link: põe a foto na área temporária. Devolve o que vai no corpo. */
+async function sentPhoto(
+  storage: MemoryStorage,
+  file: { contentType: string; sizeBytes: number } = { contentType: 'image/jpeg', sizeBytes: 2048 },
+) {
+  await storage.put(PHOTO_KEY, Buffer.alloc(file.sizeBytes), file.contentType);
+
+  return { storageKey: PHOTO_KEY, fileName: 'cadeira.jpg' };
 }
 
 function movementRow(overrides: Partial<InventoryMovementRow> = {}): InventoryMovementRow {
@@ -113,23 +122,28 @@ const defaultRepository: Partial<InventoryItemsRepository> = {
   transaction: vi.fn().mockImplementation(async (run) => run({})),
 };
 
-const defaultStorage: Partial<StorageService> = {
-  upload: vi.fn().mockResolvedValue({
-    key: 'inventory/nova.webp',
-    contentType: 'image/webp',
-    sizeBytes: 10,
-  }),
-  createDownloadUrl: vi.fn().mockResolvedValue('https://r2.exemplo/foto?assinatura'),
-  remove: vi.fn().mockResolvedValue(undefined),
+const defaultStorage: Partial<FileStorage> = {
+  downloadUrl: vi.fn().mockResolvedValue('https://r2.exemplo/foto?assinatura'),
 };
 
+/**
+ * O storage é o de memória, de verdade — com o que o teste quiser trocar por cima (uma falha,
+ * um espião). Passar um `MemoryStorage` pronto deixa o teste olhar o que ficou nele.
+ */
 function makeService(
   repository: Partial<InventoryItemsRepository> = {},
-  storage: Partial<StorageService> = {},
+  storage: Partial<FileStorage> = {},
 ) {
+  const memory = Object.assign(
+    storage instanceof MemoryStorage ? storage : new MemoryStorage(),
+    defaultStorage,
+    storage instanceof MemoryStorage ? {} : storage,
+  );
+
   return new InventoryItemsService(
     { ...defaultRepository, ...repository } as InventoryItemsRepository,
-    { ...defaultStorage, ...storage } as StorageService,
+    new StagedUploadsService(memory),
+    memory,
   );
 }
 
@@ -156,7 +170,7 @@ describe('InventoryItemsService.list', () => {
           .fn()
           .mockResolvedValue({ rows: [row({ photoKey: 'inventory/a.webp' })], total: 1 }),
       },
-      { createDownloadUrl: vi.fn().mockRejectedValue(new Error('r2 fora do ar')) },
+      { downloadUrl: vi.fn().mockRejectedValue(new Error('r2 fora do ar')) },
     );
 
     const page = await service.list(viewer, query);
@@ -187,19 +201,66 @@ describe('InventoryItemsService.create', () => {
     );
   });
 
-  it('stores the photo and keeps the key of the stored file', async () => {
+  it('shrinks the photo that was sent and keeps the key of the final file', async () => {
     const insert = vi.fn().mockResolvedValue(row());
-    const service = makeService({ insert });
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
 
-    await service.create(
-      keeper,
-      { name: 'Bebedouro', category: 'appliance', unit: 'unit' },
-      photo(),
-    );
+    await service.create(keeper, {
+      name: 'Bebedouro',
+      category: 'appliance',
+      unit: 'unit',
+      photo: await sentPhoto(storage),
+    });
 
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({ photoKey: 'inventory/nova.webp' }),
-    );
+    const key = insert.mock.calls[0]?.[0].photoKey as string;
+    expect(key).toMatch(/^inventory\/[0-9a-f-]{36}\.webp$/);
+    expect((await storage.get(key))?.content.toString()).toBe('webp-de-mentira');
+    /* A foto original sai da área temporária: o que fica é a versão encolhida. */
+    expect(await storage.head(PHOTO_KEY)).toBeNull();
+  });
+
+  /* Sem o ffmpeg, vai o original: perder o cadastro por uma conversão seria pior. */
+  it('keeps the original photo when it cannot be shrunk', async () => {
+    vi.mocked(optimizePhoto).mockResolvedValueOnce(null);
+    const insert = vi.fn().mockResolvedValue(row());
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
+
+    await service.create(keeper, {
+      name: 'Bebedouro',
+      category: 'appliance',
+      unit: 'unit',
+      photo: await sentPhoto(storage),
+    });
+
+    expect(insert.mock.calls[0]?.[0].photoKey).toMatch(/^inventory\/[0-9a-f-]{36}\.jpg$/);
+  });
+
+  // feliz
+  it('hands the photo upload link to whoever manages the area', async () => {
+    const service = makeService();
+
+    const ticket = await service.createPhotoUploadTicket(keeper, {
+      fileName: 'cadeira.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: 2048,
+    });
+
+    expect(ticket.storageKey).toMatch(/^tmp\/[0-9a-f-]{36}\.jpg$/);
+  });
+
+  // triste
+  it('gives no upload link to someone who only queries the area', async () => {
+    const service = makeService();
+
+    await expect(
+      service.createPhotoUploadTicket(viewer, {
+        fileName: 'cadeira.jpg',
+        contentType: 'image/jpeg',
+        sizeBytes: 2048,
+      }),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   // triste
@@ -225,51 +286,93 @@ describe('InventoryItemsService.create', () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
-  it('refuses a file that is not an accepted image, without storing anything', async () => {
-    const upload = vi.fn();
+  it('refuses a file that is not an accepted image, and clears it from the staging area', async () => {
     const insert = vi.fn();
-    const service = makeService({ insert }, { upload });
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
+    const photo = await sentPhoto(storage, { contentType: 'application/pdf', sizeBytes: 2048 });
 
     await expect(
-      service.create(
-        keeper,
-        { name: 'Mesa', category: 'furniture', unit: 'unit' },
-        photo({ mimetype: 'application/pdf' }),
-      ),
+      service.create(keeper, { name: 'Mesa', category: 'furniture', unit: 'unit', photo }),
     ).rejects.toThrow(UnprocessableEntityException);
-    expect(upload).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
+    expect(storage.size).toBe(0);
+  });
+
+  /* A tela declarou uma foto pequena; o link aceita o que for enviado. Vale o medido. */
+  it('refuses a photo that turned out bigger than the ceiling', async () => {
+    const insert = vi.fn();
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
+    const photo = await sentPhoto(storage, {
+      contentType: 'image/jpeg',
+      sizeBytes: 13 * 1024 * 1024,
+    });
+
+    await expect(
+      service.create(keeper, { name: 'Mesa', category: 'furniture', unit: 'unit', photo }),
+    ).rejects.toThrow(UnprocessableEntityException);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a photo that never reached the storage', async () => {
+    const insert = vi.fn();
+    const service = makeService({ insert });
+    const photo = { storageKey: PHOTO_KEY, fileName: 'cadeira.jpg' };
+
+    await expect(
+      service.create(keeper, { name: 'Mesa', category: 'furniture', unit: 'unit', photo }),
+    ).rejects.toThrow(NotFoundException);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('lets a storage outage through when checking the photo', async () => {
+    const service = makeService(
+      {},
+      { head: vi.fn().mockRejectedValue(new TypeError('fetch failed')) },
+    );
+    const photo = { storageKey: PHOTO_KEY, fileName: 'cadeira.jpg' };
+
+    await expect(
+      service.create(keeper, { name: 'Mesa', category: 'furniture', unit: 'unit', photo }),
+    ).rejects.toThrow('fetch failed');
   });
 });
 
 describe('InventoryItemsService.update', () => {
   // feliz
   it('changes the product and drops the photo that was replaced', async () => {
-    const remove = vi.fn().mockResolvedValue(undefined);
+    const storage = new MemoryStorage();
+    await storage.put('inventory/antiga.webp', Buffer.from('a'), 'image/webp');
     const service = makeService(
       {
         findById: vi.fn().mockResolvedValue(row({ photoKey: 'inventory/antiga.webp' })),
         update: vi.fn().mockResolvedValue(row({ photoKey: 'inventory/nova.webp' })),
       },
-      { remove },
+      storage,
     );
 
-    await service.update(keeper, 1, {}, photo());
+    await service.update(keeper, 1, { photo: await sentPhoto(storage) });
 
-    expect(remove).toHaveBeenCalledWith('inventory/antiga.webp');
+    expect(await storage.head('inventory/antiga.webp')).toBeNull();
   });
 
   /* O arquivo órfão custa centavos; devolver erro a quem só trocou a foto custa confiança. */
   it('does not fail the change when the old photo cannot be deleted', async () => {
+    const storage = Object.assign(new MemoryStorage(), {
+      remove: vi.fn().mockRejectedValue(new Error('r2 fora do ar')),
+    });
     const service = makeService(
       {
         findById: vi.fn().mockResolvedValue(row({ photoKey: 'inventory/antiga.webp' })),
         update: vi.fn().mockResolvedValue(row({ photoKey: 'inventory/nova.webp' })),
       },
-      { remove: vi.fn().mockRejectedValue(new Error('r2 fora do ar')) },
+      storage,
     );
 
-    await expect(service.update(keeper, 1, {}, photo())).resolves.toBeTruthy();
+    await expect(
+      service.update(keeper, 1, { photo: await sentPhoto(storage) }),
+    ).resolves.toBeTruthy();
   });
 
   // triste
@@ -294,16 +397,17 @@ describe('InventoryItemsService.remove', () => {
   // feliz
   it('deletes the product and its photo', async () => {
     const remove = vi.fn().mockResolvedValue(undefined);
-    const storageRemove = vi.fn().mockResolvedValue(undefined);
+    const storage = new MemoryStorage();
+    await storage.put('inventory/a.webp', Buffer.from('a'), 'image/webp');
     const service = makeService(
       { findById: vi.fn().mockResolvedValue(row({ photoKey: 'inventory/a.webp' })), remove },
-      { remove: storageRemove },
+      storage,
     );
 
     await service.remove(keeper, 1);
 
     expect(remove).toHaveBeenCalledWith(1);
-    expect(storageRemove).toHaveBeenCalledWith('inventory/a.webp');
+    expect(await storage.head('inventory/a.webp')).toBeNull();
   });
 
   // triste

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { refuseQuoteAttachment } from '@template/shared/domain/maintenance-quote.util';
 import {
   type CreateMaintenanceQuoteInput,
@@ -7,11 +12,18 @@ import {
   type UpdateMaintenanceQuoteInput,
 } from '@template/shared/schemas/maintenance-quote.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import {
+  type StagedFile,
+  type UploadRequest,
+  type UploadTicket,
+} from '@template/shared/schemas/staged-file.schema';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type MaintenanceQuoteRow } from '../../../lib/db/schema/maintenance-quotes.schema';
 import { assertCanManageInContext, assertCanRead } from '../../../lib/policy/policy-assert.util';
-import { StorageService } from '../../../lib/storage/storage.service';
+import { DOWNLOAD_URL_TTL_SECONDS, type FileStorage } from '../../../lib/storage/file-storage.type';
+import { StagedUploadsService } from '../../../lib/storage/staged-uploads.service';
+import { STORAGE } from '../../../lib/storage/storage.token';
 import {
   type StoredAttachment,
   toMaintenanceQuote,
@@ -26,14 +38,6 @@ const QUOTE_NOT_FOUND =
 /** A pasta do bucket. Nome em inglês: é infraestrutura, o usuário não vê (CONTRIBUTING §1). */
 const ATTACHMENT_FOLDER = 'maintenance-quotes';
 
-/** O documento como o upload o entrega. */
-export type UploadedAttachment = {
-  originalname: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-};
-
 /**
  * O ÚNICO caminho de escrita dos orçamentos da Manutenção.
  *
@@ -41,15 +45,33 @@ export type UploadedAttachment = {
  * CONSULTA; quem gerencia a Manutenção é que guarda, altera e exclui. Orçamento é dinheiro da
  * área — a decisão sobre ele é de quem responde por ela.
  *
- * O documento é tratado aqui, e não no controller: ele é recusado pelo domínio e guardado no
- * R2 do jeito que chegou (PDF não se "reduz"), e a chave dele é o que vai para o banco.
+ * O documento vai do navegador direto para o R2, por link assinado. Aqui ele é conferido
+ * pelo domínio (com o que o storage mediu) e movido para o lugar definitivo do jeito que chegou
+ * (PDF não se "reduz"); a chave dele é o que vai para o banco.
  */
 @Injectable()
 export class MaintenanceQuotesService {
   constructor(
     private readonly repository: MaintenanceQuotesRepository,
-    private readonly storage: StorageService,
+    private readonly staging: StagedUploadsService,
+    @Inject(STORAGE) private readonly storage: FileStorage,
   ) {}
+
+  /**
+   * O link para enviar o documento de um orçamento. Só quem guarda orçamentos recebe — e o que
+   * nem é PDF ou imagem é recusado antes de ser enviado.
+   */
+  async createAttachmentUploadTicket(
+    user: RequestUser,
+    input: UploadRequest,
+  ): Promise<UploadTicket> {
+    assertCanManageInContext(user, 'manutencao', 'enviar documentos de orçamentos');
+
+    const refusal = refuseQuoteAttachment(input);
+    if (refusal) throw new UnprocessableEntityException(refusal.message);
+
+    return this.staging.createUploadTicket(input.fileName);
+  }
 
   async list(
     user: RequestUser,
@@ -69,14 +91,10 @@ export class MaintenanceQuotesService {
     return this.toQuote(await this.require(id));
   }
 
-  async create(
-    user: RequestUser,
-    input: CreateMaintenanceQuoteInput,
-    attachment?: UploadedAttachment,
-  ): Promise<MaintenanceQuote> {
+  async create(user: RequestUser, input: CreateMaintenanceQuoteInput): Promise<MaintenanceQuote> {
     assertCanManageInContext(user, 'manutencao', 'guardar orçamentos');
 
-    const stored = await this.storeAttachment(attachment);
+    const stored = await this.storeAttachment(input.attachment);
     const row = await this.repository.insert(toMaintenanceQuoteInsert(input, user.email, stored));
 
     return this.toQuote(row);
@@ -93,12 +111,11 @@ export class MaintenanceQuotesService {
     user: RequestUser,
     id: number,
     input: UpdateMaintenanceQuoteInput,
-    attachment?: UploadedAttachment,
   ): Promise<MaintenanceQuote> {
     assertCanManageInContext(user, 'manutencao', 'alterar orçamentos');
 
     const current = await this.require(id);
-    const stored = (await this.storeAttachment(attachment)) ?? undefined;
+    const stored = (await this.storeAttachment(input.attachment)) ?? undefined;
 
     const row = await this.repository.update(
       id,
@@ -141,33 +158,30 @@ export class MaintenanceQuotesService {
     if (!row.attachmentKey) return null;
 
     try {
-      return await this.storage.createDownloadUrl(row.attachmentKey, {
-        as: 'inline',
-        fileName: row.attachmentName ?? undefined,
-      });
+      return await this.storage.downloadUrl(row.attachmentKey, DOWNLOAD_URL_TTL_SECONDS, null);
     } catch {
       return null;
     }
   }
 
-  /** Guarda o documento e devolve a chave e o nome dele — ou nulo, quando não veio nenhum. */
-  private async storeAttachment(attachment?: UploadedAttachment): Promise<StoredAttachment | null> {
+  /**
+   * Tira o documento da área temporária e devolve a chave e o nome dele — ou nulo, quando não
+   * veio nenhum. Confere o arquivo que o storage MEDIU; o que não serve sai da área temporária,
+   * com o motivo.
+   */
+  private async storeAttachment(attachment?: StagedFile): Promise<StoredAttachment | null> {
     if (!attachment) return null;
 
-    const refusal = refuseQuoteAttachment({
-      contentType: attachment.mimetype,
-      sizeBytes: attachment.size,
-    });
-    if (refusal) throw new UnprocessableEntityException(refusal.message);
+    const measured = await this.staging.inspect(attachment);
+    const refusal = refuseQuoteAttachment(measured);
+    if (refusal) {
+      await this.staging.discard([attachment.storageKey]);
+      throw new UnprocessableEntityException(refusal.message);
+    }
 
-    const stored = await this.storage.upload({
-      fileName: attachment.originalname,
-      contentType: attachment.mimetype,
-      content: attachment.buffer,
-      folder: ATTACHMENT_FOLDER,
-    });
+    const key = await this.staging.promote(attachment, ATTACHMENT_FOLDER);
 
-    return { key: stored.key, name: attachment.originalname };
+    return { key, name: attachment.fileName };
   }
 
   /**
@@ -185,7 +199,7 @@ export class MaintenanceQuotesService {
     if (previousKey === currentKey) return;
 
     try {
-      await this.storage.remove(previousKey);
+      await this.storage.remove([previousKey]);
     } catch {
       // segue adiante: o banco já tem a verdade.
     }

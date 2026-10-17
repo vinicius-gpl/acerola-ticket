@@ -5,6 +5,10 @@ import {
   updateMaintenanceQuoteSchema,
 } from '@template/shared/schemas/maintenance-quote.schema';
 import { paginatedSchema } from '@template/shared/schemas/pagination.schema';
+import {
+  uploadRequestSchema,
+  uploadTicketSchema,
+} from '@template/shared/schemas/staged-file.schema';
 import { createZodDto } from 'nestjs-zod';
 
 /**
@@ -18,3 +22,7 @@ export class MaintenanceQuoteListQueryDto extends createZodDto(maintenanceQuoteL
 export class MaintenanceQuoteListResponseDto extends createZodDto(
   paginatedSchema(maintenanceQuoteSchema),
 ) {}
+
+/** O pedido do link para enviar o documento, e a resposta com o link (PUT) e a chave temporária. */
+export class AttachmentUploadRequestDto extends createZodDto(uploadRequestSchema) {}
+export class AttachmentUploadTicketDto extends createZodDto(uploadTicketSchema) {}

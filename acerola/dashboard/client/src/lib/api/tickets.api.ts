@@ -2,6 +2,7 @@ import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type TicketInvite } from '@template/shared/domain/ticket-invite.util';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type StagedFile } from '@template/shared/schemas/staged-file.schema';
 import { type ReportFormat } from '@template/shared/schemas/report.schema';
 import { type PublicServiceOrder } from '@template/shared/schemas/service-order.schema';
 import {
@@ -22,7 +23,7 @@ import {
 } from '@template/shared/schemas/ticket.schema';
 import { type WhatsappNotice } from '@template/shared/schemas/whatsapp-notice.schema';
 
-import { apiDownload, apiRequest, type Downloaded } from './http-client';
+import { apiDownload, apiRequest, type Downloaded, uploadFile } from './http-client';
 
 /** Os indicadores do painel, como a API os devolve. */
 export type TicketDashboard = {
@@ -141,17 +142,29 @@ export const ticketsApi = {
     apiRequest<Ticket>(`/tickets/${id}/areas/${area}`, { method: 'DELETE' }),
 
   /**
-   * Abre um chamado — público, sem login.
+   * Abre um chamado.
    *
-   * Vai como `FormData` porque o print viaja junto: um envio só significa que ou existe o
-   * chamado COM a imagem, ou não existe chamado nenhum. Com dois envios, uma falha no meio
-   * deixaria um chamado apontando para uma imagem que nunca subiu.
+   * O print e os anexos vão primeiro, direto para o storage (link assinado); só então o chamado
+   * é gravado, levando a chave de cada arquivo. Se um envio falhar, nada é gravado — e o que já
+   * subiu fica na área temporária, que o servidor limpa no dia seguinte.
    */
-  create: (values: TicketFormValues, screenshot: File | null, attachments: readonly File[] = []) =>
-    apiRequest<OpenedTicket>('/tickets', {
+  create: async (
+    values: TicketFormValues,
+    screenshot: File | null,
+    attachments: readonly File[] = [],
+  ) => {
+    const sentScreenshot = screenshot
+      ? await uploadFile('/tickets/upload-url', screenshot)
+      : undefined;
+    const sentAttachments = await Promise.all(
+      attachments.map((file) => uploadFile('/tickets/upload-url', file)),
+    );
+
+    return apiRequest<OpenedTicket>('/tickets', {
       method: 'POST',
-      body: toTicketFormData(values, screenshot, attachments),
-    }),
+      body: toTicketBody(values, sentScreenshot, sentAttachments),
+    });
+  },
 
   /** Os arquivos de um chamado, pelo painel. */
   attachments: (ticketId: number) =>
@@ -160,16 +173,16 @@ export const ticketsApi = {
   /**
    * Junta arquivos a um chamado já aberto.
    *
-   * Um envio só com todos: a API confere a leva inteira antes de guardar qualquer um, e
-   * mandar de um em um deixaria o chamado num meio-termo quando o terceiro fosse recusado.
+   * Cada arquivo vai direto para o storage; depois, um registro só com todos: a API confere a
+   * leva inteira antes de guardar qualquer um, e registrar de um em um deixaria o chamado num
+   * meio-termo quando o terceiro fosse recusado.
    */
-  attach: (ticketId: number, files: readonly File[]) => {
-    const form = new FormData();
-    for (const file of files) form.append('attachments', file);
+  attach: async (ticketId: number, files: readonly File[]) => {
+    const attachments = await uploadAll(ticketId, files);
 
     return apiRequest<TicketAttachment[]>(`/tickets/${ticketId}/attachments`, {
       method: 'POST',
-      body: form,
+      body: { attachments },
     });
   },
 
@@ -182,26 +195,25 @@ export const ticketsApi = {
   /**
    * Lança um histórico — é o que muda o estágio do chamado.
    *
-   * Vai como `FormData` porque os arquivos viajam junto: um envio só significa que ou existe o
-   * histórico COM os anexos dele, ou não existe histórico nenhum.
+   * Os arquivos vão primeiro, direto para o storage; o histórico é gravado levando a chave de
+   * cada um. Ou existe o histórico COM os anexos dele, ou não existe histórico nenhum.
    */
-  createHistory: (
+  createHistory: async (
     ticketId: number,
     values: TicketHistoryFormValues,
     files: readonly File[] = [],
   ) => {
-    const form = new FormData();
-
-    form.set('type', values.type);
-    form.set('description', values.description);
-    /* Booleano e número viram texto no multipart; o contrato no `shared` lê os dois jeitos. */
-    form.set('isVisibleToRequester', String(values.isVisibleToRequester));
-    form.set('minutesSpent', values.minutesSpent.trim());
-    for (const file of files) form.append('attachments', file);
+    const attachments = await uploadAll(ticketId, files);
 
     return apiRequest<TicketHistory>(`/tickets/${ticketId}/histories`, {
       method: 'POST',
-      body: form,
+      body: {
+        type: values.type,
+        description: values.description,
+        isVisibleToRequester: values.isVisibleToRequester,
+        minutesSpent: values.minutesSpent.trim(),
+        attachments,
+      },
     });
   },
 
@@ -223,29 +235,32 @@ export const ticketsApi = {
     apiRequest<PublicTicket>(`/tickets/protocol/${encodeURIComponent(protocol)}`),
 };
 
-function toTicketFormData(
+/** Envia os arquivos de um chamado já aberto pelo link de quem atende. */
+function uploadAll(ticketId: number, files: readonly File[]): Promise<StagedFile[]> {
+  return Promise.all(
+    files.map((file) => uploadFile(`/tickets/${ticketId}/attachments/upload-url`, file)),
+  );
+}
+
+/** O corpo da abertura: os campos e as chaves dos arquivos já enviados. Vazio não vai. */
+function toTicketBody(
   values: TicketFormValues,
-  screenshot: File | null,
-  attachments: readonly File[],
-): FormData {
-  const form = new FormData();
-
-  form.set('requesterName', values.requesterName);
-  form.set('area', values.area);
-  form.set('department', values.department);
-  form.set('problemType', values.problemType);
-  form.set('priority', values.priority);
-  form.set('contactPhone', values.contactPhone);
-  form.set('description', values.description);
-  /* Booleano vira texto no multipart; o contrato no `shared` lê "true" e `true` do mesmo jeito. */
-  form.set('notifyWhatsapp', String(values.notifyWhatsapp));
-
-  if (values.anydeskId) form.set('anydeskId', values.anydeskId);
-  if (values.projectId) form.set('projectId', values.projectId);
-  if (values.assigneeId) form.set('assigneeId', values.assigneeId);
-  if (screenshot) form.set('screenshot', screenshot);
-  /* `append`, e não `set`: são vários no mesmo campo, e `set` deixaria só o último. */
-  for (const attachment of attachments) form.append('attachments', attachment);
-
-  return form;
+  screenshot: StagedFile | undefined,
+  attachments: StagedFile[],
+): Record<string, unknown> {
+  return {
+    requesterName: values.requesterName,
+    area: values.area,
+    department: values.department,
+    problemType: values.problemType,
+    priority: values.priority,
+    contactPhone: values.contactPhone,
+    description: values.description,
+    notifyWhatsapp: values.notifyWhatsapp,
+    anydeskId: values.anydeskId || undefined,
+    projectId: values.projectId || undefined,
+    assigneeId: values.assigneeId || undefined,
+    screenshot,
+    attachments,
+  };
 }

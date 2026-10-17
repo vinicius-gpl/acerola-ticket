@@ -5,15 +5,16 @@ import {
   type MaintenanceQuoteListQuery,
 } from '@template/shared/schemas/maintenance-quote.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type StagedFile } from '@template/shared/schemas/staged-file.schema';
 
-import { apiRequest } from './http-client';
+import { apiRequest, uploadFile } from './http-client';
 
 /**
  * Chamadas da API dos orçamentos da Manutenção. Nada aqui decide nada — é a tradução de uma
  * intenção em uma requisição, para que os view-models não montem URL à mão.
  *
- * Guardar e alterar vão como `FormData` porque o DOCUMENTO viaja junto: um envio só significa
- * que ou existe o orçamento COM o arquivo, ou não existe orçamento nenhum.
+ * O DOCUMENTO vai primeiro, direto para o storage (link assinado); o orçamento é gravado
+ * depois, levando a chave dele. Ou existe o orçamento COM o arquivo, ou não existe orçamento.
  */
 export const maintenanceQuotesApi = {
   list: (query: Partial<MaintenanceQuoteListQuery>) =>
@@ -27,17 +28,17 @@ export const maintenanceQuotesApi = {
       },
     }),
 
-  create: (values: MaintenanceQuoteFormValues, attachment: File | null) =>
+  create: async (values: MaintenanceQuoteFormValues, attachment: File | null) =>
     apiRequest<MaintenanceQuote>('/maintenance-quotes', {
       method: 'POST',
-      body: toQuoteFormData(values, attachment),
+      body: toQuoteBody(values, await uploadDocument(attachment)),
     }),
 
   /**
    * `removeAttachment` é o que separa "não mexi no documento" de "quero sem documento": sem
    * ele, salvar sem escolher arquivo nenhum apagaria o que já estava lá.
    */
-  update: (
+  update: async (
     id: number,
     values: MaintenanceQuoteFormValues,
     attachment: File | null,
@@ -45,35 +46,39 @@ export const maintenanceQuotesApi = {
   ) =>
     apiRequest<MaintenanceQuote>(`/maintenance-quotes/${id}`, {
       method: 'PATCH',
-      body: toQuoteFormData(values, attachment, removeAttachment),
+      body: toQuoteBody(values, await uploadDocument(attachment), removeAttachment),
     }),
 
   remove: (id: number) => apiRequest<void>(`/maintenance-quotes/${id}`, { method: 'DELETE' }),
 };
 
+function uploadDocument(attachment: File | null): Promise<StagedFile | undefined> {
+  if (!attachment) return Promise.resolve(undefined);
+
+  return uploadFile('/maintenance-quotes/attachment/upload-url', attachment);
+}
+
 /**
- * Os campos do formulário e o documento num envio só.
+ * Os campos do formulário e a chave do documento já enviado.
  *
  * O valor sai daqui em CENTAVOS: a pessoa digita "1.250,00", e o contrato da API só conhece
  * o inteiro. O formulário já recusou o que não é valor, então o `?? 0` nunca decide nada.
  */
-function toQuoteFormData(
+function toQuoteBody(
   values: MaintenanceQuoteFormValues,
-  attachment: File | null,
+  attachment: StagedFile | undefined,
   removeAttachment = false,
-): FormData {
-  const form = new FormData();
-
-  form.set('supplier', values.supplier);
-  form.set('description', values.description);
-  form.set('kind', values.kind);
-  form.set('amountCents', String(parseAmountToCents(values.amount) ?? 0));
-  form.set('quotedOn', values.quotedOn);
-  form.set('status', values.status);
-  form.set('note', values.note);
-
-  if (attachment) form.set('attachment', attachment);
-  if (removeAttachment) form.set('removeAttachment', 'true');
-
-  return form;
+): Record<string, unknown> {
+  return {
+    supplier: values.supplier,
+    description: values.description,
+    kind: values.kind,
+    amountCents: parseAmountToCents(values.amount) ?? 0,
+    quotedOn: values.quotedOn,
+    status: values.status,
+    note: values.note,
+    attachment,
+    /* Só quando for para tirar: o campo ausente é o caso normal. */
+    removeAttachment: removeAttachment || undefined,
+  };
 }

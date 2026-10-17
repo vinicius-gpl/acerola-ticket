@@ -10,16 +10,9 @@ import {
   Patch,
   Post,
   Query,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { INVENTORY_PHOTO_MAX_BYTES } from '@template/shared/domain/inventory-photo.util';
-import { uploadLimit } from '../../../lib/http/upload-limit.util';
-import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
   ApiBody,
-  ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
@@ -41,12 +34,12 @@ import {
   InventoryMovementDto,
   InventoryMovementListQueryDto,
   InventoryMovementListResponseDto,
+  PhotoUploadRequestDto,
+  PhotoUploadTicketDto,
   UpdateInventoryItemDto,
 } from '../dto/inventory-item.dto';
-import {
-  InventoryItemsService,
-  type UploadedPhoto,
-} from '../service/inventory-items.service';
+import { SkipHistory } from '../../history/interceptor/skip-history.decorator';
+import { InventoryItemsService } from '../service/inventory-items.service';
 import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
@@ -56,8 +49,8 @@ import { ModuleContext } from '../../../lib/auth/module-context.decorator';
  * precisa de cargo de gestão em Manutenção — a conferência é do service, no mesmo lugar onde
  * a escrita acontece.
  *
- * O cadastro e a alteração chegam como `multipart/form-data`, porque a foto viaja junto com
- * os campos: dois envios separados deixariam produto sem foto na tela se o segundo falhasse.
+ * A foto NÃO passa por aqui: o navegador pede o link (`photo/upload-url`), envia direto para o
+ * storage, e o cadastro leva só a chave dela — gravada junto com os campos, num envio só.
  */
 @ApiTags('Inventário da Manutenção')
 @ModuleContext('manutencao')
@@ -126,16 +119,30 @@ export class InventoryItemsController {
     return this.service.findById(user, id);
   }
 
+  @Post('photo/upload-url')
+  @SkipHistory()
+  @ApiOperation({
+    summary: 'Pede o link para enviar a foto de um produto',
+    description:
+      'A foto vai do navegador DIRETO para o storage, por este link (PUT, assinado, vale 5 minutos), para a área temporária. Depois, o cadastro ou a alteração leva a `storageKey` no campo `photo`.',
+  })
+  @ApiCreatedResponse({ type: PhotoUploadTicketDto })
+  @ApiForbiddenResponse({ description: 'Seu cargo em Manutenção só permite consultar.' })
+  @ApiUnprocessableEntityResponse({
+    description: 'A foto não é uma imagem aceita, ou é grande demais.',
+  })
+  async createPhotoUploadUrl(
+    @CurrentUser() user: RequestUser,
+    @Body() body: PhotoUploadRequestDto,
+  ): Promise<PhotoUploadTicketDto> {
+    return this.service.createPhotoUploadTicket(user, body);
+  }
+
   @Post()
-  @UseInterceptors(
-    UploadTooLargeInterceptor,
-    FileInterceptor('photo', uploadLimit(INVENTORY_PHOTO_MAX_BYTES)),
-  )
-  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Cadastra um produto no inventário',
     description:
-      'A foto é opcional e viaja no campo `photo`. Ela é reduzida antes de ser guardada — o que fica no R2 é um webp de até 1024px de largura.',
+      'A foto é opcional: já enviada pelo link de `photo/upload-url`, vai no campo `photo`. Ela é reduzida antes de ser guardada — o que fica no R2 é um webp de até 1024px de largura.',
   })
   @ApiBody({ type: CreateInventoryItemDto })
   @ApiCreatedResponse({ type: InventoryItemDto })
@@ -146,21 +153,15 @@ export class InventoryItemsController {
   async create(
     @CurrentUser() user: RequestUser,
     @Body() body: CreateInventoryItemDto,
-    @UploadedFile() photo?: UploadedPhoto,
   ): Promise<InventoryItemDto> {
-    return this.service.create(user, body, photo);
+    return this.service.create(user, body);
   }
 
   @Patch(':id')
-  @UseInterceptors(
-    UploadTooLargeInterceptor,
-    FileInterceptor('photo', uploadLimit(INVENTORY_PHOTO_MAX_BYTES)),
-  )
-  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Altera um produto do inventário',
     description:
-      'Só o que vier no corpo muda. Uma foto nova no campo `photo` substitui a anterior; `removePhoto` tira a que existe sem pôr outra.',
+      'Só o que vier no corpo muda. Uma foto nova (já enviada) no campo `photo` substitui a anterior; `removePhoto` tira a que existe sem pôr outra.',
   })
   @ApiBody({ type: UpdateInventoryItemDto })
   @ApiOkResponse({ type: InventoryItemDto })
@@ -170,9 +171,8 @@ export class InventoryItemsController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateInventoryItemDto,
-    @UploadedFile() photo?: UploadedPhoto,
   ): Promise<InventoryItemDto> {
-    return this.service.update(user, id, body, photo);
+    return this.service.update(user, id, body);
   }
 
   @Delete(':id')

@@ -10,7 +10,8 @@ import { IdentityProvider } from '../../src/lib/auth/identity.provider';
 import { parseEnv } from '../../src/lib/config/env.schema';
 import { DB } from '../../src/lib/db/db.token';
 import { type Database } from '../../src/lib/db/db.type';
-import { StorageService, type StoredFile, type UploadInput } from '../../src/lib/storage/storage.service';
+import { MemoryStorage } from '../../src/lib/storage/memory-storage';
+import { STORAGE } from '../../src/lib/storage/storage.token';
 
 /**
  * O PREPARO comum dos testes de ponta a ponta da API — o que todo arquivo de E2E precisa
@@ -26,8 +27,9 @@ import { StorageService, type StoredFile, type UploadInput } from '../../src/lib
  *
  *  - **Neon Auth**, o reconhecimento do token. Conferir assinatura, papel e banimento é
  *    assunto de `identity.provider.test.ts`.
- *  - **Cloudflare R2**, o armazenamento dos arquivos. O que interessa ao E2E é a REGRA de
- *    quem pode anexar e apagar, não se o Cloudflare recebeu os bytes.
+ *  - **Cloudflare R2**, onde ficam os arquivos. Vira o `MemoryStorage`: o mesmo contrato, sem
+ *    rede. O teste faz o papel do navegador — pede o link à API e põe o arquivo na área
+ *    temporária —, e a API confere, move e apaga de verdade.
  *
  * Tudo o mais é real: a migration sobe, a policy decide, a restrição do banco recusa e o
  * filtro de erro traduz. É o que teste com repository fingido não prova.
@@ -86,47 +88,11 @@ class FakeIdentityProvider {
   }
 }
 
-/**
- * O R2 de mentira: uma gaveta na memória.
- *
- * Guarda o que subiu para o teste poder afirmar que o arquivo saiu do armazenamento quando o
- * anexo é excluído — a regra é "sai do banco E do bucket", e sem isso metade dela ficaria sem
- * prova.
- */
-export class FakeStorage {
-  readonly files = new Map<string, { contentType: string; sizeBytes: number }>();
-
-  private counter = 0;
-
-  upload(input: UploadInput): Promise<StoredFile> {
-    this.counter += 1;
-    const key = `${input.folder}/e2e-${this.counter}`;
-
-    this.files.set(key, { contentType: input.contentType, sizeBytes: input.content.byteLength });
-
-    return Promise.resolve({
-      key,
-      contentType: input.contentType,
-      sizeBytes: input.content.byteLength,
-    });
-  }
-
-  /* O endereço é falso, mas o FORMATO importa: o contrato promete uma URL, e o teste da
-     consulta pública confere que ela chegou. */
-  createDownloadUrl(key: string): Promise<string> {
-    return Promise.resolve(`https://r2.invalido/${key}?assinatura=de-mentira`);
-  }
-
-  remove(key: string): Promise<void> {
-    this.files.delete(key);
-
-    return Promise.resolve();
-  }
-}
-
 export type E2eApp = {
   app: INestApplication;
-  storage: FakeStorage;
+  /** O storage em memória: o teste põe nele o que o navegador enviaria, e confere o que sobrou
+      — a regra é "sai do banco E do bucket", e sem isso metade dela ficaria sem prova. */
+  storage: MemoryStorage;
   /** A conexão de verdade — para arquivos que precisam preparar dado que a API não expõe
       (ex.: cargo por área, #13), sem reinventar a conexão. */
   db: Database;
@@ -145,12 +111,12 @@ export async function createE2eApp(testDatabaseUrl: string): Promise<E2eApp> {
   process.env.DATABASE_URL = testDatabaseUrl;
   process.env.API_LOG_LEVEL = 'error';
 
-  const storage = new FakeStorage();
+  const storage = new MemoryStorage();
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(IdentityProvider)
     .useClass(FakeIdentityProvider)
-    .overrideProvider(StorageService)
+    .overrideProvider(STORAGE)
     .useValue(storage)
     .compile();
 

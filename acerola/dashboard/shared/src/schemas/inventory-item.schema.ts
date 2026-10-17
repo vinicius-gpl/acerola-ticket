@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { INVENTORY_CATEGORIES, INVENTORY_UNITS } from '../domain/inventory-catalog.util';
 import { paginationQuerySchema } from './pagination.schema';
+import { stagedFileSchema } from './staged-file.schema';
 
 /**
  * O CONTRATO do inventário da Manutenção. Um schema, duas pontas: a API o usa como DTO e
@@ -87,9 +88,9 @@ export const inventoryItemSchema = z.object({
 export type InventoryItem = z.infer<typeof inventoryItemSchema>;
 
 /**
- * Cadastrar um produto. A FOTO NÃO ENTRA AQUI: ela viaja como arquivo, no mesmo envio, e
- * quem a valida é o domínio (`inventory-photo.util`) — um schema de texto não tem como
- * conferir o conteúdo de uma imagem.
+ * Cadastrar um produto. A FOTO vai pela chave: o navegador já a enviou direto para o storage,
+ * por link assinado (ver `staged-file.schema`). Quem a valida é o domínio
+ * (`inventory-photo.util`), com o tamanho e o tipo que o storage mediu.
  */
 export const createInventoryItemSchema = z.object({
   name: nameSchema,
@@ -98,6 +99,7 @@ export const createInventoryItemSchema = z.object({
   location: locationSchema.optional(),
   code: codeSchema.optional(),
   note: noteSchema.optional(),
+  photo: stagedFileSchema.optional(),
 });
 
 export type CreateInventoryItemInput = z.input<typeof createInventoryItemSchema>;
@@ -113,7 +115,9 @@ export const updateInventoryItemSchema = z.object({
   location: locationSchema.optional(),
   code: codeSchema.optional(),
   note: noteSchema.optional(),
-  /** `true` tira a foto do produto. A foto nova vem como arquivo, não por aqui. */
+  /** A foto nova, já enviada — substitui a anterior. */
+  photo: stagedFileSchema.optional(),
+  /** `true` tira a foto do produto sem pôr outra. */
   removePhoto: z.coerce.boolean().optional(),
 });
 

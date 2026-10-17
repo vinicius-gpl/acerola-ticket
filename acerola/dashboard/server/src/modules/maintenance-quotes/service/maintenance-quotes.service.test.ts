@@ -8,9 +8,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type MaintenanceQuoteRow } from '../../../lib/db/schema/maintenance-quotes.schema';
-import { type StorageService } from '../../../lib/storage/storage.service';
+import { type FileStorage } from '../../../lib/storage/file-storage.type';
+import { MemoryStorage } from '../../../lib/storage/memory-storage';
+import { StagedUploadsService } from '../../../lib/storage/staged-uploads.service';
 import { type MaintenanceQuotesRepository } from '../repository/maintenance-quotes.repository';
-import { MaintenanceQuotesService, type UploadedAttachment } from './maintenance-quotes.service';
+import { MaintenanceQuotesService } from './maintenance-quotes.service';
 
 /* Quem cuida da Manutenção: cargo de GESTÃO na área, que é o que deixa mexer nos orçamentos. */
 const keeper: RequestUser = {
@@ -63,14 +65,19 @@ function row(overrides: Partial<MaintenanceQuoteRow> = {}): MaintenanceQuoteRow 
   };
 }
 
-function attachment(overrides: Partial<UploadedAttachment> = {}): UploadedAttachment {
-  return {
-    originalname: 'orcamento.pdf',
-    mimetype: 'application/pdf',
-    size: 2048,
-    buffer: Buffer.from('nao-e-um-pdf-de-verdade'),
-    ...overrides,
-  };
+const DOCUMENT_KEY = 'tmp/00000000-0000-4000-8000-000000000001.pdf';
+
+/** O que o navegador faz com o link: põe o documento na área temporária. Devolve o que vai no corpo. */
+async function sentDocument(
+  storage: MemoryStorage,
+  file: { contentType: string; sizeBytes: number } = {
+    contentType: 'application/pdf',
+    sizeBytes: 2048,
+  },
+) {
+  await storage.put(DOCUMENT_KEY, Buffer.alloc(file.sizeBytes), file.contentType);
+
+  return { storageKey: DOCUMENT_KEY, fileName: 'orcamento.pdf' };
 }
 
 const input = {
@@ -89,23 +96,28 @@ const defaultRepository: Partial<MaintenanceQuotesRepository> = {
   remove: vi.fn().mockResolvedValue(undefined),
 };
 
-const defaultStorage: Partial<StorageService> = {
-  upload: vi.fn().mockResolvedValue({
-    key: 'maintenance-quotes/novo.pdf',
-    contentType: 'application/pdf',
-    sizeBytes: 10,
-  }),
-  createDownloadUrl: vi.fn().mockResolvedValue('https://r2.exemplo/doc?assinatura'),
-  remove: vi.fn().mockResolvedValue(undefined),
+const defaultStorage: Partial<FileStorage> = {
+  downloadUrl: vi.fn().mockResolvedValue('https://r2.exemplo/doc?assinatura'),
 };
 
+/**
+ * O storage é o de memória, de verdade — com o que o teste quiser trocar por cima (uma falha,
+ * um espião). Passar um `MemoryStorage` pronto deixa o teste olhar o que ficou nele.
+ */
 function makeService(
   repository: Partial<MaintenanceQuotesRepository> = {},
-  storage: Partial<StorageService> = {},
+  storage: Partial<FileStorage> = {},
 ) {
+  const memory = Object.assign(
+    storage instanceof MemoryStorage ? storage : new MemoryStorage(),
+    defaultStorage,
+    storage instanceof MemoryStorage ? {} : storage,
+  );
+
   return new MaintenanceQuotesService(
     { ...defaultRepository, ...repository } as MaintenanceQuotesRepository,
-    { ...defaultStorage, ...storage } as StorageService,
+    new StagedUploadsService(memory),
+    memory,
   );
 }
 
@@ -136,7 +148,7 @@ describe('MaintenanceQuotesService.list', () => {
           total: 1,
         }),
       },
-      { createDownloadUrl: vi.fn().mockRejectedValue(new Error('r2 fora do ar')) },
+      { downloadUrl: vi.fn().mockRejectedValue(new Error('r2 fora do ar')) },
     );
 
     const page = await service.list(viewer, query);
@@ -167,18 +179,44 @@ describe('MaintenanceQuotesService.create', () => {
     );
   });
 
-  it('stores the document and keeps its key and its name', async () => {
+  it('moves the document out of the staging area and keeps its key and its name', async () => {
     const insert = vi.fn().mockResolvedValue(row());
-    const service = makeService({ insert });
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
 
-    await service.create(keeper, input, attachment());
+    await service.create(keeper, { ...input, attachment: await sentDocument(storage) });
 
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attachmentKey: 'maintenance-quotes/novo.pdf',
-        attachmentName: 'orcamento.pdf',
+    const values = insert.mock.calls[0]?.[0];
+    expect(values.attachmentKey).toMatch(/^maintenance-quotes\/[0-9a-f-]{36}\.pdf$/);
+    expect(values.attachmentName).toBe('orcamento.pdf');
+    expect(await storage.head(values.attachmentKey)).not.toBeNull();
+    expect(await storage.head(DOCUMENT_KEY)).toBeNull();
+  });
+
+  // feliz
+  it('hands the document upload link to whoever manages the area', async () => {
+    const service = makeService();
+
+    const ticket = await service.createAttachmentUploadTicket(keeper, {
+      fileName: 'orcamento.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+    });
+
+    expect(ticket.storageKey).toMatch(/^tmp\/[0-9a-f-]{36}\.pdf$/);
+  });
+
+  // triste
+  it('gives no upload link to someone who only queries the area', async () => {
+    const service = makeService();
+
+    await expect(
+      service.createAttachmentUploadTicket(viewer, {
+        fileName: 'orcamento.pdf',
+        contentType: 'application/pdf',
+        sizeBytes: 2048,
       }),
-    );
+    ).rejects.toThrow(ForbiddenException);
   });
 
   // triste
@@ -200,34 +238,76 @@ describe('MaintenanceQuotesService.create', () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
-  it('refuses a file that is not an accepted document, without storing anything', async () => {
-    const upload = vi.fn();
+  it('refuses a file that is not an accepted document, and clears it from the staging area', async () => {
     const insert = vi.fn();
-    const service = makeService({ insert }, { upload });
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
+    const attachment = await sentDocument(storage, {
+      contentType: 'application/zip',
+      sizeBytes: 2048,
+    });
 
-    await expect(
-      service.create(keeper, input, attachment({ mimetype: 'application/zip' })),
-    ).rejects.toThrow(UnprocessableEntityException);
-    expect(upload).not.toHaveBeenCalled();
+    await expect(service.create(keeper, { ...input, attachment })).rejects.toThrow(
+      UnprocessableEntityException,
+    );
     expect(insert).not.toHaveBeenCalled();
+    expect(storage.size).toBe(0);
+  });
+
+  /* A tela declarou um documento pequeno; o link aceita o que for enviado. Vale o medido. */
+  it('refuses a document that turned out bigger than 10 MB', async () => {
+    const insert = vi.fn();
+    const storage = new MemoryStorage();
+    const service = makeService({ insert }, storage);
+    const attachment = await sentDocument(storage, {
+      contentType: 'application/pdf',
+      sizeBytes: 11 * 1024 * 1024,
+    });
+
+    await expect(service.create(keeper, { ...input, attachment })).rejects.toThrow(
+      UnprocessableEntityException,
+    );
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a document that never reached the storage', async () => {
+    const insert = vi.fn();
+    const service = makeService({ insert });
+    const attachment = { storageKey: DOCUMENT_KEY, fileName: 'orcamento.pdf' };
+
+    await expect(service.create(keeper, { ...input, attachment })).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('lets a storage outage through when checking the document', async () => {
+    const service = makeService(
+      {},
+      { head: vi.fn().mockRejectedValue(new TypeError('fetch failed')) },
+    );
+    const attachment = { storageKey: DOCUMENT_KEY, fileName: 'orcamento.pdf' };
+
+    await expect(service.create(keeper, { ...input, attachment })).rejects.toThrow('fetch failed');
   });
 });
 
 describe('MaintenanceQuotesService.update', () => {
   // feliz
   it('changes the quote and drops the document that was replaced', async () => {
-    const remove = vi.fn().mockResolvedValue(undefined);
+    const storage = new MemoryStorage();
+    await storage.put('maintenance-quotes/velho.pdf', Buffer.from('a'), 'application/pdf');
     const service = makeService(
       {
         findById: vi.fn().mockResolvedValue(row({ attachmentKey: 'maintenance-quotes/velho.pdf' })),
         update: vi.fn().mockResolvedValue(row({ attachmentKey: 'maintenance-quotes/novo.pdf' })),
       },
-      { remove },
+      storage,
     );
 
-    await service.update(keeper, 1, {}, attachment());
+    await service.update(keeper, 1, { attachment: await sentDocument(storage) });
 
-    expect(remove).toHaveBeenCalledWith('maintenance-quotes/velho.pdf');
+    expect(await storage.head('maintenance-quotes/velho.pdf')).toBeNull();
   });
 
   it('dates the decision when the quote is approved', async () => {
@@ -244,15 +324,20 @@ describe('MaintenanceQuotesService.update', () => {
 
   /* O arquivo órfão custa centavos; devolver erro a quem só trocou o documento custa confiança. */
   it('does not fail the change when the old document cannot be deleted', async () => {
+    const storage = Object.assign(new MemoryStorage(), {
+      remove: vi.fn().mockRejectedValue(new Error('r2 fora do ar')),
+    });
     const service = makeService(
       {
         findById: vi.fn().mockResolvedValue(row({ attachmentKey: 'maintenance-quotes/velho.pdf' })),
         update: vi.fn().mockResolvedValue(row({ attachmentKey: 'maintenance-quotes/novo.pdf' })),
       },
-      { remove: vi.fn().mockRejectedValue(new Error('r2 fora do ar')) },
+      storage,
     );
 
-    await expect(service.update(keeper, 1, {}, attachment())).resolves.toBeTruthy();
+    await expect(
+      service.update(keeper, 1, { attachment: await sentDocument(storage) }),
+    ).resolves.toBeTruthy();
   });
 
   // triste
@@ -281,19 +366,20 @@ describe('MaintenanceQuotesService.remove', () => {
   // feliz
   it('deletes the quote and its document', async () => {
     const remove = vi.fn().mockResolvedValue(undefined);
-    const storageRemove = vi.fn().mockResolvedValue(undefined);
+    const storage = new MemoryStorage();
+    await storage.put('maintenance-quotes/a.pdf', Buffer.from('a'), 'application/pdf');
     const service = makeService(
       {
         findById: vi.fn().mockResolvedValue(row({ attachmentKey: 'maintenance-quotes/a.pdf' })),
         remove,
       },
-      { remove: storageRemove },
+      storage,
     );
 
     await service.remove(keeper, 1);
 
     expect(remove).toHaveBeenCalledWith(1);
-    expect(storageRemove).toHaveBeenCalledWith('maintenance-quotes/a.pdf');
+    expect(await storage.head('maintenance-quotes/a.pdf')).toBeNull();
   });
 
   // triste

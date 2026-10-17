@@ -9,14 +9,17 @@ import { type Request } from 'express';
 import { mergeMap, type Observable } from 'rxjs';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { historyEntryOf, isMutation, type MutationRequest } from '../service/history-entry.util';
+import {
+  historyEntryOf,
+  isMutation,
+  type MutationRequest,
+  withoutStagedFiles,
+} from '../service/history-entry.util';
 import { HistoryService } from '../service/history.service';
 import { SKIP_HISTORY } from './skip-history.decorator';
 
-type UploadedFiles = Record<string, { originalname?: string }[]> | { originalname?: string }[];
-
-/* O que o multer pendura na requisição; o Express não conhece a propriedade. */
-type HistoryRequest = Request & { user?: RequestUser; files?: UploadedFiles };
+/* O Express não conhece a propriedade `user`; este alias evita repetir o tipo. */
+type HistoryRequest = Request & { user?: RequestUser };
 
 /**
  * TODA requisição que muda dado deixa uma linha no histórico — sem cada service lembrar.
@@ -60,26 +63,19 @@ export class HistoryInterceptor implements NestInterceptor {
 
 function mutationOf(request: HistoryRequest, handler: string): MutationRequest {
   const route = request.route as { path?: unknown } | undefined;
+  const { body, fileNames } = withoutStagedFiles(request.body);
 
   return {
     method: request.method,
     routePath: typeof route?.path === 'string' ? route.path : request.path,
     handler,
     params: paramsOf(request.params),
-    body: request.body,
-    fileNames: fileNamesOf(request.files),
+    body,
+    fileNames,
     actor: request.user ? { id: request.user.id, email: request.user.email } : null,
     ip: request.ip ?? null,
     userAgent: request.get('user-agent') ?? null,
   };
-}
-
-/* Arquivo entra pelo nome: o conteúdo já está no storage, e não cabe no histórico. */
-function fileNamesOf(files: UploadedFiles | undefined): string[] {
-  if (!files) return [];
-  const list = Array.isArray(files) ? files : Object.values(files).flat();
-
-  return list.map((file) => file.originalname ?? '').filter((name) => name !== '');
 }
 
 /* Parâmetro de rota repetido vira lista no Express 5; para o histórico vale o primeiro. */

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ATTACHMENT_KINDS } from '../domain/attachment-catalog.util';
 import { fileNameSchema } from '../domain/file-name.util';
+import { MAX_STAGED_FILES, stagedFileSchema } from './staged-file.schema';
 
 /**
  * O CONTRATO do anexo de um chamado.
@@ -74,9 +75,9 @@ export type TicketAttachment = z.infer<typeof ticketAttachmentSchema>;
 /**
  * O que a API precisa saber de um arquivo ANTES de aceitá-lo.
  *
- * O conteúdo não está aqui: ele viaja como arquivo na mesma requisição, e validar bytes é
- * trabalho de quem os lê, não do Zod. O que o schema garante é o resto — e o nome do arquivo
- * passa pela mesma régua do AnyDesk e do telefone (`file-name.util`).
+ * O conteúdo não está aqui: ele vai do navegador direto para o storage, por link assinado (ver
+ * `staged-file.schema`). O que o schema garante é o resto — e o nome do arquivo passa pela
+ * mesma régua do AnyDesk e do telefone (`file-name.util`).
  */
 export const attachmentFileSchema = z.object({
   fileName: fileNameSchema,
@@ -92,3 +93,10 @@ export const ticketAttachmentListSchema = z.object({
 });
 
 export type TicketAttachmentList = z.infer<typeof ticketAttachmentListSchema>;
+
+/** Juntar arquivos a um chamado já aberto: os que o navegador já enviou para a área temporária. */
+export const attachFilesSchema = z.object({
+  attachments: z.array(stagedFileSchema).min(1, 'Escolha um arquivo').max(MAX_STAGED_FILES),
+});
+
+export type AttachFilesInput = z.infer<typeof attachFilesSchema>;
