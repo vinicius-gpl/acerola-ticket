@@ -14,21 +14,21 @@
 </script>
 
 {#snippet newTaskButton()}
-  <ActionButton data={{ label: 'Nova tarefa' }} ui={{ icon: Plus }} />
+  <ActionButton data={{ label: 'Novo chamado' }} ui={{ icon: Plus }} />
 {/snippet}
 
 {#snippet clearFiltersButton()}
   <ActionButton data={{ label: 'Limpar filtros' }} ui={{ variant: 'secondary' }} />
 {/snippet}
 
-<Story name="Default" args={{ data: { title: 'Nenhuma tarefa ainda' } }} />
+<Story name="Default" args={{ data: { title: 'Nenhum chamado ainda' } }} />
 
 <!-- Com o próximo passo e a ação. É o formato preferido. -->
 <Story
   name="WithAction"
   args={{
     data: {
-      title: 'Nenhuma tarefa ainda',
+      title: 'Nenhum chamado ainda',
       description: 'Cadastre a primeira para começar a acompanhar o trabalho.',
     },
     children: newTaskButton,
@@ -40,7 +40,7 @@
   name="FilteredOut"
   args={{
     data: {
-      title: 'Nenhuma tarefa encontrada',
+      title: 'Nenhum chamado encontrado',
       description: 'Nada combina com a busca. Tente outro termo ou limpe os filtros.',
     },
     ui: { icon: SearchX },

@@ -33,7 +33,7 @@ for (const name of ['E2E_USER_EMAIL', 'E2E_USER_PASSWORD']) {
  * `TEST_DATABASE_URL` (uma branch de banco só para teste na Neon) — nunca a `DATABASE_URL` de
  * quem está desenvolvendo, que perderia os dados a cada execução.
  *
- * Sem `TEST_DATABASE_URL` no `server/.env`, o teste em si é pulado (ver `e2e/tasks.e2e.ts`) em
+ * Sem `TEST_DATABASE_URL` no `server/.env`, o teste em si é pulado (ver os testes em `e2e/`) em
  * vez de arriscar rodar contra o banco de trabalho. O login acontece no Neon Auth, então o
  * teste também precisa de uma conta de teste de verdade (`E2E_USER_EMAIL`/`E2E_USER_PASSWORD`).
  *

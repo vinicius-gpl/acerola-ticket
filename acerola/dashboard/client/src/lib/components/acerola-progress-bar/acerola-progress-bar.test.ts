@@ -9,13 +9,13 @@ describe('AcerolaProgressBar', () => {
     render(ProgressBar, {
       props: {
         data: { percentage: 62, done: 8, total: 13 },
-        ui: { itemLabel: 'tarefas' },
+        ui: { itemLabel: 'chamados' },
       },
     });
 
     expect(screen.getByText('62%')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '62');
-    expect(screen.getByLabelText('Concluído: 8 de 13 tarefas')).toBeInTheDocument();
+    expect(screen.getByLabelText('Concluído: 8 de 13 chamados')).toBeInTheDocument();
   });
 
   it('shows the count when asked', () => {

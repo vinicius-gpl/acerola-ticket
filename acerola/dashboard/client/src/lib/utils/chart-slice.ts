@@ -1,8 +1,8 @@
 /**
  * AS CORES DE CATEGORIA DOS GRÁFICOS.
  *
- * Categoria com cor fixa (a situação de uma tarefa, por exemplo) fica no mapa: "verde é
- * concluída" precisa valer em todo gráfico do sistema. O que não está no mapa cai na lista de
+ * Categoria com cor fixa (a situação de um chamado, por exemplo) fica no mapa: "verde é
+ * resolvido" precisa valer em todo gráfico do sistema. O que não está no mapa cai na lista de
  * reserva, NA ORDEM, nunca sorteada — sorteio faria a mesma fatia mudar de cor a cada
  * recarga.
  *
@@ -11,9 +11,9 @@
  * valor desenhado e tooltip — a cor nunca é o único jeito de saber qual fatia é qual.
  */
 export const CATEGORY_COLORS: Record<string, string> = {
-  Concluída: 'var(--chart-4)',
-  'Em andamento': 'var(--chart-5)',
-  'A fazer': 'var(--muted-foreground)',
+  Resolvido: 'var(--chart-4)',
+  'Em atendimento': 'var(--chart-5)',
+  Aberto: 'var(--muted-foreground)',
 };
 
 /**

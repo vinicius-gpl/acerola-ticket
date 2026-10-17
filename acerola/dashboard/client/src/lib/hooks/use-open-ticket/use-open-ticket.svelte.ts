@@ -153,9 +153,15 @@ export function useOpenTicketModel(): OpenTicketModel {
 
   const form = createForm(() => ({
     defaultValues: { ...EMPTY_VALUES },
-    /* As MESMAS regras que o servidor usa. UM validador só, em `onChange`: com o schema
-       também em `onSubmit`, o erro de um envio vazio ficaria preso no campo mesmo depois de
-       corrigido — ver o comentário em `use-task-form`. */
+    /* As MESMAS regras que o servidor usa para validar o corpo. Uma regra, duas pontas: a
+       mensagem que aparece embaixo do campo é a mesma que a API devolveria.
+
+       UM validador só, em `onChange`, e isso é correção de defeito. O TanStack Form guarda
+       o erro de cada gatilho (`change`, `blur`, `submit`) num lugar separado, e digitar só
+       revalida o de `change`: com o schema também em `onSubmit`, o erro de um envio vazio
+       ficava PRESO no campo — a pessoa digitava, o aviso continuava lá e o formulário
+       recusava enviar. O envio já roda o validador de `change`; quem decide se o erro
+       APARECE é `toFieldState` (só depois de mexer no campo ou tentar enviar). */
     validators: { onChange: ticketFormSchema },
     onSubmit: ({ value }: { value: TicketFormValues }) => {
       save.current.mutate(value);

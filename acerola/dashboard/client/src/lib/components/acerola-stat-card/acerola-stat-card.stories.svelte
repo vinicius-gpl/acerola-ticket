@@ -106,7 +106,7 @@
   name="LongLabel"
   args={{
     data: {
-      label: 'Tarefas sem prazo definido nem responsável',
+      label: 'Chamados sem prazo definido nem responsável',
       value: 1425,
       hint: 'Inclui vencidos antigos e sem prazo definido',
     },

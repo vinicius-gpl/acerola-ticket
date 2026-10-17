@@ -20,7 +20,7 @@
   };
 
   /**
-   * A cor da barra de USO — o contrário da barra de progresso de tarefa, onde cheio é bom.
+   * A cor da barra de USO — o contrário da barra de progresso de chamados, onde cheio é bom.
    *
    * Aqui cheio é ruim: 95% de disco é uma máquina que vai parar. Reaproveitar a barra de
    * progresso daria verde justamente no pior caso, então esta é uma peça própria.

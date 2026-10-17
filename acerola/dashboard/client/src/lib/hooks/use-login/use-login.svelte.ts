@@ -73,7 +73,7 @@ export function useLoginModel(): LoginModel {
 
   const form = createForm(() => ({
     defaultValues: { email: '', password: '' } as LoginInput,
-    /* Um validador só, em `onChange` — ver o comentário em `use-task-form.svelte.ts` sobre por
+    /* Um validador só, em `onChange` — ver o comentário em `use-part-form.svelte.ts` sobre por
        que também validar em `onSubmit` prendia o erro na tela depois de um envio vazio. */
     validators: { onChange: loginRequestSchema },
     onSubmit: ({ value }: { value: LoginInput }) => {

@@ -112,7 +112,7 @@ export function useInventoryMovementFormModel({
       note: '',
     } as InventoryMovementFormValues,
     /* Um validador só, em `onChange`: com o schema também em `onSubmit`, o erro de um envio
-       vazio fica PRESO no campo mesmo depois de corrigido — ver `use-task-form`. */
+       vazio fica PRESO no campo mesmo depois de corrigido — ver `use-open-ticket`. */
     validators: { onChange: inventoryMovementFormSchema },
     /* `mutate`, e não `await mutateAsync`: a recusa do servidor já chega por `save.error`. */
     onSubmit: ({ value }: { value: InventoryMovementFormValues }) => {

@@ -10,9 +10,9 @@ function renderDialog(overrides: Partial<AcerolaConfirmDialogProps> = {}) {
   render(ConfirmDialog, {
     props: {
       data: {
-        title: 'Excluir esta tarefa?',
+        title: 'Excluir este chamado?',
         description: 'Não dá para desfazer.',
-        confirmLabel: 'Excluir tarefa',
+        confirmLabel: 'Excluir chamado',
       },
       state: { isOpen: true },
       actions,
@@ -28,7 +28,7 @@ describe('AcerolaConfirmDialog', () => {
   it('confirms through a button that names the action', async () => {
     const actions = renderDialog();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Excluir tarefa' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Excluir chamado' }));
 
     expect(actions.onConfirm).toHaveBeenCalledOnce();
   });
@@ -44,7 +44,7 @@ describe('AcerolaConfirmDialog', () => {
   // triste
   it('shows the refusal inside the dialog', () => {
     renderDialog({
-      state: { isOpen: true, error: 'Excluir tarefas é uma ação de administrador.' },
+      state: { isOpen: true, error: 'Excluir chamados é uma ação de administrador.' },
     });
 
     expect(screen.getByRole('alert')).toHaveTextContent('ação de administrador');
@@ -55,7 +55,7 @@ describe('AcerolaConfirmDialog', () => {
     renderDialog({ state: { isOpen: true, isConfirming: true } });
 
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Excluir tarefa' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Excluir chamado' })).toBeDisabled();
   });
 
   it('renders nothing when closed', () => {

@@ -9,12 +9,12 @@ import AppShell, { type AcerolaAppShellProps } from './acerola-app-shell.svelte'
 
 const items = [
   {
-    key: 'tasks',
-    label: 'Tarefas',
-    to: '/tasks',
+    key: 'tickets',
+    label: 'Chamados',
+    to: '/tickets',
     icon: ListChecks,
     context: 'infra',
-    feature: 'tasks',
+    feature: 'tickets',
   },
   {
     key: 'reports',
@@ -49,7 +49,7 @@ describe('AcerolaAppShell', () => {
     renderShell({ ui: { items } });
 
     expect(screen.getByText('Conteúdo da rota')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Tarefas' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Chamados' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Relatórios' })).toBeInTheDocument();
   });
 

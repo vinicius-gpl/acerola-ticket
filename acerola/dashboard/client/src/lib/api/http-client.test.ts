@@ -30,7 +30,7 @@ describe('apiRequest', () => {
     const fetchMock = respond(200, { id: 1 });
     vi.stubGlobal('fetch', fetchMock);
 
-    await apiRequest('/tasks/1');
+    await apiRequest('/tickets/1');
 
     expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
       Authorization: 'Bearer token-de-teste',
@@ -44,7 +44,7 @@ describe('apiRequest', () => {
     const fetchMock = respond(200, { id: 1 });
     vi.stubGlobal('fetch', fetchMock);
 
-    await apiRequest('/tasks/1');
+    await apiRequest('/tickets/1');
 
     expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty('Authorization');
   });
@@ -52,22 +52,22 @@ describe('apiRequest', () => {
   it('returns the parsed body', async () => {
     vi.stubGlobal('fetch', respond(200, { id: 1 }));
 
-    await expect(apiRequest('/tasks/1')).resolves.toEqual({ id: 1 });
+    await expect(apiRequest('/tickets/1')).resolves.toEqual({ id: 1 });
   });
 
   it('drops empty filters from the query string', async () => {
     const fetchMock = respond(200, []);
     vi.stubGlobal('fetch', fetchMock);
 
-    await apiRequest('/tasks', { query: { search: '', status: 'done', page: 1, owner: null } });
+    await apiRequest('/tickets', { query: { search: '', status: 'done', page: 1, owner: null } });
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/tasks?status=done&page=1');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/tickets?status=done&page=1');
   });
 
   it('answers undefined for 204, instead of failing to parse an empty body', async () => {
     vi.stubGlobal('fetch', respond(204));
 
-    await expect(apiRequest('/tasks/1', { method: 'DELETE' })).resolves.toBeUndefined();
+    await expect(apiRequest('/tickets/1', { method: 'DELETE' })).resolves.toBeUndefined();
   });
 
   // triste
@@ -81,7 +81,7 @@ describe('apiRequest', () => {
       }),
     );
 
-    const error = (await apiRequest('/tasks', { method: 'POST', body: {} }).catch(
+    const error = (await apiRequest('/tickets', { method: 'POST', body: {} }).catch(
       (caught: unknown) => caught,
     )) as ApiError;
 
@@ -94,7 +94,7 @@ describe('apiRequest', () => {
   it('turns a body that is not the API format into a message with the status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>', { status: 502 })));
 
-    await expect(apiRequest('/tasks')).rejects.toThrow(/502/);
+    await expect(apiRequest('/tickets')).rejects.toThrow(/502/);
   });
 });
 

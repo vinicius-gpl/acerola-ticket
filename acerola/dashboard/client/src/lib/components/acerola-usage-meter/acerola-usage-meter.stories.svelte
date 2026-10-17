@@ -23,7 +23,7 @@
   template={inBox}
 />
 
-<!-- Aqui CHEIO É RUIM, ao contrário da barra de progresso de tarefa: 62% é tranquilo… -->
+<!-- Aqui CHEIO É RUIM, ao contrário da barra de progresso de chamados: 62% é tranquilo… -->
 <Story name="Calm" args={{ data: { label: 'Núcleo 1', percentage: 31 } }} template={inBox} />
 
 <!-- …78% já pede atenção… -->

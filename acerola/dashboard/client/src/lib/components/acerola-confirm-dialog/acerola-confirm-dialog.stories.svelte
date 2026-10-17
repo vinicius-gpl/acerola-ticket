@@ -5,9 +5,9 @@
   import ConfirmDialog from './acerola-confirm-dialog.svelte';
 
   const baseData = {
-    title: 'Excluir esta tarefa?',
-    description: '"Ligar para o cliente" será excluída. Não dá para desfazer.',
-    confirmLabel: 'Excluir tarefa',
+    title: 'Excluir este chamado?',
+    description: '"Ligar para o cliente" será excluído. Não dá para desfazer.',
+    confirmLabel: 'Excluir chamado',
     confirmingLabel: 'Excluindo…',
   };
 
@@ -29,7 +29,7 @@
   name="WithError"
   args={{
     data: baseData,
-    state: { isOpen: true, error: 'Excluir tarefas é uma ação de administrador.' },
+    state: { isOpen: true, error: 'Excluir chamados é uma ação de administrador.' },
     actions: { onConfirm: fn(), onCancel: fn() },
   }}
 />
@@ -40,7 +40,7 @@
   args={{
     data: {
       title: 'Enviar para aprovação?',
-      description: 'A tarefa sai da sua lista e vai para quem aprova.',
+      description: 'O chamado sai da sua fila e vai para quem aprova.',
       confirmLabel: 'Enviar',
     },
     ui: { tone: 'primary' },
@@ -54,9 +54,9 @@
   name="LongDescription"
   args={{
     data: {
-      title: 'Excluir esta tarefa?',
-      description: `"${'Tarefa com um título muito comprido '.repeat(6)}" será excluída. Não dá para desfazer.`,
-      confirmLabel: 'Excluir tarefa',
+      title: 'Excluir este chamado?',
+      description: `"${'Chamado com um título muito comprido '.repeat(6)}" será excluído. Não dá para desfazer.`,
+      confirmLabel: 'Excluir chamado',
     },
     state: { isOpen: true },
     actions: { onConfirm: fn(), onCancel: fn() },
