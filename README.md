@@ -229,6 +229,40 @@ sobe com o perfil `whatsapp` do compose — ver [`acerola/dashboard/docs/whatsap
 
 ---
 
+### Os arquivos vão direto para o R2
+
+**O arquivo nunca passa pela API.** Todo envio — o print e os anexos do chamado, os anexos de um
+histórico, a foto do inventário, o documento do orçamento — segue três passos:
+
+1. a tela pede o link (`POST .../upload-url`); a API confere **quem pode** (no service) e devolve
+   uma chave na área temporária (`tmp/`) e um link assinado de envio (PUT, 5 minutos);
+2. o navegador envia o arquivo **direto** para o R2 por esse link;
+3. a tela grava o chamado, o histórico, o produto ou o orçamento levando a chave. Só então a API
+   confere o arquivo **de verdade** (tamanho e tipo medidos pelo R2, não os declarados pela
+   tela), recusa o que não serve e move o resto para a pasta definitiva (`tickets/`,
+   `ticket-attachments/`, `inventory/`, `maintenance-quotes/`).
+
+O que fica na área temporária sem ser gravado é apagado de hora em hora, depois de 24 horas.
+Para **abrir ou baixar**, a API devolve um link assinado de GET (5 minutos). Os arquivos gravados
+antes deste fluxo continuam onde estavam: mesmas chaves, mesmo bucket.
+
+Como o navegador fala direto com o R2, o bucket precisa de uma **regra de CORS** que aceite
+`PUT` e `GET` vindos do endereço do sistema, com o cabeçalho `Content-Type`. No painel da
+Cloudflare: R2 → bucket → Settings → CORS policy, por exemplo:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://chamados.exemplo.com"],
+    "AllowedMethods": ["GET", "PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+---
+
 ## Autenticação e autorização
 
 O MVP **pode ter login, usuários, sessões e permissões** quando a ideia exigir isso.

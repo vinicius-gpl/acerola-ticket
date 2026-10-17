@@ -186,6 +186,11 @@ O que não precisa:
 
 * **Swagger é obrigatório.** Endpoint sem `@ApiOperation` e sem tipo de resposta não entra.
 
+* **Arquivo de quem usa o sistema nunca passa pela API.** Nada de `FileInterceptor`, `multipart/form-data` ou `StreamableFile` para arquivo de usuário. O envio é por link assinado:
+  * uma rota `POST .../upload-url` confere a permissão **no service** e chama `StagedUploadsService.createUploadTicket` — o arquivo cai na área temporária `tmp/`;
+  * a gravação recebe `{ storageKey, fileName }` (`stagedFileSchema`), mede o arquivo com `inspect` (tamanho e tipo do storage, não os declarados), aplica a regra do domínio, recusa com `discard` o que não serve e move o resto com `promote`;
+  * abrir e baixar é `FileStorage.downloadUrl`, com o nome do arquivo quando é para salvar.
+  O service fala com o contrato `FileStorage` (token `STORAGE`), nunca com o SDK. Nos testes, `MemoryStorage`.
 * **Quem editou vem da identidade**, nunca do corpo da requisição. `createdBy` e `updatedBy` são carimbados no mapper a partir da identidade autenticada. O cliente nunca pode escolher ou sobrescrever a identidade de quem realizou a operação.
 
 ### Autenticação e autorização
