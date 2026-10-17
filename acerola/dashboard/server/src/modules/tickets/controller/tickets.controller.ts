@@ -12,16 +12,11 @@ import {
   Query,
   Res,
   StreamableFile,
-  UploadedFiles,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { TICKET_UPLOAD_MAX_BYTES, uploadLimit } from '../../../lib/http/upload-limit.util';
-import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
+  ApiBadRequestResponse,
   ApiBody,
   ApiConflictResponse,
-  ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
@@ -55,12 +50,9 @@ import {
   UpdateTicketDto,
   WhatsappNoticeDto,
 } from '../dto/ticket.dto';
-import { type UploadedAttachment } from '../service/ticket-attachments.service';
-import {
-  type TicketDashboard,
-  TicketsService,
-  type UploadedScreenshot,
-} from '../service/tickets.service';
+import { UploadRequestDto, UploadTicketDto } from '../dto/ticket-attachment.dto';
+import { SkipHistory } from '../../history/interceptor/skip-history.decorator';
+import { type TicketDashboard, TicketsService } from '../service/tickets.service';
 import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
@@ -76,52 +68,42 @@ import { AnyModule } from '../../../lib/auth/module-context.decorator';
  * Swagger é obrigatório (CONTRIBUTING §8): todo endpoint tem `@ApiOperation` e o tipo de
  * resposta. A documentação fica em http://localhost:3005/docs.
  */
-/**
- * O teto de arquivos numa requisição. O limite de verdade é por formato, e quem o aplica é o
- * domínio — este número só impede que um envio de mil arquivos seja lido antes disso.
- */
-const MAX_ATTACHMENTS_PER_REQUEST = 25;
-
-/** Os arquivos como o interceptor de vários campos os entrega. */
-type TicketUploads = {
-  screenshot?: UploadedScreenshot[];
-  attachments?: UploadedAttachment[];
-};
-
 @ApiTags('Chamados')
 @AnyModule()
 @Controller('tickets')
 export class TicketsController {
   constructor(private readonly service: TicketsService) {}
 
+  @Post('upload-url')
+  @SkipHistory()
+  @ApiOperation({
+    summary: 'Pede o link para enviar um arquivo do chamado que vai ser aberto',
+    description:
+      'O print ou um anexo vai do navegador DIRETO para o storage, por este link (PUT, assinado, vale 5 minutos), para a área temporária. Depois, `POST /tickets` leva a `storageKey` em `screenshot` ou `attachments`. O que não for usado em 24 horas é apagado.',
+  })
+  @ApiCreatedResponse({ type: UploadTicketDto })
+  @ApiBadRequestResponse({ description: 'O arquivo está fora do formato ou do tamanho aceito.' })
+  async createUploadUrl(@Body() body: UploadRequestDto): Promise<UploadTicketDto> {
+    return this.service.createUploadTicket(body);
+  }
+
   @Post()
-  @UseInterceptors(
-    UploadTooLargeInterceptor,
-    FileFieldsInterceptor(
-      [
-        { name: 'screenshot', maxCount: 1 },
-        { name: 'attachments', maxCount: MAX_ATTACHMENTS_PER_REQUEST },
-      ],
-      uploadLimit(TICKET_UPLOAD_MAX_BYTES),
-    ),
-  )
-  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Abre um chamado',
     description:
-      'Qualquer pessoa logada abre. O chamado fica ligado a ela pelo id do Neon Auth, e o nome é o da conta — o `requesterName` do corpo é ignorado. Os arquivos viajam na mesma requisição: o print do erro no campo `screenshot` e os demais anexos no campo `attachments` — PDF, Word, Excel, PNG/JPG e MP4, cada formato com o teto dele. A situação e o responsável não são aceitos no corpo: todo chamado nasce aberto e sem responsável.',
+      'Qualquer pessoa logada abre. O chamado fica ligado a ela pelo id do Neon Auth, e o nome é o da conta — o `requesterName` do corpo é ignorado. Os arquivos já foram enviados pelo link de `POST /tickets/upload-url`: o print vai em `screenshot` e os demais anexos em `attachments`, cada um com a `storageKey` e o nome. O servidor confere o arquivo de verdade — PDF, Word, Excel, PNG/JPG e MP4, cada formato com o teto dele. A situação e o responsável não são aceitos no corpo: todo chamado nasce aberto e sem responsável.',
   })
   @ApiBody({ type: CreateTicketDto })
   @ApiCreatedResponse({ type: OpenedTicketDto })
+  @ApiNotFoundResponse({ description: 'Algum arquivo não chegou ao armazenamento.' })
   @ApiUnprocessableEntityResponse({
     description: 'Algum campo está fora do contrato, ou o print não é uma imagem aceita.',
   })
   async create(
     @CurrentUser() user: RequestUser,
     @Body() body: CreateTicketDto,
-    @UploadedFiles() files?: TicketUploads,
   ): Promise<OpenedTicketDto> {
-    return this.service.create(body, files?.screenshot?.[0], files?.attachments ?? [], {
+    return this.service.create(body, {
       requester: { id: user.id, email: user.email, name: user.name },
     });
   }

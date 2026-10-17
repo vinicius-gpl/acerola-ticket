@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { historyEntryOf, isMutation, type MutationRequest } from './history-entry.util';
+import {
+  historyEntryOf,
+  isMutation,
+  type MutationRequest,
+  withoutStagedFiles,
+} from './history-entry.util';
 
 const UPDATE: MutationRequest = {
   method: 'PATCH',
@@ -86,5 +91,28 @@ describe('historyEntryOf', () => {
       targetLabel: null,
       changes: [],
     });
+  });
+});
+
+describe('withoutStagedFiles', () => {
+  const NOTA = { storageKey: 'tmp/00000000-0000-4000-8000-000000000001.pdf', fileName: 'nota.pdf' };
+  const PRINT = {
+    storageKey: 'tmp/00000000-0000-4000-8000-000000000002.png',
+    fileName: 'erro.png',
+  };
+
+  // feliz
+  it('takes the uploaded files out of the body and keeps only their names', () => {
+    expect(
+      withoutStagedFiles({ description: 'Sem impressora', screenshot: PRINT, attachments: [NOTA] }),
+    ).toEqual({ body: { description: 'Sem impressora' }, fileNames: ['erro.png', 'nota.pdf'] });
+  });
+
+  // triste
+  it('leaves alone anything that is not an uploaded file', () => {
+    const body = { tags: [], owner: { storageKey: 'ticket-attachments/x.pdf', fileName: 'x.pdf' } };
+
+    expect(withoutStagedFiles(body)).toEqual({ body, fileNames: [] });
+    expect(withoutStagedFiles(undefined)).toEqual({ body: undefined, fileNames: [] });
   });
 });

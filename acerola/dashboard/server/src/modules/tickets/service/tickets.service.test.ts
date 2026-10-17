@@ -4,13 +4,18 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { ticketListQuerySchema } from '@template/shared/schemas/ticket.schema';
+import {
+  type CreateTicketInput,
+  ticketListQuerySchema,
+} from '@template/shared/schemas/ticket.schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type Env } from '../../../lib/config/env.schema';
 
-import { type StorageService } from '../../../lib/storage/storage.service';
+import { type FileStorage } from '../../../lib/storage/file-storage.type';
+import { MemoryStorage } from '../../../lib/storage/memory-storage';
+import { StagedUploadsService } from '../../../lib/storage/staged-uploads.service';
 import { type TicketsRepository, type TicketWithComputer } from '../repository/tickets.repository';
 import { type TicketHistoriesRepository } from '../repository/ticket-histories.repository';
 import { TicketAccessService } from './ticket-access.service';
@@ -21,7 +26,7 @@ import { signTicketAccess, signTicketInvite } from './ticket-invite.util';
 import { type TicketWhatsappNotifierService } from './ticket-whatsapp-notifier.service';
 import { type GithubService } from '../../software-projects/service/github.service';
 import { type SoftwareProjectsService } from '../../software-projects/service/software-projects.service';
-import { TicketsService, type UploadedScreenshot } from './tickets.service';
+import { TicketsService } from './tickets.service';
 
 const ana: RequestUser = { id: '1', email: 'ana@azuos.com.br', name: 'Ana', role: 'user' };
 
@@ -64,9 +69,11 @@ function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithCompu
 }
 
 const storageStub = {
-  upload: vi.fn().mockResolvedValue({ key: 'tickets/abc.png' }),
-  createDownloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed'),
+  downloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed'),
 };
+
+/* A área temporária de verdade, sobre o storage em memória: é por ela que o print chega. */
+const stagingStub = new StagedUploadsService(new MemoryStorage());
 
 /* Os anexos têm serviço próprio, com testes próprios: aqui só se confere que o chamado o
    chama. Um duplo que não faz nada é o suficiente — e mantém este teste sobre chamados. */
@@ -98,10 +105,11 @@ const historiesRepositoryStub = { record: vi.fn().mockResolvedValue({}) };
 
 function makeService(
   repository: Partial<TicketsRepository>,
-  storage: Partial<StorageService> = storageStub,
+  storage: Partial<FileStorage> = storageStub,
   attachments: Partial<TicketAttachmentsService> = attachmentsStub,
   github: Partial<GithubService> = {},
   softwareProjects: Partial<SoftwareProjectsService> = {},
+  staging: StagedUploadsService = stagingStub,
 ) {
   const tickets = { ...defaultRepository, ...repository } as TicketsRepository;
 
@@ -109,7 +117,8 @@ function makeService(
      testes exercitam, e um duplo dela testaria o duplo. */
   return new TicketsService(
     tickets,
-    storage as StorageService,
+    storage as FileStorage,
+    staging,
     attachments as TicketAttachmentsService,
     new TicketAccessService(tickets),
     historiesStub as unknown as TicketHistoriesService,
@@ -121,11 +130,37 @@ function makeService(
 
 const query = (overrides: Record<string, unknown> = {}) => ticketListQuerySchema.parse(overrides);
 
-const pngScreenshot: UploadedScreenshot = {
-  originalname: 'erro.png',
-  mimetype: 'image/png',
-  size: 1024,
-  buffer: Buffer.from('fake'),
+const SCREENSHOT_KEY = 'tmp/00000000-0000-4000-8000-000000000001.png';
+
+/**
+ * O print que o navegador já enviou: o storage em memória com o arquivo na área temporária, e
+ * o serviço montado sobre ele.
+ */
+async function withSentScreenshot(
+  repository: Partial<TicketsRepository>,
+  file: { contentType: string; sizeBytes: number } = { contentType: 'image/png', sizeBytes: 1024 },
+) {
+  const storage = new MemoryStorage();
+  await storage.put(SCREENSHOT_KEY, Buffer.alloc(file.sizeBytes), file.contentType);
+  const service = makeService(
+    repository,
+    storage,
+    attachmentsStub,
+    {},
+    {},
+    new StagedUploadsService(storage),
+  );
+
+  return { storage, service, screenshot: { storageKey: SCREENSHOT_KEY, fileName: 'erro.png' } };
+}
+
+const openingInput: CreateTicketInput = {
+  requesterName: 'Bia Costa',
+  area: 'infra',
+  department: 'financeiro',
+  problemType: 'printer',
+  contactPhone: '62999999999',
+  description: 'A impressora não puxa papel.',
 };
 
 describe('TicketsService.list', () => {
@@ -255,68 +290,53 @@ describe('TicketsService.create', () => {
     expect(historiesStub.recordOpening).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }));
   });
 
-  it('stores the screenshot and keeps its key on the ticket', async () => {
-    const insert = vi.fn().mockResolvedValue(ticketRow({ screenshotKey: 'tickets/abc.png' }));
-    const upload = vi.fn().mockResolvedValue({ key: 'tickets/abc.png' });
-    const service = makeService(
-      { insert },
-      { upload, createDownloadUrl: vi.fn().mockResolvedValue('https://r2.example/signed') },
-    );
+  it('moves the screenshot out of the staging area and keeps its key on the ticket', async () => {
+    const insert = vi.fn().mockResolvedValue(ticketRow());
+    const { storage, service, screenshot } = await withSentScreenshot({ insert });
 
-    await service.create(
-      {
-        requesterName: 'Bia Costa',
-        area: 'infra' as const,
-        department: 'financeiro',
-        problemType: 'printer',
-        contactPhone: '62999999999',
-        description: 'A impressora não puxa papel.',
-      },
-      pngScreenshot,
-    );
+    await service.create({ ...openingInput, screenshot });
 
-    expect(upload).toHaveBeenCalledOnce();
-    expect(insert.mock.calls[0]?.[0]).toMatchObject({ screenshotKey: 'tickets/abc.png' });
+    const key = insert.mock.calls[0]?.[0].screenshotKey as string;
+    expect(key).toMatch(/^tickets\/[0-9a-f-]{36}\.png$/);
+    expect(await storage.head(key)).not.toBeNull();
+    expect(await storage.head(SCREENSHOT_KEY)).toBeNull();
   });
 
   // triste
   it('refuses a screenshot that is not an image, without opening the ticket', async () => {
     const insert = vi.fn();
-    const service = makeService({ insert });
-
-    const attempt = service.create(
-      {
-        requesterName: 'Bia Costa',
-        area: 'infra' as const,
-        department: 'financeiro',
-        problemType: 'printer',
-        contactPhone: '62999999999',
-        description: 'A impressora não puxa papel.',
-      },
-      { ...pngScreenshot, mimetype: 'application/x-msdownload', originalname: 'virus.exe' },
+    const { storage, service, screenshot } = await withSentScreenshot(
+      { insert },
+      { contentType: 'application/x-msdownload', sizeBytes: 1024 },
     );
+
+    const attempt = service.create({ ...openingInput, screenshot });
 
     await expect(attempt).rejects.toThrow(UnprocessableEntityException);
     expect(insert).not.toHaveBeenCalled();
+    expect(storage.size).toBe(0);
   });
 
-  it('refuses a screenshot bigger than the ceiling', async () => {
+  /* A tela declarou um print pequeno; o link aceita o que for enviado. Vale o que o storage mediu. */
+  it('refuses a screenshot that turned out bigger than the ceiling', async () => {
     const insert = vi.fn();
-    const service = makeService({ insert });
-
-    const attempt = service.create(
-      {
-        requesterName: 'Bia Costa',
-        area: 'infra' as const,
-        department: 'financeiro',
-        problemType: 'printer',
-        contactPhone: '62999999999',
-        description: 'A impressora não puxa papel.',
-      },
-      { ...pngScreenshot, size: 9 * 1024 * 1024 },
+    const { service, screenshot } = await withSentScreenshot(
+      { insert },
+      { contentType: 'image/png', sizeBytes: 9 * 1024 * 1024 },
     );
 
-    await expect(attempt).rejects.toThrow(/8 MB/);
+    await expect(service.create({ ...openingInput, screenshot })).rejects.toThrow(/8 MB/);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses a screenshot that never reached the storage', async () => {
+    const insert = vi.fn();
+    const service = makeService({ insert });
+    const missing = { storageKey: SCREENSHOT_KEY, fileName: 'erro.png' };
+
+    await expect(service.create({ ...openingInput, screenshot: missing })).rejects.toThrow(
+      NotFoundException,
+    );
     expect(insert).not.toHaveBeenCalled();
   });
 
@@ -935,7 +955,8 @@ function makeAssigneeService(
   const tickets = repository as unknown as TicketsRepository;
   const service = new TicketsService(
     tickets,
-    storageStub as unknown as StorageService,
+    storageStub as unknown as FileStorage,
+    stagingStub,
     attachmentsStub as unknown as TicketAttachmentsService,
     new TicketAccessService(tickets),
     historiesStub as unknown as TicketHistoriesService,
@@ -995,9 +1016,7 @@ describe('TicketsService.create with a chosen assignee', () => {
   it('skips the opening notice when asked to', async () => {
     const { service, notifier } = makeAssigneeService();
 
-    await service.create({ ...openInput, assigneeId: 'u-ana' }, undefined, [], {
-      skipOpeningNotice: true,
-    });
+    await service.create({ ...openInput, assigneeId: 'u-ana' }, { skipOpeningNotice: true });
 
     expect(notifier.opened).not.toHaveBeenCalled();
   });
@@ -1197,7 +1216,7 @@ describe('TicketsService — quem pede, logado', () => {
     const insert = vi.fn().mockResolvedValue(ticketRow());
     const service = makeService({ insert });
 
-    await service.create(input, undefined, [], {
+    await service.create(input, {
       requester: { id: bia.id, email: bia.email, name: bia.name },
     });
 
