@@ -1,0 +1,139 @@
+name: Build/Agent
+on:
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
+    secrets:
+      AGENT_SIGNING_PFX_BASE64:
+        required: false
+      AGENT_SIGNING_PASSWORD:
+        required: false
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Validate exact tag and main ancestry
+        if: inputs.release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node .github/scripts/release/version.mjs validate "$RELEASE_TAG"
+      - name: Apply tagged version before compiling
+        if: inputs.release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node .github/scripts/release/version.mjs bump "$RELEASE_TAG"
+      - name: Resolve build version
+        id: version
+        shell: bash
+        run: node -e 'const fs=require("node:fs");const v=JSON.parse(fs.readFileSync("acerola/agent/wails.json")).info.productVersion;fs.appendFileSync(process.env.GITHUB_OUTPUT,`version=${v}\n`)'
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: acerola/agent/go.mod
+          cache-dependency-path: acerola/agent/go.sum
+      - name: Test release rules
+        shell: bash
+        run: node --test .github/scripts/release/*.test.mjs
+      - name: Build and validate only the agent
+        working-directory: acerola/agent
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          npm ci --prefix svelte
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
+          wails build -platform windows/amd64 -ldflags '-s -w'
+          npm run lint --prefix svelte
+          npm run check --prefix svelte
+          npm test --prefix svelte
+          go vet ./...
+          go test ./...
+          go build -trimpath -ldflags '-s -w' -o build/bin/acerola-agent-service.exe ./src-go/cmd/service
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-bin
+          path: |
+            acerola/agent/build/bin/Acerola Agent.exe
+            acerola/agent/build/bin/acerola-agent-service.exe
+          if-no-files-found: error
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-bin
+          path: agent-bin
+      - name: Install free MSI build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes wixl msitools
+      - name: Build MSI and machine directory permissions
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: bash .github/scripts/release/package-agent.sh "$RELEASE_VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-unsigned-msi
+          path: release/*
+          if-no-files-found: error
+  sign-and-test:
+    needs: [build, package]
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-unsigned-msi
+          path: acerola/agent/build/release
+      - name: Use a disposable certificate for PR checks only
+        if: ${{ !inputs.release }}
+        run: |
+          $password = [guid]::NewGuid().ToString('N')
+          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          ./acerola/agent/build/windows/installer/new-signing-certificate.ps1 -OutputDirectory "$env:RUNNER_TEMP/test-key" -Password $secure
+          $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:RUNNER_TEMP/test-key/acerola-agent-signing.pfx"))
+          "AGENT_SIGNING_PFX_BASE64=$base64" >> $env:GITHUB_ENV
+          "AGENT_SIGNING_PASSWORD=$password" >> $env:GITHUB_ENV
+      - name: Sign release with persistent certificate or disposable test key
+        env:
+          RELEASE_PFX: ${{ secrets.AGENT_SIGNING_PFX_BASE64 }}
+          RELEASE_PASSWORD: ${{ secrets.AGENT_SIGNING_PASSWORD }}
+          IS_RELEASE: ${{ inputs.release }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          if ($env:IS_RELEASE -eq 'true') {
+            $env:AGENT_SIGNING_PFX_BASE64 = $env:RELEASE_PFX
+            $env:AGENT_SIGNING_PASSWORD = $env:RELEASE_PASSWORD
+          }
+          ./acerola/agent/build/windows/installer/package.ps1 -Version $env:RELEASE_VERSION
+      - name: Install, start and uninstall on a clean Windows runner
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          $dir = Join-Path $pwd 'acerola/agent/build/release'
+          & "$dir/install-certificate.ps1"
+          ./acerola/agent/build/windows/installer/smoke-test.ps1 -MsiPath "$dir/acerola-agent-$env:RELEASE_VERSION-x64.msi"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-release
+          path: acerola/agent/build/release/*
+          if-no-files-found: error

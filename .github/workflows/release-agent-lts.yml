@@ -1,0 +1,33 @@
+name: Release/Agent LTS
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag publicada, no formato agent/vX.Y.Z"
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: agent-release
+  cancel-in-progress: false
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install storage SDK from the project lockfile
+        working-directory: acerola/dashboard
+        run: npm ci --ignore-scripts
+      - name: Promote an existing release to LTS
+        run: node .github/scripts/release/promote-agent-lts.mjs "$RELEASE_TAG"
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}

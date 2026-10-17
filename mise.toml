@@ -35,3 +35,7 @@ run = "node .github/scripts/licenses/check-licenses.mjs --list"
 [tasks."licenses:test"]
 description = "Testes da regra de licenças (node:test)"
 run = "node --test .github/scripts/licenses/license-policy.test.mjs"
+
+[tasks."agent:promote-lts"]
+description = "Promove uma tag agent/vX.Y.Z já publicada para LTS no bucket do dashboard"
+run = "node .github/scripts/release/promote-agent-lts.mjs"

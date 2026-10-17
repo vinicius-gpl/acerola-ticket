@@ -1,0 +1,24 @@
+name: Tests/Agent
+on:
+  pull_request:
+    paths:
+      [
+        "acerola/agent/**",
+        ".github/scripts/release/**",
+        ".github/workflows/*-agent*.yml",
+        ".github/workflows/release-bump.yml",
+      ]
+  push:
+    branches: [main, develop]
+    paths:
+      [
+        "acerola/agent/**",
+        ".github/scripts/release/**",
+        ".github/workflows/*-agent*.yml",
+        ".github/workflows/release-bump.yml",
+      ]
+permissions:
+  contents: read
+jobs:
+  check:
+    uses: ./.github/workflows/build-agent.yml
