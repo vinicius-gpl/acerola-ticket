@@ -3,8 +3,11 @@ node_modules
 **/dist
 **/coverage
 **/storybook-static
+**/.svelte-kit
 .env
+.env.*
 **/.env
+**/.env.*
 !**/.env.example
 .git
 **/*.tsbuildinfo
