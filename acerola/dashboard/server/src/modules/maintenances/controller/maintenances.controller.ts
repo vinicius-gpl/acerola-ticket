@@ -33,6 +33,7 @@ import {
   UpdateMaintenanceDto,
 } from '../dto/maintenance.dto';
 import { MaintenancesService } from '../service/maintenances.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -40,6 +41,7 @@ import { MaintenancesService } from '../service/maintenances.service';
  * Todas as rotas exigem sessão — o histórico de manutenção é do TI.
  */
 @ApiTags('Manutenções')
+@ModuleContext('infra')
 @Controller('maintenances')
 export class MaintenancesController {
   constructor(private readonly service: MaintenancesService) {}

@@ -79,9 +79,15 @@ describe('roleInContext', () => {
   });
 
   // triste
-  it('falls back to role or default when context is not defined or user is null', () => {
-    expect(roleInContext(null, 'infra')).toBe('user');
-    expect(roleInContext({ role: 'manager' }, 'infra')).toBe('manager');
+  /* Sem o módulo é sem acesso: o papel principal não abre módulo nenhum. */
+  it('gives no role in a module the person does not have', () => {
+    expect(roleInContext(null, 'infra')).toBeNull();
+    expect(roleInContext({ role: 'manager' }, 'infra')).toBeNull();
+    expect(roleInContext({ role: 'admin', roles: { sistema: 'admin' } }, 'infra')).toBeNull();
+  });
+
+  it('gives every module to the super-admin', () => {
+    expect(roleInContext({ role: 'superadmin' }, 'manutencao')).toBe('superadmin');
   });
 });
 

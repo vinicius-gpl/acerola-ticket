@@ -5,9 +5,11 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { MaintenanceDashboardDto } from '../dto/maintenance-dashboard.dto';
 import { MaintenanceDashboardService } from '../service/maintenance-dashboard.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /** O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service. */
 @ApiTags('Painel da Manutenção')
+@ModuleContext('manutencao')
 @Controller('maintenance-dashboard')
 export class MaintenanceDashboardController {
   constructor(private readonly service: MaintenanceDashboardService) {}

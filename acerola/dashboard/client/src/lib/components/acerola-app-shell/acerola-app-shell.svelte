@@ -32,6 +32,8 @@
         email: string;
         role: string;
         roles?: ContextRoles;
+        /** A foto da conta (endereço completo). Sem ela, as iniciais. */
+        avatarUrl?: string | null;
       };
       /**
        * O seletor de contexto (#13) — os contextos que a pessoa atende. Vazio (o padrão)
@@ -238,7 +240,7 @@
             onclick={actions?.onOpenProfile}
             aria-label="Abrir perfil do usuário"
           >
-            <PersonAvatar name={userName} ui={{ size: 'md' }} />
+            <PersonAvatar name={userName} avatarUrl={data?.user?.avatarUrl} ui={{ size: 'md' }} />
             <span class="grid flex-1 text-left leading-tight">
               <span class="truncate text-sm font-semibold">{userName}</span>
               <span class="truncate text-xs tracking-wider uppercase opacity-70">

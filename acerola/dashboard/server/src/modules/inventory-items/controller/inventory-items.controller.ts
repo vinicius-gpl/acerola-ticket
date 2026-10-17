@@ -47,6 +47,7 @@ import {
   InventoryItemsService,
   type UploadedPhoto,
 } from '../service/inventory-items.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -59,6 +60,7 @@ import {
  * os campos: dois envios separados deixariam produto sem foto na tela se o segundo falhasse.
  */
 @ApiTags('Inventário da Manutenção')
+@ModuleContext('manutencao')
 @Controller('inventory-items')
 export class InventoryItemsController {
   constructor(private readonly service: InventoryItemsService) {}

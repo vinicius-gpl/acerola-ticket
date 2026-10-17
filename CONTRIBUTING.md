@@ -191,7 +191,11 @@ O que não precisa:
 ### Autenticação e autorização
 
 * `AuthenticationMiddleware` resolve e valida a identidade da requisição.
-* `RolesGuard` (`@Roles('admin')`) responde se a requisição entra na rota.
+* `RolesGuard` responde se a requisição entra na rota. **Todo controller declara o módulo**
+  (`@ModuleContext('infra' | 'sistema' | 'manutencao')`) ou que não é de um módulo só
+  (`@AnyModule()`, e aí o service decide); sem declaração, a rota é recusada com `403`. Dentro
+  de um módulo, `user.role` chega ao service como o nível da pessoa NAQUELE módulo. `@Roles()`
+  continua valendo para o que é de um papel só (ex.: `@Roles('superadmin')`).
 * `lib/policy` responde o que aquela identidade pode fazer sobre determinado dado.
 * A policy é fechada por padrão: nenhuma função devolve `true` por omissão.
 * Toda escalada de privilégio possui teste.

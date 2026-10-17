@@ -54,25 +54,36 @@ export const DEFAULT_USER_ROLE: UserRole = 'user';
  */
 export const roleContextSchema = z.enum(ROLE_CONTEXTS);
 
+/**
+ * O NÍVEL da pessoa em cada MÓDULO, só dos módulos que ela tem.
+ *
+ * MÓDULO AUSENTE É SEM ACESSO — não "acesso mínimo". Antes cada campo nascia `user` por padrão,
+ * e isso dava leitura de todos os módulos a quem não tinha nenhum. Ver
+ * `domain/module-access.util.ts`.
+ */
 export const contextRolesSchema = z.object({
-  infra: userRoleSchema.default('user'),
-  sistema: userRoleSchema.default('user'),
-  manutencao: userRoleSchema.default('user'),
+  infra: userRoleSchema.optional(),
+  sistema: userRoleSchema.optional(),
+  manutencao: userRoleSchema.optional(),
 });
 
 export type ContextRoles = z.infer<typeof contextRolesSchema>;
 
 /**
- * Retorna o papel do usuário dentro de um contexto específico.
- * Se não houver papel atribuído naquele contexto, recorre ao papel geral ou 'user'.
+ * O nível da pessoa num módulo — ou `null`, quando ela não tem aquele módulo.
+ *
+ * O super-admin é a única exceção: ele tem todos, sem precisar de linha nenhuma. Não há
+ * recaída para o papel principal, e é de propósito: ser Administrador de Sistema não abre
+ * Infraestrutura — quem abre é o super-admin, na tela de Acessos.
  */
 export function roleInContext(
   user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
   context: RoleContext,
-): UserRole {
-  if (!user) return DEFAULT_USER_ROLE;
+): UserRole | null {
+  if (!user) return null;
+  if (user.role === 'superadmin') return 'superadmin';
 
-  return user.roles?.[context] ?? user.role ?? DEFAULT_USER_ROLE;
+  return user.roles?.[context] ?? null;
 }
 
 /**

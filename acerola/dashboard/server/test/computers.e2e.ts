@@ -2,7 +2,7 @@ import { type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
+import { asCaio, asEdu, createE2eApp, type E2eApp } from './support/e2e-app.util';
 
 /**
  * O INVENTÁRIO de ponta a ponta: cadastrar e receber o token do agente, achar a máquina na
@@ -267,6 +267,21 @@ describe.skipIf(!testDatabaseUrl)('Computers API (e2e)', () => {
       .post('/api/computers/1/disposal')
       .send({ type: 'defect', reason: 'qualquer' })
       .expect(401);
+  });
+
+  /* Ter conta não abre Infraestrutura: quem não tem o módulo não lê nem cadastra máquina. */
+  it('keeps the inventory closed to who has an account but not the module', async () => {
+    const refused = await request(app.getHttpServer())
+      .get('/api/computers')
+      .set(asEdu())
+      .expect(403);
+
+    expect(refused.body.message).toContain('não tem acesso ao módulo Infraestrutura');
+    await request(app.getHttpServer())
+      .post('/api/computers')
+      .set(asEdu())
+      .send({ name: 'PC-X' })
+      .expect(403);
   });
 
   it('refuses a machine with no name, naming the field in Portuguese', async () => {

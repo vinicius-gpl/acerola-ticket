@@ -122,12 +122,10 @@
     return data.roles.filter((r) => r.context === ctx).length;
   }
 
+  /* Pelo id da conta, como o servidor: um e-mail antigo que hoje é de outra pessoa mostraria o
+     nome e a foto dela numa linha que não é dela. */
   function resolveUser(item: InternalRole): DirectoryUser | undefined {
-    return data.users?.find(
-      (u) =>
-        u.id.toLowerCase() === item.userId.toLowerCase() ||
-        (item.userEmail && u.email.toLowerCase() === item.userEmail.toLowerCase()),
-    );
+    return data.users?.find((u) => u.id.toLowerCase() === item.userId.toLowerCase());
   }
 </script>
 
@@ -171,15 +169,19 @@
         </h2>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {#each ROLE_CONTEXTS as ctx (ctx)}
-            {@const role = (data.currentUser.roles?.[ctx] ?? data.currentUser.role ?? 'user') as UserRole}
+            <!-- Módulo sem nível é SEM ACESSO, e não "Usuário". -->
+            {@const role =
+              data.currentUser.role === 'superadmin'
+                ? ('superadmin' as UserRole)
+                : ((data.currentUser.roles?.[ctx] as UserRole | undefined) ?? null)}
             <div class="flex flex-col justify-between rounded-control border border-border bg-muted/20 p-3.5 transition-colors">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-semibold text-foreground">
                   {ROLE_CONTEXT_LABELS[ctx]}
                 </span>
                 <StatusBadge
-                  data={{ label: USER_ROLE_LABELS[role] }}
-                  ui={{ tone: roleTone(role), size: 'sm' }}
+                  data={{ label: role ? USER_ROLE_LABELS[role] : 'Sem acesso' }}
+                  ui={{ tone: role ? roleTone(role) : 'neutral', size: 'sm' }}
                 />
               </div>
               <p class="mt-2 text-xs text-muted-foreground leading-snug">

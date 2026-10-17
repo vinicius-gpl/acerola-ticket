@@ -29,6 +29,7 @@ import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { CreateTicketHistoryDto, TicketHistoryDto } from '../dto/ticket-history.dto';
 import { type UploadedAttachment } from '../service/ticket-attachments.service';
 import { TicketHistoriesService } from '../service/ticket-histories.service';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /** O teto de arquivos numa requisição — o limite de verdade é por formato, e é do domínio. */
 const MAX_FILES_PER_REQUEST = 25;
@@ -42,6 +43,7 @@ const MAX_FILES_PER_REQUEST = 25;
  * Não há `@Patch` nem `@Delete`: histórico não se corrige nem se apaga. Errou? Lance outro.
  */
 @ApiTags('Chamados')
+@AnyModule()
 @Controller('tickets/:id')
 export class TicketHistoriesController {
   constructor(private readonly service: TicketHistoriesService) {}

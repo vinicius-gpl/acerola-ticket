@@ -149,7 +149,16 @@ describe('useAppShellModel', () => {
       email: 'ana@empresa.com.br',
       role: 'Gestor',
       roles: { sistema: 'admin', infra: 'user', manutencao: 'manager' },
+      avatarUrl: null,
     });
+  });
+
+  // feliz
+  /* A foto da conta vem pelo `/api/auth/me`: sem repassá-la, o rodapé fica nas iniciais. */
+  it('passes the account photo on to the shell', () => {
+    const model = mountModel({ image: 'https://exemplo.com/fotos/ana.png' });
+
+    expect(model.data.user.avatarUrl).toBe('https://exemplo.com/fotos/ana.png');
   });
 
   it('navigates to /profile on onOpenProfile', async () => {

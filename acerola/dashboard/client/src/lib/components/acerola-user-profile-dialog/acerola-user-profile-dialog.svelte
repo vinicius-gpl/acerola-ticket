@@ -63,8 +63,9 @@
   const userEmail = $derived(user?.email ?? '');
   const roles = $derived(user?.roles);
 
-  function getContextRole(ctx: RoleContext): UserRole {
-    return (roles?.[ctx] as UserRole) ?? 'user';
+  /* Módulo sem nível é SEM ACESSO — não "Usuário" (ver `domain/module-access.util.ts`). */
+  function getContextRole(ctx: RoleContext): UserRole | null {
+    return (roles?.[ctx] as UserRole | undefined) ?? null;
   }
 </script>
 
@@ -99,8 +100,8 @@
                 </div>
               </div>
               <StatusBadge
-                data={{ label: USER_ROLE_LABELS[role] }}
-                ui={{ tone: roleBadgeTone(role), size: 'sm' }}
+                data={{ label: role ? USER_ROLE_LABELS[role] : 'Sem acesso' }}
+                ui={{ tone: role ? roleBadgeTone(role) : 'neutral', size: 'sm' }}
               />
             </div>
           {/each}

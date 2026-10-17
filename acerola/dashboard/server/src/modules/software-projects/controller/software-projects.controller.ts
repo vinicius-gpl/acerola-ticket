@@ -32,8 +32,10 @@ import {
 import { SoftwareProjectsService } from '../service/software-projects.service';
 import { UseGuards } from '@nestjs/common';
 import { GithubLinkedGuard } from '../../github-integration/github-linked.guard';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 @ApiTags('Sistemas e Projetos de Software')
+@ModuleContext('sistema')
 @Controller('software-projects')
 @UseGuards(GithubLinkedGuard)
 export class SoftwareProjectsController {

@@ -30,6 +30,20 @@ const content = createRawSnippet(() => ({
   render: () => '<div>Conteúdo da rota</div>',
 }));
 
+/* Ver `acerola-person-avatar.test.ts`: sem isto o jsdom nunca "carrega" a foto. */
+class InstantLoadImage {
+  complete = false;
+  naturalWidth = 0;
+  addEventListener(type: string, listener: () => void) {
+    if (type === 'load') listener();
+  }
+  removeEventListener() {}
+  set src(_value: string) {
+    this.complete = true;
+    this.naturalWidth = 1;
+  }
+}
+
 function renderShell(props: Omit<AcerolaAppShellProps, 'children'>): ReturnType<typeof render> {
   return render(AppShell, { props: { ...props, children: content } });
 }
@@ -64,6 +78,30 @@ describe('AcerolaAppShell', () => {
 
     expect(screen.getByText('Ana Souza')).toBeInTheDocument();
     expect(screen.getByText('Administrador')).toBeInTheDocument();
+  });
+
+  // feliz
+  /* A foto de quem entrou aparece no rodapé, e não só as iniciais. */
+  it('shows the photo of who is using the system', async () => {
+    vi.stubGlobal('Image', InstantLoadImage);
+    const avatarUrl = 'https://exemplo.com/fotos/ana.png';
+
+    const { container } = renderShell({
+      data: { user: { name: 'Ana Souza', email: 'a@b.c', role: 'Administrador', avatarUrl } },
+    });
+
+    const image = await vi.waitUntil(() => container.querySelector('[data-slot="avatar-image"]'));
+    expect(image).toHaveAttribute('src', avatarUrl);
+    vi.unstubAllGlobals();
+  });
+
+  // triste
+  it('falls back to the initials when there is no photo', () => {
+    renderShell({
+      data: { user: { name: 'Ana Souza', email: 'a@b.c', role: 'Administrador', avatarUrl: null } },
+    });
+
+    expect(screen.getByText('AS')).toBeInTheDocument();
   });
 
   // feliz

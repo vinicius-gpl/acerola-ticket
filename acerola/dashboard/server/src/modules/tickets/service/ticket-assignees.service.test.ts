@@ -27,7 +27,9 @@ const USERS = [
 const ROLES = [
   role('u-infra', 'infra', 'admin'),
   role('u-both', 'infra', 'admin'),
-  role('other-id', 'sistema', 'admin', 'U-BOTH@exemplo.com'),
+  role('u-both', 'sistema', 'admin'),
+  /* Linha de outra pessoa, gravada com um e-mail que hoje é da Ana: não pode valer para ela. */
+  role('other-id', 'manutencao', 'admin', 'U-BOTH@exemplo.com'),
   role('u-manager', 'infra', 'manager'),
   role('u-banned', 'infra', 'admin'),
 ];
@@ -55,8 +57,7 @@ describe('TicketAssigneesService.listForArea', () => {
     ]);
   });
 
-  /* O cargo interno pode estar gravado pelo e-mail, e não pelo id: vale do mesmo jeito. */
-  it('matches a role recorded by e-mail, whatever the case', async () => {
+  it('lists the admin of the area recorded by the account id', async () => {
     expect(await makeService().listForArea('sistema')).toEqual([
       { id: 'u-both', name: 'Ana Duas' },
       { id: 'u-super', name: 'Zeca Super' },
@@ -64,8 +65,9 @@ describe('TicketAssigneesService.listForArea', () => {
   });
 
   // triste
-  /* Admin de Infra não aparece num chamado de Manutenção: só o super admin atende as três. */
-  it('leaves out the admin of another area', async () => {
+  /* Admin de Infra não aparece num chamado de Manutenção: só o super admin atende as três. E
+     o vínculo é pelo id da conta: um e-mail antigo que hoje é da Ana não a faz responsável. */
+  it('leaves out the admin of another area, and a role recorded only by e-mail', async () => {
     expect(await makeService().listForArea('manutencao')).toEqual([
       { id: 'u-super', name: 'Zeca Super' },
     ]);

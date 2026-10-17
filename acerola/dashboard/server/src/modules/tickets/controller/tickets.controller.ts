@@ -61,6 +61,7 @@ import {
   TicketsService,
   type UploadedScreenshot,
 } from '../service/tickets.service';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -88,6 +89,7 @@ type TicketUploads = {
 };
 
 @ApiTags('Chamados')
+@AnyModule()
 @Controller('tickets')
 export class TicketsController {
   constructor(private readonly service: TicketsService) {}
