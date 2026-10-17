@@ -1,10 +1,8 @@
 import { z } from 'zod';
 
-import {
-  MANUAL_TICKET_HISTORY_TYPES,
-  TICKET_HISTORY_TYPES,
-} from '../domain/ticket-history.util';
+import { MANUAL_TICKET_HISTORY_TYPES, TICKET_HISTORY_TYPES } from '../domain/ticket-history.util';
 import { TICKET_STATUSES } from '../domain/ticket-status.util';
+import { MAX_STAGED_FILES, stagedFileSchema } from './staged-file.schema';
 import { ticketAttachmentSchema } from './ticket-attachment.schema';
 
 /**
@@ -93,7 +91,8 @@ export type PublicTicketHistory = z.infer<typeof publicTicketHistorySchema>;
  * Lançar um histórico. Quem escreve e quando NÃO vêm do corpo: a autoria vem da identidade e a
  * data é a do servidor. O estágio resultante também não — ele é consequência do tipo.
  *
- * Os arquivos não estão no schema: viajam na mesma requisição, e é o controller que os recebe.
+ * Os arquivos vão pela chave: o navegador já os enviou direto para o storage, por link assinado
+ * (ver `staged-file.schema`).
  */
 export const createTicketHistorySchema = z.object({
   type: manualTicketHistoryTypeSchema,
@@ -104,7 +103,10 @@ export const createTicketHistorySchema = z.object({
    * pedido dela; esconder é a exceção, e tem de ser escolhida.
    */
   isVisibleToRequester: z
-    .preprocess((value) => (value === undefined ? true : value === true || value === 'true'), z.boolean())
+    .preprocess(
+      (value) => (value === undefined ? true : value === true || value === 'true'),
+      z.boolean(),
+    )
     .default(true),
   minutesSpent: z
     .preprocess(
@@ -117,6 +119,7 @@ export const createTicketHistorySchema = z.object({
         .nullable(),
     )
     .optional(),
+  attachments: z.array(stagedFileSchema).max(MAX_STAGED_FILES).default([]),
 });
 
 export type CreateTicketHistoryInput = z.input<typeof createTicketHistorySchema>;
