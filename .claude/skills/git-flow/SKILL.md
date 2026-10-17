@@ -177,7 +177,7 @@ Sem remoto configurado: pare no merge e diga que está salvo só nesta máquina.
 
 Se a feature foi enviada e virou PR, o merge acontece no GitHub — e **o título do PR vira o
 commit de merge**. O repositório está configurado para isso, e o CI (`.github/workflows/
-pr-title.yml`) reprova título fora do formato. Então:
+checks-pr-title.yml`) reprova título fora do formato. Então:
 
 - **O PR nasce com o título do merge**, no mesmo formato do `-m` acima:
   ```bash

@@ -7,7 +7,7 @@
 #
 # Roda separado do CI principal porque precisa das DUAS instalações de Node (painel e tela do
 # agente) e do Go, que o `verify` não usa.
-name: Licenças
+name: Checks/Licenses
 
 on:
   push:
@@ -34,24 +34,24 @@ jobs:
           go-version-file: acerola/agent/go.mod
           cache-dependency-path: acerola/agent/go.sum
 
-      - name: Testes da regra de licenças
+      - name: Test the license policy rules
         run: node --test .github/scripts/licenses/license-policy.test.mjs
 
       # `--ignore-scripts`: só os arquivos interessam aqui. Nenhum script de instalação de
       # dependência precisa rodar para se ler a licença dela.
-      - name: Instala as dependências do painel
+      - name: Install dashboard dependencies
         working-directory: acerola/dashboard
         run: npm ci --ignore-scripts
 
       # O bot de WhatsApp é um pacote à parte, com instalação própria (ver bot/README.md).
-      - name: Instala as dependências do bot de WhatsApp
+      - name: Install WhatsApp bot dependencies
         working-directory: acerola/dashboard/bot
         run: npm ci --ignore-scripts
 
-      - name: Instala as dependências da tela do agente
+      - name: Install agent UI dependencies
         working-directory: acerola/agent/svelte
         run: npm ci --ignore-scripts
 
       # `--strict`: aqui, o que não dá para conferir reprova — não vira aviso.
-      - name: Confere as licenças (Node e Go)
+      - name: Check licenses (Node and Go)
         run: node .github/scripts/licenses/check-licenses.mjs --strict
