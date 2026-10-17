@@ -35,10 +35,12 @@ function valuesFor(values: readonly string[]) {
  *
  * Duas coisas fogem do padrão das outras tabelas, e as duas de propósito:
  *
- * 1. **Não existe `createdBy`.** O chamado é aberto por quem não tem login — o formulário é
- *    público. Quem pediu está em `requester_name` e `contact_phone`, digitados pela própria
- *    pessoa. Carimbar uma identidade que não existe seria inventar autoria. `updated_by`,
- *    esse sim, é o e-mail de quem do TI mexeu, e vem sempre da sessão.
+ * 1. **Quem pediu é a CONTA da pessoa no Neon Auth**, e não um texto digitado: abrir chamado
+ *    exige login, e o chamado guarda o id dela (`requester_id`) e o e-mail. `requester_name`
+ *    é o nome que ela tinha ao abrir (vem da identidade, não do formulário); telefone e
+ *    departamento ela confirma ou corrige no formulário. Ficam sem `requester_id` os chamados
+ *    de antes desta mudança (eram abertos sem login) e os que o bot do WhatsApp abre.
+ *    `updated_by` é o e-mail de quem do TI mexeu, e vem sempre da sessão.
  *
  * 2. **Não existe exclusão.** Nenhum caminho do sistema apaga uma linha daqui: o que sai da
  *    fila sai por `status` (`resolved`, `cancelled`). O histórico inteiro é o que sustenta o
@@ -58,7 +60,10 @@ export const tickets = pgTable(
       .notNull()
       .default(DEFAULT_TICKET_PRIORITY),
 
-    /* Quem pediu — digitado no formulário público, porque não há identidade a consultar. */
+    /* Quem pediu: o id e o e-mail da conta no Neon Auth, e o nome dela ao abrir. Nulos nos
+       chamados de antes do login obrigatório e nos que o bot do WhatsApp abre. */
+    requesterId: text('requester_id'),
+    requesterEmail: text('requester_email'),
     requesterName: text('requester_name').notNull(),
     /**
      * A ÁREA de quem atende (#13) — escolhida por quem abre, pelo que PARECE o problema.
@@ -124,6 +129,8 @@ export const tickets = pgTable(
        `TicketsRepository.contextRolesFor` + `TicketsService.resolveAreaAccess`). */
     index('tickets_area_idx').on(table.area),
     index('tickets_department_idx').on(table.department),
+    /* "Meus chamados" — a lista de quem abriu. */
+    index('tickets_requester_id_idx').on(table.requesterId),
     index('tickets_problem_type_idx').on(table.problemType),
     index('tickets_priority_idx').on(table.priority),
     index('tickets_created_at_idx').on(table.createdAt),

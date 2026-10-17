@@ -8,15 +8,16 @@
   import { useTicketLookupModel } from '$lib/hooks/use-ticket-lookup/use-ticket-lookup.svelte';
 
   /**
-   * A tela PÚBLICA: abrir e acompanhar chamado, sem login.
+   * A Central de Chamados: abrir e acompanhar os próprios chamados, logado (a guarda é o
+   * `+page.ts`). Qualquer pessoa com conta usa — inclusive quem não atende área nenhuma.
    *
-   * Ela mora FORA do grupo `(app)` de propósito — aquele grupo tem a guarda de sessão e o
-   * menu lateral, e os dois estão errados aqui: quem está sem impressora não tem conta no
-   * painel, e exigir login para pedir socorro significaria não receber o pedido.
+   * Ela mora FORA do grupo `(app)` de propósito: aquele grupo tem o menu lateral dos módulos
+   * (Infra, Sistema, Manutenção), e quem só pede socorro não tem módulo nenhum.
    *
    * A rota só compõe: chama os dois models e entrega para as views (CONTRIBUTING §3).
    */
   const open = useOpenTicketModel();
+  const hasPanel = (page.data.areas ?? []).length > 0;
   const lookup = useTicketLookupModel();
 
   /* Se o drawer de consulta está aberto é qual peça da tela está na frente, não dado do
@@ -38,12 +39,12 @@
       <div>
         <h1 class="text-ink-900 text-2xl font-bold">Central de Chamados TI</h1>
         <p class="text-ink-500 mt-1 text-sm">
-          Abra e acompanhe solicitações de suporte técnico. Não precisa de senha.
+          Abra e acompanhe as suas solicitações de suporte técnico.
         </p>
       </div>
 
       <ActionButton
-        data={{ label: 'Consultar chamado' }}
+        data={{ label: 'Meus chamados' }}
         ui={{ variant: 'secondary', className: 'shrink-0' }}
         actions={{ onClick: () => (isLookupOpen = true) }}
       />
@@ -57,11 +58,13 @@
   <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-5 px-4 py-10 sm:px-6">
     <OpenTicketForm data={open.data} state={open.state} actions={open.actions} />
 
-    <!-- Para `/login`, e não para a raiz: a raiz manda quem está sem sessão de volta para cá,
-         e o link viraria um laço. Quem já está logado passa direto pelo login e cai no painel. -->
-    <p class="text-ink-500 text-center text-xs">
-      É do time de TI? <a class="text-primary underline" href="/login">Abrir o painel</a>
-    </p>
+    <!-- Só para quem atende alguma área: para os outros a raiz manda de volta para cá, e o
+         link seria um laço. -->
+    {#if hasPanel}
+      <p class="text-ink-500 text-center text-xs">
+        É do time de TI? <a class="text-primary underline" href="/">Abrir o painel</a>
+      </p>
+    {/if}
   </main>
 </div>
 

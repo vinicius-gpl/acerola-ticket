@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import LoginScreen from './components/acerola-login-screen/acerola-login-screen.svelte';
   import { useLoginModel } from '$lib/hooks/use-login/use-login.svelte';
 
@@ -8,7 +9,8 @@
    * Fora do grupo `(app)` de propósito — sem `AppShell`, sem a guarda de sessão de
    * `routes/(app)/+layout.ts`, que redirecionaria de volta para cá num laço infinito.
    */
-  const model = useLoginModel();
+  /* Lido uma vez: é o endereço em que a pessoa estava quando a guarda a mandou para cá. */
+  const model = useLoginModel({ returnTo: page.data.returnTo ?? '/' });
 </script>
 
 <svelte:head>

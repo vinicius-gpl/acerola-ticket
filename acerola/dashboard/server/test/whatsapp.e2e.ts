@@ -98,13 +98,20 @@ describe.skipIf(!testDatabaseUrl)('WhatsApp API (e2e)', () => {
   });
 
   it('answers 404 for a forged invite and a forged access link', async () => {
-    await request(app.getHttpServer()).get('/api/tickets/invites/forjado.assinatura').expect(404);
-    await request(app.getHttpServer()).get('/api/tickets/access/forjado.assinatura').expect(404);
+    await request(app.getHttpServer())
+      .get('/api/tickets/invites/forjado.assinatura')
+      .set(asCaio())
+      .expect(404);
+    await request(app.getHttpServer())
+      .get('/api/tickets/access/forjado.assinatura')
+      .set(asCaio())
+      .expect(404);
   });
 
   it('refuses an area that does not exist when asking who attends it', async () => {
     await request(app.getHttpServer())
       .get('/api/tickets/assignee-options')
+      .set(asCaio())
       .query({ area: 'financeiro' })
       .expect(422);
   });

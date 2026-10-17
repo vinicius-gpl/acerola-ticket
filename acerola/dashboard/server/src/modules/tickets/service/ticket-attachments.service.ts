@@ -49,10 +49,10 @@ export type UploadedAttachment = {
  * enviar. Duas listas de regras acabariam discordando, e a divergência apareceria como
  * "escolhi o arquivo e o envio falhou sem dizer por quê".
  *
- * **Quem pode o quê.** Anexar ao ABRIR o chamado não exige identidade — quem está sem
- * impressora não tem conta no painel. Anexar depois, e EXCLUIR, exigem: a consulta pública é
- * por protocolo, e protocolo é sequencial; sem identidade, quem chutasse um número apagaria
- * arquivo de chamado alheio.
+ * **Quem pode o quê.** Anexar ao ABRIR o chamado é de quem abre — qualquer pessoa logada.
+ * Anexar depois, e EXCLUIR, são do painel: quem abriu acompanha pela consulta, e protocolo é
+ * sequencial; um caminho de exclusão aberto a quem pede deixaria quem chutasse um número
+ * apagar arquivo de chamado alheio.
  */
 @Injectable()
 export class TicketAttachmentsService {

@@ -45,7 +45,7 @@ const UNAVAILABLE =
  * para o estado dos campos, `mirrorStore` para a mutação virar runes. E o `goto` mora aqui,
  * não no componente (CONTRIBUTING §3) — navegação é decisão do hook.
  */
-export function useLoginModel(): LoginModel {
+export function useLoginModel({ returnTo = '/' }: { returnTo?: string } = {}): LoginModel {
   let shouldLinkGithub = false;
   const login = mirrorStore(
     createMutation({
@@ -66,7 +66,7 @@ export function useLoginModel(): LoginModel {
           window.location.assign(authorization.url);
           return;
         }
-        return goto('/');
+        return goto(returnTo);
       },
     }),
   );

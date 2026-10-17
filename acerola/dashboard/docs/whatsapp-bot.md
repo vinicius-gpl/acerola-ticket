@@ -30,14 +30,15 @@ e é separado do resto: o servidor de chamados não conhece o WhatsApp, só a AP
   o texto). A mesma mensagem entregue de novo pelo WhatsApp (numa reconexão) é ignorada, sem
   fechar a conversa.
 - **Chamado a partir do WhatsApp.** Quem manda `/chamado` para o número de um responsável
-  recebe UMA mensagem com um link assinado. O link abre o `/support` já com o responsável, o
-  telefone de quem escreveu e, quando o responsável atende uma área só, a área. O chamado é
+  recebe UMA mensagem com um link assinado. O link abre o `/support` (depois do login, se a
+  pessoa ainda não entrou — o convite atravessa o login) já com o responsável, o telefone de
+  quem escreveu e, quando o responsável atende uma área só, a área. O chamado é
   preenchido na tela, e a confirmação com o protocolo chega pelo WhatsApp do responsável.
   O link vale 30 minutos e não pode ser alterado: a assinatura é conferida pelo servidor.
 - **Link de consulta.** Toda mensagem de um chamado ("recebi o seu chamado", "ficou pronto")
-  leva um link assinado que abre direto AQUELE chamado na consulta pública, sem digitar
-  protocolo. Não vence. Trocar o número dentro do link não abre o chamado de outra pessoa: a
-  assinatura deixa de conferir.
+  leva um link assinado que abre direto AQUELE chamado na consulta, sem digitar protocolo —
+  depois do login, e só para quem abriu o chamado ou atende uma área dele. Não vence. Trocar o
+  número dentro do link não abre o chamado de outra pessoa: a assinatura deixa de conferir.
 - **Textos.** O super admin edita cada mensagem em **Meu Perfil › Textos do bot**, com variáveis
   entre chaves duplas (`{{protocolo}}`) e prévia.
 - **Limite.** Cada número manda no máximo `WHATSAPP_DAILY_LIMIT` mensagens automáticas por dia

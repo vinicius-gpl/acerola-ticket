@@ -10,10 +10,12 @@
     ticketStatusLabel,
     ticketStatusTone,
   } from '@template/shared/domain/ticket-status.util';
-  import { type PublicTicket } from '@template/shared/schemas/ticket.schema';
+  import { type MyTicket, type PublicTicket } from '@template/shared/schemas/ticket.schema';
 
   /**
-   * A consulta PÚBLICA de um chamado pelo protocolo, num drawer que cobre a tela.
+   * A consulta de um chamado pelo NÚMERO, e a lista "Meus chamados", num drawer que cobre a
+   * tela. Quem está aqui está logado: a lista é do que ELA abriu, e a consulta só devolve
+   * chamado dela (ou de uma área que ela atende).
    *
    * Função pura de props: não busca nada. Abre no Storybook fechada, procurando, com o
    * chamado encontrado, com "não encontrado" e em erro.
@@ -30,6 +32,8 @@
     data: {
       protocol: string;
       ticket: PublicTicket | null;
+      /** Os chamados que a pessoa abriu — aparecem enquanto nenhum está aberto na consulta. */
+      mine?: MyTicket[];
     };
     state: {
       isOpen: boolean;
@@ -37,11 +41,15 @@
       isInvalid?: boolean;
       isNotFound?: boolean;
       error?: string | null;
+      isLoadingMine?: boolean;
+      mineError?: string | null;
     };
     actions: {
       onProtocolChange: (protocol: string) => void;
       onSearch: () => void;
       onClose: () => void;
+      /** Abre um dos chamados da lista, pelo número dele. */
+      onOpenMine?: (protocol: string) => void;
     };
   };
 </script>
@@ -131,7 +139,7 @@
   >
     <SheetHeader class="border-b border-border/70">
       <SheetTitle class="text-lg">Consultar chamado</SheetTitle>
-      <SheetDescription>Digite o protocolo para ver a situação — sem precisar de senha.</SheetDescription>
+      <SheetDescription>Digite o número do chamado, ou escolha um dos que você abriu.</SheetDescription>
     </SheetHeader>
 
     <div class="flex flex-col gap-5 p-5 sm:p-6">
@@ -168,7 +176,7 @@
       {:else if state.isNotFound}
         <!-- "Não encontrado" é resposta, não falha do site — por isso não vem em vermelho. -->
         <p class="text-ink-700 bg-muted/40 rounded-box p-3 text-sm">
-          Não encontrei nenhum chamado com esse protocolo. Confira o número que você anotou.
+          Não encontrei nenhum chamado seu com esse número. Confira o número que você anotou.
         </p>
       {:else if ticket}
         {@const facts = factsOf(ticket)}
@@ -245,6 +253,41 @@
             />
           </div>
         </div>
+      {:else}
+        <section class="flex flex-col gap-2" aria-label="Meus chamados">
+          <h3 class="text-ink-700 text-xs font-semibold tracking-wider uppercase">Meus chamados</h3>
+          {#if state.mineError}
+            <ErrorState data={{ message: state.mineError }} ui={{ variant: 'inline' }} />
+          {:else if state.isLoadingMine}
+            <p class="text-ink-500 text-sm">Carregando os seus chamados…</p>
+          {:else if (data.mine ?? []).length === 0}
+            <p class="text-ink-500 bg-muted/40 rounded-box p-3 text-sm">Você ainda não abriu nenhum chamado.</p>
+          {:else}
+            <ul class="flex flex-col gap-2">
+              {#each data.mine ?? [] as item (item.id)}
+                <li>
+                  <button
+                    type="button"
+                    class="hover:bg-muted/40 flex w-full flex-col gap-1 rounded-box border border-border/80 p-3 text-left transition-colors"
+                    onclick={() => actions.onOpenMine?.(item.protocol)}
+                  >
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="text-foreground text-sm font-semibold">{item.protocol}</span>
+                      <StatusBadge
+                        data={{ label: ticketStatusLabel(item.status) }}
+                        ui={{ tone: ticketStatusTone(item.status), size: 'sm' }}
+                      />
+                    </span>
+                    <span class="text-ink-500 text-xs">
+                      {ticketAreaLabel(item.area)} · {ticketProblemTypeLabel(item.problemType)} · {formatHistoryDateTime(item.createdAt)}
+                    </span>
+                    <span class="text-ink-700 line-clamp-2 text-xs">{item.description}</span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
       {/if}
     </div>
   </SheetContent>

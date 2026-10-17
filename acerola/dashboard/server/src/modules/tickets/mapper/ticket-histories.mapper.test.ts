@@ -26,6 +26,8 @@ function ticket(over: Partial<TicketWithComputer> = {}): TicketWithComputer {
     id: 7,
     status: 'open',
     priority: 'medium',
+    requesterId: null,
+    requesterEmail: null,
     requesterName: 'Bia Costa',
     area: 'infra',
     department: 'financeiro',

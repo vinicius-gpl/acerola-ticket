@@ -35,13 +35,14 @@ import { type TicketArea } from '@template/shared/domain/ticket-catalog.util';
 import { type Response } from 'express';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
-import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import {
   AddTicketAreaDto,
   CreateTicketDto,
+  MyTicketDto,
   OpenedTicketDto,
   PublicTicketDto,
+  RequesterDefaultsDto,
   TicketAssigneeOptionDto,
   TicketAssigneeOptionsQueryDto,
   TicketDashboardQueryDto,
@@ -64,10 +65,9 @@ import {
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
  *
- * Duas rotas são `@Public()` — abrir chamado e consultar pelo protocolo. É assim de
- * propósito: quem está sem impressora não tem conta no painel, e exigir login para pedir
- * socorro significaria não receber o pedido. Toda rota nasce protegida; estas duas abrem a
- * exceção explicitamente, numa linha que aparece na revisão.
+ * Nenhuma rota é pública: abrir chamado e consultar exigem login no Neon Auth, e o chamado
+ * fica ligado a quem abriu. Qualquer pessoa com conta abre — mesmo sem cargo em área
+ * nenhuma —, e quem decide até onde cada um vai é o service.
  *
  * Não há `@Delete` de chamado: ele não se apaga. O que sai da fila sai por estágio, e o
  * estágio só muda por um histórico (ver `TicketHistoriesController`).
@@ -93,7 +93,6 @@ export class TicketsController {
   constructor(private readonly service: TicketsService) {}
 
   @Post()
-  @Public()
   @UseInterceptors(
     UploadTooLargeInterceptor,
     FileFieldsInterceptor(
@@ -106,9 +105,9 @@ export class TicketsController {
   )
   @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
-    summary: 'Abre um chamado (público)',
+    summary: 'Abre um chamado',
     description:
-      'Não exige login. Os arquivos viajam na mesma requisição: o print do erro no campo `screenshot` e os demais anexos no campo `attachments` — PDF, Word, Excel, PNG/JPG e MP4, cada formato com o teto dele. A situação e o responsável não são aceitos no corpo: todo chamado nasce aberto e sem responsável.',
+      'Qualquer pessoa logada abre. O chamado fica ligado a ela pelo id do Neon Auth, e o nome é o da conta — o `requesterName` do corpo é ignorado. Os arquivos viajam na mesma requisição: o print do erro no campo `screenshot` e os demais anexos no campo `attachments` — PDF, Word, Excel, PNG/JPG e MP4, cada formato com o teto dele. A situação e o responsável não são aceitos no corpo: todo chamado nasce aberto e sem responsável.',
   })
   @ApiBody({ type: CreateTicketDto })
   @ApiCreatedResponse({ type: OpenedTicketDto })
@@ -116,15 +115,40 @@ export class TicketsController {
     description: 'Algum campo está fora do contrato, ou o print não é uma imagem aceita.',
   })
   async create(
+    @CurrentUser() user: RequestUser,
     @Body() body: CreateTicketDto,
     @UploadedFiles() files?: TicketUploads,
   ): Promise<OpenedTicketDto> {
-    return this.service.create(body, files?.screenshot?.[0], files?.attachments ?? []);
+    return this.service.create(body, files?.screenshot?.[0], files?.attachments ?? [], {
+      requester: { id: user.id, email: user.email, name: user.name },
+    });
+  }
+
+  /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard` e `export`. */
+  @Get('mine')
+  @ApiOperation({
+    summary: 'Meus chamados',
+    description:
+      'Os chamados que a pessoa logada abriu, mais recentes primeiro (até 50). O detalhe de cada um sai pela consulta do número.',
+  })
+  @ApiOkResponse({ type: [MyTicketDto] })
+  async listMine(@CurrentUser() user: RequestUser): Promise<MyTicketDto[]> {
+    return this.service.listMine(user);
+  }
+
+  @Get('requester-defaults')
+  @ApiOperation({
+    summary: 'O que o formulário de abrir chamado já traz preenchido',
+    description:
+      'Nome e e-mail da conta da pessoa logada (o nome não se muda), e telefone e departamento do último chamado que ela abriu. Quem nunca abriu chamado recebe telefone e departamento nulos.',
+  })
+  @ApiOkResponse({ type: RequesterDefaultsDto })
+  async requesterDefaults(@CurrentUser() user: RequestUser): Promise<RequesterDefaultsDto> {
+    return this.service.requesterDefaults(user);
   }
 
   @Get('system-project-options')
-  @Public()
-  @ApiOperation({ summary: 'Lista os sistemas disponíveis para abertura pública de chamados' })
+  @ApiOperation({ summary: 'Lista os sistemas disponíveis para abrir chamado' })
   @ApiOkResponse({
     schema: {
       type: 'array',
@@ -136,11 +160,10 @@ export class TicketsController {
   }
 
   @Get('assignee-options')
-  @Public()
   @ApiOperation({
-    summary: 'Lista quem pode ser o responsável por um chamado de uma área (público)',
+    summary: 'Lista quem pode ser o responsável por um chamado de uma área',
     description:
-      'Os admins daquela área, mais os super admins. Só o nome e o id: é o que o formulário público precisa para a pessoa escolher com quem quer falar.',
+      'Os admins daquela área, mais os super admins. Só o nome e o id: é o que o formulário de abrir chamado precisa para a pessoa escolher com quem quer falar.',
   })
   @ApiOkResponse({ type: [TicketAssigneeOptionDto] })
   async listAssigneeOptions(
@@ -150,22 +173,23 @@ export class TicketsController {
   }
 
   @Get('access/:token')
-  @Public()
   @ApiOperation({
-    summary: 'Consulta um chamado pelo link assinado (público)',
+    summary: 'Consulta um chamado pelo link assinado',
     description:
-      'O link de consulta é o que vai nas mensagens de WhatsApp de um chamado. Abre direto aquele chamado, com os mesmos campos da consulta por protocolo. Link alterado: 404.',
+      'O link de consulta é o que vai nas mensagens de WhatsApp de um chamado. Abre direto aquele chamado, com os mesmos campos da consulta por número, para quem abriu ou atende uma área dele. Link alterado: 404.',
   })
   @ApiOkResponse({ type: PublicTicketDto })
   @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
-  async findByAccessToken(@Param('token') token: string): Promise<PublicTicketDto> {
-    return this.service.findByAccessToken(token);
+  async findByAccessToken(
+    @CurrentUser() user: RequestUser,
+    @Param('token') token: string,
+  ): Promise<PublicTicketDto> {
+    return this.service.findByAccessToken(user, token);
   }
 
   @Get('invites/:token')
-  @Public()
   @ApiOperation({
-    summary: 'Lê um convite de chamado (público)',
+    summary: 'Lê um convite de chamado',
     description:
       'O convite é o link assinado que o bot de WhatsApp manda a quem escreve `/chamado`. Devolve o responsável, as áreas que ele atende e o telefone de quem escreveu, para o formulário abrir preenchido. Link forjado ou vencido: 404.',
   })
@@ -176,16 +200,18 @@ export class TicketsController {
   }
 
   @Get('protocol/:protocol')
-  @Public()
   @ApiOperation({
-    summary: 'Consulta um chamado pelo protocolo (público)',
+    summary: 'Consulta um chamado pelo número',
     description:
-      'Devolve UM chamado, com menos campos que o painel: telefone e responsável ficam de fora, e da linha do tempo só saem os históricos marcados como visíveis para quem abriu. Aceita `CH-0007`, `ch 7` ou `7`.',
+      'Devolve UM chamado, com menos campos que o painel: telefone e responsável ficam de fora, e da linha do tempo só saem os históricos marcados como visíveis para quem abriu. Só responde para quem abriu ou atende uma área dele — para os outros é 404. Aceita `CH-0007`, `ch 7` ou `7`.',
   })
   @ApiOkResponse({ type: PublicTicketDto })
   @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
-  async findByProtocol(@Param('protocol') protocol: string): Promise<PublicTicketDto> {
-    return this.service.findByProtocol(protocol);
+  async findByProtocol(
+    @CurrentUser() user: RequestUser,
+    @Param('protocol') protocol: string,
+  ): Promise<PublicTicketDto> {
+    return this.service.findByProtocol(user, protocol);
   }
 
   /* Vem ANTES de `:id`, pelo mesmo motivo de `dashboard` e `export`. */

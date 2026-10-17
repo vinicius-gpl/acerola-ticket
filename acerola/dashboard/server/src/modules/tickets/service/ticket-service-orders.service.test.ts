@@ -23,6 +23,8 @@ function ticketRow(overrides: Partial<TicketWithComputer> = {}): TicketWithCompu
     id: 7,
     status: 'in_progress',
     priority: 'medium',
+    requesterId: null,
+    requesterEmail: null,
     requesterName: 'Bia Costa',
     area: 'manutencao',
     department: 'financeiro',

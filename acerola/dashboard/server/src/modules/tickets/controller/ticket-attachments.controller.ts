@@ -44,11 +44,10 @@ const MAX_FILES_PER_REQUEST = 25;
 /**
  * Os ANEXOS de um chamado, pelo painel.
  *
- * Nenhuma rota aqui é `@Public()`, e isso é a decisão de segurança da feature: a consulta
- * pública é por protocolo, e protocolo é sequencial. Se excluir fosse público, quem chutasse
- * um número apagaria arquivo de chamado alheio. Quem abre o chamado anexa junto com a
- * abertura (ver `POST /tickets`) e vê os arquivos na consulta por protocolo — só não mexe
- * neles depois.
+ * Estas rotas são do PAINEL, e isso é a decisão de segurança da feature: protocolo é
+ * sequencial, e um caminho de exclusão aberto a quem pede deixaria quem chutasse um número
+ * apagar arquivo de chamado alheio. Quem abre o chamado anexa junto com a abertura (ver
+ * `POST /tickets`) e vê os arquivos na consulta por número — só não mexe neles depois.
  */
 @ApiTags('Chamados')
 @Controller('tickets/:id/attachments')
