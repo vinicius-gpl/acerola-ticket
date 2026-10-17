@@ -9,16 +9,17 @@ import {
   type InventoryMovementListQuery,
 } from '@template/shared/schemas/inventory-movement.schema';
 import { type Paginated } from '@template/shared/schemas/pagination.schema';
+import { type StagedFile } from '@template/shared/schemas/staged-file.schema';
 
-import { apiRequest } from './http-client';
+import { apiRequest, uploadFile } from './http-client';
 
 /**
  * Chamadas da API do inventário da Manutenção. Nada aqui decide nada — é a tradução de uma
  * intenção em uma requisição, para que os view-models não montem URL à mão.
  *
- * O cadastro e a alteração vão como `FormData` porque a FOTO viaja junto: um envio só
- * significa que ou existe o produto COM a imagem, ou não existe produto nenhum. Com dois
- * envios, uma falha no meio deixaria o produto apontando para uma imagem que nunca subiu.
+ * A FOTO vai primeiro, direto para o storage (link assinado); o cadastro é gravado depois,
+ * levando a chave dela. Se o envio falhar, nada é gravado: nunca existe produto apontando para
+ * uma imagem que não subiu.
  */
 export const inventoryItemsApi = {
   list: (query: Partial<InventoryItemListQuery>) =>
@@ -33,20 +34,25 @@ export const inventoryItemsApi = {
 
   findById: (id: number) => apiRequest<InventoryItem>(`/inventory-items/${id}`),
 
-  create: (values: InventoryItemFormValues, photo: File | null) =>
+  create: async (values: InventoryItemFormValues, photo: File | null) =>
     apiRequest<InventoryItem>('/inventory-items', {
       method: 'POST',
-      body: toInventoryFormData(values, photo),
+      body: toInventoryBody(values, await uploadPhoto(photo)),
     }),
 
   /**
    * `removePhoto` é o que separa "não mexi na foto" de "quero sem foto": sem ele, salvar o
    * cadastro sem escolher imagem nenhuma apagaria a que já estava lá.
    */
-  update: (id: number, values: InventoryItemFormValues, photo: File | null, removePhoto = false) =>
+  update: async (
+    id: number,
+    values: InventoryItemFormValues,
+    photo: File | null,
+    removePhoto = false,
+  ) =>
     apiRequest<InventoryItem>(`/inventory-items/${id}`, {
       method: 'PATCH',
-      body: toInventoryFormData(values, photo, removePhoto),
+      body: toInventoryBody(values, await uploadPhoto(photo), removePhoto),
     }),
 
   remove: (id: number) => apiRequest<void>(`/inventory-items/${id}`, { method: 'DELETE' }),
@@ -70,25 +76,27 @@ export const inventoryItemsApi = {
     }),
 };
 
-/** Os campos do formulário e a foto num envio só. */
-function toInventoryFormData(
+function uploadPhoto(photo: File | null): Promise<StagedFile | undefined> {
+  if (!photo) return Promise.resolve(undefined);
+
+  return uploadFile('/inventory-items/photo/upload-url', photo);
+}
+
+/** Os campos do formulário e a chave da foto já enviada. */
+function toInventoryBody(
   values: InventoryItemFormValues,
-  photo: File | null,
+  photo: StagedFile | undefined,
   removePhoto = false,
-): FormData {
-  const form = new FormData();
-
-  form.set('name', values.name);
-  form.set('category', values.category);
-  form.set('unit', values.unit);
-  form.set('location', values.location);
-  form.set('code', values.code);
-  form.set('note', values.note);
-
-  if (photo) form.set('photo', photo);
-  /* Só quando for para tirar: o campo ausente é o caso normal, e mandar "false" sempre
-     obrigaria o contrato a distinguir dois jeitos de dizer a mesma coisa. */
-  if (removePhoto) form.set('removePhoto', 'true');
-
-  return form;
+): Record<string, unknown> {
+  return {
+    name: values.name,
+    category: values.category,
+    unit: values.unit,
+    location: values.location,
+    code: values.code,
+    note: values.note,
+    photo,
+    /* Só quando for para tirar: o campo ausente é o caso normal. */
+    removePhoto: removePhoto || undefined,
+  };
 }

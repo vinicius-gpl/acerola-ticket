@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { apiDownload, ApiError, apiRequest, readError } from './http-client';
+import { apiDownload, ApiError, apiRequest, readError, uploadFile } from './http-client';
 
 /* O token é assunto do Neon Auth, e buscá-lo de verdade faria cada teste daqui sair para a
    internet — e contar uma chamada de `fetch` que não é a que está sendo medida. */
@@ -155,5 +155,81 @@ describe('readError', () => {
   // triste
   it('explains a network failure in words the person can act on', () => {
     expect(readError(new TypeError('Failed to fetch'))).toMatch(/servidor/);
+  });
+});
+
+describe('uploadFile', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const pdf = () => new File(['%PDF'], 'Nota fiscal.pdf', { type: 'application/pdf' });
+
+  // feliz
+  /* O arquivo vai DIRETO para o storage: a API só emite o link, e o arquivo nunca passa por ela. */
+  it('asks the API for the link and sends the file straight to the storage', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            storageKey: 'tmp/abc.pdf',
+            uploadUrl: 'https://s3.exemplo/put',
+            expiresIn: 300,
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const staged = await uploadFile('/tickets/upload-url', pdf());
+
+    expect(staged).toEqual({ storageKey: 'tmp/abc.pdf', fileName: 'Nota fiscal.pdf' });
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
+      fileName: 'Nota fiscal.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 4,
+    });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('https://s3.exemplo/put');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/pdf' },
+    });
+  });
+
+  // triste
+  it('says which file failed when the storage refuses it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              storageKey: 'tmp/abc.pdf',
+              uploadUrl: 'https://s3.exemplo/put',
+              expiresIn: 300,
+            }),
+            { status: 201, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 403 })),
+    );
+
+    await expect(uploadFile('/tickets/upload-url', pdf())).rejects.toThrow(
+      'Não consegui enviar Nota fiscal.pdf (403)',
+    );
+  });
+
+  // triste
+  it('sends nothing to the storage when the API refuses the link', async () => {
+    const fetchMock = respond(403, { statusCode: 403, message: 'Seu cargo só permite consultar.' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(uploadFile('/inventory-items/photo/upload-url', pdf())).rejects.toThrow(
+      'Seu cargo só permite consultar.',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
