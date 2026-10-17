@@ -80,7 +80,7 @@ git branch --show-current
    branch temporária a partir de onde estão (`git switch -c feature/<nome>`) e traga a develop
    para ela (`git merge develop`) — nunca descarte.
    `<nome>` em **inglês**, kebab-case, curto, do resultado: `customer-list`,
-   `task-due-date`, `fix-empty-title-error` → `bugfix/empty-title-error`.
+   `ticket-due-date`, `fix-empty-title-error` → `bugfix/empty-title-error`.
 4. Diga à pessoa, sem jargão: *"Criei um espaço de trabalho separado para isso
    (`feature/customer-list`). Nada do que eu fizer aqui afeta a versão principal até você
    aprovar."*

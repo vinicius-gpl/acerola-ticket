@@ -200,7 +200,7 @@ describe('hook-location', () => {
   // feliz
   it('accepts use-* folders and the CLI folder', () => {
     const files = [
-      file(`${DASHBOARD_HOOKS}/use-task-list/use-task-list.svelte.ts`),
+      file(`${DASHBOARD_HOOKS}/use-ticket-list/use-ticket-list.svelte.ts`),
       file(`${DASHBOARD_HOOKS}/ui/is-mobile.svelte.ts`),
     ];
 
@@ -317,7 +317,7 @@ describe('route rules', () => {
   // triste
   it('flags raw interactive markup and control height in a dashboard route', () => {
     const files = [
-      file(`${DASHBOARD_ROUTES}/(app)/tasks/+page.svelte`, '<button class="h-8">x</button>'),
+      file(`${DASHBOARD_ROUTES}/(app)/tickets/+page.svelte`, '<button class="h-8">x</button>'),
     ];
 
     assert.equal(run('route-markup', files).length, 1);
@@ -336,7 +336,7 @@ describe('route rules', () => {
   it('leaves a component file alone, even inside routes/', () => {
     const files = [
       file(
-        `${DASHBOARD_ROUTES}/(app)/tasks/components/acerola-x/acerola-x.svelte`,
+        `${DASHBOARD_ROUTES}/(app)/tickets/components/acerola-x/acerola-x.svelte`,
         '<button class="h-8">x</button>',
       ),
     ];
@@ -348,7 +348,7 @@ describe('route rules', () => {
   it('flags a feature importing another feature component', () => {
     const files = [
       file(
-        `${DASHBOARD_ROUTES}/(app)/tasks/+page.svelte`,
+        `${DASHBOARD_ROUTES}/(app)/tickets/+page.svelte`,
         `import X from '../tickets/components/acerola-x/acerola-x.svelte';`,
       ),
     ];

@@ -122,7 +122,6 @@ Antes de começar uma tarefa, veja se há skill para ela em `.claude/skills/` e 
 | **Qualquer mudança de código** (começar, terminar, juntar, enviar) | `git-flow` | `/git-fluxo` |
 | Conflito de merge | `resolve-conflict` | `/resolver-conflito` |
 | "Está pronto?", antes de commit de feature | `verify` | `/verificar` |
-| Tirar a feature de Tarefas | `remove-example` | `/remover-exemplo` |
 | Erro de ambiente, porta ocupada, instalação | `troubleshoot` | `/socorro` |
 | Dados em outro PC, servidor, internet | `mvp-limits` | `/limites-do-mvp` |
 | Erro estrutural grande, bloqueio de arquivo de estrutura | `support` | `/suporte` |
@@ -130,8 +129,9 @@ Antes de começar uma tarefa, veja se há skill para ela em `.claude/skills/` e 
 A pessoa pode chamar pelo nome em inglês (`/troubleshoot`) ou pelo atalho em português
 (`/socorro`); os dois fazem o mesmo. `/help` não serve de atalho: é comando nativo do Claude Code.
 
-**A feature de Tarefas é o molde.** Quando for criar algo, abra o arquivo equivalente de
-`tasks`/`task` e siga a mesma forma — nomes, comentários, estados, testes.
+**A feature de Peças é o molde.** Quando for criar algo, abra o arquivo equivalente de
+`parts`/`part` (contrato, tabela, módulo da API, seed, hook de lista e de formulário, tela) e
+siga a mesma forma — nomes, comentários, estados, testes.
 
 ## Onde fica cada coisa
 
