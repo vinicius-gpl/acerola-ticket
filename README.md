@@ -248,6 +248,34 @@ Quando houver autenticação, as responsabilidades são separadas:
 
 Login não concede autorização automaticamente. Mesmo autenticado, o usuário continua sujeito aos papéis e às policies.
 
+### Quem acessa o quê no acerola
+
+Toda pessoa da empresa tem conta no Neon Auth: abrir chamado exige login. Ter conta, porém, não
+abre módulo nenhum.
+
+| Quem                         | O que faz                                                         |
+|------------------------------|-------------------------------------------------------------------|
+| Qualquer conta               | abre chamado, acompanha os seus em "Meus chamados", valida documento |
+| Com o módulo, como Usuário   | consulta o módulo, cria e cuida do que é seu                      |
+| Com o módulo, como Gestor    | também mexe no que é dos outros e atende chamados                 |
+| Com o módulo, como Administrador | tudo no módulo, inclusive encerrar chamado                   |
+| Super Admin                  | tudo, em todos os módulos, e a tela de Acessos                    |
+
+Os módulos (Infraestrutura, Sistema, Manutenção) são liberados pelo **Super Admin** na tela de
+Acessos, já com o nível. **Módulo sem linha é sem acesso** — não "Usuário". O Super Admin só é
+criado por comando: `npm run user:promote -- <e-mail>`.
+
+No código, a regra está em `shared/src/domain/module-access.util.ts`. Toda rota da API declara o
+módulo dela (`@ModuleContext('infra')`) ou que não é de um módulo só (`@AnyModule()`, como os
+chamados); a trava global (`RolesGuard`) recusa quem não tem o módulo e entrega ao service o
+nível DAQUELE módulo. Rota sem declaração nasce **fechada** (403). O acesso é ligado ao id da
+conta, nunca ao e-mail.
+
+**Histórico.** Toda mudança feita pela API (criar, alterar, apagar) vira uma linha em `history`:
+ação, quem (`actor_id`, `actor_email`; nulo quando foi máquina), alvo, IP, navegador e os campos
+enviados (`changes`). Segredo não entra, e texto longo é cortado. A gravação é automática
+(`HistoryInterceptor`); falha no histórico vai para o log e não desfaz a mudança.
+
 Sessões não devem ser armazenadas em `localStorage`. Quando baseadas em cookie, devem usar as proteções adequadas ao ambiente, incluindo `HttpOnly`, `Secure` quando aplicável e `SameSite` compatível com o fluxo.
 
 Senhas devem ser armazenadas somente por meio de mecanismo de hash apropriado. Nunca devem aparecer em texto puro em banco, logs, seeds, fixtures, respostas da API ou mensagens de erro.
