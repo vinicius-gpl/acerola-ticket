@@ -59,7 +59,7 @@ No template Svelte, mostre cedo os estados de carregamento, erro e vazio com `{#
 A camada de apresentação não sabe de onde o dado vem. O hook não sabe como o dado é desenhado. Os dois se encontram na rota.
 
 ```text
-routes/tasks/+page.svelte         → compõe: chama o hook, passa para o componente
+routes/(app)/infra/parts/+page.svelte → compõe: chama o hook, passa para o componente
 lib/hooks/use-…/use-….svelte.ts   → estado, efeitos, queries, mutations, handlers. ZERO template.
 lib/components/…/….svelte         → função pura de props → template. ZERO hook de dado.
 ```
@@ -300,9 +300,9 @@ scripts/seed/
 
 ├── seed.util.ts
 ├── seed-all.ts
-└── tasks/
-    ├── tasks.data.ts
-    └── seed-tasks.ts
+└── parts/
+    ├── parts.data.ts
+    └── seed-parts.ts
 ```
 
 Regras:
@@ -324,16 +324,16 @@ Regras:
 | Tipo           | Padrão                                      | Exemplo                                                |
 | -------------- | ------------------------------------------- | ------------------------------------------------------- |
 | Componente genérico | `lib/components/acerola-<nome>/acerola-<nome>.svelte` | `lib/components/acerola-text-field/acerola-text-field.svelte` |
-| Componente de feature | `routes/(app)/<context>/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/infra/tasks/components/acerola-task-list-view/acerola-task-list-view.svelte` |
-| Story          | `acerola-<nome>.stories.svelte`             | `acerola-task-list-view.stories.svelte`                |
-| Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` — pasta própria, prefixo `use-`, nunca arquivo solto | `lib/hooks/use-task-list/use-task-list.svelte.ts`   |
-| Teste          | `<arquivo>.test.ts`                         | `task-status.util.test.ts`     |
-| E2E            | `<fluxo>.e2e.ts`                            | `tasks.e2e.ts`                 |
-| Módulo Nest    | `<feature>.<papel>.ts`                      | `tasks.service.ts`             |
-| Schema Zod     | `<nome>.schema.ts`                          | `task.schema.ts`               |
-| Tabela Drizzle | `<nome-no-plural>.schema.ts`                | `tasks.schema.ts`              |
+| Componente de feature | `routes/(app)/<context>/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/infra/parts/components/acerola-part-list-view/acerola-part-list-view.svelte` |
+| Story          | `acerola-<nome>.stories.svelte`             | `acerola-part-list-view.stories.svelte`                |
+| Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` — pasta própria, prefixo `use-`, nunca arquivo solto | `lib/hooks/use-part-list/use-part-list.svelte.ts`   |
+| Teste          | `<arquivo>.test.ts`                         | `part-catalog.util.test.ts`    |
+| E2E            | `<fluxo>.e2e.ts`                            | `tickets.e2e.ts`               |
+| Módulo Nest    | `<feature>.<papel>.ts`                      | `parts.service.ts`             |
+| Schema Zod     | `<nome>.schema.ts`                          | `part.schema.ts`               |
+| Tabela Drizzle | `<nome-no-plural>.schema.ts`                | `parts.schema.ts`              |
 | Util puro      | `<nome>.util.ts`                            | `format-date.util.ts`          |
-| Seed           | `seed-<entidade>.ts` + `<entidade>.data.ts` | `seed-tasks.ts`                |
+| Seed           | `seed-<entidade>.ts` + `<entidade>.data.ts` | `seed-parts.ts`                |
 
 Export nomeado sempre. `export default` só onde o framework exige.
 
@@ -352,9 +352,9 @@ Formato obrigatório:
 Exemplos:
 
 ```text
-[feat](backend): Endpoint de listagem de tarefas com filtro por situação
+[feat](backend): Endpoint de listagem de chamados com filtro por situação
 [fix](web): Erro do formulário some quando o título é corrigido
-[refactor](web): Extrai view-model da tela de tarefas
+[refactor](web): Extrai view-model da tela de chamados
 [test](backend): Caminho triste da edição feita por perfil de consulta
 [chore](docker): Sobe o Node da imagem para a 24 LTS
 ```

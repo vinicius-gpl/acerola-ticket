@@ -3,7 +3,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # FORMATO OBRIGATÓRIO:  [tipo](local): Mensagem
 #
-#   [feat](backend): Endpoint de listagem de tarefas com filtro por situação
+#   [feat](backend): Endpoint de listagem de chamados com filtro por situação
 #   [fix](web): Erro do formulário some quando o título é corrigido
 #   [chore](docker): Sobe o Node da imagem para a 24 LTS
 #
