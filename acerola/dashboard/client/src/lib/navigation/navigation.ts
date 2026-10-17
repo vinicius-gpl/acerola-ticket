@@ -1,4 +1,5 @@
 import type { LucideIcon } from '@lucide/svelte';
+import Download from '@lucide/svelte/icons/download';
 import Boxes from '@lucide/svelte/icons/boxes';
 import Calendar from '@lucide/svelte/icons/calendar';
 import Code2 from '@lucide/svelte/icons/code-2';
@@ -102,6 +103,7 @@ export const INFRA_NAV_ITEMS: readonly NavItem[] = [
   navItem('infra', 'network', 'Rede', Wifi),
   navItem('infra', 'insights', 'Inteligência', Lightbulb),
   navItem('infra', 'budget', 'Orçamento', FileText),
+  navItem('infra', 'agent', 'Agente Windows', Download),
 ];
 
 /** SISTEMA — os sistemas da empresa, cronograma, kanban e os chamados deles. */
@@ -111,6 +113,7 @@ export const SYSTEM_NAV_ITEMS: readonly NavItem[] = [
   navItem('sistema', 'kanban', 'Kanban', Columns3),
   navItem('sistema', 'schedule', 'Cronograma', Calendar),
   navItem('sistema', 'projects', 'Projetos', Code2),
+  navItem('sistema', 'agent', 'Agente Windows', Download),
 ];
 
 /**
@@ -195,7 +198,9 @@ export function fallbackContextOf(
 
 /** O item de menu que responde por um caminho: o casamento mais específico. */
 function navItemOf(pathname: string, items: readonly NavItem[]): NavItem | undefined {
-  const matches = items.filter((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
+  const matches = items.filter(
+    (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
+  );
 
   return matches.sort((a, b) => b.to.length - a.to.length)[0];
 }
