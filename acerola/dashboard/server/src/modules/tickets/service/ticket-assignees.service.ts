@@ -55,10 +55,9 @@ export class TicketAssigneesService {
 function areasOf(user: DirectoryUser, roles: readonly InternalRoleRow[]): TicketArea[] {
   if (user.role === SUPER_ADMIN_ROLE) return [...TICKET_AREAS];
 
-  const email = user.email.toLowerCase();
-  const own = roles.filter(
-    (role) => role.userId === user.id || (role.userEmail ?? '').toLowerCase() === email,
-  );
+  /* Só pelo id da conta: um e-mail antigo passado para outra pessoa não pode levar junto as
+     áreas de quem o usava. */
+  const own = roles.filter((role) => role.userId === user.id);
 
   return TICKET_AREAS.filter((area) =>
     own.some((role) => role.context === area && role.role === ADMIN_ROLE),

@@ -13,10 +13,12 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { UpdateWhatsappTemplateDto, WhatsappTemplateDto } from '../dto/whatsapp-template.dto';
 import { WhatsappTemplatesService } from '../service/whatsapp-templates.service';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /** Os textos que o bot manda. Tudo aqui é do super admin. */
 @ApiTags('Vinculação WhatsApp')
 @ApiBearerAuth('neon-auth')
+@AnyModule()
 @Controller('integrations/whatsapp/templates')
 export class WhatsappTemplatesController {
   constructor(private readonly service: WhatsappTemplatesService) {}

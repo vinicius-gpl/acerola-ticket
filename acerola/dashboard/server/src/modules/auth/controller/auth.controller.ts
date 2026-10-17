@@ -7,6 +7,7 @@ import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type Env } from '../../../lib/config/env.schema';
 import { ENV } from '../../../lib/config/env.token';
 import { AuthConfigDto, SessionUserDto } from '../dto/auth.dto';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
  * A API NÃO FAZ LOGIN — quem faz é o Neon Auth, direto com a tela.
@@ -15,6 +16,7 @@ import { AuthConfigDto, SessionUserDto } from '../dto/auth.dto';
  * pessoa no sistema (isso é nosso, lido de `neon_auth.user` a cada requisição).
  */
 @ApiTags('Autenticação')
+@AnyModule()
 @Controller('auth')
 export class AuthController {
   constructor(@Inject(ENV) private readonly env: Env) {}

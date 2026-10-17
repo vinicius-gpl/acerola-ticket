@@ -14,6 +14,7 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { WhatsappConnectionDto } from '../dto/whatsapp-connection.dto';
 import { WhatsappLinkService } from '../service/whatsapp-link.service';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O vínculo do WhatsApp de quem está logado.
@@ -23,6 +24,7 @@ import { WhatsappLinkService } from '../service/whatsapp-link.service';
  */
 @ApiTags('Vinculação WhatsApp')
 @ApiBearerAuth('neon-auth')
+@AnyModule()
 @Controller('integrations/whatsapp')
 export class WhatsappLinkController {
   constructor(private readonly service: WhatsappLinkService) {}

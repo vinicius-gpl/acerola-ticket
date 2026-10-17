@@ -8,7 +8,7 @@ import {
   type SessionUser,
   type UserRole,
 } from '@template/shared/schemas/user.schema';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../db/db-error.util';
 import { DB } from '../db/db.token';
@@ -54,7 +54,7 @@ export class IdentityProvider {
     if (!row || isBanned(row)) return null;
 
     const email = row.email || claims.email;
-    const roleRows = await this.fetchInternalRoles(claims.userId, row.id, email);
+    const roleRows = await this.fetchInternalRoles(row.id);
 
     return toSessionUser(row, email, roleRows);
   }
@@ -75,21 +75,17 @@ export class IdentityProvider {
     );
   }
 
-  private async fetchInternalRoles(
-    claimsUserId: string,
-    rowId: string,
-    email: string | null,
-  ): Promise<InternalRoleRow[]> {
-    const conditions = [eq(internalRoles.userId, claimsUserId), eq(internalRoles.userId, rowId)];
-    if (email) {
-      conditions.push(eq(internalRoles.userEmail, email));
-      conditions.push(eq(internalRoles.userId, email));
-    }
-    const whereClause = conditions.length === 1 ? conditions[0] : or(...conditions);
-
+  /**
+   * Os módulos liberados para a pessoa — SÓ pelo id da conta no Neon Auth.
+   *
+   * O e-mail não entra na conta: trocar de e-mail não pode tirar o acesso de ninguém, e um
+   * e-mail antigo passado para outra pessoa não pode levar junto os módulos de quem o usava.
+   * `user_email` fica na linha só para a tela de Acessos mostrar de quem ela é.
+   */
+  private async fetchInternalRoles(userId: string): Promise<InternalRoleRow[]> {
     return runQuery(
-      this.db.select().from(internalRoles).where(whereClause),
-      'consultar cargos internos da pessoa',
+      this.db.select().from(internalRoles).where(eq(internalRoles.userId, userId)),
+      'consultar os módulos da pessoa',
     );
   }
 }
@@ -106,37 +102,15 @@ function isBanned(row: NeonAuthUserRow): boolean {
 }
 
 /**
- * A linha do cadastro combinada com os cargos internos vira identidade completa.
+ * Os módulos da pessoa, com o nível de cada um — SÓ os que têm linha em `internal_roles`.
  *
- * Se não houver registro na tabela de cargos internos:
- *  1. Verifica se a conta já possuía papel legado em `neon_auth.user` (migração suave);
- *  2. Caso contrário, cai em `user` (mais restrito) para todos os contextos.
+ * Módulo sem linha é SEM ACESSO (ver `domain/module-access.util.ts`). O super-admin é a
+ * exceção: tem todos, como Administrador.
  */
-function resolveContextRoles(
-  row: NeonAuthUserRow,
-  roleRows: InternalRoleRow[],
-  isSuper: boolean,
-  parsedNeonRole: ReturnType<typeof userRoleSchema.safeParse>,
-): ContextRoles {
-  if (roleRows.length === 0 && row.role) {
-    if (isSuper) {
-      return { infra: 'admin', sistema: 'admin', manutencao: 'admin' };
-    }
-    if (parsedNeonRole.success) {
-      return {
-        infra: DEFAULT_USER_ROLE,
-        sistema: parsedNeonRole.data,
-        manutencao: DEFAULT_USER_ROLE,
-      };
-    }
-  }
+function resolveContextRoles(roleRows: InternalRoleRow[], isSuper: boolean): ContextRoles {
+  if (isSuper) return { infra: 'admin', sistema: 'admin', manutencao: 'admin' };
 
-  const contextRoles: ContextRoles = {
-    infra: DEFAULT_USER_ROLE,
-    sistema: DEFAULT_USER_ROLE,
-    manutencao: DEFAULT_USER_ROLE,
-  };
-
+  const contextRoles: ContextRoles = {};
   for (const r of roleRows) {
     const parsedRole = userRoleSchema.safeParse(r.role);
     const parsedContext = roleContextSchema.safeParse(r.context);
@@ -158,9 +132,19 @@ function resolveSafeName(name: string | null | undefined, email: string | null):
   return 'Usuário';
 }
 
+/**
+ * O PAPEL PRINCIPAL: o maior nível que a pessoa tem em algum módulo — `user` quando não tem
+ * nenhum. É o que as rotas que não são de um módulo só (chamados, perfil) enxergam; dentro de
+ * um módulo, o `RolesGuard` troca este papel pelo nível DAQUELE módulo.
+ */
+const LEVEL_ORDER: UserRole[] = ['user', 'manager', 'admin'];
+
 function resolvePrimaryRole(isSuper: boolean, contextRoles: ContextRoles): UserRole {
   if (isSuper) return 'superadmin';
-  return contextRoles.sistema ?? DEFAULT_USER_ROLE;
+
+  const levels = Object.values(contextRoles).map((role) => LEVEL_ORDER.indexOf(role));
+
+  return LEVEL_ORDER[Math.max(-1, ...levels)] ?? DEFAULT_USER_ROLE;
 }
 
 /**
@@ -173,7 +157,7 @@ function toSessionUser(
 ): SessionUser | null {
   const parsedNeonRole = userRoleSchema.safeParse(row.role);
   const isSuper = parsedNeonRole.success && parsedNeonRole.data === 'superadmin';
-  const contextRoles = resolveContextRoles(row, roleRows, isSuper, parsedNeonRole);
+  const contextRoles = resolveContextRoles(roleRows, isSuper);
   const primaryRole = resolvePrimaryRole(isSuper, contextRoles);
   const safeName = resolveSafeName(row.name, email);
 

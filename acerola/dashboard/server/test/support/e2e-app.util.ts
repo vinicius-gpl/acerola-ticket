@@ -33,13 +33,38 @@ import { StorageService, type StoredFile, type UploadInput } from '../../src/lib
  * filtro de erro traduz. É o que teste com repository fingido não prova.
  */
 
-export const ANA: SessionUser = { id: '1', email: 'ana@empresa.com.br', name: 'Ana', role: 'user' };
-export const BIA: SessionUser = { id: '2', email: 'bia@empresa.com.br', name: 'Bia', role: 'user' };
+/**
+ * As pessoas dos testes, já com o que a identidade resolveria: Ana e Bia são Usuárias de
+ * Infraestrutura, Caio é Gestor de Infraestrutura, e Edu tem conta mas módulo nenhum — só abre
+ * chamado.
+ */
+export const ANA: SessionUser = {
+  id: '1',
+  email: 'ana@empresa.com.br',
+  name: 'Ana',
+  role: 'user',
+  roles: { infra: 'user' },
+};
+export const BIA: SessionUser = {
+  id: '2',
+  email: 'bia@empresa.com.br',
+  name: 'Bia',
+  role: 'user',
+  roles: { infra: 'user' },
+};
 export const CAIO: SessionUser = {
   id: '3',
   email: 'caio@empresa.com.br',
   name: 'Caio',
   role: 'manager',
+  roles: { infra: 'manager' },
+};
+export const EDU: SessionUser = {
+  id: '4',
+  email: 'edu@empresa.com.br',
+  name: 'Edu',
+  role: 'user',
+  roles: {},
 };
 
 /** Cada token de mentira vale por uma pessoa. O que não está aqui não é ninguém. */
@@ -47,11 +72,13 @@ const PEOPLE_BY_TOKEN: Record<string, SessionUser> = {
   'token-ana': ANA,
   'token-bia': BIA,
   'token-caio': CAIO,
+  'token-edu': EDU,
 };
 
 export const asAna = () => ({ Authorization: 'Bearer token-ana' });
 export const asBia = () => ({ Authorization: 'Bearer token-bia' });
 export const asCaio = () => ({ Authorization: 'Bearer token-caio' });
+export const asEdu = () => ({ Authorization: 'Bearer token-edu' });
 
 class FakeIdentityProvider {
   resolve(token: string): Promise<SessionUser | null> {

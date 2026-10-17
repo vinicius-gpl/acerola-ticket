@@ -116,7 +116,7 @@ export function canModifyRecord(
 export function getRoleInContext(
   user: { role?: UserRole | null; roles?: Partial<ContextRoles> | null } | null | undefined,
   context: RoleContext,
-): UserRole {
+): UserRole | null {
   return roleInContext(user, context);
 }
 

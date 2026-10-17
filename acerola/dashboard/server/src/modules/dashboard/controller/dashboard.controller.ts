@@ -5,6 +5,7 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { DashboardDto, DashboardQueryDto } from '../dto/dashboard.dto';
 import { DashboardService } from '../service/dashboard.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -13,6 +14,7 @@ import { DashboardService } from '../service/dashboard.service';
  * áreas registraram.
  */
 @ApiTags('Painel')
+@ModuleContext('infra')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly service: DashboardService) {}

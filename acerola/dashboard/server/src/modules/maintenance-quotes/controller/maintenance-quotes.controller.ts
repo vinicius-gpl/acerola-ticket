@@ -43,6 +43,7 @@ import {
   MaintenanceQuotesService,
   type UploadedAttachment,
 } from '../service/maintenance-quotes.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -54,6 +55,7 @@ import {
  * campos: dois envios separados deixariam orçamento sem documento se o segundo falhasse.
  */
 @ApiTags('Orçamentos da Manutenção')
+@ModuleContext('manutencao')
 @Controller('maintenance-quotes')
 export class MaintenanceQuotesController {
   constructor(private readonly service: MaintenanceQuotesService) {}

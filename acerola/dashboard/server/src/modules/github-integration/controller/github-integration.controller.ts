@@ -7,6 +7,7 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { GithubOauthService, hashOauthValue } from '../service/github-oauth.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 class GithubCallbackQuery extends createZodDto(
   z.object({
@@ -33,6 +34,7 @@ function readCookie(request: Request, name: string): string | undefined {
 }
 
 @ApiTags('Vinculação GitHub')
+@ModuleContext('sistema')
 @Controller('integrations/github')
 export class GithubIntegrationController {
   constructor(private readonly service: GithubOauthService) {}

@@ -6,8 +6,10 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { SoftwareDashboardDto } from '../dto/software-project.dto';
 import { SoftwareDashboardService } from '../service/software-dashboard.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 @ApiTags('Painel do Sistema')
+@ModuleContext('sistema')
 @Controller('software-dashboard')
 @UseGuards(GithubLinkedGuard)
 export class SoftwareDashboardController {

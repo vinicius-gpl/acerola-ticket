@@ -54,7 +54,7 @@ export class TicketAccessService {
       }, {});
     }
 
-    return this.repository.contextRolesFor(user.id, user.email);
+    return this.repository.contextRolesFor(user.id);
   }
 
   /** As áreas em que a pessoa tem ALGUM cargo — é o que ela enxerga (#13). */

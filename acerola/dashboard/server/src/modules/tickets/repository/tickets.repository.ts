@@ -293,19 +293,13 @@ export class TicketsRepository {
    * `roleInContext` aplicaria. A AUSÊNCIA de linha aqui É a resposta "sem acesso" (#13):
    * diferente do cargo interno (#11), chamado não tem cargo mínimo implícito.
    */
-  async contextRolesFor(
-    userId: string,
-    userEmail: string | null,
-  ): Promise<Partial<Record<TicketArea, UserRole>>> {
+  async contextRolesFor(userId: string): Promise<Partial<Record<TicketArea, UserRole>>> {
+    /* Só pelo id da conta, como a identidade (ver `IdentityProvider.fetchInternalRoles`). */
     const rows = await runQuery(
       this.db
         .select({ context: internalRoles.context, role: internalRoles.role })
         .from(internalRoles)
-        .where(
-          userEmail
-            ? or(eq(internalRoles.userId, userId), eq(internalRoles.userEmail, userEmail))
-            : eq(internalRoles.userId, userId),
-        ),
+        .where(eq(internalRoles.userId, userId)),
       'ler cargos por área do chamado',
     );
 

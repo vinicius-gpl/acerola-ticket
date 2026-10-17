@@ -31,8 +31,10 @@ import {
   UpdateSoftwareScheduleEventDto,
 } from '../dto/software-project.dto';
 import { SoftwareScheduleService } from '../service/software-schedule.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 @ApiTags('Cronograma Semanal de Sistemas')
+@ModuleContext('sistema')
 @Controller('software-schedule')
 @UseGuards(GithubLinkedGuard)
 export class SoftwareScheduleController {

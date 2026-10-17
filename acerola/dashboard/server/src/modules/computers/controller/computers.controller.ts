@@ -40,6 +40,7 @@ import {
   UpdateComputerDto,
 } from '../dto/computer.dto';
 import { ComputersService } from '../service/computers.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -52,6 +53,7 @@ import { ComputersService } from '../service/computers.service';
  * sustenta a decisão de trocar equipamento.
  */
 @ApiTags('Computadores')
+@ModuleContext('infra')
 @Controller('computers')
 export class ComputersController {
   constructor(private readonly service: ComputersService) {}

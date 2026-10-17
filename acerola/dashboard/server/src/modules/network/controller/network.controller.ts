@@ -23,6 +23,7 @@ import {
   ResolveNetworkEventDto,
 } from '../dto/network-event.dto';
 import { NetworkService } from '../service/network.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -31,6 +32,7 @@ import { NetworkService } from '../service/network.service';
  * quem é apresentando o token na URL, e quem confere isso é o service.
  */
 @ApiTags('Rede')
+@ModuleContext('infra')
 @Controller('network')
 export class NetworkController {
   constructor(private readonly service: NetworkService) {}
