@@ -1,5 +1,6 @@
 <script module lang="ts">
-	export type ReportingState = 'off' | 'connecting' | 'connected' | 'rejected' | 'blocked';
+	export type ReportingState =
+		'off' | 'connecting' | 'connected' | 'rejected' | 'blocked' | 'managed';
 
 	export type AcerolaReportingCardProps = {
 		data: {
@@ -24,6 +25,7 @@
 	 * Frase curta: o card é pequeno, e quem lê quer saber se deu certo.
 	 */
 	const STATE_LABEL: Record<ReportingState, string> = {
+		managed: 'Gerenciado pelo TI',
 		off: 'Não configurado',
 		connecting: 'Conectando…',
 		connected: 'Conectado',
@@ -32,6 +34,7 @@
 	};
 
 	const STATE_HINT: Record<ReportingState, string> = {
+		managed: 'O TI configura o envio ao painel e as atualizações deste computador.',
 		off: 'Cole a chave que o painel mostrou ao cadastrar este computador.',
 		connecting: 'Procurando o painel.',
 		connected: 'Esta máquina está aparecendo no painel.',
@@ -40,6 +43,7 @@
 	};
 
 	const STATE_TONE: Record<ReportingState, AcerolaBadgeTone> = {
+		managed: 'default',
 		off: 'default',
 		connecting: 'default',
 		connected: 'online',
@@ -49,9 +53,7 @@
 </script>
 
 <script lang="ts">
-	import AcerolaBadge, {
-		type AcerolaBadgeTone
-	} from '$lib/components/acerola-badge/acerola-badge.svelte';
+	import AcerolaBadge, { type AcerolaBadgeTone } from '$lib/components/acerola-badge/acerola-badge.svelte';
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 
@@ -97,51 +99,53 @@
 	<div class="flex flex-col gap-2.5">
 		<p class="text-muted-foreground text-xs leading-snug">{STATE_HINT[data.state]}</p>
 
-		<label class="flex flex-col gap-1">
-			<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-				Endereço do painel
-			</span>
-			<input
-				class={fieldClass}
-				type="text"
-				value={serverUrl}
-				oninput={(event) => (editedServerUrl = event.currentTarget.value)}
-				disabled={isSaving}
-				placeholder="http://painel.da.empresa"
-			/>
-		</label>
+		{#if data.state !== 'managed'}
+			<label class="flex flex-col gap-1">
+				<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+					Endereço do painel
+				</span>
+				<input
+					class={fieldClass}
+					type="text"
+					value={serverUrl}
+					oninput={(event) => (editedServerUrl = event.currentTarget.value)}
+					disabled={isSaving}
+					placeholder="http://painel.da.empresa"
+				/>
+			</label>
 
-		<label class="flex flex-col gap-1">
-			<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-				Chave desta máquina
-			</span>
-			<!-- `password`: a chave não fica à mostra para quem passa atrás de quem digita. -->
-			<input
-				class={fieldClass}
-				type="password"
-				bind:value={token}
-				disabled={isSaving}
-				autocomplete="off"
-				placeholder={data.hasToken
-					? 'Já existe uma chave salva — cole outra para trocar'
-					: 'Cole a chave aqui'}
-			/>
-		</label>
+			<label class="flex flex-col gap-1">
+				<span class="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+					Chave desta máquina
+				</span>
+				<!-- `password`: a chave não fica à mostra para quem passa atrás de quem digita. -->
+				<input
+					class={fieldClass}
+					type="password"
+					bind:value={token}
+					disabled={isSaving}
+					autocomplete="off"
+					placeholder={data.hasToken
+						? 'Já existe uma chave salva — cole outra para trocar'
+						: 'Cole a chave aqui'}
+				/>
+			</label>
 
-		{#if cardState?.error}
-			<p class="text-destructive text-xs leading-snug">{cardState.error}</p>
+			{#if cardState?.error}
+				<p class="text-destructive text-xs leading-snug">{cardState.error}</p>
+			{/if}
+
+			<AcerolaButton
+				ui={{ size: 'sm', disabled: !canSave, class: 'w-full' }}
+				events={{ onClick: save }}
+			>
+				{isSaving ? 'Salvando…' : 'Salvar'}
+			</AcerolaButton>
+
+			<p class="text-muted-foreground text-xs leading-snug">
+				A chave é guardada cifrada nesta máquina, para este usuário do Windows. Copiar o arquivo
+				para outro computador não abre.
+			</p>
 		{/if}
-
-		<AcerolaButton
-			ui={{ size: 'sm', disabled: !canSave, class: 'w-full' }}
-			events={{ onClick: save }}
-		>
-			{isSaving ? 'Salvando…' : 'Salvar'}
-		</AcerolaButton>
-
-		<p class="text-muted-foreground text-xs leading-snug">
-			A chave é guardada cifrada nesta máquina, para este usuário do Windows. Copiar o arquivo para
-			outro computador não abre.
-		</p>
 	</div>
 </AcerolaCard>

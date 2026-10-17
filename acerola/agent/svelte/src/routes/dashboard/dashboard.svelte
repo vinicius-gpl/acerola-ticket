@@ -423,10 +423,7 @@
 			{:else if activeTab === 'system'}
 				<section class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<!-- Discos e Partições -->
-					<AcerolaCard
-						data={{ title: 'Volumes & Partições de Armazenamento' }}
-						ui={{ class: 'p-5' }}
-					>
+					<AcerolaCard data={{ title: 'Volumes & Partições de Armazenamento' }} ui={{ class: 'p-5' }}>
 						<div class="flex flex-col gap-4">
 							{#each snap.disks as disk (disk.mountpoint)}
 								<div class="border-border/70 bg-muted/20 rounded-box border p-4">
