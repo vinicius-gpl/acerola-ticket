@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { renderPdfDocument } from './document-pdf.util';
+import { columnWidths, renderPdfDocument } from './document-pdf.util';
 import { type DocumentDefinition } from './document.type';
 
 const VERIFY_URL = 'http://localhost:5005/verify/a1b2c3d4e5f60718293a4b5c6d7e8f90';
@@ -80,5 +80,33 @@ describe('renderPdfDocument', () => {
     const other = await renderPdfDocument(definition({ title: 'Ordem de serviço nº CH-0008' }));
 
     expect(other.equals(first)).toBe(false);
+  });
+});
+
+describe('columnWidths', () => {
+  const sum = (widths: number[]) => widths.reduce((total, width) => total + width, 0);
+
+  // feliz
+  /* A coluna de nomes fica larga e a de número estreita, sem nenhuma partir a maior palavra. */
+  it('gives each column at least its longest word, and the rest to who carries more text', () => {
+    const widths = columnWidths(
+      ['Protocolo', 'Descrição'],
+      [[{ text: 'CH-0001' }, { text: 'A impressora da recepção não puxa papel desde segunda' }]],
+      500,
+    );
+
+    expect(widths[0]).toBeGreaterThanOrEqual('Protocolo'.length * 8.5 * 0.5);
+    expect(widths[1]).toBeGreaterThan(widths[0] ?? 0);
+    expect(sum(widths)).toBeCloseTo(500 - 2 * 5 * 2);
+  });
+
+  // triste
+  /* Nem as palavras cabem: a folha é dividida na proporção delas, sem passar da margem. */
+  it('never goes past the page when even the words do not fit', () => {
+    const headers = Array.from({ length: 12 }, () => 'Departamento');
+
+    const widths = columnWidths(headers, [], 300);
+
+    expect(sum(widths)).toBeCloseTo(300 - 12 * 5 * 2);
   });
 });
