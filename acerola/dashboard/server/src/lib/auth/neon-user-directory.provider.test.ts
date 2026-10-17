@@ -83,4 +83,21 @@ describe('NeonUserDirectoryProvider', () => {
 
     expect(user).toBeNull();
   });
+
+  // feliz
+  /* O bot do WhatsApp procura quem escreve pelo primeiro nome. */
+  it('searches people by a piece of the name, with a ceiling', async () => {
+    const limit = vi.fn().mockResolvedValue([createMockRow({ name: 'Maria Clara Souza' })]);
+    const where = vi.fn().mockReturnValue({ orderBy: vi.fn().mockReturnValue({ limit }) });
+    const fakeDb = {
+      select: vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ where }) }),
+    } as unknown as Database;
+
+    const provider = new NeonUserDirectoryProvider(fakeDb);
+    const users = await provider.searchUsers('maria');
+
+    expect(users.map((user) => user.name)).toEqual(['Maria Clara Souza']);
+    expect(where).toHaveBeenCalledTimes(1);
+    expect(limit).toHaveBeenCalledWith(50);
+  });
 });

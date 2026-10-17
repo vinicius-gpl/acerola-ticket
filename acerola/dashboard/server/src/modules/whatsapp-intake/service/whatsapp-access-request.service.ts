@@ -1,23 +1,31 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   type AccessRequestDraft,
-  type AccessRequestProject,
   type AccessRequestStep,
   accessRequestDescription,
   departmentOptionsText,
   emptyAccessRequest,
   fillAccessRequestStep,
+  identifiedAs,
   isAccessRequestCancel,
   isAccessRequestCommand,
   nextAccessRequestStep,
-  projectOptionsText,
 } from '@template/shared/domain/access-request.util';
+import {
+  identifyPerson,
+  nameTokens,
+  type PersonCandidate,
+  personOptionsText,
+} from '@template/shared/domain/person-match.util';
 import { invitePhoneForForm } from '@template/shared/domain/ticket-invite.util';
 import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.util';
 import { type WhatsappTemplateKey } from '@template/shared/domain/whatsapp-template.util';
 
 import { type Env } from '../../../lib/config/env.schema';
 import { ENV } from '../../../lib/config/env.token';
+import { type UserDirectoryProvider } from '../../../lib/auth/user-directory.type';
+import { USER_DIRECTORY_PROVIDER } from '../../../lib/auth/user-directory.token';
+import { HistoryService } from '../../history/service/history.service';
 import { TicketAssigneesService } from '../../tickets/service/ticket-assignees.service';
 import { ticketAccessLink } from '../../tickets/service/ticket-whatsapp-notifier.service';
 import { TicketsService } from '../../tickets/service/tickets.service';
@@ -43,21 +51,26 @@ const CONVERSATION_TTL_MS = 15 * 60 * 1000;
 
 const QUESTION_TEMPLATES: Record<AccessRequestStep, WhatsappTemplateKey> = {
   name: 'access_name',
+  who: 'access_who',
   email: 'access_email',
   phone: 'access_phone',
   department: 'access_department',
-  system: 'access_system',
 };
 
 /**
- * PEDIDO DE ACESSO PELO WHATSAPP (`/acesso`).
+ * PEDIDO DE USUÁRIO PELO WHATSAPP (`/acesso`), para quem ainda não tem conta.
  *
- * O bot pergunta um campo por mensagem e, com tudo respondido, abre um chamado na área de
- * Sistema, tipo "Pedido de acesso". A regra de cada resposta mora em `access-request.util`;
- * aqui fica a conversa: guardar o rascunho, mandar a próxima pergunta e criar o chamado.
+ * O bot pergunta um campo por mensagem e, com tudo respondido, abre UM chamado na área de
+ * Sistema, tipo "Pedido de acesso", sem sistema — quem atende cria o usuário. A regra de cada
+ * resposta mora em `access-request.util`; aqui fica a conversa: guardar o rascunho, mandar a
+ * próxima pergunta e criar o chamado.
  *
  * O estado fica no banco (`whatsapp_conversations`): publicar uma versão nova do servidor no
  * meio de um pedido não faz a pessoa perder o que já respondeu.
+ *
+ * QUEM ESTÁ PEDINDO: depois do nome, o bot procura a conta da pessoa e desempata pelo
+ * telefone (quem já abriu chamado com aquele número). Reconhecida, o chamado fica ligado à
+ * conta dela, como o aberto pelo site; com várias possíveis, ele pergunta quem é quem.
  */
 @Injectable()
 export class WhatsappAccessRequestService {
@@ -69,6 +82,8 @@ export class WhatsappAccessRequestService {
     private readonly tickets: TicketsService,
     private readonly messaging: WhatsappMessagingService,
     private readonly conversations: WhatsappConversationsRepository,
+    @Inject(USER_DIRECTORY_PROVIDER) private readonly directory: UserDirectoryProvider,
+    private readonly history: HistoryService,
   ) {}
 
   /** Se a mensagem é desta conversa: o próprio comando, ou uma resposta a um pedido em aberto. */
@@ -120,13 +135,6 @@ export class WhatsappAccessRequestService {
     /* Vinculou o número mas não administra mais nenhuma área: não há chamado para abrir com ele. */
     if (!attendant || attendant.areas.length === 0) return SILENCE;
 
-    /* Sem sistema que aceite chamado, o pedido não teria como terminar: melhor nem começar. */
-    if ((await this.tickets.listSystemProjectOptions()).length === 0) {
-      this.logger.warn('access request ignored: no software project accepts tickets');
-
-      return SILENCE;
-    }
-
     const conversation: Conversation = {
       userId,
       attendantName: attendant.name,
@@ -148,17 +156,48 @@ export class WhatsappAccessRequestService {
     const step = nextAccessRequestStep(conversation.draft);
     if (!step) return SILENCE;
 
-    const projects = await this.tickets.listSystemProjectOptions();
-    const filled = fillAccessRequestStep(conversation.draft, step, message.text, projects);
+    const filled = fillAccessRequestStep(conversation.draft, step, message.text);
     const refreshed = { ...conversation, expiresAt: now + CONVERSATION_TTL_MS };
     if (!filled.ok)
       return this.say(key, refreshed, message, 'access_invalid', { erro: filled.error });
 
-    const next = { ...refreshed, draft: filled.draft };
-    const nextStep = nextAccessRequestStep(filled.draft);
+    const draft = step === 'name' ? await this.identify(filled.draft) : filled.draft;
+    const next = { ...refreshed, draft };
+    const nextStep = nextAccessRequestStep(draft);
     if (!nextStep) return this.finish(key, next, message);
 
-    return this.ask(key, next, message, nextStep, projects);
+    return this.ask(key, next, message, nextStep);
+  }
+
+  /* Quem é, pelo nome que acabou de chegar: uma pessoa vira vínculo, várias viram pergunta. */
+  private async identify(draft: AccessRequestDraft): Promise<AccessRequestDraft> {
+    const name = draft.requesterName ?? '';
+    const [people, phoneOwners] = await Promise.all([
+      this.peopleNamed(name),
+      draft.phone ? this.tickets.phoneOwnersOf(draft.phone) : Promise.resolve([]),
+    ]);
+    const match = identifyPerson(name, people, phoneOwners);
+
+    if (match.kind === 'one') return identifiedAs(draft, match.person);
+    if (match.kind === 'many') return { ...draft, candidates: match.people };
+
+    return draft;
+  }
+
+  /* Diretório fora do ar não trava o pedido: ele segue como antes, sem vínculo. */
+  private async peopleNamed(name: string): Promise<PersonCandidate[]> {
+    const [firstName] = nameTokens(name);
+    if (!firstName) return [];
+
+    try {
+      const users = await this.directory.searchUsers(firstName);
+
+      return users.map((user) => ({ id: user.id, name: user.name, email: user.email }));
+    } catch {
+      this.logger.warn('access request: could not search people in the user directory');
+
+      return [];
+    }
   }
 
   private async ask(
@@ -166,23 +205,12 @@ export class WhatsappAccessRequestService {
     conversation: Conversation,
     message: InboundMessage,
     step: AccessRequestStep,
-    projects?: readonly AccessRequestProject[],
   ): Promise<InboundReply> {
     return this.say(key, conversation, message, QUESTION_TEMPLATES[step], {
       responsavel: conversation.attendantName,
       nome: firstName(conversation.draft.requesterName),
-      opcoes: await this.optionsFor(step, projects),
+      opcoes: optionsFor(step, conversation.draft),
     });
-  }
-
-  private async optionsFor(
-    step: AccessRequestStep,
-    projects?: readonly AccessRequestProject[],
-  ): Promise<string> {
-    if (step === 'department') return departmentOptionsText();
-    if (step !== 'system') return '';
-
-    return projectOptionsText(projects ?? (await this.tickets.listSystemProjectOptions()));
   }
 
   private async finish(
@@ -193,7 +221,10 @@ export class WhatsappAccessRequestService {
     await this.conversations.remove(key);
 
     const ticket = await this.createTicket(conversation);
-    if (!ticket) return SILENCE;
+    /* Nada foi registrado: a pessoa fica sabendo, em vez de esperar uma resposta que não vem. */
+    if (!ticket) return this.sayFailed(conversation, message);
+
+    await this.recordHistory(ticket, conversation.draft);
 
     const reply = await this.messaging.reply({
       senderUserId: conversation.userId,
@@ -203,7 +234,6 @@ export class WhatsappAccessRequestService {
       values: {
         nome: firstName(ticket.requesterName),
         protocolo: formatTicketProtocol(ticket.id),
-        sistema: conversation.draft.project?.name ?? '',
         link: ticketAccessLink(ticket.id, this.env),
       },
     });
@@ -211,47 +241,74 @@ export class WhatsappAccessRequestService {
     return { reply, isOpen: false };
   }
 
+  private async sayFailed(
+    conversation: Conversation,
+    message: InboundMessage,
+  ): Promise<InboundReply> {
+    const reply = await this.messaging.reply({
+      senderUserId: conversation.userId,
+      recipient: message.phone ?? message.chatId,
+      kind: 'access_invalid',
+      ticketId: null,
+      values: {
+        erro: 'Não consegui registrar o seu pedido agora. Tente de novo em instantes com /acesso.',
+      },
+    });
+
+    return { reply, isOpen: false };
+  }
+
+  /* Um chamado de Sistema SEM sistema: é o pedido de criar o usuário (ver `TicketsService`). */
   private async createTicket(
     conversation: Conversation,
   ): Promise<{ id: number; requesterName: string } | null> {
-    const { requesterName, email, phone, department, project } = conversation.draft;
-    if (!requesterName || !email || !phone || !department || !project) return null;
+    const { requesterName, email, phone, department } = conversation.draft;
+    if (!requesterName || !email || !phone || !department) return null;
 
     const contactPhone = invitePhoneForForm(phone);
+    const input = {
+      requesterName,
+      area: 'sistema' as const,
+      department,
+      problemType: 'access_request' as const,
+      priority: 'medium' as const,
+      contactPhone,
+      /* Quem pediu pela conversa já está no WhatsApp: é por lá que quer saber do pedido. */
+      notifyWhatsapp: true,
+      description: accessRequestDescription({ requesterName, email, phone: contactPhone }),
+      assigneeId: conversation.assigneeId,
+    };
+    /* A confirmação já vai na própria conversa (`access_created`). */
+    const options = { skipOpeningNotice: true, requester: requesterOf(conversation.draft) };
 
-    return this.tickets
-      .create(
-        {
-          requesterName,
-          area: 'sistema',
-          department,
-          problemType: 'access_request',
-          priority: 'medium',
-          contactPhone,
-          /* Quem pediu pela conversa já está no WhatsApp: é por lá que quer saber do acesso. */
-          notifyWhatsapp: true,
-          description: accessRequestDescription({
-            requesterName,
-            email,
-            phone: contactPhone,
-            projectName: project.name,
-          }),
-          projectId: project.id,
-          assigneeId: conversation.assigneeId,
-        },
-        undefined,
-        [],
-        /* A confirmação já vai na própria conversa (`access_created`). */
-        { skipOpeningNotice: true },
-      )
-      .catch((error: unknown) => {
-        this.logger.error(
-          'failed to create access request from WhatsApp',
-          error instanceof Error ? error.stack : '',
-        );
+    /* Falhou (o diretório não confirmou quem atende, por exemplo): a pessoa recebe o aviso de
+       erro em `finish`, e o motivo fica no log para quem administra. */
+    return this.tickets.create(input, undefined, [], options).catch((error: unknown) => {
+      this.logger.error(
+        'failed to create user request from WhatsApp',
+        error instanceof Error ? error.stack : '',
+      );
 
-        return null;
-      });
+      return null;
+    });
+  }
+
+  /* O chamado nasceu fora de uma requisição de pessoa: o histórico é gravado aqui, sem autor —
+     quem fez foi o bot. */
+  private async recordHistory(ticket: { id: number }, draft: AccessRequestDraft): Promise<void> {
+    await this.history.record({
+      action: 'tickets.create',
+      actorId: null,
+      actorEmail: null,
+      targetType: 'tickets',
+      targetId: String(ticket.id),
+      targetLabel: formatTicketProtocol(ticket.id),
+      changes: [
+        { field: 'source', from: null, to: 'whatsapp' },
+        { field: 'problemType', from: null, to: 'access_request' },
+        { field: 'requesterId', from: null, to: draft.requesterId ?? null },
+      ],
+    });
   }
 
   /* Uma resposta do bot: reserva no limite do dia, guarda o estado e mantém a conversa aberta.
@@ -292,6 +349,23 @@ export class WhatsappAccessRequestService {
 /* De qual número vinculado e de qual conversa — o mesmo par que o bot usa. */
 function keyOf(message: InboundMessage): string {
   return `${message.sessionId}:${message.chatId}`;
+}
+
+/* A conta de quem pede, quando o bot a reconheceu; sem ela, o chamado nasce sem vínculo. */
+function requesterOf(
+  draft: AccessRequestDraft,
+): { id: string; email: string; name: string } | undefined {
+  if (!draft.requesterId || !draft.email || !draft.requesterName) return undefined;
+
+  return { id: draft.requesterId, email: draft.email, name: draft.requesterName };
+}
+
+/* As opções numeradas que a pergunta mostra: as pessoas do "quem é você?" ou os setores. */
+function optionsFor(step: AccessRequestStep, draft: AccessRequestDraft): string {
+  if (step === 'who') return personOptionsText(draft.candidates ?? []);
+  if (step === 'department') return departmentOptionsText();
+
+  return '';
 }
 
 /* As mensagens chamam a pessoa pelo primeiro nome: "Obrigado, Maria!", não o nome inteiro. */

@@ -30,16 +30,16 @@ export class WhatsappConnectionsRepository {
   }
 
   /** Grava o número vinculado. Trocar de número mantém a linha e renova a data do vínculo. */
-  async save(userId: string, phone: string): Promise<void> {
+  async save(userId: string, phone: string, operatorName: string | null = null): Promise<void> {
     const now = new Date();
 
     await runQuery(
       this.db
         .insert(whatsappConnections)
-        .values({ userId, phone, linkedAt: now, updatedAt: now })
+        .values({ userId, phone, operatorName, linkedAt: now, updatedAt: now })
         .onConflictDoUpdate({
           target: whatsappConnections.userId,
-          set: { phone, linkedAt: now, updatedAt: now },
+          set: { phone, operatorName, linkedAt: now, updatedAt: now },
         }),
       'gravar vínculo de WhatsApp',
     );

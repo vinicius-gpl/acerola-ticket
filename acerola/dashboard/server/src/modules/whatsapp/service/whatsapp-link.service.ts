@@ -38,7 +38,7 @@ export class WhatsappLinkService {
     }
 
     const status = await this.bot.status(user.id);
-    await this.remember(user.id, status);
+    await this.remember(user, status);
 
     return { isConfigured: true, canLink: true, ...status, ...usage };
   }
@@ -48,7 +48,7 @@ export class WhatsappLinkService {
     assertCanLink(user);
 
     const status = await this.bot.link(user.id);
-    await this.remember(user.id, status);
+    await this.remember(user, status);
 
     return {
       isConfigured: true,
@@ -70,17 +70,19 @@ export class WhatsappLinkService {
    * cópia que o resto do sistema consulta sem precisar perguntar ao bot (quem tem número
    * vinculado, e qual).
    */
-  private async remember(userId: string, status: BotStatus): Promise<void> {
-    const stored = await this.repository.find(userId);
+  private async remember(user: RequestUser, status: BotStatus): Promise<void> {
+    const stored = await this.repository.find(user.id);
 
     if (status.state === 'connected' && status.phone) {
-      if (stored?.phone !== status.phone) await this.repository.save(userId, status.phone);
+      /* O nome também: é a assinatura do bot, e o vínculo antigo nasceu sem ele. */
+      const isCurrent = stored?.phone === status.phone && stored.operatorName === user.name;
+      if (!isCurrent) await this.repository.save(user.id, status.phone, user.name);
 
       return;
     }
 
     /* Em `pairing` nada muda: é o meio do caminho, e ainda não há número. */
-    if (status.state === 'disconnected' && stored) await this.repository.remove(userId);
+    if (status.state === 'disconnected' && stored) await this.repository.remove(user.id);
   }
 }
 

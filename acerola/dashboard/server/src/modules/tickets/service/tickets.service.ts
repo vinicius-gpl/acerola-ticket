@@ -367,7 +367,8 @@ export class TicketsService {
   /**
    * Abrir chamado. Pela tela, quem abre está LOGADO, e o chamado fica ligado à conta dela no
    * Neon Auth (`options.requester`) — o nome é o da conta, nunca o do corpo. Sem `requester`
-   * só entra o bot do WhatsApp, que abre pela conversa.
+   * só entra o bot do WhatsApp quando não reconheceu quem escreve; reconhecendo, ele passa a
+   * conta da pessoa como `requester`.
    *
    * O print é guardado ANTES do chamado existir. Se a gravação do chamado falhar depois,
    * sobra um arquivo órfão no bucket — o contrário (chamado apontando para um arquivo que
@@ -381,17 +382,7 @@ export class TicketsService {
        aviso de "chamado aberto" seriam duas mensagens dizendo a mesma coisa. */
     options: { skipOpeningNotice?: boolean; requester?: TicketRequester } = {},
   ): Promise<OpenedTicket> {
-    if (input.area === 'sistema') {
-      const projectId = Number(input.projectId);
-      if (
-        !Number.isInteger(projectId) ||
-        !(await this.softwareProjectsService?.isTicketOption(projectId))
-      ) {
-        throw new UnprocessableEntityException(
-          'Selecione um sistema disponível para abrir o chamado.',
-        );
-      }
-    }
+    await this.assertSystemProject(input);
 
     const assignee = await this.resolveAssignee(input.area, input.assigneeId);
     const screenshotKey = await this.storeScreenshot(screenshot);
@@ -460,6 +451,26 @@ export class TicketsService {
     const rows = await this.repository.listByRequester(user.id);
 
     return rows.map(toMyTicket);
+  }
+
+  /* Chamado de Sistema é de um sistema. A exceção é o pedido de USUÁRIO pelo WhatsApp (o
+     `/acesso`): quem ainda não tem conta não tem sistema para pedir. */
+  private async assertSystemProject(input: CreateTicketInput): Promise<void> {
+    if (input.area !== 'sistema') return;
+    if (input.problemType === 'access_request' && input.projectId == null) return;
+
+    const projectId = Number(input.projectId);
+    const isOption =
+      Number.isInteger(projectId) &&
+      (await this.softwareProjectsService?.isTicketOption(projectId));
+    if (isOption) return;
+
+    throw new UnprocessableEntityException('Selecione um sistema disponível para abrir o chamado.');
+  }
+
+  /** Quem já abriu chamado com este telefone — o desempate do bot para reconhecer quem escreve. */
+  async phoneOwnersOf(phone: string): Promise<string[]> {
+    return this.repository.requesterIdsByPhone(phone);
   }
 
   /**

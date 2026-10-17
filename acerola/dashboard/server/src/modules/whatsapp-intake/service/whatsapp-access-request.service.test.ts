@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { type UserDirectoryProvider } from '../../../lib/auth/user-directory.type';
 import { type Env } from '../../../lib/config/env.schema';
 import { type WhatsappConversationRow } from '../../../lib/db/schema/whatsapp-conversations.schema';
 import { type WhatsappConversationsRepository } from '../repository/whatsapp-conversations.repository';
+import { type HistoryService } from '../../history/service/history.service';
 import { type TicketAssigneesService } from '../../tickets/service/ticket-assignees.service';
 import { type TicketsService } from '../../tickets/service/tickets.service';
 import { type WhatsappMessagingService } from '../../whatsapp/service/whatsapp-messaging.service';
@@ -25,18 +27,18 @@ function makeService(
   options: {
     areas?: string[];
     hasRoom?: boolean;
-    projects?: { id: number; name: string }[];
     createFails?: boolean;
+    people?: { id: string; name: string; email: string }[];
+    phoneOwners?: string[];
+    searchFails?: boolean;
   } = {},
 ) {
   const assignees = {
     areasOf: vi.fn().mockResolvedValue({ name: 'Ana Lima', areas: options.areas ?? ['sistema'] }),
   };
   const tickets = {
-    listSystemProjectOptions: vi
-      .fn()
-      .mockResolvedValue(options.projects ?? [{ id: 7, name: 'Portal do Cliente' }]),
-    create: vi.fn(async (input: { requesterName: string }) => {
+    phoneOwnersOf: vi.fn().mockResolvedValue(options.phoneOwners ?? []),
+    create: vi.fn(async (input: { requesterName: string }, ..._rest: unknown[]) => {
       if (options.createFails) throw new Error('database down');
 
       return { id: 42, requesterName: input.requesterName };
@@ -55,27 +57,109 @@ function makeService(
     save: vi.fn(async (row: WhatsappConversationRow) => void stored.set(row.key, row)),
     remove: vi.fn(async (key: string) => void stored.delete(key)),
   };
+  const directory = {
+    searchUsers: vi.fn(async () => {
+      if (options.searchFails) throw new Error('directory down');
+
+      return options.people ?? [];
+    }),
+  };
+  const history = { record: vi.fn().mockResolvedValue(undefined) };
   const service = new WhatsappAccessRequestService(
     env,
     assignees as unknown as TicketAssigneesService,
     tickets as unknown as TicketsService,
     messaging as unknown as WhatsappMessagingService,
     conversations as unknown as WhatsappConversationsRepository,
+    directory as unknown as UserDirectoryProvider,
+    history as unknown as HistoryService,
   );
 
   /* Uma troca da conversa: a mensagem da pessoa e o que o bot respondeu. */
   const say = (text: string, extra: Partial<InboundMessage> = {}, now = NOW) =>
     service.handle('u-ana', inbound(text, extra), now);
 
-  return { service, tickets, messaging, say, conversations, stored };
+  return { service, tickets, messaging, say, conversations, stored, directory, history };
 }
 
 const lastKind = (messaging: ReturnType<typeof makeService>['messaging']) =>
   messaging.reply.mock.calls.at(-1)?.[0].kind;
 
+const MARIA = { id: 'maria-id', name: 'Maria Clara Souza', email: 'maria@empresa.com.br' };
+const MARIA_LIMA = { id: 'lima-id', name: 'Maria Clara Lima', email: 'maria.lima@empresa.com.br' };
+
+describe('WhatsappAccessRequestService — quem está pedindo', () => {
+  // feliz
+  it('recognizes the person by the name, skips the e-mail and links the ticket to them', async () => {
+    const { say, tickets, history, directory } = makeService({ people: [MARIA, MARIA_LIMA] });
+
+    await say('/acesso');
+    expect(await say('Maria Clara Souza')).toEqual({
+      reply: 'text:access_department',
+      isOpen: true,
+    });
+    await say('11');
+
+    expect(directory.searchUsers).toHaveBeenCalledWith('maria');
+    expect(tickets.create.mock.calls[0]?.[0]).toMatchObject({ requesterName: 'Maria Clara Souza' });
+    expect(tickets.create.mock.calls[0]?.[3]).toEqual({
+      skipOpeningNotice: true,
+      requester: { id: 'maria-id', email: 'maria@empresa.com.br', name: 'Maria Clara Souza' },
+    });
+    expect(history.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'tickets.create', actorId: null, targetId: '42' }),
+    );
+  });
+
+  it('settles a shared name by who already used the phone', async () => {
+    const { say, tickets } = makeService({ people: [MARIA, MARIA_LIMA], phoneOwners: ['lima-id'] });
+
+    for (const text of ['/acesso', 'Maria Clara', '11']) await say(text);
+
+    expect(tickets.phoneOwnersOf).toHaveBeenCalledWith('5562999990002');
+    expect(tickets.create.mock.calls[0]?.[3]).toMatchObject({ requester: { id: 'lima-id' } });
+  });
+
+  it('asks who is who when the name fits several people, and links the one picked', async () => {
+    const { say, tickets, messaging } = makeService({ people: [MARIA, MARIA_LIMA] });
+
+    await say('/acesso');
+    expect(await say('Maria Clara')).toEqual({ reply: 'text:access_who', isOpen: true });
+    expect(messaging.reply.mock.calls.at(-1)?.[0].values.opcoes).toContain('2. Maria Clara Lima');
+    expect(await say('2')).toEqual({ reply: 'text:access_department', isOpen: true });
+    await say('11');
+
+    expect(tickets.create.mock.calls[0]?.[3]).toMatchObject({ requester: { id: 'lima-id' } });
+  });
+
+  // triste
+  it('goes on asking the e-mail, unlinked, when the person is none of them', async () => {
+    const { say, tickets } = makeService({ people: [MARIA, MARIA_LIMA] });
+
+    await say('/acesso');
+    await say('Maria Clara');
+    expect(await say('0')).toEqual({ reply: 'text:access_email', isOpen: true });
+    for (const text of ['maria@outra.com', '11']) await say(text);
+
+    expect(tickets.create.mock.calls[0]?.[3]).toEqual({
+      skipOpeningNotice: true,
+      requester: undefined,
+    });
+  });
+
+  /* Diretório fora do ar não trava o pedido: só não há vínculo. */
+  it('keeps the request going when the people search fails', async () => {
+    const { say } = makeService({ searchFails: true });
+
+    await say('/acesso');
+
+    expect(await say('Maria Clara')).toEqual({ reply: 'text:access_email', isOpen: true });
+  });
+});
+
 describe('WhatsappAccessRequestService', () => {
   // feliz
-  it('asks name, e-mail, department and system, then opens the access ticket', async () => {
+  it('asks name, e-mail and department, then opens the user request', async () => {
     const { say, tickets, messaging } = makeService();
 
     expect(await say('/acesso')).toEqual({ reply: 'text:access_name', isOpen: true });
@@ -84,9 +168,10 @@ describe('WhatsappAccessRequestService', () => {
       reply: 'text:access_department',
       isOpen: true,
     });
-    expect(await say('11')).toEqual({ reply: 'text:access_system', isOpen: true });
-    expect(await say('1')).toEqual({ reply: 'text:access_created', isOpen: false });
+    expect(await say('11')).toEqual({ reply: 'text:access_created', isOpen: false });
 
+    /* Pedido de usuário não é de sistema nenhum: o chamado nasce sem `projectId`. */
+    expect(tickets.create.mock.calls[0]?.[0]).not.toHaveProperty('projectId');
     expect(tickets.create).toHaveBeenCalledWith(
       expect.objectContaining({
         requesterName: 'Maria Clara Souza',
@@ -95,7 +180,6 @@ describe('WhatsappAccessRequestService', () => {
         problemType: 'access_request',
         contactPhone: '62999990002',
         notifyWhatsapp: true,
-        projectId: 7,
         assigneeId: 'u-ana',
         description: expect.stringContaining('E-mail: maria@empresa.com.br'),
       }),
@@ -105,7 +189,7 @@ describe('WhatsappAccessRequestService', () => {
     );
     expect(messaging.reply.mock.calls.at(-1)?.[0]).toMatchObject({
       ticketId: 42,
-      values: { nome: 'Maria', protocolo: 'CH-0042', sistema: 'Portal do Cliente' },
+      values: { nome: 'Maria', protocolo: 'CH-0042' },
     });
   });
 
@@ -124,7 +208,7 @@ describe('WhatsappAccessRequestService', () => {
   it('opens the ticket without assignee when the attendant does not attend Sistema', async () => {
     const { say, tickets } = makeService({ areas: ['infra'] });
 
-    for (const text of ['/acesso', 'Maria Clara', 'm@empresa.com', '1', '1']) await say(text);
+    for (const text of ['/acesso', 'Maria Clara', 'm@empresa.com', '1']) await say(text);
 
     expect(tickets.create.mock.calls[0]?.[0]).toMatchObject({ assigneeId: undefined });
   });
@@ -185,8 +269,7 @@ describe('WhatsappAccessRequestService', () => {
     expect(await say('Maria Clara', {}, NOW + 16 * MINUTE)).toEqual(SILENCE);
   });
 
-  it('does not start when no system accepts tickets, or the attendant has no area', async () => {
-    expect(await makeService({ projects: [] }).say('/acesso')).toEqual(SILENCE);
+  it('does not start when the attendant has no area', async () => {
     expect(await makeService({ areas: [] }).say('/acesso')).toEqual(SILENCE);
   });
 
@@ -198,11 +281,23 @@ describe('WhatsappAccessRequestService', () => {
     expect(await service.isFor(inbound('Maria Clara'), NOW)).toBe(false);
   });
 
-  it('goes silent when the ticket could not be saved', async () => {
+  /* Calar deixaria a pessoa esperando uma resposta que não vem: ela fica sabendo. */
+  it('tells the person when the ticket could not be saved', async () => {
     const { say } = makeService({ createFails: true });
 
-    for (const text of ['/acesso', 'Maria Clara', 'm@empresa.com', '1']) await say(text);
+    for (const text of ['/acesso', 'Maria Clara', 'm@empresa.com']) await say(text);
 
-    expect(await say('1')).toEqual(SILENCE);
+    expect(await say('1')).toEqual({ reply: 'text:access_invalid', isOpen: false });
+  });
+
+  /* Sem confirmar quem atende (diretório fora), é erro: o chamado não nasce pela metade. */
+  it('does not open the ticket when the assignee cannot be confirmed, and says so', async () => {
+    const { say, tickets } = makeService();
+    tickets.create.mockRejectedValueOnce(new Error('directory down'));
+
+    for (const text of ['/acesso', 'Maria Clara', 'm@empresa.com']) await say(text);
+
+    expect(await say('1')).toEqual({ reply: 'text:access_invalid', isOpen: false });
+    expect(tickets.create).toHaveBeenCalledTimes(1);
   });
 });
