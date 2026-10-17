@@ -93,6 +93,9 @@ type snapshotMessage struct {
 type State string
 
 const (
+	// StateManaged é reservado à interface: a conexão pertence ao serviço da máquina.
+	StateManaged State = "managed"
+
 	// StateOff: esta máquina não foi configurada para reportar.
 	StateOff State = "off"
 	// StateConnecting: tentando — nunca conectou ainda, ou caiu e vai voltar.

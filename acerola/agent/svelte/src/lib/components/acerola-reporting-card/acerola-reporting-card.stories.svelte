@@ -8,6 +8,8 @@
 	});
 </script>
 
+<Story name="Managed By IT" args={{ data: { serverUrl: '', hasToken: false, state: 'managed' } }} />
+
 <Story
 	name="Not Configured Yet"
 	args={{ data: { serverUrl: '', hasToken: false, state: 'off' } }}

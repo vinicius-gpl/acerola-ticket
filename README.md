@@ -318,6 +318,19 @@ Mudanças de autenticação devem possuir testes para login válido, credencial 
 
 ---
 
+## Agente Windows: releases e atualização
+
+O agente é publicado por tag (`agent/v1.2.3`): a CI compila, gera o MSI assinado e envia os
+arquivos ao **mesmo bucket do R2** do dashboard, em `agent/releases/<versão>/`. Uma versão só vai
+para as máquinas depois de promovida a **LTS** (workflow **Release/Agent LTS**). O serviço
+`AcerolaAgent` consulta a LTS a cada hora e se atualiza sozinho, sem janela nem login.
+
+No dashboard, **Agente Windows** (em Infraestrutura e Sistema) baixa a LTS e lista **todas as
+versões publicadas** no R2. O passo a passo — segredos do GitHub, certificado, primeira
+instalação e diagnóstico — está em [`acerola/agent/docs/releases.md`](acerola/agent/docs/releases.md).
+
+---
+
 ## O que o MVP não faz
 
 * **Isolamento de dados não é automático.** O banco é o Postgres da Neon — compartilhado por
@@ -350,6 +363,10 @@ Nada é obrigatório para rodar na sua máquina: todo valor tem padrão. Os exem
 ---
 
 ## Versões
+
+A tag `agent/vX.Y.Z` gera os arquivos do agente e os publica no mesmo bucket S3 privado
+usado pelo dashboard. O agente instalado pode coletar e se atualizar antes do login. Configuração de Secrets, certificado e primeira instalação:
+[guia de releases do agente](acerola/agent/docs/releases.md).
 
 Node na linha **LTS, com a faixa fechada** — `>=24.0.0 <25.0.0`. As travas (ESLint 9, TypeScript 5, NestJS 11) e o motivo de cada uma estão na [seção 13 do CONTRIBUTING](CONTRIBUTING.md#13-versões--só-o-que-ainda-tem-suporte).
 

@@ -12,11 +12,13 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/machine"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/memory"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/metrics"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/reporting"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/version"
 )
 
 const (
@@ -26,7 +28,7 @@ const (
 	// A versão que o agente informa ao painel central no `hello`. É o que
 	// aparece na ficha do computador e permite descobrir, sem ir até a
 	// máquina, qual delas ainda está com o agente antigo.
-	agentVersion = "0.1.0"
+	agentVersion = version.Current
 
 	popupWidth  = 380
 	popupHeight = 650
@@ -120,6 +122,11 @@ func (app *App) startup(ctx context.Context) {
 // seja erro — nem toda instalação deste agente é de uma máquina que o TI
 // acompanha pelo painel.
 func (app *App) reportToDashboard(ctx context.Context) {
+	// O serviço é o único dono da conexão da máquina; a bandeja continua mostrando métricas locais.
+	if machine.Installed() {
+		log.Print("reporting: managed by Windows service")
+		return
+	}
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
 		log.Printf("reporting: %v", configPathError)
@@ -172,6 +179,9 @@ func (app *App) stopReporting() {
 // existe um salvo. Devolvê-lo recolocaria em texto puro, na memória da tela,
 // o segredo que acabou de ser cifrado em disco.
 func (app *App) ReportingSettings() reporting.Settings {
+	if machine.Installed() {
+		return reporting.Settings{IntervalSeconds: int(reporting.DefaultInterval.Seconds())}
+	}
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
 		return reporting.Settings{}
@@ -182,6 +192,9 @@ func (app *App) ReportingSettings() reporting.Settings {
 
 // ReportingState é exposto ao frontend (via Bind): em que pé está a conexão.
 func (app *App) ReportingState() string {
+	if machine.Installed() {
+		return string(reporting.StateManaged)
+	}
 	app.mu.RLock()
 	reporter := app.reporter
 	app.mu.RUnlock()
@@ -199,6 +212,9 @@ func (app *App) ReportingState() string {
 // A mensagem de erro que volta daqui APARECE NA TELA, então ela é a única
 // coisa deste arquivo escrita em português.
 func (app *App) SaveReportingSettings(serverURL string, token string) string {
+	if machine.Installed() {
+		return "Esta instalação é gerenciada pelo TI. Use o script de configuração do serviço."
+	}
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
 		return "Não consegui achar a pasta de configuração desta máquina."

@@ -45,3 +45,12 @@ desktop.ini
 
 # Ajuste local do Claude Code — é de quem programa, não do projeto.
 .claude/settings.local.json
+
+# Saídas de release e bindings gerados; chaves privadas nunca são artefatos de distribuição.
+acerola/agent/build/bin/
+acerola/agent/build/release/
+acerola/agent/svelte/wailsjs/
+/agent-bin/
+/release/
+*.pfx
+*.p12

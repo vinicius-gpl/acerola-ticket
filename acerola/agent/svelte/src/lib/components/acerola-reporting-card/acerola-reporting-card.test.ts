@@ -6,6 +6,17 @@ import AcerolaReportingCard from './acerola-reporting-card.svelte';
 const notConfigured = { serverUrl: '', hasToken: false, state: 'off' as const };
 
 describe('AcerolaReportingCard', () => {
+	// feliz: não confunde o serviço da máquina com uma conexão ausente na sessão humana.
+	it('identifies the machine-managed installation without offering a second connection', () => {
+		render(AcerolaReportingCard, {
+			props: { data: { serverUrl: '', hasToken: false, state: 'managed' } }
+		});
+		expect(screen.getByText('Gerenciado pelo TI')).toBeInTheDocument();
+		expect(screen.queryByText('Não configurado')).not.toBeInTheDocument();
+		// triste: a configuração do serviço não pode ser sobrescrita por este formulário.
+		expect(screen.queryByLabelText('Chave desta máquina')).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument();
+	});
 	// feliz
 	it('hands over the address and the key that were typed', async () => {
 		// O contrato do card: quem grava é a rota, e ela recebe os dois valores já limpos
