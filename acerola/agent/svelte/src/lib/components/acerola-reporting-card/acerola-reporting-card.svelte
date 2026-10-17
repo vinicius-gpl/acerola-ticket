@@ -53,7 +53,9 @@
 </script>
 
 <script lang="ts">
-	import AcerolaBadge, { type AcerolaBadgeTone } from '$lib/components/acerola-badge/acerola-badge.svelte';
+	import AcerolaBadge, {
+		type AcerolaBadgeTone
+	} from '$lib/components/acerola-badge/acerola-badge.svelte';
 	import AcerolaButton from '$lib/components/acerola-button/acerola-button.svelte';
 	import AcerolaCard from '$lib/components/acerola-card/acerola-card.svelte';
 
