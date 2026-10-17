@@ -11,7 +11,9 @@
   const schedule = useSoftwareScheduleModel();
 
   let selectedEvent = $state<SoftwareScheduleEvent | null>(null);
-  let isNewOpen = $state(false);
+  /* O novo agendamento: aberto pelo botão (dia em tela, 09:00) ou por um clique no calendário,
+     que já traz o dia e, na grade de horas, o horário. */
+  let newSlot = $state<{ date: string; startTime?: string } | null>(null);
 </script>
 
 <svelte:head>
@@ -24,7 +26,11 @@
   actions={{
     ...schedule.actions,
     onNewEvent: () => {
-      if (canEditSystem(page.data.user)) isNewOpen = true;
+      if (canEditSystem(page.data.user))
+        newSlot = { date: schedule.data.currentDate.toLocaleDateString('sv-SE') };
+    },
+    onNewEventAt: (date, startTime) => {
+      if (canEditSystem(page.data.user)) newSlot = { date, startTime };
     },
     onSelectEvent: (event) => {
       if (canEditSystem(page.data.user)) selectedEvent = event;
@@ -42,13 +48,16 @@
   />
 {/if}
 
-{#if isNewOpen}
-  <ScheduleEventFormSlot
-    event={null}
-    defaultDate={schedule.data.currentDate.toLocaleDateString('sv-SE')}
-    projects={schedule.data.projects}
-    onClose={() => (isNewOpen = false)}
-  />
+{#if newSlot}
+  {#key newSlot}
+    <ScheduleEventFormSlot
+      event={null}
+      defaultDate={newSlot.date}
+      defaultStartTime={newSlot.startTime}
+      projects={schedule.data.projects}
+      onClose={() => (newSlot = null)}
+    />
+  {/key}
 {/if}
 
 {#if selectedEvent}

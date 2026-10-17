@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import WeekScheduleGrid, {
   type AcerolaWeekScheduleGridProps,
+  timeAtOffset,
 } from './acerola-week-schedule-grid.svelte';
 
 function renderView(
@@ -18,6 +19,7 @@ function renderView(
     onToday: vi.fn(),
     onViewModeChange: vi.fn(),
     onNewEvent: vi.fn(),
+    onNewEventAt: vi.fn(),
     onSelectEvent: vi.fn(),
     onRetry: vi.fn(),
     onOpenGithubDay: vi.fn(),
@@ -417,7 +419,44 @@ describe('AcerolaWeekScheduleGrid', () => {
     expect(actions.onSelectEvent).toHaveBeenCalled();
   });
 
+  it('opens a new appointment on the day clicked in the month view', async () => {
+    const actions = renderView({ data: { viewMode: 'month' }, state: { canEdit: true } });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Novo agendamento em 05/10/2026' }));
+
+    expect(actions.onNewEventAt).toHaveBeenCalledWith('2026-10-05');
+  });
+
+  it('opens a new appointment on the day and time clicked in the week view', async () => {
+    const actions = renderView({ state: { canEdit: true } });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Novo agendamento em 07/10/2026' }));
+
+    expect(actions.onNewEventAt).toHaveBeenCalledWith(
+      '2026-10-07',
+      expect.stringMatching(/^\d{2}:\d{2}$/),
+    );
+  });
+
+  it('turns the clicked point of the grid into a half-hour slot', () => {
+    expect(timeAtOffset(0)).toBe('08:00');
+    expect(timeAtOffset(30)).toBe('08:30');
+    expect(timeAtOffset(56 * 5 + 1)).toBe('13:00');
+  });
+
   // triste
+  /* Quem só consulta não cria: o espaço vazio do calendário não vira botão. */
+  it('does not offer the empty days to who cannot edit', () => {
+    renderView({ data: { viewMode: 'month' }, state: { canEdit: false } });
+
+    expect(screen.queryByRole('button', { name: /novo agendamento em/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps a click near the end of the grid inside business hours', () => {
+    expect(timeAtOffset(9999)).toBe('17:30');
+    expect(timeAtOffset(-10)).toBe('08:00');
+  });
+
   it('shows error state and allows retry', async () => {
     const actions = renderView({
       state: { error: 'Falha ao buscar agenda' },
