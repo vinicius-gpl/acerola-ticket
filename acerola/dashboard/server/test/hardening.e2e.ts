@@ -74,7 +74,7 @@ describe.skipIf(!testDatabaseUrl)('API hardening (e2e)', () => {
       .set(from('198.51.100.2'))
       .expect(200);
     const protectedRoute = await request(app.getHttpServer())
-      .get('/api/tasks')
+      .get('/api/tickets')
       .set(from('198.51.100.2'))
       .expect(401);
 
@@ -102,15 +102,15 @@ describe.skipIf(!testDatabaseUrl)('API hardening (e2e)', () => {
     const ip = from('198.51.100.4');
 
     for (let attempt = 0; attempt < RATE_LIMIT; attempt += 1) {
-      await request(app.getHttpServer()).get('/api/tasks').set(ip).expect(401);
+      await request(app.getHttpServer()).get('/api/tickets').set(ip).expect(401);
     }
 
-    const blocked = await request(app.getHttpServer()).get('/api/tasks').set(ip).expect(429);
+    const blocked = await request(app.getHttpServer()).get('/api/tickets').set(ip).expect(429);
 
     expect(blocked.body.message).toBe(TOO_MANY);
     /* O 429 chega no MESMO formato de erro do resto da API: a tela lê o motivo sempre no
        mesmo lugar. */
-    expect(blocked.body).toMatchObject({ statusCode: 429, path: '/api/tasks' });
+    expect(blocked.body).toMatchObject({ statusCode: 429, path: '/api/tickets' });
   });
 
   /* A trava vem antes da identidade de propósito: quem está abusando não deve custar uma
@@ -119,11 +119,11 @@ describe.skipIf(!testDatabaseUrl)('API hardening (e2e)', () => {
     const ip = from('198.51.100.5');
 
     for (let attempt = 0; attempt < RATE_LIMIT; attempt += 1) {
-      await request(app.getHttpServer()).get('/api/tasks').set(ip).expect(401);
+      await request(app.getHttpServer()).get('/api/tickets').set(ip).expect(401);
     }
 
     /* Sem token nenhum a resposta seria 401; ela vira 429, então a trava decidiu primeiro. */
-    await request(app.getHttpServer()).get('/api/tasks').set(ip).expect(429);
+    await request(app.getHttpServer()).get('/api/tickets').set(ip).expect(429);
   });
 
   it('closes the UniFi webhook door earlier than the rest of the API', async () => {
@@ -148,6 +148,6 @@ describe.skipIf(!testDatabaseUrl)('API hardening (e2e)', () => {
     expect(blocked.body.message).toBe(TOO_MANY);
 
     /* E o resto da API continua atendendo o mesmo endereço: são dois baldes, não um. */
-    await request(app.getHttpServer()).get('/api/tasks').set(ip).expect(401);
+    await request(app.getHttpServer()).get('/api/tickets').set(ip).expect(401);
   });
 });

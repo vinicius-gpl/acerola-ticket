@@ -6,7 +6,7 @@ import { asAna, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util
 
 /**
  * As rotas do WhatsApp e dos links assinados, de ponta a ponta: roteamento, validação, policy
- * e filtro de erro, contra um Postgres de verdade (ver `tasks.e2e.ts` para as regras do banco
+ * e filtro de erro, contra um Postgres de verdade (ver `tickets.e2e.ts` para as regras do banco
  * de teste).
  *
  * O bot em si NÃO entra aqui — ele é um programa à parte, e depender dele faria este teste

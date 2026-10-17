@@ -25,7 +25,7 @@ function wrapped(code: string, constraintName?: string): Error {
     constraint_name: constraintName,
   });
 
-  return Object.assign(new Error('Failed query: insert into "tasks" ...'), { cause });
+  return Object.assign(new Error('Failed query: insert into "tickets" ...'), { cause });
 }
 
 /** O caso que derrubou três telas: coluna sem a tabela na frente, num `join`. */
@@ -99,7 +99,7 @@ describe('toHttpException', () => {
   // feliz
   /* Já existe é 409: a pessoa resolve sozinha, editando o registro que já está lá. */
   it('turns a unique violation into a conflict', () => {
-    const exception = toHttpException(wrapped('23505'), 'criar tarefa');
+    const exception = toHttpException(wrapped('23505'), 'criar chamado');
 
     expect(exception).toBeInstanceOf(ConflictException);
   });
@@ -115,31 +115,31 @@ describe('toHttpException', () => {
 
   /* A checagem do banco tem mensagem própria: "o banco recusou" não diz o que corrigir. */
   it('uses the message written for the named check', () => {
-    const exception = toHttpException(wrapped('23514', 'tasks_status_valid'), 'criar tarefa');
+    const exception = toHttpException(wrapped('23514', 'tickets_status_valid'), 'criar chamado');
 
     expect(exception).toBeInstanceOf(UnprocessableEntityException);
-    expect(exception.message).toContain('situação da tarefa');
+    expect(exception.message).toContain('situação do chamado');
   });
 
   it('turns a foreign key violation into something the screen can explain', () => {
-    const exception = toHttpException(wrapped('23503'), 'criar tarefa');
+    const exception = toHttpException(wrapped('23503'), 'criar chamado');
 
     expect(exception).toBeInstanceOf(UnprocessableEntityException);
     expect(exception.message).toContain('não existe mais');
   });
 
   it('turns a not-null violation into a refused value', () => {
-    expect(toHttpException(wrapped('23502'), 'criar tarefa')).toBeInstanceOf(
+    expect(toHttpException(wrapped('23502'), 'criar chamado')).toBeInstanceOf(
       UnprocessableEntityException,
     );
   });
 
   /* Ocupado não é defeito permanente: 503 deixa a tela dizer "tente de novo" com verdade. */
   it('turns a deadlock into a temporary failure, not a permanent one', () => {
-    expect(toHttpException(wrapped('40P01'), 'criar tarefa')).toBeInstanceOf(
+    expect(toHttpException(wrapped('40P01'), 'criar chamado')).toBeInstanceOf(
       ServiceUnavailableException,
     );
-    expect(toHttpException(wrapped('08006'), 'criar tarefa')).toBeInstanceOf(
+    expect(toHttpException(wrapped('08006'), 'criar chamado')).toBeInstanceOf(
       ServiceUnavailableException,
     );
   });
@@ -148,15 +148,15 @@ describe('toHttpException', () => {
   /* Sem tradução conhecida é 500 de propósito: chamar de 4xx faria a tela culpar quem
      digitou por um defeito nosso, e o problema nunca chegaria até nós. */
   it('keeps an unknown failure as ours, naming what was being done', () => {
-    const exception = toHttpException(new Error('cabo arrancado'), 'criar tarefa');
+    const exception = toHttpException(new Error('cabo arrancado'), 'criar chamado');
 
     expect(exception).toBeInstanceOf(InternalServerErrorException);
-    expect(exception.message).toContain('criar tarefa');
+    expect(exception.message).toContain('criar chamado');
     expect(exception.message).toContain('cabo arrancado');
   });
 
   it('keeps an unmapped SQLSTATE as ours (edge case)', () => {
-    expect(toHttpException(wrapped('42P01'), 'listar tarefas')).toBeInstanceOf(
+    expect(toHttpException(wrapped('42P01'), 'listar chamados')).toBeInstanceOf(
       InternalServerErrorException,
     );
   });
@@ -208,7 +208,7 @@ describe('runQuery, runMaybe e runOne', () => {
   });
 
   it('turns nothing found into a 404 with the message given', async () => {
-    await expect(runOne(Promise.resolve([]), 'buscar', 'Tarefa não encontrada.')).rejects.toThrow(
+    await expect(runOne(Promise.resolve([]), 'buscar', 'Chamado não encontrado.')).rejects.toThrow(
       NotFoundException,
     );
   });

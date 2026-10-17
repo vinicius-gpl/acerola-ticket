@@ -6,7 +6,7 @@ import { describeDatabaseUrl, MIGRATIONS_FOLDER, SERVER_ROOT } from './open-data
 
 /**
  * `openDatabase` não é testada aqui: ela conecta num Postgres de verdade e aplica migrations.
- * Quem cobre isso é o E2E (`test/tasks.e2e.ts`), que sobe contra o banco de teste da
+ * Quem cobre isso é o E2E (`test/tickets.e2e.ts`), que sobe contra o banco de teste da
  * TEST_DATABASE_URL. No SQLite dava para abrir um banco em memória e testar tudo aqui; o
  * Postgres não tem equivalente, e fingir um banco testaria o dublê, não o sistema.
  */
