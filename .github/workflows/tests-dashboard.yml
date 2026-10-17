@@ -1,6 +1,6 @@
 # O mesmo portão do Definition of Done (CONTRIBUTING §14), rodando fora da máquina de quem
 # programa. O hook de pre-commit some com um `--no-verify`; isto aqui não.
-name: CI
+name: Tests/Dashboard
 
 on:
   push:
@@ -13,6 +13,11 @@ on:
 defaults:
   run:
     working-directory: acerola/dashboard
+
+# Uma atualização do mesmo PR substitui a verificação anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
@@ -42,7 +47,7 @@ jobs:
           cache: npm
           cache-dependency-path: acerola/dashboard/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --prefer-offline
       - run: npm run lint
       - run: npm run typecheck
       # Regras das skills design-system e ui-standards, para os dois apps Svelte. Só reprova
@@ -70,7 +75,7 @@ jobs:
           cache: npm
           cache-dependency-path: acerola/dashboard/bot/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --prefer-offline
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

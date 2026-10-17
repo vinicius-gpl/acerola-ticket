@@ -10,7 +10,7 @@
 # que ele vai virar no histórico:
 #
 #   [merge](web): Chamado vira ordem de serviço — linha do tempo e PDF conferível
-name: Título do PR
+name: Checks/PR title
 
 on:
   pull_request:
@@ -29,7 +29,7 @@ jobs:
 
       # O título entra por variável de ambiente, e não colado no comando: título de PR é texto
       # de quem abriu o PR, e colado no script ele poderia virar comando.
-      - name: O título segue o formato [merge](local) Mensagem
+      - name: Title follows the [merge](scope) Message format
         working-directory: acerola/dashboard
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
