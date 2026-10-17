@@ -147,3 +147,44 @@
     actions,
   }}
 />
+
+<!-- Ninguém procurou ainda: a gaveta mostra os chamados que a pessoa abriu. -->
+<Story
+  name="MyTickets"
+  args={{
+    data: {
+      protocol: '',
+      ticket: null,
+      mine: [
+        {
+          id: 12,
+          protocol: 'CH-0012',
+          status: 'in_progress',
+          priority: 'high',
+          area: 'infra',
+          problemType: 'printer',
+          description: 'A impressora do fiscal não puxa papel.',
+          createdAt: '2026-10-14T13:00:00.000Z',
+        },
+        {
+          id: 9,
+          protocol: 'CH-0009',
+          status: 'resolved',
+          priority: 'low',
+          area: 'manutencao',
+          problemType: 'other',
+          description: 'A cadeira da recepção está quebrada.',
+          createdAt: '2026-10-02T09:30:00.000Z',
+        },
+      ],
+    },
+    state: { isOpen: true },
+    actions,
+  }}
+/>
+
+<!-- Caso limite: a pessoa nunca abriu chamado. -->
+<Story
+  name="NoTicketsYet"
+  args={{ data: { protocol: '', ticket: null, mine: [] }, state: { isOpen: true }, actions }}
+/>

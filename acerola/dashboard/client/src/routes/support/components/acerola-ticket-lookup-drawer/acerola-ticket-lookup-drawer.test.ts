@@ -23,7 +23,12 @@ const ticket: PublicTicket = {
   createdAt: '2026-09-15T12:10:00.000Z',
 };
 
-const actions = { onProtocolChange: vi.fn(), onSearch: vi.fn(), onClose: vi.fn() };
+const actions = {
+  onProtocolChange: vi.fn(),
+  onSearch: vi.fn(),
+  onClose: vi.fn(),
+  onOpenMine: vi.fn(),
+};
 
 function setup(props: Record<string, unknown> = {}) {
   return render(TicketLookupDrawer, {
@@ -197,4 +202,39 @@ describe('AcerolaTicketLookupDrawer', () => {
 
     expect(screen.queryByText(/62999990001/)).not.toBeInTheDocument();
   });
+
+  // feliz
+  /* Ninguém procurou ainda: aparecem os chamados que a pessoa abriu, e clicar abre o chamado. */
+  it('lists the tickets the person opened and opens one on click', async () => {
+    setup({
+      data: {
+        protocol: '',
+        ticket: null,
+        mine: [
+          {
+            id: 12,
+            protocol: 'CH-0012',
+            status: 'in_progress',
+            priority: 'high',
+            area: 'infra',
+            problemType: 'printer',
+            description: 'A impressora do fiscal não puxa papel.',
+            createdAt: '2026-10-14T13:00:00.000Z',
+          },
+        ],
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /CH-0012/ }));
+
+    expect(actions.onOpenMine).toHaveBeenCalledWith('CH-0012');
+  });
+
+  // triste
+  it('says the person has not opened any ticket yet instead of an empty list', () => {
+    setup({ data: { protocol: '', ticket: null, mine: [] } });
+
+    expect(screen.getByText('Você ainda não abriu nenhum chamado.')).toBeInTheDocument();
+  });
 });
+

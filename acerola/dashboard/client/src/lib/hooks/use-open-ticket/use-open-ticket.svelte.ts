@@ -16,6 +16,7 @@ import {
   ticketFormSchema,
   type TicketFormValues,
   type TicketAssigneeOption,
+  type RequesterDefaults,
 } from '@template/shared/schemas/ticket.schema';
 
 import { readError } from '$lib/api/http-client';
@@ -75,6 +76,8 @@ export type OpenTicketModel = {
     systemProjectsError: string | null;
     /** O link do WhatsApp não vale mais (vencido ou alterado). O formulário abre normal, sem ele. */
     inviteError: string | null;
+    /** O nome veio da conta da pessoa, e não se muda aqui. */
+    isNameLocked: boolean;
   };
   actions: {
     onChange: (field: OpenTicketField, value: string) => void;
@@ -200,6 +203,25 @@ export function useOpenTicketModel(): OpenTicketModel {
         inviteError = readError(error) ?? 'Este link não vale mais. Peça outro pelo WhatsApp.';
       });
   }
+  /* OS DADOS DA PESSOA LOGADA: o nome (travado — é a conta, e o chamado fica ligado a ela), o
+     telefone e o departamento do último chamado dela (sugeridos; a pessoa corrige). Falhou? O
+     formulário abre como antes, para digitar: o perfil é ajuda, não condição para pedir
+     socorro. Guardados para o "abrir outro chamado" voltar preenchido. */
+  let requester = $state<RequesterDefaults | null>(null);
+  const applyRequester = (defaults: RequesterDefaults) => {
+    form.setFieldValue('requesterName', defaults.name);
+    const phone = invitePhoneForForm(defaults.phone);
+    if (phone && !values.current.contactPhone) form.setFieldValue('contactPhone', formatPhoneInput(phone));
+    if (defaults.department) form.setFieldValue('department', defaults.department);
+  };
+  void ticketsApi
+    .requesterDefaults()
+    .then((defaults) => {
+      requester = defaults;
+      applyRequester(defaults);
+    })
+    .catch(() => undefined);
+
   $effect(() => {
     const area = values.current.area;
     assignees = [];
@@ -261,10 +283,13 @@ export function useOpenTicketModel(): OpenTicketModel {
         systemProjectsLoading: projects.current.isPending,
         systemProjectsError: projects.current.isError ? readError(projects.current.error) : null,
         inviteError,
+        isNameLocked: requester !== null,
       };
     },
     actions: {
       onChange: (field, value) => {
+        /* O nome é o da conta: o chamado fica ligado à pessoa, e o servidor ignora outro nome. */
+        if (field === 'requesterName' && requester) return;
         /* Quem chegou pelo link do WhatsApp já escolheu com quem falar: trocar de área (que
            limpa o responsável) não pode desfazer essa escolha. */
         const kept = field === 'assigneeId' && value === '' && invite ? invite.assignee.id : value;
@@ -314,6 +339,7 @@ export function useOpenTicketModel(): OpenTicketModel {
         screenshotError = null;
         save.current.reset();
         form.reset();
+        if (requester) applyRequester(requester);
       },
     },
   };

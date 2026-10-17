@@ -75,6 +75,8 @@
       systemProjectsError?: string | null;
       /** O link do WhatsApp não vale mais: um aviso, e o formulário segue normal. */
       inviteError?: string | null;
+      /** O nome veio da conta da pessoa e não se muda aqui. */
+      isNameLocked?: boolean;
     };
     actions: {
       onChange: (field: OpenTicketField, value: string) => void;
@@ -407,8 +409,8 @@
                 }}
                 state={{
                   error: fields.requesterName.error,
-                  isDisabled: formState.isSubmitting,
-                  isAutoFocused: true,
+                  isDisabled: formState.isSubmitting || formState.isNameLocked,
+                  isAutoFocused: !formState.isNameLocked,
                 }}
                 actions={{
                   onChange: (value: string) => actions.onChange('requesterName', value),

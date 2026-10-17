@@ -11,6 +11,9 @@ vi.mock('$lib/api/tickets.api', () => ({
     create: vi.fn(),
     systemProjectOptions: vi.fn(),
     assigneeOptions: vi.fn().mockResolvedValue([]),
+    /* Por padrão o perfil não responde: o formulário abre para digitar, como antes. Os testes
+       do preenchimento pela conta trocam isto. */
+    requesterDefaults: vi.fn().mockRejectedValue(new Error('sem perfil')),
   },
 }));
 
@@ -278,5 +281,36 @@ describe('useOpenTicketModel', () => {
     model.actions.onAttachmentError(null);
 
     await waitFor(() => expect(model.state.attachmentError).toBeNull());
+  });
+
+  // feliz
+  /* A pessoa está logada: o nome vem da conta e trava; telefone e departamento vêm sugeridos. */
+  it('prefills the form from the account and locks the name', async () => {
+    vi.mocked(ticketsApi.requesterDefaults).mockResolvedValueOnce({
+      name: 'Bia Costa',
+      email: 'bia@exemplo.com',
+      phone: '5562988887777',
+      department: 'fiscal',
+    });
+    const model = mountModel();
+
+    await waitFor(() => expect(model.state.isNameLocked).toBe(true));
+    expect(model.data.fields.requesterName.value).toBe('Bia Costa');
+    expect(model.data.fields.department.value).toBe('fiscal');
+    expect(model.data.fields.contactPhone.value).not.toBe('');
+
+    model.actions.onChange('requesterName', 'Outro nome');
+    expect(model.data.fields.requesterName.value).toBe('Bia Costa');
+
+    model.actions.onChange('contactPhone', '62911112222');
+    await waitFor(() => expect(model.data.fields.contactPhone.value).toBe('62911112222'));
+  });
+
+  // triste
+  it('leaves the name free to type when the account could not be read', async () => {
+    const model = mountModel();
+
+    await waitFor(() => expect(ticketsApi.requesterDefaults).toHaveBeenCalled());
+    expect(model.state.isNameLocked).toBe(false);
   });
 });
