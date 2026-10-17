@@ -2,14 +2,20 @@ import { z } from 'zod';
 
 import { REQUESTER_NAME_MAX_LENGTH } from '../schemas/ticket.schema';
 import { DEPARTMENT_LABELS, DEPARTMENTS, type Department } from './department.util';
+import { type PersonCandidate, personOptionsText, pickPerson } from './person-match.util';
 import { MIN_PHONE_DIGITS } from './phone.util';
 
 /**
- * PEDIDO DE ACESSO PELO WHATSAPP — a conversa do `/acesso`, sem WhatsApp nem banco.
+ * PEDIDO DE USUÁRIO PELO WHATSAPP — a conversa do `/acesso`, sem WhatsApp nem banco.
  *
- * Diferente do `/chamado` (que responde com um link), aqui o bot pergunta UM campo por
- * mensagem: nome completo, e-mail, telefone (só quando o WhatsApp esconde), setor e sistema.
- * Foi a escolha de quem usa: quem pede acesso responde no próprio chat, sem abrir formulário.
+ * É para quem ainda NÃO TEM usuário: a pessoa escreve para quem atende, e o bot junta o que é
+ * preciso para criar a conta — nome completo, e-mail, telefone (só quando o WhatsApp esconde) e
+ * setor —, um campo por mensagem, e abre um chamado de Sistema com tudo na descrição. Acesso a
+ * sistema não se pede aqui: isso vem depois, com a conta criada.
+ *
+ * Depois do nome, o servidor procura a conta da pessoa (`person-match.util`). Achou
+ * uma: o pedido fica ligado a ela e o e-mail vem da conta, sem perguntar. Achou várias: o
+ * próximo passo é `who`, o "quem é você?".
  *
  * O rascunho guarda o que já foi respondido; a próxima pergunta é sempre o primeiro campo que
  * falta. Tudo aqui é texto puro — é a regra da conversa, e vale igual se o transporte mudar.
@@ -21,9 +27,7 @@ export const ACCESS_REQUEST_COMMAND = '/acesso';
 /* Quem quer desistir no meio responde uma destas palavras. */
 const CANCEL_WORDS: readonly string[] = ['cancelar', '/cancelar'];
 
-export type AccessRequestStep = 'name' | 'email' | 'phone' | 'department' | 'system';
-
-export type AccessRequestProject = { id: number; name: string };
+export type AccessRequestStep = 'name' | 'who' | 'email' | 'phone' | 'department';
 
 export type AccessRequestDraft = {
   requesterName: string | null;
@@ -31,7 +35,10 @@ export type AccessRequestDraft = {
   /** Só dígitos. Já vem preenchido quando o WhatsApp informa quem escreveu. */
   phone: string | null;
   department: Department | null;
-  project: AccessRequestProject | null;
+  /** A conta da pessoa que está pedindo, quando o bot a reconheceu. */
+  requesterId?: string | null;
+  /** As pessoas com o nome escrito, enquanto o bot espera a resposta do "quem é você?". */
+  candidates?: PersonCandidate[] | null;
 };
 
 export type AccessRequestFill =
@@ -54,16 +61,23 @@ export function isAccessRequestCancel(text: string): boolean {
 }
 
 export function emptyAccessRequest(phone: string | null): AccessRequestDraft {
-  return { requesterName: null, email: null, phone, department: null, project: null };
+  return {
+    requesterName: null,
+    email: null,
+    phone,
+    department: null,
+    requesterId: null,
+    candidates: null,
+  };
 }
 
 /** O próximo campo a perguntar — ou nulo quando o pedido está completo. */
 export function nextAccessRequestStep(draft: AccessRequestDraft): AccessRequestStep | null {
   if (!draft.requesterName) return 'name';
+  if (draft.candidates && draft.candidates.length > 0) return 'who';
   if (!draft.email) return 'email';
   if (!draft.phone) return 'phone';
   if (!draft.department) return 'department';
-  if (!draft.project) return 'system';
 
   return null;
 }
@@ -108,10 +122,6 @@ export function departmentOptionsText(): string {
   return numbered(DEPARTMENTS.map((department) => DEPARTMENT_LABELS[department]));
 }
 
-export function projectOptionsText(projects: readonly AccessRequestProject[]): string {
-  return numbered(projects.map((project) => project.name));
-}
-
 function normalize(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[*_~]/g, '').trim().toLowerCase();
 }
@@ -126,11 +136,7 @@ function pick<T>(text: string, options: readonly T[], labelOf: (option: T) => st
   return options.find((option) => normalize(labelOf(option)) === wanted) ?? null;
 }
 
-type StepRule = (
-  draft: AccessRequestDraft,
-  text: string,
-  projects: readonly AccessRequestProject[],
-) => AccessRequestFill;
+type StepRule = (draft: AccessRequestDraft, text: string) => AccessRequestFill;
 
 /* Cada passo: lê a resposta e, se entendeu, devolve o rascunho com o campo preenchido; se não,
    o que dizer — já com o jeito certo de responder, para a pessoa acertar na próxima. */
@@ -144,6 +150,17 @@ const STEP_RULES: Record<AccessRequestStep, StepRule> = {
     }
 
     return { ok: true, draft: { ...draft, requesterName } };
+  },
+  who: (draft, text) => {
+    const people = draft.candidates ?? [];
+    const picked = pickPerson(text, people);
+    if (!picked) {
+      return fail(`Não entendi. Responda com o *número* da pessoa:\n${personOptionsText(people)}`);
+    }
+    /* "Nenhum desses": segue sem vínculo, e o e-mail é perguntado como antes. */
+    if (picked === 'none') return { ok: true, draft: { ...draft, candidates: null } };
+
+    return { ok: true, draft: identifiedAs(draft, picked) };
   },
   email: (draft, text) => {
     const email = parseEmail(text);
@@ -165,17 +182,21 @@ const STEP_RULES: Record<AccessRequestStep, StepRule> = {
 
     return { ok: true, draft: { ...draft, department } };
   },
-  system: (draft, text, projects) => {
-    const project = pick(text, projects, (item) => item.name);
-    if (!project) {
-      return fail(
-        `Não entendi o *sistema*. Responda com o número:\n${projectOptionsText(projects)}`,
-      );
-    }
-
-    return { ok: true, draft: { ...draft, project } };
-  },
 };
+
+/** O rascunho de quem o bot reconheceu: nome e e-mail passam a ser os da conta. */
+export function identifiedAs(
+  draft: AccessRequestDraft,
+  person: PersonCandidate,
+): AccessRequestDraft {
+  return {
+    ...draft,
+    requesterId: person.id,
+    requesterName: person.name,
+    email: person.email,
+    candidates: null,
+  };
+}
 
 function fail(error: string): AccessRequestFill {
   return { ok: false, error };
@@ -186,23 +207,21 @@ export function fillAccessRequestStep(
   draft: AccessRequestDraft,
   step: AccessRequestStep,
   text: string,
-  projects: readonly AccessRequestProject[],
 ): AccessRequestFill {
-  return STEP_RULES[step](draft, text, projects);
+  return STEP_RULES[step](draft, text);
 }
 
 /**
  * A descrição do chamado. O chamado não tem campo de e-mail: ele vai aqui, junto com o resto,
- * para quem atende ter tudo de que precisa para liberar o acesso sem perguntar de novo.
+ * para quem atende ter tudo de que precisa para criar o usuário sem perguntar de novo.
  */
 export function accessRequestDescription(request: {
   requesterName: string;
   email: string;
   phone: string;
-  projectName: string;
 }): string {
   return [
-    `Pedido de acesso ao sistema ${request.projectName}, feito pelo WhatsApp (/acesso).`,
+    'Pedido de usuário, feito pelo WhatsApp (/acesso).',
     '',
     `Nome: ${request.requesterName}`,
     `E-mail: ${request.email}`,

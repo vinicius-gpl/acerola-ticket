@@ -33,7 +33,12 @@ const DISCONNECTED: BotStatus = { state: 'disconnected', qr: null, phone: null }
 const USAGE = { sentToday: 3, dailyLimit: 100 };
 
 function makeService(
-  options: { bot?: BotStatus; isConfigured?: boolean; stored?: string | null } = {},
+  options: {
+    bot?: BotStatus;
+    isConfigured?: boolean;
+    stored?: string | null;
+    storedName?: string | null;
+  } = {},
 ) {
   const bot = {
     isConfigured: options.isConfigured ?? true,
@@ -42,9 +47,15 @@ function makeService(
     unlink: vi.fn().mockResolvedValue(undefined),
   };
   const repository = {
-    find: vi
-      .fn()
-      .mockResolvedValue(options.stored ? { userId: 'u-admin', phone: options.stored } : null),
+    find: vi.fn().mockResolvedValue(
+      options.stored
+        ? {
+            userId: 'u-admin',
+            phone: options.stored,
+            operatorName: options.storedName === undefined ? 'Ana Lima' : options.storedName,
+          }
+        : null,
+    ),
     save: vi.fn().mockResolvedValue(undefined),
     remove: vi.fn().mockResolvedValue(undefined),
   };
@@ -69,7 +80,7 @@ describe('WhatsappLinkService.status', () => {
       ...CONNECTED,
       ...USAGE,
     });
-    expect(repository.save).toHaveBeenCalledWith('u-admin', '5562999990001');
+    expect(repository.save).toHaveBeenCalledWith('u-admin', '5562999990001', 'Ana Lima');
   });
 
   it('hands the QR code to whoever is pairing, without recording anything', async () => {
@@ -86,6 +97,19 @@ describe('WhatsappLinkService.status', () => {
     await service.status(admin);
 
     expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  /* Vínculo de antes da assinatura: o nome de quem vinculou é guardado na próxima leitura. */
+  it('records the operator name on a link made before it was kept', async () => {
+    const { service, repository } = makeService({
+      bot: CONNECTED,
+      stored: '5562999990001',
+      storedName: null,
+    });
+
+    await service.status(admin);
+
+    expect(repository.save).toHaveBeenCalledWith('u-admin', '5562999990001', 'Ana Lima');
   });
 
   /* Desvinculado pelo próprio celular: o bot passa a dizer "sem vínculo", e a tabela acompanha. */

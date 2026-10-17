@@ -40,6 +40,7 @@ function queued(overrides: Partial<WhatsappMessageRow> = {}): WhatsappMessageRow
 
 function makeService(
   options: {
+    operatorName?: string | null;
     sent?: number;
     limit?: number;
     linked?: boolean;
@@ -54,11 +55,15 @@ function makeService(
     sendText: vi.fn().mockResolvedValue(options.outcome ?? 'sent'),
   };
   const connections = {
-    find: vi
-      .fn()
-      .mockResolvedValue(
-        options.linked === false ? null : { userId: 'u-ana', phone: '5562999990001' },
-      ),
+    find: vi.fn().mockResolvedValue(
+      options.linked === false
+        ? null
+        : {
+            userId: 'u-ana',
+            phone: '5562999990001',
+            operatorName: options.operatorName === undefined ? 'Ana Lima' : options.operatorName,
+          },
+    ),
   };
   const messages = {
     countSince: vi.fn(async () => sent),
@@ -94,7 +99,7 @@ describe('WhatsappMessagingService.queue', () => {
         ticketId: 7,
         kind: 'ticket_ready',
         recipient: '5562999990002',
-        body: 'text:ticket_ready',
+        body: '*Ana Lima BOT*\n\ntext:ticket_ready',
         expiresAt: new Date(NOW.getTime() + DAY_MS),
       },
       NOW,
@@ -142,7 +147,11 @@ describe('WhatsappMessagingService.deliver', () => {
 
     await service.deliver(queued(), NOW);
 
-    expect(bot.sendText).toHaveBeenLastCalledWith('u-ana', '5562999990001', 'text:limit_alert');
+    expect(bot.sendText).toHaveBeenLastCalledWith(
+      'u-ana',
+      '5562999990001',
+      '*Ana Lima BOT*\n\ntext:limit_alert',
+    );
     expect(messages.markSent).toHaveBeenCalledTimes(1);
   });
 
@@ -225,7 +234,7 @@ describe('WhatsappMessagingService.reply', () => {
   it('hands back the text and counts it, leaving the delivery to the bot', async () => {
     const { service, bot, messages } = makeService();
 
-    expect(await service.reply(reply)).toBe('text:intake_link');
+    expect(await service.reply(reply)).toBe('*Ana Lima BOT*\n\ntext:intake_link');
     expect(messages.record).toHaveBeenCalledOnce();
     expect(bot.sendText).not.toHaveBeenCalled();
   });
@@ -264,5 +273,30 @@ describe('startOfDay', () => {
     const now = new Date('2026-10-11T01:00:00.000Z');
 
     expect(startOfDay(now, 'America/Sao_Paulo').toISOString()).toBe('2026-10-10T03:00:00.000Z');
+  });
+});
+
+describe('WhatsappMessagingService — assinatura do bot', () => {
+  const reply = {
+    senderUserId: 'u-ana',
+    recipient: '5562999990002',
+    kind: 'intake_link' as const,
+    ticketId: null,
+    values: {},
+  };
+
+  // feliz
+  it('signs every message with the name of who attends', async () => {
+    const { service } = makeService();
+
+    expect(await service.reply(reply)).toBe('*Ana Lima BOT*\n\ntext:intake_link');
+  });
+
+  // triste
+  /* Vínculo antigo, de antes de o nome ser guardado: sai assinada com o nome da casa. */
+  it('still signs the message when the link has no name yet', async () => {
+    const { service } = makeService({ operatorName: null });
+
+    expect(await service.reply(reply)).toBe('*Acerola BOT*\n\ntext:intake_link');
   });
 });

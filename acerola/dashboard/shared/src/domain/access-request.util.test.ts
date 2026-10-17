@@ -12,11 +12,6 @@ import {
   parsePhone,
 } from './access-request.util';
 
-const PROJECTS = [
-  { id: 7, name: 'Portal do Cliente' },
-  { id: 9, name: 'Folha' },
-];
-
 describe('isAccessRequestCommand', () => {
   // feliz
   it('recognizes the command with spaces around it and in any case', () => {
@@ -112,7 +107,6 @@ describe('nextAccessRequestStep', () => {
         email: 'm@e.com',
         phone: '62999990000',
         department: 'rh',
-        project: PROJECTS[0] ?? null,
       }),
     ).toBeNull();
   });
@@ -130,25 +124,20 @@ describe('fillAccessRequestStep', () => {
 
   // feliz
   it('fills each field with the answer', () => {
-    const named = fillAccessRequestStep(draft, 'name', 'Maria Clara', PROJECTS);
-    const department = fillAccessRequestStep(draft, 'department', '11', PROJECTS);
-    const system = fillAccessRequestStep(draft, 'system', 'folha', PROJECTS);
+    const named = fillAccessRequestStep(draft, 'name', 'Maria Clara');
+    const department = fillAccessRequestStep(draft, 'department', '11');
 
     expect(named).toEqual({ ok: true, draft: { ...draft, requesterName: 'Maria Clara' } });
     expect(department).toEqual({ ok: true, draft: { ...draft, department: 'rh' } });
-    expect(system).toEqual({ ok: true, draft: { ...draft, project: { id: 9, name: 'Folha' } } });
   });
 
   // triste
   it('explains how to answer when it did not understand, with the list again', () => {
-    const name = fillAccessRequestStep(draft, 'name', 'Maria', PROJECTS);
-    const system = fillAccessRequestStep(draft, 'system', '5', PROJECTS);
+    const name = fillAccessRequestStep(draft, 'name', 'Maria');
+    const department = fillAccessRequestStep(draft, 'department', '99');
 
     expect(name).toMatchObject({ ok: false, error: expect.stringContaining('dois nomes') });
-    expect(system).toMatchObject({
-      ok: false,
-      error: expect.stringContaining('1. Portal do Cliente'),
-    });
+    expect(department).toMatchObject({ ok: false, error: expect.stringContaining('11. RH') });
   });
 });
 
@@ -159,10 +148,9 @@ describe('accessRequestDescription', () => {
       requesterName: 'Maria Clara',
       email: 'maria@empresa.com.br',
       phone: '62999990000',
-      projectName: 'Folha',
     });
 
-    expect(description).toContain('Pedido de acesso ao sistema Folha');
+    expect(description).toContain('Pedido de usuário');
     expect(description).toContain('E-mail: maria@empresa.com.br');
     expect(description).toContain('Telefone: 62999990000');
   });
@@ -173,9 +161,52 @@ describe('accessRequestDescription', () => {
       requesterName: 'Maria Clara',
       email: 'm@e.com',
       phone: '6299999000',
-      projectName: '',
     });
 
     expect(description.split('\n')).toContain('Nome: Maria Clara');
+  });
+});
+
+describe('the "who is who" step', () => {
+  const ANA_SOUZA = { id: 'a1', name: 'Ana Souza', email: 'ana.souza@empresa.com.br' };
+  const ANA_LIMA = { id: 'a2', name: 'Ana Lima', email: 'ana.lima@empresa.com.br' };
+  const asking = {
+    ...emptyAccessRequest('5562999990000'),
+    requesterName: 'Ana',
+    candidates: [ANA_SOUZA, ANA_LIMA],
+  };
+
+  // feliz
+  it('asks who is who before anything else, and links the request to the one picked', () => {
+    expect(nextAccessRequestStep(asking)).toBe('who');
+
+    const picked = fillAccessRequestStep(asking, 'who', '2');
+
+    expect(picked).toEqual({
+      ok: true,
+      draft: {
+        ...asking,
+        requesterId: 'a2',
+        requesterName: 'Ana Lima',
+        email: ANA_LIMA.email,
+        candidates: null,
+      },
+    });
+    /* O e-mail veio da conta: o próximo passo já é o setor. */
+    expect(picked.ok && nextAccessRequestStep(picked.draft)).toBe('department');
+  });
+
+  it('goes on without a link when the person is none of them', () => {
+    const none = fillAccessRequestStep(asking, 'who', '0');
+
+    expect(none.ok && nextAccessRequestStep(none.draft)).toBe('email');
+  });
+
+  // triste
+  it('repeats the list when the answer is not one of the options', () => {
+    expect(fillAccessRequestStep(asking, 'who', '7')).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('1. Ana Souza'),
+    });
   });
 });

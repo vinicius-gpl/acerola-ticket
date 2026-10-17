@@ -48,6 +48,16 @@ describe('readPrivateText', () => {
     expect(readPrivateText(withoutPhone, NOW)?.phone).toBeNull();
   });
 
+  /* Baileys 7: o mesmo número chega no campo `remoteJidAlt`. */
+  it('takes the phone from the alternate address the current library sends', () => {
+    const withPhone = message({}, {
+      remoteJid: '123456789012345@lid',
+      remoteJidAlt: '5562999990004@s.whatsapp.net',
+    } as never);
+
+    expect(readPrivateText(withPhone, NOW)?.phone).toBe('5562999990004');
+  });
+
   it('accepts the anonymous address WhatsApp uses in place of the phone', () => {
     const fromLid = message({}, { remoteJid: '123456789012345@lid' });
 
