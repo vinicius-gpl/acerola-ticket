@@ -15,6 +15,7 @@ import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../../lib/auth/public.decorator';
 import { type Env } from '../../../lib/config/env.schema';
 import { ENV } from '../../../lib/config/env.token';
+import { SkipHistory } from '../../history/interceptor/skip-history.decorator';
 import { InboundMessageDto, InboundReplyDto } from '../dto/inbound.dto';
 import { WhatsappIntakeService } from '../service/whatsapp-intake.service';
 
@@ -25,7 +26,8 @@ import { WhatsappIntakeService } from '../service/whatsapp-intake.service';
  * mesmo `BOT_API_TOKEN` que o servidor usa para chamá-lo. Sem esse token (ou com a integração
  * desligada), a rota não existe para ninguém.
  *
- * Fica fora do Swagger de propósito: não é API para a tela nem para terceiros.
+ * Fica fora do Swagger de propósito: não é API para a tela nem para terceiros. E fora do
+ * histórico: cada mensagem de cada conversa passa por aqui.
  */
 @ApiTags('Vinculação WhatsApp')
 @Controller('integrations/whatsapp/inbound')
@@ -37,6 +39,7 @@ export class WhatsappIntakeController {
 
   @Post()
   @Public()
+  @SkipHistory()
   @HttpCode(HttpStatus.OK)
   @ApiExcludeEndpoint()
   handle(
