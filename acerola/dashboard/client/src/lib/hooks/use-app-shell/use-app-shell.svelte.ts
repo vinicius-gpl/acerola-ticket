@@ -47,6 +47,7 @@ export type AppShellModel = {
       email: string;
       role: string;
       roles?: ContextRoles;
+      avatarUrl: string | null;
     };
     /**
      * Os contextos que esta pessoa atende — vazio quando ela não tem cargo em área nenhuma,
@@ -146,6 +147,8 @@ export function useAppShellModel(input: {
         email: input.user.email,
         role: USER_ROLE_LABELS[input.user.role],
         roles: input.user.roles,
+        /* A foto da conta no Neon Auth, que chega no `/api/auth/me`. */
+        avatarUrl: input.user.image ?? null,
       },
       get areaOptions() {
         const mine = areas.current.data ?? [];

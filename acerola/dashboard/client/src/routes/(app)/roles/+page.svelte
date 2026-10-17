@@ -28,6 +28,7 @@
       ? {
           name: data.user.name,
           email: data.user.email,
+          image: data.user.image,
           role: data.user.role,
           roles: data.user.roles,
         }
