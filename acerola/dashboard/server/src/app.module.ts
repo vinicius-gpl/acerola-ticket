@@ -18,6 +18,7 @@ import { WhatsappIntakeModule } from './modules/whatsapp-intake/whatsapp-intake.
 import { BudgetModule } from './modules/budget/budget.module';
 import { ComputersModule } from './modules/computers/computers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HistoryModule } from './modules/history/history.module';
 import { HealthModule } from './modules/health/health.module';
 import { MaintenancesModule } from './modules/maintenances/maintenances.module';
 import { InsightsModule } from './modules/insights/insights.module';
@@ -67,6 +68,8 @@ const CLIENT_DIST = join(__dirname, '..', '..', 'client', 'dist');
     SecurityModule,
     AuthModule,
     AuthApiModule,
+    /* Logo depois da identidade: o histórico precisa saber quem mudou o quê. */
+    HistoryModule,
     GithubIntegrationModule,
     WhatsappModule,
     WhatsappIntakeModule,
