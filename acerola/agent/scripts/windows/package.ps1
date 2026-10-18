@@ -1,10 +1,31 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 [CmdletBinding()]
 param([Parameter(Mandatory = $true)][string]$Version)
 $ErrorActionPreference = 'Stop'
+function Write-ReleaseManifest([string]$output, [string]$Version) {
+    $artifacts = @{}
+    foreach ($entry in @{ msi = "acerola-agent-$Version-x64.msi"; certificate = 'publisher.cer' }.GetEnumerator()) {
+        $path = Join-Path $output $entry.Value
+        $artifacts[$entry.Key] = @{
+            key = "agent/releases/$Version/$($entry.Value)"
+            sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            sizeBytes = (Get-Item -LiteralPath $path).Length
+        }
+    }
+    @{ version = $Version; publishedAt = [DateTime]::UtcNow.ToString('o'); artifacts = $artifacts } |
+        ConvertTo-Json -Depth 5 | Set-Content (Join-Path $output 'latest.json') -Encoding utf8NoBOM
+
+}
+
+function Write-ReleaseChecksums([string]$output) {
+    Get-ChildItem $output -File | Where-Object { $_.Name -ne 'SHA256SUMS' -and $_.Extension -ne '.wixpdb' } | ForEach-Object {
+        "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+    } | Set-Content (Join-Path $output 'SHA256SUMS') -Encoding utf8NoBOM
+}
+
 if ($Version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Invalid release version' }
 if (-not $env:AGENT_SIGNING_PFX_BASE64 -or -not $env:AGENT_SIGNING_PASSWORD) { throw 'Configure AGENT_SIGNING_PFX_BASE64 and AGENT_SIGNING_PASSWORD first' }
-$agent = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
+$agent = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 # O MSI já veio do wixl; nenhuma chave privada sai deste runner.
 $output = Join-Path $agent 'build/release'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
@@ -33,20 +54,8 @@ try {
     $msi = Join-Path $output "acerola-agent-$Version-x64.msi"
     Sign-File $msi
     Export-Certificate -Cert $certificate -FilePath (Join-Path $output 'publisher.cer') | Out-Null
-    $artifacts = @{}
-    foreach ($entry in @{ msi = "acerola-agent-$Version-x64.msi"; certificate = 'publisher.cer' }.GetEnumerator()) {
-        $path = Join-Path $output $entry.Value
-        $artifacts[$entry.Key] = @{
-            key = "agent/releases/$Version/$($entry.Value)"
-            sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-            sizeBytes = (Get-Item -LiteralPath $path).Length
-        }
-    }
-    @{ version = $Version; publishedAt = [DateTime]::UtcNow.ToString('o'); artifacts = $artifacts } |
-        ConvertTo-Json -Depth 5 | Set-Content (Join-Path $output 'latest.json') -Encoding utf8NoBOM
-    Get-ChildItem $output -File | Where-Object { $_.Name -ne 'SHA256SUMS' -and $_.Extension -ne '.wixpdb' } | ForEach-Object {
-        "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
-    } | Set-Content (Join-Path $output 'SHA256SUMS') -Encoding utf8NoBOM
+    Write-ReleaseManifest $output $Version
+    Write-ReleaseChecksums $output
 } finally {
     if (Test-Path -LiteralPath $pfxPath) { Remove-Item -LiteralPath $pfxPath -Force }
     if ($certificate) { Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -Force }

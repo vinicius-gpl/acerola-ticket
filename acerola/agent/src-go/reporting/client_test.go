@@ -32,7 +32,7 @@ func sampleSnapshot() metrics.Snapshot {
 	return metrics.Snapshot{
 		Timestamp: time.Now(),
 		Host: metrics.Inventory{
-			Hostname:         "MAQUINA-TESTE",
+			Hostname:         "TEST-MACHINE",
 			OS:               "windows",
 			TotalMemoryBytes: 8 << 30,
 			BootTime:         time.Now().Add(-2 * time.Hour),
@@ -93,7 +93,7 @@ func startFakeDashboard(testingContext *testing.T, closeWith int) (string, <-cha
 
 			_ = connection.WriteControl(
 				websocket.CloseMessage,
-				websocket.FormatCloseMessage(closeWith, "recusado"),
+				websocket.FormatCloseMessage(closeWith, "rejected"),
 				time.Now().Add(time.Second),
 			)
 
@@ -120,7 +120,7 @@ func askCadence(testingContext *testing.T, wsAddress string, seconds int) {
 
 	requests, found := cadenceByAddress["http"+strings.TrimPrefix(wsAddress, "ws")]
 	if !found {
-		testingContext.Fatalf("servidor de teste desconhecido: %s", wsAddress)
+		testingContext.Fatalf("unknown test server: %s", wsAddress)
 	}
 
 	requests <- seconds
@@ -133,7 +133,7 @@ func waitForMessage(testingContext *testing.T, received <-chan string) string {
 	case message := <-received:
 		return message
 	case <-time.After(5 * time.Second):
-		testingContext.Fatal("timeout esperando mensagem do agente")
+		testingContext.Fatal("timed out waiting for agent message")
 
 		return ""
 	}
@@ -143,7 +143,7 @@ func TestReporterSendsHelloAndSnapshot(testingContext *testing.T) {
 	// feliz: o agente se apresenta com o token e manda a primeira leitura na hora
 	address, received := startFakeDashboard(testingContext, 0)
 
-	config := Config{ServerURL: address, Token: "token-de-teste", Interval: MinInterval}
+	config := Config{ServerURL: address, Token: "fixture-token", Interval: MinInterval}
 	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
 
 	ctx, cancel := context.WithCancel(testingContext.Context())
@@ -152,21 +152,21 @@ func TestReporterSendsHelloAndSnapshot(testingContext *testing.T) {
 
 	var hello helloMessage
 	if unmarshalError := json.Unmarshal([]byte(waitForMessage(testingContext, received)), &hello); unmarshalError != nil {
-		testingContext.Fatalf("apresentação ilegível: %v", unmarshalError)
+		testingContext.Fatalf("cannot decode hello: %v", unmarshalError)
 	}
-	if hello.Type != "hello" || hello.Token != "token-de-teste" || hello.AgentVersion != "1.2.3" {
-		testingContext.Errorf("apresentação inesperada: %+v", hello)
+	if hello.Type != "hello" || hello.Token != "fixture-token" || hello.AgentVersion != "1.2.3" {
+		testingContext.Errorf("unexpected hello: %+v", hello)
 	}
 
 	var snapshot snapshotMessage
 	if unmarshalError := json.Unmarshal([]byte(waitForMessage(testingContext, received)), &snapshot); unmarshalError != nil {
-		testingContext.Fatalf("leitura ilegível: %v", unmarshalError)
+		testingContext.Fatalf("cannot decode snapshot: %v", unmarshalError)
 	}
 	if snapshot.Type != "snapshot" {
-		testingContext.Errorf("tipo inesperado: %q", snapshot.Type)
+		testingContext.Errorf("unexpected type: %q", snapshot.Type)
 	}
-	if snapshot.Snapshot.Host.Hostname != "MAQUINA-TESTE" {
-		testingContext.Errorf("a leitura não levou o inventário: %+v", snapshot.Snapshot.Host)
+	if snapshot.Snapshot.Host.Hostname != "TEST-MACHINE" {
+		testingContext.Errorf("snapshot is missing inventory: %+v", snapshot.Snapshot.Host)
 	}
 }
 
@@ -174,7 +174,7 @@ func TestReporterSkipsSnapshotBeforeFirstCollection(testingContext *testing.T) {
 	// triste: sem coleta nenhuma, nada é enviado — máquina vazia não vira inventário
 	address, received := startFakeDashboard(testingContext, 0)
 
-	config := Config{ServerURL: address, Token: "token-de-teste", Interval: time.Hour}
+	config := Config{ServerURL: address, Token: "fixture-token", Interval: time.Hour}
 	reporter := NewReporter(config, &fakeSource{}, "1.2.3")
 
 	ctx, cancel := context.WithCancel(testingContext.Context())
@@ -182,12 +182,12 @@ func TestReporterSkipsSnapshotBeforeFirstCollection(testingContext *testing.T) {
 	go reporter.Run(ctx)
 
 	if first := waitForMessage(testingContext, received); !strings.Contains(first, `"hello"`) {
-		testingContext.Fatalf("esperava a apresentação primeiro, veio %s", first)
+		testingContext.Fatalf("expected hello first, got %s", first)
 	}
 
 	select {
 	case unexpected := <-received:
-		testingContext.Errorf("não esperava leitura antes da primeira coleta, veio %s", unexpected)
+		testingContext.Errorf("unexpected snapshot before first collection: %s", unexpected)
 	case <-time.After(300 * time.Millisecond):
 	}
 }
@@ -196,7 +196,7 @@ func TestReporterStopsOnInvalidToken(testingContext *testing.T) {
 	// triste: token errado não vira tentativa eterna — reconectar não conserta configuração
 	address, received := startFakeDashboard(testingContext, closeInvalidToken)
 
-	config := Config{ServerURL: address, Token: "token-errado", Interval: MinInterval}
+	config := Config{ServerURL: address, Token: "invalid-token", Interval: MinInterval}
 	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
 
 	finished := make(chan struct{})
@@ -212,7 +212,7 @@ func TestReporterStopsOnInvalidToken(testingContext *testing.T) {
 	select {
 	case <-finished:
 	case <-time.After(5 * time.Second):
-		testingContext.Fatal("o agente deveria ter desistido depois do token recusado")
+		testingContext.Fatal("agent should stop retrying after token rejection")
 	}
 }
 
@@ -230,28 +230,28 @@ func TestClassifyDecidesByCloseCode(testingContext *testing.T) {
 	for _, singleCase := range cases {
 		decision := classify(&websocket.CloseError{Code: singleCase.code})
 		if decision != singleCase.expected {
-			testingContext.Errorf("para o código %d esperava %v, veio %v", singleCase.code, singleCase.expected, decision)
+			testingContext.Errorf("for code %d expected %v, got %v", singleCase.code, singleCase.expected, decision)
 		}
 	}
 
 	// triste: queda que não é fechamento limpo (rede sumiu) sempre tenta de novo
 	if decision := classify(context.DeadlineExceeded); decision != outcomeRetry {
-		testingContext.Errorf("esperava nova tentativa para erro comum, veio %v", decision)
+		testingContext.Errorf("expected retry for transient error, got %v", decision)
 	}
 }
 
 func TestRetryDelayGrowsUpToTheCeiling(testingContext *testing.T) {
 	// feliz: a espera dobra a cada tentativa
 	if first := retryDelay(0); first != firstRetryDelay {
-		testingContext.Errorf("primeira espera inesperada: %v", first)
+		testingContext.Errorf("unexpected first delay: %v", first)
 	}
 	if second := retryDelay(1); second != 2*firstRetryDelay {
-		testingContext.Errorf("segunda espera inesperada: %v", second)
+		testingContext.Errorf("unexpected second delay: %v", second)
 	}
 
 	// triste: por mais que insista, a espera não passa do teto
 	if ceiling := retryDelay(100); ceiling != maxRetryDelay {
-		testingContext.Errorf("esperava o teto de %v, veio %v", maxRetryDelay, ceiling)
+		testingContext.Errorf("expected maximum %v, got %v", maxRetryDelay, ceiling)
 	}
 }
 
@@ -260,20 +260,20 @@ func TestCadenceOfTranslatesWhatTheServerAsks(testingContext *testing.T) {
 
 	// feliz: o pedido do servidor vira o intervalo pedido
 	if got := cadenceOf(1, rest); got != time.Second {
-		testingContext.Errorf("esperava 1s, veio %v", got)
+		testingContext.Errorf("expected 1s, got %v", got)
 	}
 
 	// feliz: zero devolve o intervalo desta máquina, e não um número de fora
 	if got := cadenceOf(0, rest); got != rest {
-		testingContext.Errorf("esperava o intervalo configurado (%v), veio %v", rest, got)
+		testingContext.Errorf("expected configured interval (%v), got %v", rest, got)
 	}
 
 	// triste: número estranho não pode fazer a máquina parar de reportar
 	if got := cadenceOf(-5, rest); got != rest {
-		testingContext.Errorf("esperava o intervalo configurado para um pedido negativo, veio %v", got)
+		testingContext.Errorf("expected configured interval for negative request, got %v", got)
 	}
 	if got := cadenceOf(99999, rest); got != MaxInterval {
-		testingContext.Errorf("esperava o teto de %v, veio %v", MaxInterval, got)
+		testingContext.Errorf("expected maximum %v, got %v", MaxInterval, got)
 	}
 }
 
@@ -283,7 +283,7 @@ func TestReporterSpeedsUpWhenTheServerAsks(testingContext *testing.T) {
 
 	/* Intervalo de repouso longo de propósito: se o agente ignorasse o pedido, a
 	   segunda leitura só chegaria daqui a uma hora e o teste estouraria o tempo. */
-	config := Config{ServerURL: address, Token: "token-de-teste", Interval: time.Hour}
+	config := Config{ServerURL: address, Token: "fixture-token", Interval: time.Hour}
 	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
 
 	ctx, cancel := context.WithCancel(testingContext.Context())
@@ -296,7 +296,7 @@ func TestReporterSpeedsUpWhenTheServerAsks(testingContext *testing.T) {
 	askCadence(testingContext, address, 1)
 
 	if second := waitForMessage(testingContext, received); !strings.Contains(second, `"snapshot"`) {
-		testingContext.Errorf("esperava uma leitura nova depois do pedido, veio %s", second)
+		testingContext.Errorf("expected a new snapshot after request, got %s", second)
 	}
 }
 
@@ -316,7 +316,7 @@ func TestReporterGivesUpOnASilentServer(testingContext *testing.T) {
 
 	config := Config{
 		ServerURL: "ws" + strings.TrimPrefix(silent.URL, "http"),
-		Token:     "token-de-teste",
+		Token:     "fixture-token",
 		Interval:  time.Hour,
 	}
 	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
@@ -325,7 +325,7 @@ func TestReporterGivesUpOnASilentServer(testingContext *testing.T) {
 	   conferir a decisão sem esperar quase um minuto por ela. */
 	connection, _, dialError := websocket.DefaultDialer.Dial(config.ServerURL, nil)
 	if dialError != nil {
-		testingContext.Fatalf("não consegui conectar ao servidor mudo: %v", dialError)
+		testingContext.Fatalf("cannot connect to silent server: %v", dialError)
 	}
 	defer func() { _ = connection.Close() }()
 
@@ -334,12 +334,12 @@ func TestReporterGivesUpOnASilentServer(testingContext *testing.T) {
 	readError := read(connection, cadence, welcome, reporter.config.Interval, 200*time.Millisecond)
 
 	if readError == nil {
-		testingContext.Error("a leitura deveria ter desistido do servidor mudo")
+		testingContext.Error("reader should time out on silent server")
 	}
 
 	// feliz: desistir é uma queda comum, e queda comum se tenta de novo
 	if decision := classify(readError); decision != outcomeRetry {
-		testingContext.Errorf("esperava nova tentativa, veio %v", decision)
+		testingContext.Errorf("expected retry, got %v", decision)
 	}
 }
 
@@ -361,7 +361,7 @@ func TestReporterWaitsForTheWelcomeBeforeSending(testingContext *testing.T) {
 				return
 			}
 			if strings.Contains(string(payload), `"snapshot"`) {
-				testingContext.Error("o agente mandou leitura antes da confirmação")
+				testingContext.Error("agent sent snapshot before acknowledgement")
 			}
 		}
 	}))
@@ -369,7 +369,7 @@ func TestReporterWaitsForTheWelcomeBeforeSending(testingContext *testing.T) {
 
 	config := Config{
 		ServerURL: "ws" + strings.TrimPrefix(silent.URL, "http"),
-		Token:     "token-de-teste",
+		Token:     "fixture-token",
 		Interval:  MinInterval,
 	}
 	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
@@ -383,7 +383,7 @@ func TestReporterSendsOnlyAfterTheWelcome(testingContext *testing.T) {
 	// feliz: com a confirmação, a primeira leitura sai na hora
 	address, received := startFakeDashboard(testingContext, 0)
 
-	config := Config{ServerURL: address, Token: "token-de-teste", Interval: time.Hour}
+	config := Config{ServerURL: address, Token: "fixture-token", Interval: time.Hour}
 	reporter := NewReporter(config, &fakeSource{snapshot: sampleSnapshot()}, "1.2.3")
 
 	ctx, cancel := context.WithCancel(testingContext.Context())
@@ -391,9 +391,9 @@ func TestReporterSendsOnlyAfterTheWelcome(testingContext *testing.T) {
 	go reporter.Run(ctx)
 
 	if hello := waitForMessage(testingContext, received); !strings.Contains(hello, `"hello"`) {
-		testingContext.Fatalf("esperava a apresentação primeiro, veio %s", hello)
+		testingContext.Fatalf("expected hello first, got %s", hello)
 	}
 	if snapshot := waitForMessage(testingContext, received); !strings.Contains(snapshot, `"snapshot"`) {
-		testingContext.Errorf("esperava a leitura logo após a confirmação, veio %s", snapshot)
+		testingContext.Errorf("expected snapshot immediately after acknowledgement, got %s", snapshot)
 	}
 }

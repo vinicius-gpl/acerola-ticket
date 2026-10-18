@@ -22,6 +22,10 @@ run = "golangci-lint run ./..."
 description = "Testes do Go (src-go/...)"
 run = "go test ./..."
 
+[tasks."scripts:test"]
+description = "Validate PowerShell syntax, complexity and setup behavior"
+run = "pwsh -NoProfile -File scripts/windows/setup.test.ps1"
+
 [tasks."frontend:lint"]
 description = "Prettier --check no frontend"
 run = "npm run lint --prefix svelte"

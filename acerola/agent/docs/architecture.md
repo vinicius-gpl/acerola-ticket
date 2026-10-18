@@ -3,8 +3,8 @@
 Agente de monitoramento de sistema para Windows: um ícone na bandeja (visão rápida, a "popup") e
 uma janela com painel completo (visão densa, tipo btop, o "dashboard"). Os dois são views da
 **mesma janela nativa** de um único app Wails — não duas janelas separadas, não um navegador
-externo. Esta é a fase de prova de conceito: tudo roda localmente, nada sai desta máquina. Veja
-`roadmap.md` para o que vem depois.
+externo. A interface mostra as métricas locais; instalações configuradas também as enviam ao dashboard.
+O serviço Windows mantém coleta e atualização da LTS antes do login, conforme `releases.md`.
 
 > Esta é a segunda versão da arquitetura. A primeira usava `net/http` + uma página servida no
 > navegador; foi abandonada porque o pedido passou a ser uma experiência de app nativo (janela
@@ -86,7 +86,7 @@ O Wails resolve esse transporte nativamente:
   O `metrics.Broadcaster` (mesma peça da versão anterior, ver abaixo) permanece o único lugar que
   chama `Collector.Snapshot` — só que agora, em vez de escrever num canal por aba de navegador,
   ele empurra pro frontend via evento nativo.
-- **Svelte → Go**: métodos do struct `App` (`app.go`) expostos via `Bind` no `wails.Run(...)`
+- **Svelte → Go**: métodos do struct `App` (`src-go/desktop/app.go`) expostos via `Bind` no `wails.Run(...)`
   viram funções JS chamáveis diretamente (`svelte/wailsjs/go/main/App.js`, gerado pelo próprio
   Wails). A popup chama `HideWindow()` ao perder o foco, e o dashboard chama o mesmo método pelo
 botão de fechar do próprio cabeçalho.
@@ -110,7 +110,7 @@ sendo o único chamador, mesmo sem mais precisar multiplexar pra vários assinan
 
 `main()` só chama `wails.Run(...)` — é o padrão de todo exemplo do Wails, e `wails.Run` bloqueia
 até o app fechar. A bandeja (`tray.Run`, que chama `systray.Run` e bloqueia esperando clique) é
-disparada **de dentro do `OnStartup`** (`app.go`), numa goroutine própria, não em `main()`:
+disparada **de dentro do `OnStartup`** (`src-go/desktop/app.go`), numa goroutine própria, não em `main()`:
 
 ```go
 func main() {
@@ -170,7 +170,7 @@ janelas nativas diferentes, cada uma com sua própria fila de mensagens travada 
 sua (a do parágrafo acima) — uma chamando direto na fila da outra e esperando resposta é receita
 pra deadlock entre as duas.
 
-A correção (`app.go`) foi nunca deixar o código dependurado num clique de bandeja tocar
+A correção (`src-go/desktop/app.go`) foi nunca deixar o código dependurado num clique de bandeja tocar
 `runtime.*` diretamente. Existe um canal (`App.actions`) e uma goroutine própria,
 `runActions`, iniciada no `OnStartup` — a única que efetivamente chama `runtime.WindowShow`,
 `WindowSetSize`, `EventsEmit` etc.:
@@ -207,35 +207,47 @@ app — errar a posição por alguns pixels é bem menos grave que não abrir.
 
 ## Estrutura de pastas
 
-O Wails **exige** que `main.go` e `app.go` fiquem na raiz do projeto — não existe um campo de
-configuração equivalente ao `frontend:dir` (que sim existe, e foi usado pra chamar o frontend de
-`svelte/` em vez do `frontend/` padrão) pro lado Go. Confirmado lendo
-`internal/project/project.go` do próprio Wails: o build sempre compila o pacote `main` a partir
-da raiz do projeto (`projectdir`), sem opção de apontar pra uma subpasta. Por isso a raiz tem só
-o mínimo que o Wails exige, e todo o resto do código Go mora em `src-go/`:
+O Wails compila o pacote `main` na raiz do projeto. Só a entrada precisa ficar ali:
+`main.go` embute `svelte/dist` e mantém o tipo `main.App`, com os métodos promovidos de
+`desktop.App`, para preservar os bindings `window.go.main.App`. A lógica fica em `src-go/desktop`.
+O build completo do Wails verifica também a geração desses bindings.
 
-```
-main.go, app.go     exigidos pelo Wails na raiz — não dá pra mover
-wails.json           config do Wails (frontend:dir aponta pra "svelte")
-build/               ícones e manifesto do instalador (convenção do Wails)
+```text
+main.go              entrada, embed e contrato main.App
+wails.json           configuração do Wails
+build/windows/       ícone, manifesto e metadados do executável
+build/windows/installer/agent.wxs   definição do MSI
+build/bin/           binários gerados, ignorados pelo Git
+scripts/windows/     instalação, configuração, certificados, assinatura e smoke test
 src-go/
-  metrics/           coleta (gopsutil) + tipos (Snapshot, Inventory) + Broadcaster
-  tray/              menu da bandeja, chamando callbacks do app.go
-  screen/            área útil do monitor (SystemParametersInfoW), pra posicionar as janelas
-  assets/            ícone da bandeja embutido no binário (.ico)
-  cmd/icongen/       ferramenta de build (não roda em produção): SVG → .ico
-svelte/              frontend (Svelte 5 + Vite), ver reuse.md
-icons/               SVGs de origem e o .ico gerado — a cópia "de referência"
-docs/                este diretório
+  desktop/           ciclo de vida, janela, configuração da interface e entrada Wails
+  metrics/           coletor, inventário, processos, taxas e broadcaster
+  reporting/         configuração e envio de métricas
+  machine/           identidade e permissões da instalação de máquina
+  service/           coleta e atualização antes do login
+  updater/           validação, download e instalação da LTS
+  tray/              menu da bandeja
+  screen/            área útil do monitor
+  window/            operações nativas da janela
+  memory/            liberação de memória por plataforma
+  secret/            cofre de credenciais e migração do formato antigo
+  assets/            ícones da bandeja embutidos
+  version/           versão publicada
+  cmd/service/       entrada do serviço Windows
+  cmd/icongen/       ferramenta SVG → ICO/PNG
+svelte/              frontend Svelte 5 + Vite
+icons/               originais dos ícones
+docs/                documentação técnica
 ```
 
-`src-go/metrics`, `src-go/tray` e `src-go/assets` **não** se chamam `internal/` — essa é uma
-diferença proposital em relação à primeira versão. O Go proíbe qualquer código fora da árvore
-`src-go/` de importar um pacote `src-go/internal/algumacoisa` (é a regra de visibilidade do
-`internal/`), e `main.go`/`app.go` moram fora dessa árvore (na raiz, por exigência do Wails) —
-então usar `internal/` ali dentro travaria a própria compilação. Como nada fora deste módulo
-importa este código de qualquer forma (é um binário, não uma lib publicada), a palavra `internal`
-não protegia nada de verdade; tirá-la resolve o problema de import sem perder nada.
+Os pacotes permanecem diretamente em `src-go/`: um `src-go/internal/` impediria o
+`main.go`, que está fora dessa árvore, de importá-los.
+
+Os scripts ficam separados dos recursos que o Wails espera em `build/windows`. O empacotamento
+passa `ScriptDir` ao WiX e copia os scripts distribuídos para a release. `configure-machine.ps1`
+concentra o provisionamento em funções pequenas no mesmo arquivo, pois precisa funcionar também
+fora do checkout. Os outros pontos de entrada reutilizam esse fluxo; na instalação pelos três
+arquivos do dashboard, a configuração é obtida do próprio MSI.
 
 `src-go/assets` existe pela mesma razão da primeira versão: `//go:embed` não alcança fora da
 árvore do arquivo `.go` (sem `..` no caminho), e o ícone de origem mora em `/icons`. `svelte/`
@@ -247,11 +259,11 @@ Vite.
 O agente é feito para o Windows, mas compila e roda no Linux para quem desenvolve nele:
 `mise run setup` (instala o GTK 3 e o WebKitGTK, pede a senha de administrador) e
 `mise run dev`. Tudo que fala com a API do Windows mora em arquivos `*_windows.go`, e cada um
-tem um par `*_other.go` (`//go:build !windows`) com o que o Linux consegue fazer:
+tem um par `*_nonwindows.go` (`//go:build !windows`) com o que o Linux consegue fazer:
 
 | Onde | No Windows | Fora dele |
 |---|---|---|
-| `app_windows.go` / `app_other.go` | posiciona pela API nativa, em qualquer monitor | posiciona pelo Wails, na tela atual; **abre o Dashboard ao iniciar** |
+| `src-go/desktop/app_windows.go` / `app_nonwindows.go` | posiciona pela API nativa, em qualquer monitor | posiciona pelo Wails, na tela atual; **abre o Dashboard ao iniciar** |
 | `src-go/memory` | `EmptyWorkingSet` no processo e nos filhos do WebView2 | só o coletor de lixo do Go |
 | `src-go/tray` | ícone `.ico`, libera o foco no clique | ícone `.png` |
 | `src-go/screen`, `src-go/window` | área útil, cantos arredondados | só o tipo `Area` e o nome da classe |
@@ -260,10 +272,13 @@ Limites conhecidos no Linux: o GNOME não mostra ícone de bandeja sem a extens�
 *AppIndicator* (por isso o Dashboard abre sozinho — fechou, só reiniciando o `mise run dev`), e
 no Wayland o sistema ignora o pedido de posição: a janela aparece onde ele decidir.
 
-## Segurança e escopo desta fase
+## Segurança e execução
 
-- Nenhum dado sai da máquina. Não há cliente HTTP de saída, não há token, não há telemetria — e,
-  diferente da primeira versão, agora nem existe mais uma porta TCP aberta: a comunicação
-  Go↔Svelte é só IPC do Wails dentro do próprio processo.
-- O agente roda em primeiro plano (minimizado na bandeja); não há instalação como serviço do
-  Windows nesta fase — ver `roadmap.md`.
+- Go e Svelte se comunicam pelo IPC do Wails, sem servidor HTTP local.
+- Quando configurado, o agente envia inventário e métricas ao dashboard pelo WebSocket
+  autenticado. A credencial da sessão humana fica no cofre do sistema.
+- Na instalação por MSI, a identidade da máquina é cifrada com DPAPI LocalMachine e protegida
+  por permissões de arquivo. O serviço LocalSystem coleta e envia antes do login; a bandeja
+  evita abrir uma segunda conexão de telemetria.
+- O atualizador verifica versão, tamanho, SHA256 e assinatura Authenticode da LTS antes de
+  entregar o MSI ao Windows Installer. O fluxo e seus limites estão em `releases.md`.

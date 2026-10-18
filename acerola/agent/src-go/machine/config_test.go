@@ -54,7 +54,7 @@ func TestInvalidConfig(t *testing.T) {
 	if err := validate(Config{ServerURL: "http://192.168.1.50:3000", AutoUpdate: false}); err != nil {
 		t.Fatalf("private IP http should be permitted: %v", err)
 	}
-	if err := validate(Config{ServerURL: "http://servidor-local:3000", AutoUpdate: false}); err != nil {
+	if err := validate(Config{ServerURL: "http://local-server:3000", AutoUpdate: false}); err != nil {
 		t.Fatalf("local hostname http should be permitted: %v", err)
 	}
 }

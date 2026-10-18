@@ -15,7 +15,7 @@ func legacyProtectForTest(testingContext *testing.T, plain string) string {
 
 	entropy, entropyError := legacyMachineEntropy()
 	if entropyError != nil {
-		testingContext.Fatalf("não consegui montar a entropia: %v", entropyError)
+		testingContext.Fatalf("cannot build entropy: %v", entropyError)
 	}
 
 	plainBlob := legacyBlobOf([]byte(plain))
@@ -25,7 +25,7 @@ func legacyProtectForTest(testingContext *testing.T, plain string) string {
 	if protectError := windows.CryptProtectData(
 		&plainBlob, nil, &entropyBlob, 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out,
 	); protectError != nil {
-		testingContext.Fatalf("não consegui cifrar para o teste: %v", protectError)
+		testingContext.Fatalf("cannot encrypt test value: %v", protectError)
 	}
 
 	return base64.StdEncoding.EncodeToString(legacyReadBlob(out))
@@ -39,33 +39,33 @@ func TestLegacyUnprotectRoundTrip(testingContext *testing.T) {
 
 	plain, unprotectError := LegacyUnprotect(cipher)
 	if unprotectError != nil {
-		testingContext.Fatalf("não consegui decifrar: %v", unprotectError)
+		testingContext.Fatalf("cannot decrypt: %v", unprotectError)
 	}
 	if plain != token {
-		testingContext.Errorf("esperava o token de volta, veio %q", plain)
+		testingContext.Errorf("expected original token, got %q", plain)
 	}
 }
 
 func TestLegacyUnprotectRefusesTamperedValue(testingContext *testing.T) {
 	// triste: mexer no arquivo não devolve um token pela metade — não devolve nada
-	cipher := legacyProtectForTest(testingContext, "token-de-teste")
+	cipher := legacyProtectForTest(testingContext, "fixture-token")
 
 	raw, decodeError := base64.StdEncoding.DecodeString(cipher)
 	if decodeError != nil {
-		testingContext.Fatalf("valor cifrado ilegível: %v", decodeError)
+		testingContext.Fatalf("unreadable ciphertext: %v", decodeError)
 	}
 	raw[len(raw)/2] ^= 0xFF
 
 	if _, unprotectError := LegacyUnprotect(base64.StdEncoding.EncodeToString(raw)); unprotectError == nil {
-		testingContext.Error("esperava recusa para um valor adulterado")
+		testingContext.Error("expected rejection of tampered value")
 	}
 }
 
 func TestLegacyUnprotectRefusesGarbage(testingContext *testing.T) {
 	// triste: arquivo com lixo no lugar do segredo
-	for _, value := range []string{"", "isto não é base64 !!", base64.StdEncoding.EncodeToString([]byte("qualquer coisa"))} {
+	for _, value := range []string{"", "this is not base64 !!", base64.StdEncoding.EncodeToString([]byte("anything"))} {
 		if _, unprotectError := LegacyUnprotect(value); unprotectError == nil {
-			testingContext.Errorf("esperava recusa para %q", value)
+			testingContext.Errorf("expected rejection of %q", value)
 		}
 	}
 }

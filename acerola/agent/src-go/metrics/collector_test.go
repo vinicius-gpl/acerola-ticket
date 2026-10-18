@@ -20,7 +20,7 @@ func TestRateCounterReset(testingContext *testing.T) {
 	// "atual" é menor que "anterior" — não pode dar taxa negativa.
 	calculatedRate := rate(5000, 100, 2)
 	if calculatedRate != 0 {
-		testingContext.Errorf("rate com contador reiniciado = %v, want 0", calculatedRate)
+		testingContext.Errorf("rate with reset counter = %v, want 0", calculatedRate)
 	}
 }
 
@@ -28,7 +28,7 @@ func TestRateZeroElapsed(testingContext *testing.T) {
 	// triste: elapsedSeconds <= 0 não pode gerar divisão por zero ou negativo.
 	calculatedRate := rate(1000, 2000, 0)
 	if calculatedRate != 0 {
-		testingContext.Errorf("rate com elapsed=0 = %v, want 0", calculatedRate)
+		testingContext.Errorf("rate with elapsed=0 = %v, want 0", calculatedRate)
 	}
 }
 
@@ -37,7 +37,7 @@ func TestHasFlagMatchingCaseInsensitive(testingContext *testing.T) {
 
 	// feliz: procura por uma flag existente, ignorando maiúsculas/minúsculas
 	if !hasFlag(flagList, "up") {
-		testingContext.Error("hasFlag deveria achar \"up\" case-insensitive")
+		testingContext.Error("hasFlag should find \"up\" ignoring case")
 	}
 }
 
@@ -46,7 +46,7 @@ func TestHasFlagAbsent(testingContext *testing.T) {
 
 	// triste: flag que não está na lista não deve ser encontrada
 	if hasFlag(flagList, "loopback") {
-		testingContext.Error("hasFlag não deveria achar \"loopback\" nessa lista")
+		testingContext.Error("hasFlag should not find \"loopback\" in this list")
 	}
 }
 

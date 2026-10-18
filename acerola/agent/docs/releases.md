@@ -65,7 +65,7 @@ Em um Windows confiável, rode uma única vez. Não gere outro certificado a cad
 
 ```powershell
 $password = Read-Host 'Senha da chave de assinatura' -AsSecureString
-.\acerola\agent\build\windows\installer\new-signing-certificate.ps1 `
+.\acerola\agent\scripts\windows\new-signing-certificate.ps1 `
     -OutputDirectory "$env:USERPROFILE\acerola-signing" -Password $password
 ```
 

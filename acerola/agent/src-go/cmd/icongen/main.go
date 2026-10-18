@@ -23,10 +23,10 @@ import (
 )
 
 func main() {
-	src := flag.String("src", "", "caminho do arquivo .svg de origem")
-	out := flag.String("out", "", "caminho do arquivo .ico de destino")
-	sizesFlag := flag.String("sizes", "16,32,48,256", "tamanhos (px) a incluir no .ico, separados por vírgula")
-	zoom := flag.Float64("zoom", 1.0, "fator de ampliação da arte dentro do quadro (1.2 = +20%, corta a margem)")
+	src := flag.String("src", "", "source .svg file path")
+	out := flag.String("out", "", "destination .ico file path")
+	sizesFlag := flag.String("sizes", "16,32,48,256", "comma-separated icon sizes in pixels")
+	zoom := flag.Float64("zoom", 1.0, "artwork zoom factor (1.2 = +20%, crops margins)")
 	flag.Parse()
 
 	if *src == "" || *out == "" {
@@ -69,7 +69,7 @@ func main() {
 
 func writeSinglePNG(out string, sizes []int, pngs [][]byte) {
 	if len(pngs) != 1 {
-		log.Fatal("saída .png exige exatamente um tamanho em -sizes")
+		log.Fatal("PNG output requires exactly one size in -sizes")
 	}
 	if err := os.WriteFile(out, pngs[0], 0o644); err != nil {
 		log.Fatalf("error writing png: %v", err)
@@ -83,7 +83,7 @@ func parseSizes(raw string) ([]int, error) {
 	for _, part := range parts {
 		size, err := strconv.Atoi(strings.TrimSpace(part))
 		if err != nil {
-			return nil, fmt.Errorf("tamanho inválido %q: %w", part, err)
+			return nil, fmt.Errorf("invalid size %q: %w", part, err)
 		}
 		sizes = append(sizes, size)
 	}

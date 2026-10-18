@@ -16,7 +16,7 @@ func TestBroadcasterSubscriptionHappyPath(testingContext *testing.T) {
 	defer unsubscribeCallback()
 
 	if subscriptionChannel == nil {
-		testingContext.Fatal("esperava canal de assinatura válido, veio nil")
+		testingContext.Fatal("expected a valid subscription channel, got nil")
 	}
 
 	// Dispara uma rodada de coleta e distribuição
@@ -25,10 +25,10 @@ func TestBroadcasterSubscriptionHappyPath(testingContext *testing.T) {
 	select {
 	case receivedSnapshot := <-subscriptionChannel:
 		if receivedSnapshot.Timestamp.IsZero() {
-			testingContext.Error("snapshot recebido não deveria ter timestamp zero")
+			testingContext.Error("received snapshot must have a nonzero timestamp")
 		}
 	case <-time.After(3 * time.Second):
-		testingContext.Fatal("timeout esperando snapshot do broadcaster")
+		testingContext.Fatal("timed out waiting for broadcaster snapshot")
 	}
 }
 
@@ -39,7 +39,7 @@ func TestBroadcasterLatestEmptyInitial(testingContext *testing.T) {
 
 	initialSnapshot := broadcasterInstance.Latest()
 	if !initialSnapshot.Timestamp.IsZero() {
-		testingContext.Error("snapshot inicial antes de tick deveria ter timestamp zero")
+		testingContext.Error("initial snapshot before tick must have a zero timestamp")
 	}
 }
 
@@ -50,12 +50,12 @@ func TestBroadcasterUnsubscribe(testingContext *testing.T) {
 
 	_, unsubscribeCallback := broadcasterInstance.Subscribe()
 	if len(broadcasterInstance.subs) != 1 {
-		testingContext.Errorf("esperava 1 assinante, obteve %d", len(broadcasterInstance.subs))
+		testingContext.Errorf("expected 1 subscriber, got %d", len(broadcasterInstance.subs))
 	}
 
 	unsubscribeCallback()
 
 	if len(broadcasterInstance.subs) != 0 {
-		testingContext.Errorf("esperava 0 assinantes após desinscrição, obteve %d", len(broadcasterInstance.subs))
+		testingContext.Errorf("expected 0 subscribers after unsubscribe, got %d", len(broadcasterInstance.subs))
 	}
 }

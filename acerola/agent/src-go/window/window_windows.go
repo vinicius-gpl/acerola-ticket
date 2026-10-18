@@ -38,12 +38,12 @@ var (
 	user32 = windows.NewLazySystemDLL("user32.dll")
 	gdi32  = windows.NewLazySystemDLL("gdi32.dll")
 
-	procFindWindow         = user32.NewProc("FindWindowW")
-	procSetWindowPos       = user32.NewProc("SetWindowPos")
-	procSetWindowRgn       = user32.NewProc("SetWindowRgn")
-	procShowWindow         = user32.NewProc("ShowWindow")
+	procFindWindow          = user32.NewProc("FindWindowW")
+	procSetWindowPos        = user32.NewProc("SetWindowPos")
+	procSetWindowRgn        = user32.NewProc("SetWindowRgn")
+	procShowWindow          = user32.NewProc("ShowWindow")
 	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
-	procCreateRoundRectRgn = gdi32.NewProc("CreateRoundRectRgn")
+	procCreateRoundRectRgn  = gdi32.NewProc("CreateRoundRectRgn")
 )
 
 const (
@@ -155,4 +155,3 @@ func Activate(handle windows.HWND) {
 	_, _, _ = procShowWindow.Call(uintptr(handle), uintptr(swRestore))
 	_, _, _ = procSetForegroundWindow.Call(uintptr(handle))
 }
-

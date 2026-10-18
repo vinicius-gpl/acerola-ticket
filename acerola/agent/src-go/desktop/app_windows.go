@@ -1,12 +1,11 @@
-package main
+package desktop
 
 import (
 	"context"
 
-	"golang.org/x/sys/windows"
-
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/window"
+	"golang.org/x/sys/windows"
 )
 
 // Raio dos cantos da janela, igual ao `rounded-lg` do CSS em
