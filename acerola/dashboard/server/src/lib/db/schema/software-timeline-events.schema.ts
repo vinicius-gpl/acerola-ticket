@@ -3,7 +3,7 @@ import {
   TIMELINE_EVENT_TYPES,
 } from '@template/shared/domain/software-project.util';
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, index, integer, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { softwareProjects } from './software-projects.schema';
 
@@ -38,6 +38,14 @@ export const softwareTimelineEvents = pgTable(
     index('software_timeline_project_idx').on(table.projectId),
     index('software_timeline_type_idx').on(table.type),
     index('software_timeline_date_idx').on(table.eventDate),
+    /* Um PR ou issue aparece uma vez só por sistema. É o que deixa a sincronização gravar em lote
+       (`on conflict do update`) em vez de perguntar "já existe?" item por item. Eventos sem
+       número externo (release, deploy manual) ficam de fora: no Postgres, nulo não colide. */
+    uniqueIndex('software_timeline_external_unique').on(
+      table.projectId,
+      table.type,
+      table.externalId,
+    ),
     check(
       'software_timeline_type_valid',
       sql`${table.type} in (${valuesFor(TIMELINE_EVENT_TYPES)})`,
