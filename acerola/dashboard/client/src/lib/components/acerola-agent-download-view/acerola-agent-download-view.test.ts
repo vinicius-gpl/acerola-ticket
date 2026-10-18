@@ -18,7 +18,12 @@ const state = {
   releasesError: null,
   downloadingVersion: null,
 };
-const actions = () => ({ onRetry: vi.fn(), onDownload: vi.fn(), onDownloadVersion: vi.fn() });
+const actions = () => ({
+  onRetry: vi.fn(),
+  onDownload: vi.fn(),
+  onDownloadVersion: vi.fn(),
+  onDownloadInstallerScript: vi.fn(),
+});
 
 describe('AcerolaAgentDownloadView', () => {
   // feliz
@@ -27,8 +32,12 @@ describe('AcerolaAgentDownloadView', () => {
     render(AgentDownloadView, { data, state, actions: callbacks });
     expect(screen.getByText('Acerola Agent 1.2.3')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Baixar instalador' }));
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Baixar script de instalação (install-agent.ps1)' }),
+    );
     await fireEvent.click(screen.getByRole('button', { name: 'Baixar certificado' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Baixar script do certificado' }));
+    expect(callbacks.onDownloadInstallerScript).toHaveBeenCalledOnce();
     expect(callbacks.onDownload.mock.calls).toEqual([
       ['msi'],
       ['certificate'],

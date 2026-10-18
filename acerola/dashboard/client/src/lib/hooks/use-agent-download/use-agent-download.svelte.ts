@@ -8,6 +8,7 @@ import {
 import { agentDownloadApi } from '$lib/api/agent-download.api';
 import { readError } from '$lib/api/http-client';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
+import { downloadAgentInstallerScript } from '$lib/utils/agent-installer-script.util';
 
 /** Qual arquivo está sendo preparado: o tipo, e de qual versão. */
 export type AgentDownloading = { version: string; kind: AgentDownloadKind };
@@ -27,6 +28,7 @@ export type AgentDownloadModel = {
     onRetry: () => void;
     onDownload: (kind: AgentDownloadKind) => void;
     onDownloadVersion: (version: string, kind: AgentDownloadKind) => void;
+    onDownloadInstallerScript: () => void;
   };
 };
 
@@ -99,6 +101,10 @@ export function useAgentDownloadModel(): AgentDownloadModel {
       },
       onDownload: (kind) => void download(kind),
       onDownloadVersion: (version, kind) => void downloadVersion(version, kind),
+      onDownloadInstallerScript: () => {
+        const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
+        downloadAgentInstallerScript({ serverUrl: origin });
+      },
     },
   };
 }

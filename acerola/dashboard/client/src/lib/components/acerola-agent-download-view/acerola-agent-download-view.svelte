@@ -88,23 +88,28 @@
       <div class="mt-6 border-t border-border pt-5">
         <h3 class="text-foreground font-semibold">Primeira instalação</h3>
         <p class="text-muted-foreground mt-2 text-sm">
-          Baixe os três arquivos e mantenha todos na mesma pasta. Você precisará de permissão de
+          Baixe os arquivos para a mesma pasta no computador. Você precisará de permissão de
           administrador no Windows.
         </p>
         <ol class="text-foreground mt-4 list-decimal space-y-3 pl-5 text-sm">
           <li>
-            Baixe o certificado e o script abaixo. Abra o PowerShell como administrador nessa pasta
-            e execute: <code class="mt-2 block break-all"
-              >powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-certificate.ps1</code
-            >
+            Baixe o instalador MSI, o certificado e o script de instalação automática abaixo.
           </li>
-          <li>Abra o instalador MSI e conclua a instalação do agente.</li>
           <li>
-            Peça à equipe de Infraestrutura a chave do computador para conectar o agente ao
-            inventário.
+            Clique com o botão direito no arquivo <code class="font-mono text-xs font-semibold">install-agent.ps1</code>
+            e escolha <strong>Executar com o PowerShell</strong> (ele solicitará elevação de Administrador automaticamente).
+          </li>
+          <li>
+            O script instalará o certificado e o agente em silêncio. Quando solicitado na janela,
+            cole a chave (token) do computador gerada no cadastro da máquina.
           </li>
         </ol>
         <div class="mt-5 flex flex-wrap gap-3">
+          <ActionButton
+            data={{ label: 'Baixar script de instalação (install-agent.ps1)' }}
+            ui={{ icon: Download }}
+            actions={{ onClick: () => actions.onDownloadInstallerScript?.() }}
+          />
           <ActionButton
             data={{ label: 'Baixar certificado', loadingLabel: 'Preparando…' }}
             ui={{ variant: 'secondary', icon: Download }}

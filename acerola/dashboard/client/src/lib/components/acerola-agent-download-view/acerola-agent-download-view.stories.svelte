@@ -25,7 +25,12 @@
     releasesError: null,
     downloadingVersion: null,
   };
-  const actions = { onRetry: fn(), onDownload: fn(), onDownloadVersion: fn() };
+  const actions = {
+    onRetry: fn(),
+    onDownload: fn(),
+    onDownloadVersion: fn(),
+    onDownloadInstallerScript: fn(),
+  };
 </script>
 
 <Story name="Default" args={{ data, state, actions }} />
