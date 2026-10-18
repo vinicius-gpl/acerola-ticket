@@ -67,6 +67,8 @@
 </script>
 
 <script lang="ts">
+  import PopoverContent from '$lib/components/acerola-search-popover-content/acerola-search-popover-content.svelte';
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
@@ -75,7 +77,6 @@
   import TimelineStep from '$lib/components/acerola-timeline-step/acerola-timeline-step.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
@@ -83,7 +84,6 @@
   } from '$lib/components/acerola-dialog/acerola-dialog';
   import {
     Popover,
-    PopoverContent,
     PopoverTrigger,
   } from '$lib/components/acerola-popover/acerola-popover';
   import { cn } from '$lib/utils/cn';
@@ -344,7 +344,7 @@
 
                       <div
                         bind:this={listboxEl}
-                        class="max-h-60 overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1 w-full"
+                        class="min-h-0 max-h-60 overscroll-contain overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1 w-full"
                         role="listbox"
                         aria-label="Lista de colaboradores"
                       >

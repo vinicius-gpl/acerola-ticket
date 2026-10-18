@@ -45,3 +45,35 @@ describe('AcerolaResponsiveDialogContent', () => {
     expect(screen.getByText('Excluir esta peça?', { exact: true })).toBeInTheDocument();
   });
 });
+
+// triste: cancelar um gesto nunca confirma o fechamento do diálogo.
+it('keeps the dialog open when a long drag is cancelled', async () => {
+  const onOpenChange = vi.fn();
+  render(ResponsiveDialogContentHarness, { props: { onOpenChange } });
+  const handle = screen.getByTestId('drag-handle');
+  await fireEvent.pointerDown(handle, { clientY: 0 });
+  await fireEvent.pointerMove(handle, { clientY: 200 });
+  await fireEvent.pointerCancel(handle);
+  expect(onOpenChange).not.toHaveBeenCalled();
+  expect(screen.getByText('Excluir esta peça?')).toBeInTheDocument();
+});
+
+// feliz: o teclado só desloca a rolagem interna, preservando espaço ao redor do foco.
+it('scrolls a focused field into the padded sheet viewport', async () => {
+  const { container } = render(ResponsiveDialogContentHarness, {
+    props: { onOpenChange: vi.fn(), withFields: true },
+  });
+  const input = screen.getByLabelText('Campo 8');
+  const scrollArea = document.querySelector('[data-slot="dialog-scroll-area"]') as HTMLElement;
+  vi.spyOn(scrollArea, 'getBoundingClientRect').mockReturnValue({ top: 100, bottom: 400 } as DOMRect);
+  vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 400, bottom: 440 } as DOMRect);
+  const frame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    callback(0);
+    return 1;
+  });
+  input.focus();
+  await fireEvent.focusIn(input);
+  expect(scrollArea.scrollTop).toBeGreaterThanOrEqual(52);
+  expect(container.scrollTop).toBe(0);
+  frame.mockRestore();
+});
