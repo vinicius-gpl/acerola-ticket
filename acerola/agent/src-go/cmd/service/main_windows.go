@@ -61,20 +61,20 @@ func recovery() {
 
 func main() {
 	directory := machine.Directory()
-	if err := machine.ValidateDirectory(directory); err != nil {
-		log.Fatal(err)
-	}
+	_ = os.MkdirAll(directory, 0700)
 	logPath := filepath.Join(directory, "service.log")
 	if stat, err := os.Stat(logPath); err == nil && stat.Size() > 5*1024*1024 {
 		_ = os.Remove(logPath + ".old")
 		_ = os.Rename(logPath, logPath+".old")
 	}
 	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
-	if err != nil {
-		log.Fatal(err)
+	if err == nil {
+		defer func() { _ = file.Close() }()
+		log.SetOutput(file)
 	}
-	defer func() { _ = file.Close() }()
-	log.SetOutput(file)
+	if err := machine.ValidateDirectory(directory); err != nil {
+		log.Fatalf("service: directory validation failed: %v", err)
+	}
 	recovery()
 	if err = svc.Run(machine.ServiceName, handler{}); err != nil {
 		log.Fatal(err)

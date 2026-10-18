@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -56,6 +58,7 @@ type App struct {
 	actions         chan func(context.Context)
 	viewReady       chan struct{}
 	isWindowVisible bool
+	startupOpen     bool
 
 	// O envio ao painel central: o que está rodando agora, e como pará-lo.
 	// Trocar a chave na tela derruba o envio antigo e sobe um novo.
@@ -70,6 +73,12 @@ func NewApp() *App {
 		actions:     make(chan func(context.Context), 4),
 		viewReady:   make(chan struct{}, 1),
 	}
+}
+
+func (app *App) SetStartupOpen(open bool) {
+	app.mu.Lock()
+	app.startupOpen = open
+	app.mu.Unlock()
 }
 
 func (app *App) isVisible() bool {
@@ -122,7 +131,7 @@ func (app *App) startup(ctx context.Context) {
 // seja erro — nem toda instalação deste agente é de uma máquina que o TI
 // acompanha pelo painel.
 func (app *App) reportToDashboard(ctx context.Context) {
-	// O serviço é o único dono da conexão da máquina; a bandeja continua mostrando métricas locais.
+	// O serviço é o dono da conexão quando o instalador de máquina está presente.
 	if machine.Installed() {
 		log.Print("reporting: managed by Windows service")
 		return
@@ -180,6 +189,16 @@ func (app *App) stopReporting() {
 // o segredo que acabou de ser cifrado em disco.
 func (app *App) ReportingSettings() reporting.Settings {
 	if machine.Installed() {
+		if content, err := os.ReadFile(filepath.Join(machine.Directory(), "machine.json")); err == nil {
+			var cfg machine.Config
+			if err := json.Unmarshal(content, &cfg); err == nil {
+				return reporting.Settings{
+					ServerURL:       cfg.ServerURL,
+					HasToken:        cfg.TokenCipher != "",
+					IntervalSeconds: int(reporting.DefaultInterval.Seconds()),
+				}
+			}
+		}
 		return reporting.Settings{IntervalSeconds: int(reporting.DefaultInterval.Seconds())}
 	}
 	configPath, configPathError := reporting.DefaultConfigPath()

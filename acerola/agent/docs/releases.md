@@ -90,12 +90,21 @@ do servidor é outro certificado: o Windows também precisa confiar na CA da red
 
 ## Primeira instalação no Windows 10/11
 
-Baixe da mesma versão no bucket do dashboard o `.msi`, `publisher.cer`, `install-certificate.ps1` e
-`configure-machine.ps1`. Use PowerShell **como administrador**, na pasta dos arquivos. A primeira
-importação de confiança é uma ação explícita do TI; depois as atualizações são silenciosas.
+A forma mais simples e recomendada é utilizar o script unificado `install-agent.ps1`:
+
+1. Baixe para a mesma pasta o instalador `.msi`, o `publisher.cer` e o script `install-agent.ps1` (disponíveis no dashboard, já com o domínio embutido).
+2. Clique com o botão direito no `install-agent.ps1` e selecione **"Executar com o PowerShell"** (o script solicita privilégios de Administrador automaticamente se necessário).
+3. O script importa o certificado nas lojas locais, roda o instalador MSI em silêncio, solicita a chave (token) da máquina (caso não tenha sido baixado já vinculado à máquina no cadastro), cifra a credencial via DPAPI e inicia o serviço `AcerolaAgent`.
+
+Caso prefira executar via linha de comando no PowerShell:
 
 ```powershell
-# A exceção vale só para este processo, para executar o primeiro script antes de confiar nele.
+.\install-agent.ps1 -ServerUrl 'https://chamados.exemplo.com' -Token 'sua-chave-aqui'
+```
+
+Alternativamente, os passos manuais continuam disponíveis para automações legadas ou scripts personalizados:
+
+```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-certificate.ps1
 
 $installer = Start-Process "$env:SystemRoot\System32\msiexec.exe" `
@@ -103,7 +112,6 @@ $installer = Start-Process "$env:SystemRoot\System32\msiexec.exe" `
     -Wait -PassThru
 if ($installer.ExitCode -notin @(0, 3010)) { throw "Instalação falhou: $($installer.ExitCode)" }
 
-# Copie a chave do computador cadastrado no dashboard. Não a escreva no comando ou num log.
 $token = Read-Host 'Chave deste computador' -AsSecureString
 .\configure-machine.ps1 -ServerUrl 'https://acerola.exemplo.com' -Token $token
 ```

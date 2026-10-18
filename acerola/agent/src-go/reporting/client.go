@@ -249,10 +249,13 @@ func (reporter *Reporter) pump(
 	ticker := time.NewTicker(reporter.config.Interval)
 	defer ticker.Stop()
 
+	var initialSent bool
 	/* A primeira leitura vai na hora: quem acabou de instalar o agente quer
 	   ver a máquina aparecer no painel, não esperar meio minuto por ela. */
 	if sendError := reporter.send(connection); sendError != nil {
 		return finalError(closed, sendError)
+	} else if !reporter.source.Latest().Timestamp.IsZero() {
+		initialSent = true
 	}
 
 	for {
@@ -265,6 +268,7 @@ func (reporter *Reporter) pump(
 			if sendError := reporter.send(connection); sendError != nil {
 				return finalError(closed, sendError)
 			}
+			initialSent = true
 		case interval := <-cadence:
 			/* O servidor pediu outro ritmo — alguém abriu a ficha desta máquina no
 			   painel, ou fechou. Trocar o ticker aqui, e não reconectar, mantém a
@@ -275,10 +279,17 @@ func (reporter *Reporter) pump(
 			if sendError := reporter.send(connection); sendError != nil {
 				return finalError(closed, sendError)
 			}
-		case <-updates:
-			/* Descartado de propósito: o canal existe só para o broadcaster
-			   não considerar este assinante parado. Quem manda na cadência do
-			   envio é o ticker, não a coleta de um em um segundo. */
+			initialSent = true
+		case snap := <-updates:
+			/* Se a primeira leitura foi ignorada por ainda não haver coleta (boot),
+			   envia na hora assim que o primeiro snapshot chegar. */
+			if !initialSent && !snap.Timestamp.IsZero() {
+				initialSent = true
+				if sendError := reporter.send(connection); sendError != nil {
+					return finalError(closed, sendError)
+				}
+				ticker.Reset(reporter.config.Interval)
+			}
 		}
 	}
 }

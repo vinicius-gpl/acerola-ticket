@@ -22,6 +22,7 @@ const properties = Object.fromEntries(
 assert.equal(properties.ProductVersion, version);
 assert.equal(properties.ProductLanguage, "1046");
 assert.equal(properties.ALLUSERS, "1");
+assert.equal(properties.ARPPRODUCTICON, "AppIcon.ico");
 const summary = execFileSync("msiinfo", ["suminfo", path], {
   encoding: "utf8",
 });
@@ -73,6 +74,9 @@ assert.equal(
   "3170",
 );
 assert.equal(table("File").length, 4);
+const shortcuts = table("Shortcut");
+assert.ok(shortcuts.some((row) => row.Shortcut === "ApplicationStartMenuShortcut"));
+assert.ok(shortcuts.some((row) => row.Shortcut === "ApplicationDesktopShortcut"));
 console.log(
   "MSI verified: x64, version, service, rollback sequence and protected machine directory",
 );

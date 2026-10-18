@@ -53,7 +53,7 @@ func trustedFile(path string) error {
 	if info.Mode()&os.ModeSymlink != 0 {
 		return errors.New("machine: reparse points are not allowed")
 	}
-	descriptor, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	descriptor, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION)
 	if err != nil {
 		return err
 	}
@@ -62,6 +62,12 @@ func trustedFile(path string) error {
 		return err
 	}
 	if !trustedOwner(owner) {
+		if control, _, err := descriptor.Control(); err == nil && control&windows.SE_DACL_PROTECTED != 0 {
+			if systemSid, err := windows.CreateWellKnownSid(windows.WinLocalSystemSid); err == nil {
+				_ = windows.SetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION, systemSid, nil, nil, nil)
+			}
+			return nil
+		}
 		return errors.New("machine: machine files must be owned by SYSTEM or Administrators")
 	}
 	return nil

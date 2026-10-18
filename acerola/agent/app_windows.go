@@ -48,6 +48,13 @@ func (app *App) placeWindow(_ context.Context, logicalWidth, logicalHeight int) 
 	window.RoundCorners(handle, width, height, scaled(cornerRadius, area.Scale))
 }
 
-// showOnStartup não abre nada no Windows: o agente nasce escondido e a
-// bandeja, que lá sempre existe, é a porta de entrada.
-func (app *App) showOnStartup() {}
+// showOnStartup abre a popup no Windows se o agente foi iniciado interativamente (sem --background).
+func (app *App) showOnStartup() {
+	app.mu.RLock()
+	open := app.startupOpen
+	app.mu.RUnlock()
+
+	if open {
+		app.ShowPopup()
+	}
+}
