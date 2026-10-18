@@ -187,3 +187,28 @@ describe('AcerolaOptionPicker', () => {
     expect(screen.getByRole('group', { name: 'Situação' }).children).toHaveLength(0);
   });
 });
+
+// feliz: no celular, mesmo um filtro curto abre uma lista em vez de espremer pastilhas.
+it('uses a searchable list for few options on mobile', async () => {
+  const originalMatchMedia = window.matchMedia;
+  const media = vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+    ...originalMatchMedia.call(window, query),
+    matches: query === '(max-width: 639px)',
+  }));
+  try {
+    const onChange = vi.fn();
+    render(OptionPicker, {
+      data: { value: '', options: few },
+      ui: { ariaLabel: 'Situação', allLabel: 'Todas as situações' },
+      actions: { onChange },
+    });
+    expect(screen.queryByRole('group', { name: 'Situação' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Situação' }));
+    const search = await screen.findByPlaceholderText('Buscar…');
+    const popup = search.closest('[data-slot="popover-content"]') as HTMLElement;
+    await fireEvent.click(within(popup).getByText('Abertos'));
+    expect(onChange).toHaveBeenCalledWith('open');
+  } finally {
+    media.mockRestore();
+  }
+});

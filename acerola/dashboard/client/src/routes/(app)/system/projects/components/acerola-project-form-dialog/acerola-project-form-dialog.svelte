@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Dialog, DialogTitle } from '$lib/components/acerola-dialog/acerola-dialog';
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import {
     SOFTWARE_PROJECT_COLORS,
     SOFTWARE_PROJECT_COLOR_LABELS,
@@ -36,146 +38,137 @@
   }));
 </script>
 
-{#if open}
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-    <div class="flex w-full max-w-lg flex-col gap-4 rounded-surface border border-border bg-card p-6 shadow-xl">
-      <div class="flex items-center justify-between">
-        <h2 class="text-base font-semibold text-foreground">
-          {isEdit ? 'Editar Sistema' : 'Novo Sistema'}
-        </h2>
-        <button
-          type="button"
-          class="text-xs text-muted-foreground hover:text-foreground"
-          onclick={onClose}
-        >
-          ✕
-        </button>
+<Dialog {open} onOpenChange={(value) => { if (!value) onClose(); }}>
+  <DialogContent>
+    <div class="flex items-center justify-between">
+      <DialogTitle class="text-lg font-semibold text-foreground">
+        {isEdit ? 'Editar Sistema' : 'Novo Sistema'}
+      </DialogTitle>
+    </div>
+
+    {#if model.state.error}
+      <div class="rounded-box border border-destructive/40 bg-destructive-soft p-3 text-xs text-destructive">
+        {model.state.error}
       </div>
+    {/if}
 
-      {#if model.state.error}
-        <div class="rounded-box border border-destructive/40 bg-destructive-soft p-3 text-xs text-destructive">
-          {model.state.error}
-        </div>
-      {/if}
-
-      <form
-        onsubmit={(e) => {
-          e.preventDefault();
-          model.actions.onSubmit();
+    <form
+      onsubmit={(e) => {
+        e.preventDefault();
+        model.actions.onSubmit();
+      }}
+      class="flex flex-col gap-4"
+    >
+      <TextField
+        data={{
+          label: 'Nome do sistema',
+          name: 'name',
+          value: model.data.fields.name.value,
+          placeholder: 'Ex: Acerola Ticket, Portal do Cliente, ERP',
+          isRequired: true,
         }}
-        class="flex flex-col gap-4"
-      >
-        <TextField
-          data={{
-            label: 'Nome do sistema',
-            name: 'name',
-            value: model.data.fields.name.value,
-            placeholder: 'Ex: Acerola Ticket, Portal do Cliente, ERP',
-            isRequired: true,
-          }}
-          state={{
-            error: model.data.fields.name.error,
-            isDisabled: model.state.isSubmitting,
-          }}
-          actions={{
-            onChange: (val: string) => model.actions.onChange('name', val),
-            onBlur: () => model.actions.onBlur('name'),
-          }}
-        />
+        state={{
+          error: model.data.fields.name.error,
+          isDisabled: model.state.isSubmitting,
+        }}
+        actions={{
+          onChange: (val: string) => model.actions.onChange('name', val),
+          onBlur: () => model.actions.onBlur('name'),
+        }}
+      />
 
-        <TextField
-          data={{
-            label: 'Repositório no GitHub',
-            name: 'repositoryUrl',
-            value: model.data.fields.repositoryUrl.value,
-            placeholder: 'Ex: vinicius-gpl/acerola-ticket ou https://github.com/...',
-            isRequired: true,
-          }}
-          state={{
-            error: model.data.fields.repositoryUrl.error,
-            isDisabled: model.state.isSubmitting,
-          }}
-          actions={{
-            onChange: (val: string) => model.actions.onChange('repositoryUrl', val),
-            onBlur: () => model.actions.onBlur('repositoryUrl'),
-          }}
-        />
+      <TextField
+        data={{
+          label: 'Repositório no GitHub',
+          name: 'repositoryUrl',
+          value: model.data.fields.repositoryUrl.value,
+          placeholder: 'Ex: vinicius-gpl/acerola-ticket ou https://github.com/...',
+          isRequired: true,
+        }}
+        state={{
+          error: model.data.fields.repositoryUrl.error,
+          isDisabled: model.state.isSubmitting,
+        }}
+        actions={{
+          onChange: (val: string) => model.actions.onChange('repositoryUrl', val),
+          onBlur: () => model.actions.onBlur('repositoryUrl'),
+        }}
+      />
 
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-foreground">Situação</span>
-            <SelectField
-              data={{
-                value: model.data.fields.status.value,
-                options: statusOptions,
-              }}
-              actions={{
-                onChange: (val) => model.actions.onChange('status', val),
-              }}
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-medium text-foreground">Cor identificadora</span>
-            <SelectField
-              data={{
-                value: model.data.fields.color.value,
-                options: colorOptions,
-              }}
-              actions={{
-                onChange: (val) => model.actions.onChange('color', val),
-              }}
-            />
-          </div>
-        </div>
-
-        <!-- Só informação: diz quem responde pelo sistema, sem mudar a quem os chamados vão. -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div class="flex flex-col gap-1">
-          <span class="text-xs font-medium text-foreground">Responsável</span>
+          <span class="text-xs font-medium text-foreground">Situação</span>
           <SelectField
             data={{
-              value: model.data.fields.responsibleId.value,
-              options: model.data.responsibleOptions,
+              value: model.data.fields.status.value,
+              options: statusOptions,
             }}
-            ui={{ ariaLabel: 'Responsável pelo sistema' }}
-            state={{ isDisabled: model.state.isSubmitting }}
             actions={{
-              onChange: (val) => model.actions.onChange('responsibleId', val),
+              onChange: (val) => model.actions.onChange('status', val),
             }}
           />
         </div>
 
-        <TextField
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-foreground">Cor identificadora</span>
+          <SelectField
+            data={{
+              value: model.data.fields.color.value,
+              options: colorOptions,
+            }}
+            actions={{
+              onChange: (val) => model.actions.onChange('color', val),
+            }}
+          />
+        </div>
+      </div>
+
+      <!-- Só informação: diz quem responde pelo sistema, sem mudar a quem os chamados vão. -->
+      <div class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-foreground">Responsável</span>
+        <SelectField
           data={{
-            label: 'Descrição',
-            name: 'description',
-            value: model.data.fields.description.value,
-            placeholder: 'O que este sistema faz e quais áreas o utilizam',
+            value: model.data.fields.responsibleId.value,
+            options: model.data.responsibleOptions,
           }}
-          state={{
-            error: model.data.fields.description.error,
-            isDisabled: model.state.isSubmitting,
-          }}
+          ui={{ ariaLabel: 'Responsável pelo sistema' }}
+          state={{ isDisabled: model.state.isSubmitting }}
           actions={{
-            onChange: (val: string) => model.actions.onChange('description', val),
-            onBlur: () => model.actions.onBlur('description'),
+            onChange: (val) => model.actions.onChange('responsibleId', val),
           }}
         />
+      </div>
 
-        <div class="mt-4 flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-          <ActionButton
-            data={{ label: 'Cancelar' }}
-            ui={{ variant: 'secondary' }}
-            actions={{ onClick: onClose }}
-          />
-          <ActionButton
-            data={{ label: 'Salvar', loadingLabel: 'Salvando…' }}
-            ui={{ variant: 'primary' }}
-            state={{ isLoading: model.state.isSubmitting }}
-            actions={{ onClick: model.actions.onSubmit }}
-          />
-        </div>
-      </form>
-    </div>
-  </div>
-{/if}
+      <TextField
+        data={{
+          label: 'Descrição',
+          name: 'description',
+          value: model.data.fields.description.value,
+          placeholder: 'O que este sistema faz e quais áreas o utilizam',
+        }}
+        state={{
+          error: model.data.fields.description.error,
+          isDisabled: model.state.isSubmitting,
+        }}
+        actions={{
+          onChange: (val: string) => model.actions.onChange('description', val),
+          onBlur: () => model.actions.onBlur('description'),
+        }}
+      />
+
+      <div class="mt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 border-t border-border/60 pt-4">
+        <ActionButton
+          data={{ label: 'Cancelar' }}
+          ui={{ variant: 'secondary' }}
+          actions={{ onClick: onClose }}
+        />
+        <ActionButton
+          data={{ label: 'Salvar', loadingLabel: 'Salvando…' }}
+          ui={{ variant: 'primary' }}
+          state={{ isLoading: model.state.isSubmitting }}
+          actions={{ onClick: model.actions.onSubmit }}
+        />
+      </div>
+    </form>
+  </DialogContent>
+</Dialog>

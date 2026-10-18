@@ -4,6 +4,7 @@
    * próprio ciclo de vida do componente (`$effect` por item). Não é peça pública: nada fora de
    * `app-shell.component.svelte` importa isto.
    */
+  import { useSidebar } from '$lib/components/ui/sidebar/context.svelte';
   import { highlightIn, popIn } from '$lib/motion/motion';
   import { SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from '$lib/components/ui/sidebar';
   import type { NavItem } from '$lib/navigation/navigation';
@@ -11,6 +12,7 @@
   let { item, badge, isActive }: { item: NavItem; badge: number | undefined; isActive: boolean } =
     $props();
 
+  const sidebar = useSidebar();
   const Icon = $derived(item.icon);
 
   /* `Icon` (bits-ui/lucide) não expõe `ref`; um `<span>` em volta dá ao GSAP um elemento de
@@ -40,7 +42,7 @@
        #eff1f5 — quase branco sobre a barra clara, ou seja, invisível. -->
   <SidebarMenuButton
     {isActive}
-    tooltipContent={item.label}
+    tooltipContent={sidebar.state === 'collapsed' && !sidebar.isMobile ? item.label : undefined}
     size="lg"
     class="text-[1rem] [&_svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
   >

@@ -69,11 +69,11 @@
 </script>
 
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,

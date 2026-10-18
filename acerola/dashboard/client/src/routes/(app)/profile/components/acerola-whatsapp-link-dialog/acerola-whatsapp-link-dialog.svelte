@@ -35,6 +35,7 @@
 </script>
 
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
   import QrCode from '@lucide/svelte/icons/qr-code';
 
@@ -42,7 +43,6 @@
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,

@@ -46,6 +46,7 @@
 </script>
 
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import Camera from '@lucide/svelte/icons/camera';
   import ImagePlus from '@lucide/svelte/icons/image-plus';
   import Package from '@lucide/svelte/icons/package';
@@ -59,7 +60,6 @@
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
