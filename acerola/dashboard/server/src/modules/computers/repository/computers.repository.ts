@@ -207,15 +207,16 @@ export class ComputersRepository {
    * horas, então guardar tudo seria pagar banco para ninguém consultar.
    */
   async deleteSamplesOlderThan(cutoff: Date): Promise<number> {
-    const deleted = await runQuery(
+    /* Sem `returning`: a primeira limpeza pode passar de milhões de linhas, e devolver o id de
+       cada uma só para contar seria trazer a tabela inteira de volta pela rede. */
+    const result = await runQuery(
       this.db
         .delete(computerSamples)
-        .where(sql`${computerSamples.sampledAt} < ${asTimestamp(cutoff)}`)
-        .returning({ id: computerSamples.id }),
+        .where(sql`${computerSamples.sampledAt} < ${asTimestamp(cutoff)}`),
       'limpar amostras antigas',
     );
 
-    return deleted.length;
+    return result.count ?? 0;
   }
 
   async insertAlert(values: ComputerAlertInsert): Promise<ComputerAlertRow> {

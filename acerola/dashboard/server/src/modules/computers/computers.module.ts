@@ -12,6 +12,7 @@ import { AgentPresenceService } from './presence/agent-presence.service';
 import { LiveWatchService } from './presence/live-watch.service';
 import { ComputersRepository } from './repository/computers.repository';
 import { ComputersService } from './service/computers.service';
+import { SampleCleanupService } from './service/sample-cleanup.service';
 
 /**
  * O índice da pasta: é o único arquivo fora das subpastas, e aponta para todo o resto.
@@ -27,6 +28,7 @@ import { ComputersService } from './service/computers.service';
     AgentReleaseRepository,
     AgentReleaseService,
     ComputersService,
+    SampleCleanupService,
     ComputersRepository,
     AgentPresenceService,
     LiveWatchService,
