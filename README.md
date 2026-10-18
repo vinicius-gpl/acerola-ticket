@@ -1,10 +1,129 @@
-# acerola-ticket
+# Acerola Ticket
 
-MVP para validar uma ideia com gente de verdade usando, construído a partir de um template de código com padrão consistente.
+<p align="center">
+  <a href="docs/brag/brag.mp4">
+    <img src="docs/brag/brag.jpg" alt="Assista ao vídeo de apresentação do Acerola Ticket" width="85%">
+  </a>
+</p>
 
-Foi feito para ser usado **com o Claude Code no VS Code**. Você descreve o que o sistema precisa fazer, em português; o Claude constrói seguindo as regras deste repositório. As regras não dependem de você decorar nada: elas estão escritas para o Claude (`CLAUDE.md`), viram passo a passo nas skills (`.claude/skills/`) e são conferidas por máquina (lint, testes, commit).
+**A TI da empresa num lugar só.** Chamados, inventário de computadores, kanban de sistemas,
+cronograma ligado ao GitHub, manutenção do escritório e um agente Windows que se atualiza
+sozinho, divididos em três módulos: **Infraestrutura**, **Sistema** e **Manutenção**.
+
+Cada pessoa da empresa entra com a própria conta para abrir chamado; quem atende recebe acesso
+por módulo, com um nível em cada um.
+
+## O que tem dentro
+
+### Infraestrutura
+
+<p align="center">
+  <img src="docs/prints/infra-painel.jpg" alt="Painel da Infraestrutura" width="85%">
+</p>
+
+O **Painel** mostra o parque de relance: chamados abertos, máquinas críticas, preventivas
+vencidas, peças sem estoque e o que entrou, saiu e foi feito nos últimos 7, 30 ou 90 dias.
+
+| Tela | O que faz |
+| --- | --- |
+| **Chamados** | O que o pessoal pediu e em que pé está, com problemas por tipo, departamentos que mais pedem e exportação em Excel, Word e PDF |
+| **Inventário** | Os computadores da empresa, com as medições enviadas pelo agente e o histórico de cada máquina |
+| **Manutenção** | O que foi feito em cada máquina e as preventivas planejadas para o dia |
+| **Depósito** | Peças na prateleira, entradas e saídas |
+| **Descarte** | O que saiu do parque e por quê |
+| **Rede** | Os eventos do link de internet |
+| **Inteligência** · **Orçamento** | Leituras do parque e os gastos da Infra |
+| **Agente Windows** | Baixa a versão LTS do agente e lista todas as versões publicadas |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/prints/infra-chamados.jpg" alt="Chamados da Infraestrutura"></td>
+    <td width="50%"><img src="docs/prints/infra-agente-windows.jpg" alt="Downloads do agente Windows"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Chamados</sub></td>
+    <td align="center"><sub>Agente Windows</sub></td>
+  </tr>
+</table>
+
+### Sistema
+
+<p align="center">
+  <img src="docs/prints/sistema-kanban.jpg" alt="Kanban de Sistema" width="85%">
+</p>
+
+Os chamados dos softwares da empresa andam num **Kanban** — da triagem ao concluído, arrastando
+os cards e rotulando por prioridade. Cada sistema é um repositório do GitHub: o **Cronograma**
+junta PRs mergeados, issues fechadas e agendamentos, com a produtividade de cada pessoa no
+período.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/prints/sistema-cronograma.jpg" alt="Cronograma de Sistema"></td>
+    <td width="50%"><img src="docs/prints/sistema-projetos.jpg" alt="Sistemas e projetos"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Cronograma</sub></td>
+    <td align="center"><sub>Sistemas e projetos sincronizados com o GitHub</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/prints/sistema-chamados.jpg" alt="Chamados de Sistema"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Chamados de Sistema</sub></td>
+    <td></td>
+  </tr>
+</table>
+
+### Manutenção
+
+<p align="center">
+  <img src="docs/prints/manutencao-inventario.jpg" alt="Inventário da Manutenção" width="85%">
+</p>
+
+O que existe no escritório além dos computadores — mobiliário, eletrodomésticos, mercadinho,
+limpeza — com foto, patrimônio, depósito, descarte, orçamentos e os chamados da área.
+
+### Para todo mundo
+
+- **Abrir chamado** com print e anexos, e acompanhar os seus em "Meus chamados".
+- **Validar documento**: a ordem de serviço impressa traz um código que qualquer pessoa confere
+  em `/verify`, sem login.
+- **WhatsApp**: o bot recebe o pedido de acesso e reconhece a pessoa pelo cadastro do Acerola.
+
+## Como as peças se conectam
+
+```mermaid
+flowchart LR
+    Agent["Agente Windows\n(acerola/agent)"] -->|"medições"| API
+    Web["Tela SvelteKit\n(acerola/dashboard/client)"] --> API["API NestJS\n(acerola/dashboard/server)"]
+    Bot["Bot de WhatsApp\n(acerola/dashboard/bot)"] --> API
+    API --> Neon[("Postgres + Auth\nna Neon")]
+    API --> R2[("Cloudflare R2\narquivos e releases do agente")]
+    API -->|"PRs e issues"| GitHub["GitHub"]
+    Agent -->|"auto-update da LTS"| R2
+```
+
+API, tela e bot sobem na **mesma imagem Docker**. O banco e os arquivos são remotos (Neon e R2),
+e os arquivos vão do navegador direto para o R2 por link assinado, sem passar pela API.
+
+| Pasta | O que é | Stack | Leia mais |
+| --- | --- | --- | --- |
+| [`acerola/dashboard/`](acerola/dashboard/) | API, tela e contrato compartilhado | NestJS · SvelteKit · Zod · Drizzle | este README |
+| [`acerola/dashboard/bot/`](acerola/dashboard/bot/) | Bot de WhatsApp | Node · Baileys | [whatsapp-bot.md](acerola/dashboard/docs/whatsapp-bot.md) |
+| [`acerola/agent/`](acerola/agent/) | Agente Windows (serviço + tela) | Go · Wails · Svelte | [releases.md](acerola/agent/docs/releases.md) · [architecture.md](acerola/agent/docs/architecture.md) |
+| [`docs/`](docs/) | Vídeo de apresentação e prints | HyperFrames | [brag-plan.md](docs/brag/brag-plan.md) |
 
 ---
+
+## Desenvolvendo com o Claude Code
+
+O projeto nasceu de um template feito para ser usado **com o Claude Code no VS Code**. Você
+descreve o que o sistema precisa fazer, em português; o Claude constrói seguindo as regras deste
+repositório. As regras não dependem de você decorar nada: elas estão escritas para o Claude
+(`CLAUDE.md`), viram passo a passo nas skills (`.claude/skills/`) e são conferidas por máquina
+(lint, testes, commit).
 
 ## O que você precisa ter instalado
 
