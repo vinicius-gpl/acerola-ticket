@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -24,6 +25,20 @@ type Config struct {
 }
 
 func Directory() string { return filepath.Join(os.Getenv("ProgramData"), "AcerolaAgent") }
+
+// Configured informa se a máquina possui uma configuração válida gravada em disco.
+func Configured() bool {
+	configPath := filepath.Join(Directory(), "machine.json")
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return false
+	}
+	var cfg Config
+	if err := json.Unmarshal(content, &cfg); err != nil {
+		return false
+	}
+	return cfg.ServerURL != "" && cfg.TokenCipher != ""
+}
 
 func Load(path string, decrypt func(string) (string, error)) (Config, reporting.Config, error) {
 	var config Config
@@ -57,20 +72,35 @@ func Load(path string, decrypt func(string) (string, error)) (Config, reporting.
 	return config, reportingConfig, nil
 }
 
+func isLocalOrPrivate(host string) bool {
+	if host == "localhost" || !strings.Contains(host, ".") || strings.HasSuffix(host, ".local") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return ip.IsLoopback() || ip.IsPrivate()
+	}
+	return false
+}
+
 func validate(config Config) error {
 	endpoint, err := url.Parse(config.ServerURL)
 	if err != nil {
 		return errors.New("machine: invalid server URL")
 	}
-	if endpoint.Scheme != "https" || endpoint.Host == "" || endpoint.User != nil {
+	if (endpoint.Scheme != "https" && !(endpoint.Scheme == "http" && isLocalOrPrivate(endpoint.Hostname()))) || endpoint.Host == "" || endpoint.User != nil {
 		return errors.New("machine: server origin must be HTTPS without credentials")
 	}
 	if endpoint.RawQuery != "" || endpoint.Fragment != "" || strings.Trim(endpoint.Path, "/") != "" {
 		return errors.New("machine: server origin must not contain a path, query or fragment")
 	}
-	fingerprint, err := hex.DecodeString(config.SignerSHA256)
-	if err != nil || len(fingerprint) != 32 {
-		return errors.New("machine: invalid signer SHA256")
+	if config.SignerSHA256 != "" {
+		fingerprint, err := hex.DecodeString(config.SignerSHA256)
+		if err != nil || len(fingerprint) != 32 {
+			return errors.New("machine: invalid signer SHA256")
+		}
+	} else if config.AutoUpdate {
+		return errors.New("machine: signer SHA256 is required when autoUpdate is enabled")
 	}
 	return nil
 }

@@ -44,6 +44,39 @@ describe('AcerolaComputerTokenDialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('copies the quick PowerShell command to clipboard', async () => {
+    const user = userEvent.setup();
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+
+    render(ComputerTokenDialog, {
+      props: {
+        data: { computerName: 'RECEPCAO-01', token: TOKEN },
+        actions: { onClose: vi.fn() },
+      },
+    });
+
+    expect(screen.getByText(`.\\install-agent.ps1 -Token '${TOKEN}'`)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Copiar comando' }));
+
+    expect(writeSpy).toHaveBeenCalledWith(`.\\install-agent.ps1 -Token '${TOKEN}'`);
+    writeSpy.mockRestore();
+  });
+
+  it('triggers onDownloadScript when clicking the download script button', async () => {
+    const onDownloadScript = vi.fn();
+    const user = userEvent.setup();
+
+    render(ComputerTokenDialog, {
+      props: {
+        data: { computerName: 'RECEPCAO-01', token: TOKEN },
+        actions: { onClose: vi.fn(), onDownloadScript },
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Baixar script desta máquina' }));
+    expect(onDownloadScript).toHaveBeenCalledOnce();
+  });
+
   // triste
   /* Navegador sem área de transferência não pode quebrar a tela: o token continua escrito
      na frente da pessoa, que copia à mão. */
