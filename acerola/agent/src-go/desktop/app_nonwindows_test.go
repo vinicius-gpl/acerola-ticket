@@ -1,13 +1,12 @@
 //go:build !windows
 
-package main
+package desktop
 
 import (
 	"testing"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
-
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 func TestAreaOfCurrentScreenHappyPath(testingContext *testing.T) {

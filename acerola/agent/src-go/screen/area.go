@@ -1,7 +1,7 @@
 // Package screen descreve a área útil de um monitor. O tipo Area vale em
 // qualquer sistema; a leitura nativa (ActiveArea) só existe no Windows — ver
 // workarea_windows.go. Fora dele quem monta a Area é o próprio app, a partir
-// do que o Wails informa (ver app_other.go).
+// do que o Wails informa (ver src-go/desktop/app_nonwindows.go).
 package screen
 
 // Area é o retângulo útil de um monitor em pixels físicos e coordenadas

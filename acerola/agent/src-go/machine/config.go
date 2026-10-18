@@ -84,23 +84,40 @@ func isLocalOrPrivate(host string) bool {
 }
 
 func validate(config Config) error {
-	endpoint, err := url.Parse(config.ServerURL)
+	if err := validateOrigin(config.ServerURL); err != nil {
+		return err
+	}
+	return validateSigner(config)
+}
+
+func validateOrigin(address string) error {
+	endpoint, err := url.Parse(address)
 	if err != nil {
 		return errors.New("machine: invalid server URL")
 	}
-	if (endpoint.Scheme != "https" && !(endpoint.Scheme == "http" && isLocalOrPrivate(endpoint.Hostname()))) || endpoint.Host == "" || endpoint.User != nil {
+	if !allowedScheme(endpoint) || endpoint.Host == "" || endpoint.User != nil {
 		return errors.New("machine: server origin must be HTTPS without credentials")
 	}
 	if endpoint.RawQuery != "" || endpoint.Fragment != "" || strings.Trim(endpoint.Path, "/") != "" {
 		return errors.New("machine: server origin must not contain a path, query or fragment")
 	}
-	if config.SignerSHA256 != "" {
-		fingerprint, err := hex.DecodeString(config.SignerSHA256)
-		if err != nil || len(fingerprint) != 32 {
-			return errors.New("machine: invalid signer SHA256")
+	return nil
+}
+
+func allowedScheme(endpoint *url.URL) bool {
+	return endpoint.Scheme == "https" || (endpoint.Scheme == "http" && isLocalOrPrivate(endpoint.Hostname()))
+}
+
+func validateSigner(config Config) error {
+	if config.SignerSHA256 == "" {
+		if config.AutoUpdate {
+			return errors.New("machine: signer SHA256 is required when autoUpdate is enabled")
 		}
-	} else if config.AutoUpdate {
-		return errors.New("machine: signer SHA256 is required when autoUpdate is enabled")
+		return nil
+	}
+	fingerprint, err := hex.DecodeString(config.SignerSHA256)
+	if err != nil || len(fingerprint) != 32 {
+		return errors.New("machine: invalid signer SHA256")
 	}
 	return nil
 }

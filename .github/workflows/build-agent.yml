@@ -48,6 +48,8 @@ jobs:
       - name: Test release rules
         shell: bash
         run: node --test .github/scripts/release/*.test.mjs
+      - name: Test installer functions and complexity
+        run: ./acerola/agent/scripts/windows/setup.test.ps1
       - name: Build and validate only the agent
         working-directory: acerola/agent
         run: |
@@ -109,7 +111,7 @@ jobs:
         run: |
           $password = [guid]::NewGuid().ToString('N')
           $secure = ConvertTo-SecureString $password -AsPlainText -Force
-          ./acerola/agent/build/windows/installer/new-signing-certificate.ps1 -OutputDirectory "$env:RUNNER_TEMP/test-key" -Password $secure
+          ./acerola/agent/scripts/windows/new-signing-certificate.ps1 -OutputDirectory "$env:RUNNER_TEMP/test-key" -Password $secure
           $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:RUNNER_TEMP/test-key/acerola-agent-signing.pfx"))
           "AGENT_SIGNING_PFX_BASE64=$base64" >> $env:GITHUB_ENV
           "AGENT_SIGNING_PASSWORD=$password" >> $env:GITHUB_ENV
@@ -124,14 +126,14 @@ jobs:
             $env:AGENT_SIGNING_PFX_BASE64 = $env:RELEASE_PFX
             $env:AGENT_SIGNING_PASSWORD = $env:RELEASE_PASSWORD
           }
-          ./acerola/agent/build/windows/installer/package.ps1 -Version $env:RELEASE_VERSION
+          ./acerola/agent/scripts/windows/package.ps1 -Version $env:RELEASE_VERSION
       - name: Install, start and uninstall on a clean Windows runner
         env:
           RELEASE_VERSION: ${{ needs.build.outputs.version }}
         run: |
           $dir = Join-Path $pwd 'acerola/agent/build/release'
           & "$dir/install-certificate.ps1"
-          ./acerola/agent/build/windows/installer/smoke-test.ps1 -MsiPath "$dir/acerola-agent-$env:RELEASE_VERSION-x64.msi"
+          ./acerola/agent/scripts/windows/smoke-test.ps1 -MsiPath "$dir/acerola-agent-$env:RELEASE_VERSION-x64.msi"
       - uses: actions/upload-artifact@v4
         with:
           name: agent-release

@@ -51,7 +51,7 @@ func writeConfigFile(testingContext *testing.T, content string) string {
 
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 	if writeError := os.WriteFile(configPath, []byte(content), 0o600); writeError != nil {
-		testingContext.Fatalf("não consegui escrever o arquivo de teste: %v", writeError)
+		testingContext.Fatalf("cannot write test file: %v", writeError)
 	}
 
 	return configPath
@@ -61,21 +61,21 @@ func TestLoadFromEnvironment(testingContext *testing.T) {
 	// feliz: ambiente completo vira configuração pronta para conectar
 	loaded, loadError := Load(environmentOf(map[string]string{
 		"ACEROLA_SERVER_URL":              "ws://localhost:3005/agent",
-		"ACEROLA_AGENT_TOKEN":             "token-de-teste",
+		"ACEROLA_AGENT_TOKEN":             "fixture-token",
 		"ACEROLA_REPORT_INTERVAL_SECONDS": "45",
 	}), "")
 	if loadError != nil {
-		testingContext.Fatalf("esperava configuração válida, veio erro: %v", loadError)
+		testingContext.Fatalf("expected valid configuration, got error: %v", loadError)
 	}
 
 	if loaded.ServerURL != "ws://localhost:3005/agent" {
-		testingContext.Errorf("endereço inesperado: %q", loaded.ServerURL)
+		testingContext.Errorf("unexpected address: %q", loaded.ServerURL)
 	}
-	if loaded.Token != "token-de-teste" {
-		testingContext.Errorf("token inesperado: %q", loaded.Token)
+	if loaded.Token != "fixture-token" {
+		testingContext.Errorf("unexpected token: %q", loaded.Token)
 	}
 	if loaded.Interval != 45*time.Second {
-		testingContext.Errorf("intervalo inesperado: %v", loaded.Interval)
+		testingContext.Errorf("unexpected interval: %v", loaded.Interval)
 	}
 }
 
@@ -84,21 +84,21 @@ func TestSaveThenLoad(testingContext *testing.T) {
 	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 
-	if _, saveError := Save(configPath, "https://painel.exemplo.com", "do-arquivo", 60); saveError != nil {
-		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	if _, saveError := Save(configPath, "https://painel.exemplo.com", "from-file", 60); saveError != nil {
+		testingContext.Fatalf("cannot save: %v", saveError)
 	}
 
 	loaded, loadError := Load(environmentOf(nil), configPath)
 	if loadError != nil {
-		testingContext.Fatalf("esperava configuração válida, veio erro: %v", loadError)
+		testingContext.Fatalf("expected valid configuration, got error: %v", loadError)
 	}
 
 	// O endereço colado do navegador (https) vira wss, com o caminho do gateway.
 	if loaded.ServerURL != "wss://painel.exemplo.com/agent" {
-		testingContext.Errorf("endereço inesperado: %q", loaded.ServerURL)
+		testingContext.Errorf("unexpected address: %q", loaded.ServerURL)
 	}
-	if loaded.Token != "do-arquivo" {
-		testingContext.Errorf("token inesperado: %q", loaded.Token)
+	if loaded.Token != "from-file" {
+		testingContext.Errorf("unexpected token: %q", loaded.Token)
 	}
 }
 
@@ -106,20 +106,20 @@ func TestEnvironmentWinsOverFile(testingContext *testing.T) {
 	// feliz: apontar a máquina para outro servidor não exige reescrever o arquivo
 	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
-	if _, saveError := Save(configPath, "wss://producao.exemplo.com/agent", "do-arquivo", 0); saveError != nil {
-		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	if _, saveError := Save(configPath, "wss://producao.exemplo.com/agent", "from-file", 0); saveError != nil {
+		testingContext.Fatalf("cannot save: %v", saveError)
 	}
 
 	loaded, loadError := Load(environmentOf(map[string]string{
 		"ACEROLA_SERVER_URL":  "ws://localhost:3005/agent",
-		"ACEROLA_AGENT_TOKEN": "do-ambiente",
+		"ACEROLA_AGENT_TOKEN": "from-environment",
 	}), configPath)
 	if loadError != nil {
-		testingContext.Fatalf("esperava configuração válida, veio erro: %v", loadError)
+		testingContext.Fatalf("expected valid configuration, got error: %v", loadError)
 	}
 
-	if loaded.Token != "do-ambiente" {
-		testingContext.Errorf("o ambiente deveria vencer o arquivo, veio %q", loaded.Token)
+	if loaded.Token != "from-environment" {
+		testingContext.Errorf("environment should override file, got %q", loaded.Token)
 	}
 }
 
@@ -138,24 +138,24 @@ func TestIntervalDefaultsAndBounds(testingContext *testing.T) {
 	for _, singleCase := range cases {
 		loaded, loadError := Load(environmentOf(map[string]string{
 			"ACEROLA_SERVER_URL":              "ws://localhost:3005/agent",
-			"ACEROLA_AGENT_TOKEN":             "token-de-teste",
+			"ACEROLA_AGENT_TOKEN":             "fixture-token",
 			"ACEROLA_REPORT_INTERVAL_SECONDS": singleCase.seconds,
 		}), "")
 		if loadError != nil {
-			testingContext.Fatalf("esperava configuração válida para %q, veio erro: %v", singleCase.seconds, loadError)
+			testingContext.Fatalf("expected valid configuration for %q, got error: %v", singleCase.seconds, loadError)
 		}
 		if loaded.Interval != singleCase.expected {
-			testingContext.Errorf("para %q esperava %v, veio %v", singleCase.seconds, singleCase.expected, loaded.Interval)
+			testingContext.Errorf("for %q expected %v, got %v", singleCase.seconds, singleCase.expected, loaded.Interval)
 		}
 	}
 }
 
 func TestLoadWithoutConfiguration(testingContext *testing.T) {
 	// triste: máquina que só usa o agente local não é erro, é "não reportar"
-	_, loadError := Load(environmentOf(nil), filepath.Join(testingContext.TempDir(), "nao-existe.json"))
+	_, loadError := Load(environmentOf(nil), filepath.Join(testingContext.TempDir(), "missing.json"))
 
 	if !errors.Is(loadError, ErrNotConfigured) {
-		testingContext.Errorf("esperava ErrNotConfigured, veio %v", loadError)
+		testingContext.Errorf("expected ErrNotConfigured, got %v", loadError)
 	}
 }
 
@@ -165,37 +165,37 @@ func TestLoadRefusesIncompleteConfiguration(testingContext *testing.T) {
 		"ACEROLA_SERVER_URL": "ws://localhost:3005/agent",
 	}), "")
 	if missingToken == nil || errors.Is(missingToken, ErrNotConfigured) {
-		testingContext.Errorf("esperava erro de token faltando, veio %v", missingToken)
+		testingContext.Errorf("expected missing token error, got %v", missingToken)
 	}
 
 	_, missingURL := Load(environmentOf(map[string]string{
-		"ACEROLA_AGENT_TOKEN": "token-de-teste",
+		"ACEROLA_AGENT_TOKEN": "fixture-token",
 	}), "")
 	if missingURL == nil || errors.Is(missingURL, ErrNotConfigured) {
-		testingContext.Errorf("esperava erro de endereço faltando, veio %v", missingURL)
+		testingContext.Errorf("expected missing address error, got %v", missingURL)
 	}
 }
 
 func TestLoadRefusesUnusableAddress(testingContext *testing.T) {
 	// triste: endereço que não dá conexão nenhuma para antes de virar tentativa eterna
-	for _, address := range []string{"ftp://painel.exemplo.com", "so-um-texto", "ws://"} {
+	for _, address := range []string{"ftp://painel.exemplo.com", "plain-text", "ws://"} {
 		_, loadError := Load(environmentOf(map[string]string{
 			"ACEROLA_SERVER_URL":  address,
-			"ACEROLA_AGENT_TOKEN": "token-de-teste",
+			"ACEROLA_AGENT_TOKEN": "fixture-token",
 		}), "")
 		if loadError == nil {
-			testingContext.Errorf("esperava erro para o endereço %q", address)
+			testingContext.Errorf("expected error for address %q", address)
 		}
 	}
 }
 
 func TestLoadRefusesBrokenFile(testingContext *testing.T) {
 	// triste: arquivo corrompido não vira silêncio
-	configPath := writeConfigFile(testingContext, "{isto não é json")
+	configPath := writeConfigFile(testingContext, "{this is not json")
 
 	_, loadError := Load(environmentOf(nil), configPath)
 	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
-		testingContext.Errorf("esperava erro de JSON inválido, veio %v", loadError)
+		testingContext.Errorf("expected invalid JSON error, got %v", loadError)
 	}
 }
 
@@ -204,30 +204,30 @@ func TestSaveKeepsTheTokenOutOfTheFile(testingContext *testing.T) {
 	// o cofre do sistema, não para o config.json
 	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
-	const token = "chave-secreta-da-maquina"
+	const token = "machine-secret-key"
 
 	if _, saveError := Save(configPath, "http://localhost:3005", token, 0); saveError != nil {
-		testingContext.Fatalf("não consegui salvar: %v", saveError)
+		testingContext.Fatalf("cannot save: %v", saveError)
 	}
 
 	content, readError := os.ReadFile(configPath)
 	if readError != nil {
-		testingContext.Fatalf("não consegui ler o arquivo: %v", readError)
+		testingContext.Fatalf("cannot read file: %v", readError)
 	}
 
 	if strings.Contains(string(content), token) {
-		testingContext.Error("a chave apareceu em texto puro no arquivo")
+		testingContext.Error("key appeared in plaintext in the file")
 	}
 	if strings.Contains(string(content), "tokenCipher") {
-		testingContext.Error("o arquivo não deveria guardar chave nenhuma, nem cifrada")
+		testingContext.Error("file must not contain a key, even encrypted")
 	}
 
 	loaded, loadError := loadSecret()
 	if loadError != nil {
-		testingContext.Fatalf("não consegui ler do cofre: %v", loadError)
+		testingContext.Fatalf("cannot read from vault: %v", loadError)
 	}
 	if loaded != token {
-		testingContext.Errorf("esperava a chave no cofre, veio %q", loaded)
+		testingContext.Errorf("expected key in vault, got %q", loaded)
 	}
 }
 
@@ -235,25 +235,25 @@ func TestCurrentTellsWhatIsConfiguredWithoutTheSecret(testingContext *testing.T)
 	// feliz: a tela sabe o endereço e que existe uma chave — nunca a chave
 	useFakeVault(testingContext)
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
-	if _, saveError := Save(configPath, "http://localhost:3005", "chave", 45); saveError != nil {
-		testingContext.Fatalf("não consegui salvar: %v", saveError)
+	if _, saveError := Save(configPath, "http://localhost:3005", "key", 45); saveError != nil {
+		testingContext.Fatalf("cannot save: %v", saveError)
 	}
 
 	current := Current(configPath)
 	if current.ServerURL != "ws://localhost:3005/agent" {
-		testingContext.Errorf("endereço inesperado: %q", current.ServerURL)
+		testingContext.Errorf("unexpected address: %q", current.ServerURL)
 	}
 	if !current.HasToken {
-		testingContext.Error("deveria dizer que existe uma chave salva")
+		testingContext.Error("should report a saved key")
 	}
 	if current.IntervalSeconds != 45 {
-		testingContext.Errorf("intervalo inesperado: %d", current.IntervalSeconds)
+		testingContext.Errorf("unexpected interval: %d", current.IntervalSeconds)
 	}
 
 	// triste: máquina sem configuração nenhuma não inventa endereço nem chave
-	empty := Current(filepath.Join(testingContext.TempDir(), "nao-existe.json"))
+	empty := Current(filepath.Join(testingContext.TempDir(), "missing.json"))
 	if empty.ServerURL != "" || empty.HasToken {
-		testingContext.Errorf("esperava vazio, veio %+v", empty)
+		testingContext.Errorf("expected empty settings, got %+v", empty)
 	}
 }
 
@@ -262,14 +262,14 @@ func TestSaveRefusesWhatWouldNeverConnect(testingContext *testing.T) {
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 
 	if _, saveError := Save(configPath, "http://localhost:3005", "   ", 0); saveError == nil {
-		testingContext.Error("esperava recusa para uma chave em branco")
+		testingContext.Error("expected rejection of blank key")
 	}
-	if _, saveError := Save(configPath, "ftp://painel", "chave", 0); saveError == nil {
-		testingContext.Error("esperava recusa para um endereço impossível")
+	if _, saveError := Save(configPath, "ftp://painel", "key", 0); saveError == nil {
+		testingContext.Error("expected rejection of invalid address")
 	}
 
 	if _, statError := os.Stat(configPath); statError == nil {
-		testingContext.Error("nada deveria ter sido gravado")
+		testingContext.Error("nothing should have been written")
 	}
 }
 
@@ -282,7 +282,7 @@ func TestLoadRefusesASecretFromAnotherMachine(testingContext *testing.T) {
 
 	_, loadError := Load(environmentOf(nil), configPath)
 	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
-		testingContext.Errorf("esperava erro de chave ilegível, veio %v", loadError)
+		testingContext.Errorf("expected unreadable key error, got %v", loadError)
 	}
 }
 
@@ -294,36 +294,36 @@ func TestLoadMigratesLegacyTokenToTheVault(testingContext *testing.T) {
 
 	previousLegacyUnprotect := legacyUnprotect
 	legacyUnprotect = func(encoded string) (string, error) {
-		if encoded != "cifra-de-uma-instalacao-antiga" {
-			return "", errors.New("valor inesperado para o teste")
+		if encoded != "legacy-installation-ciphertext" {
+			return "", errors.New("unexpected test value")
 		}
 
-		return "token-da-instalacao-antiga", nil
+		return "legacy-installation-token", nil
 	}
 	testingContext.Cleanup(func() { legacyUnprotect = previousLegacyUnprotect })
 
 	configPath := writeConfigFile(testingContext,
-		`{"serverUrl":"http://localhost:3005","tokenCipher":"cifra-de-uma-instalacao-antiga","intervalSeconds":60}`)
+		`{"serverUrl":"http://localhost:3005","tokenCipher":"legacy-installation-ciphertext","intervalSeconds":60}`)
 
 	loaded, loadError := Load(environmentOf(nil), configPath)
 	if loadError != nil {
-		testingContext.Fatalf("esperava migração silenciosa, veio erro: %v", loadError)
+		testingContext.Fatalf("expected silent migration, got error: %v", loadError)
 	}
-	if loaded.Token != "token-da-instalacao-antiga" {
-		testingContext.Errorf("token inesperado: %q", loaded.Token)
+	if loaded.Token != "legacy-installation-token" {
+		testingContext.Errorf("unexpected token: %q", loaded.Token)
 	}
 
 	vaultToken, vaultError := loadSecret()
-	if vaultError != nil || vaultToken != "token-da-instalacao-antiga" {
-		testingContext.Errorf("esperava o token migrado no cofre, veio %q (%v)", vaultToken, vaultError)
+	if vaultError != nil || vaultToken != "legacy-installation-token" {
+		testingContext.Errorf("expected migrated token in vault, got %q (%v)", vaultToken, vaultError)
 	}
 
 	content, readError := os.ReadFile(configPath)
 	if readError != nil {
-		testingContext.Fatalf("não consegui ler o arquivo: %v", readError)
+		testingContext.Fatalf("cannot read file: %v", readError)
 	}
 	if strings.Contains(string(content), "tokenCipher") {
-		testingContext.Error("o arquivo deveria ter perdido a cifra antiga depois da migração")
+		testingContext.Error("file should no longer contain legacy ciphertext after migration")
 	}
 }
 
@@ -333,12 +333,12 @@ func TestLoadWhenTheVaultCannotBeRead(testingContext *testing.T) {
 	configPath := writeConfigFile(testingContext, `{"serverUrl":"http://localhost:3005"}`)
 
 	previousLoadSecret := loadSecret
-	loadSecret = func() (string, error) { return "", errors.New("cofre indisponível") }
+	loadSecret = func() (string, error) { return "", errors.New("vault unavailable") }
 	testingContext.Cleanup(func() { loadSecret = previousLoadSecret })
 
 	_, loadError := Load(environmentOf(nil), configPath)
 	if loadError == nil || errors.Is(loadError, ErrNotConfigured) {
-		testingContext.Errorf("esperava erro de cofre indisponível, veio %v", loadError)
+		testingContext.Errorf("expected vault unavailable error, got %v", loadError)
 	}
 }
 
@@ -348,13 +348,13 @@ func TestSaveWhenTheVaultCannotBeWritten(testingContext *testing.T) {
 	configPath := filepath.Join(testingContext.TempDir(), "config.json")
 
 	previousSaveSecret := saveSecret
-	saveSecret = func(string) error { return errors.New("cofre indisponível") }
+	saveSecret = func(string) error { return errors.New("vault unavailable") }
 	testingContext.Cleanup(func() { saveSecret = previousSaveSecret })
 
-	if _, saveError := Save(configPath, "http://localhost:3005", "chave", 0); saveError == nil {
-		testingContext.Error("esperava recusa quando o cofre não grava")
+	if _, saveError := Save(configPath, "http://localhost:3005", "key", 0); saveError == nil {
+		testingContext.Error("expected rejection when vault cannot write")
 	}
 	if _, statError := os.Stat(configPath); statError == nil {
-		testingContext.Error("nada deveria ter sido gravado")
+		testingContext.Error("nothing should have been written")
 	}
 }

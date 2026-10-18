@@ -1,14 +1,13 @@
 //go:build !windows
 
-package main
+package desktop
 
 import (
 	"context"
 	"time"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
-
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Tamanho assumido quando o Wails não informa nenhuma tela — errar a posição
