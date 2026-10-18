@@ -41,7 +41,7 @@ export class GithubAppService {
       const payload = `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode({ iat: now - 60, exp: now + 540, iss: this.env.GITHUB_APP_ID })}`;
       const signature = createSign('RSA-SHA256')
         .update(payload)
-        .sign(this.env.GITHUB_APP_PRIVATE_KEY!.replace(/\\n/g, '\n'), 'base64url');
+        .sign(this.normalizePrivateKey(this.env.GITHUB_APP_PRIVATE_KEY!), 'base64url');
       const response = await fetch(
         `https://api.github.com/app/installations/${this.env.GITHUB_APP_INSTALLATION_ID}/access_tokens`,
         {
@@ -66,5 +66,13 @@ export class GithubAppService {
         'Não foi possível autenticar a integração da organização no GitHub. Confira a instalação e suas credenciais.',
       );
     }
+  }
+
+  private normalizePrivateKey(raw: string): string {
+    const clean = raw.trim().replace(/^['"]+|['"]+$/g, '').replace(/\\+n/g, '\n');
+    const match = clean.match(/(-----BEGIN [A-Z0-9 ]+-----)([\s\S]+?)(-----END [A-Z0-9 ]+-----)/);
+    if (!match) return clean;
+    const body = match[2]!.replace(/[^A-Za-z0-9+/=]+/g, '');
+    return `${match[1]}\n${(body.match(/.{1,64}/g) ?? [body]).join('\n')}\n${match[3]}\n`;
   }
 }

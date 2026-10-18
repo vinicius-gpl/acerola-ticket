@@ -57,12 +57,14 @@ export const BOT_UNAVAILABLE_MESSAGE =
  * O servidor não conhece o Baileys nem o protocolo do WhatsApp — só este contrato. É ele que
  * continua valendo no dia em que o bot passar a usar a API oficial.
  */
+const DEFAULT_BOT_API_URL = 'http://127.0.0.1:4005';
+
 @Injectable()
 export class BotClientService {
   constructor(@Inject(ENV) private readonly env: Env) {}
 
   get isConfigured(): boolean {
-    return Boolean(this.env.BOT_API_URL && this.env.BOT_API_TOKEN);
+    return Boolean(this.env.BOT_API_TOKEN);
   }
 
   status(userId: string): Promise<BotStatus> {
@@ -99,7 +101,9 @@ export class BotClientService {
   }
 
   private urlFor(userId: string, action: string): string {
-    return `${this.env.BOT_API_URL!.replace(/\/+$/, '')}/sessions/${botSessionId(userId)}${action}`;
+    const baseUrl = (this.env.BOT_API_URL || DEFAULT_BOT_API_URL).replace(/\/+$/, '');
+
+    return `${baseUrl}/sessions/${botSessionId(userId)}${action}`;
   }
 
   private async request(userId: string, method: string, action: string): Promise<unknown> {
