@@ -65,12 +65,14 @@ que este projeto **não importa**. Esse kit depende de pacotes sob AGPL-3.0:
 O bot de WhatsApp (`acerola/dashboard/bot`) usa o [Baileys](https://github.com/WhiskeySockets/Baileys)
 (MIT), que depende de `libsignal` — a criptografia do WhatsApp — sob **GPL-3.0**.
 
-- O bot é um **programa à parte**: instalação e imagem Docker próprias, processo próprio, e fala
-  com o servidor só por HTTP. O servidor, a tela e o pacote `shared` não instalam nem importam
-  esse código, e o verificador de licenças **reprova** quem passar a importar o Baileys de lá.
+- O bot é um **programa à parte**: instalação própria (`bot/package.json`), processo próprio, e
+  fala com o servidor só por HTTP. O servidor, a tela e o pacote `shared` não instalam nem
+  importam esse código, e o verificador de licenças **reprova** quem passar a importar o Baileys
+  de lá. Ele roda dentro da MESMA imagem Docker do sistema, como um segundo processo.
 - **Rodar** o bot no próprio servidor não cria obrigação nenhuma.
-- **Distribuir** o bot — entregar a imagem ou o código dele a terceiros — exige fazê-lo sob
-  GPL-3.0, com o código-fonte do bot. O restante do projeto continua MIT.
+- **Distribuir** a imagem Docker (ou o código do bot) a terceiros exige oferecer o bot sob
+  GPL-3.0, com o código-fonte dele — a imagem leva o bot junto. O código do restante do projeto
+  continua MIT.
 - A dependência sai junto com o Baileys no dia em que a API oficial do WhatsApp for adotada.
 
 Isto é um aviso de engenharia, não um parecer jurídico.

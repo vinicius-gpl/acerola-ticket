@@ -1,8 +1,9 @@
-# Este compose sobe só a aplicação — um serviço, que responde `/api` e o SPA na mesma porta.
+# Este compose sobe só a aplicação — um container só, que responde `/api`, serve o SPA na mesma
+# porta e sobe junto o bot de WhatsApp em `127.0.0.1:4005` quando configurado.
 #
-# O banco (Postgres, Neon) e os arquivos (Cloudflare R2) são remotos: não há volume de dados
-# aqui. O container só precisa das variáveis do `server/.env` (DATABASE_URL, R2_*) pra subir —
-# sem elas, o server recusa iniciar.
+# O banco (Postgres, Neon) e os arquivos (Cloudflare R2) são remotos: o único volume (`bot-data`)
+# guarda as conexões cifradas dos números de WhatsApp vinculados. O container só precisa das
+# variáveis do `server/.env` (DATABASE_URL, R2_*) pra subir — sem elas, o server recusa iniciar.
 #
 # Em produção fica atrás de um Traefik (ex.: Coolify), que resolve domínio e TLS;
 # localmente é só `-p 3005:3005`.
@@ -14,8 +15,12 @@ services:
     env_file:
       - path: ../server/.env
         required: false
+      - path: ../bot/.env
+        required: false
     ports:
       - '3005:3005'
+    volumes:
+      - bot-data:/data
     # SAÚDE DE VERDADE, não "o processo está de pé".
     #
     # `/api/health` só responde 200 depois de conseguir falar com o banco. Sem isto, uma
@@ -36,39 +41,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
-  # O bot de WhatsApp: um programa à parte, que só o `app` alcança (rede interna do compose —
-  # não há `ports`). Tem o único volume do projeto: as conexões cifradas dos números vinculados.
-  # Perder o volume não perde dado de chamado; só obriga cada pessoa a ler o QR code de novo.
-  #
-  # Sobe só com o perfil: `docker compose -f docker/compose.yml --profile whatsapp up --build`.
-  bot:
-    profiles: [whatsapp]
-    build:
-      context: ../bot
-      dockerfile: ../docker/bot.dockerfile
-    env_file:
-      - path: ../bot/.env
-        required: false
-    environment:
-      BOT_HOST: 0.0.0.0
-      BOT_DATA_DIR: /data
-      # Para onde o bot leva o /chamado: o serviço `app`, pela rede interna do compose.
-      BOT_SERVER_URL: http://app:3005/api
-    volumes:
-      - bot-data:/data
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "fetch('http://127.0.0.1:' + (process.env.BOT_PORT || 4005) + '/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
 
 volumes:
   bot-data:
