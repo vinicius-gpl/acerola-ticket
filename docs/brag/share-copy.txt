@@ -1,0 +1,1 @@
+Apresentando o Acerola Ticket: a TI da empresa num lugar só. Chamados, kanban, cronograma ligado ao GitHub, inventário e agente Windows com auto-update, divididos em Infra, Sistema e Manutenção, com acesso por módulo e relatórios em Excel, Word e PDF.

@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Acerola Ticket — brag (pt-BR)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #11111b;
+      }
+
+      #root {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: #11111b;
+        font-family: Montserrat, sans-serif;
+      }
+
+      .clip.transparent {
+        background: transparent;
+      }
+
+      /* cada cena ocupa o quadro inteiro; o filho .scene recebe as animações,
+         nunca o próprio .clip (a visibilidade do clip é responsabilidade do runtime) */
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .wordmark {
+        display: block;
+        font-family: Montserrat, sans-serif;
+        font-weight: 900;
+        font-size: 156px;
+        letter-spacing: -0.04em;
+        color: #cdd6f4;
+        line-height: 1;
+      }
+
+      .subline {
+        display: block;
+        margin-top: 34px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 32px;
+        letter-spacing: 0.14em;
+        color: #cba6f7;
+        text-transform: uppercase;
+      }
+
+      .kicker {
+        display: block;
+        margin-bottom: 64px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 30px;
+        letter-spacing: 0.14em;
+        color: #cba6f7;
+        text-transform: uppercase;
+      }
+
+      .card {
+        position: relative;
+        display: block;
+        border-radius: 22px;
+        overflow: hidden;
+        border: 1px solid rgba(205, 214, 244, 0.08);
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+        background: #181825;
+      }
+
+      .card img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top left;
+      }
+
+      /* os prints têm 1568x766; todo card mantém essa proporção (2.047) */
+      .card-wide {
+        width: 1240px;
+        height: 606px;
+      }
+
+      .card-flow {
+        width: 1160px;
+        height: 567px;
+      }
+
+      /* --- cena 3: fluxo abrir → acompanhar --- */
+      .flow-stage {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      .flow-beat {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .step-chip {
+        display: inline-block;
+        margin-bottom: 40px;
+        padding: 12px 28px;
+        border-radius: 999px;
+        background: rgba(203, 166, 247, 0.12);
+        border: 1px solid rgba(203, 166, 247, 0.45);
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 24px;
+        letter-spacing: 0.12em;
+        color: #cba6f7;
+        text-transform: uppercase;
+      }
+
+      .step-line {
+        display: block;
+        margin-top: 36px;
+        font-family: Montserrat, sans-serif;
+        font-weight: 700;
+        font-size: 40px;
+        color: #cdd6f4;
+        text-align: center;
+      }
+
+      /* --- cena 4: hero — cronograma na frente, projetos atrás --- */
+      .hero-frame {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hero-back {
+        position: absolute;
+        left: 200px;
+        top: 150px;
+        width: 1100px;
+        height: 537px;
+        opacity: 0.45;
+      }
+
+      .hero-front {
+        position: absolute;
+        left: 110px;
+        top: 300px;
+        width: 1180px;
+        height: 576px;
+      }
+
+      .hero-caption {
+        position: absolute;
+        right: 100px;
+        top: 0;
+        width: 440px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+      }
+
+      .hero-caption span {
+        display: block;
+        text-align: left;
+        font-family: Montserrat, sans-serif;
+        font-weight: 700;
+        font-size: 36px;
+        line-height: 1.35;
+        color: #cdd6f4;
+      }
+
+      .hero-caption em {
+        font-style: normal;
+        color: #f5c2e7;
+      }
+
+      /* --- cena 5: os 3 fatos --- */
+      .facts-row {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 96px;
+      }
+
+      .fact {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+        width: 360px;
+      }
+
+      .fact-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 84px;
+        height: 84px;
+        border-radius: 999px;
+        background: rgba(245, 194, 231, 0.12);
+        border: 1px solid rgba(245, 194, 231, 0.4);
+      }
+
+      .fact-icon svg {
+        width: 38px;
+        height: 38px;
+      }
+
+      .fact-label {
+        display: block;
+        text-align: center;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 28px;
+        line-height: 1.35;
+        letter-spacing: 0.04em;
+        color: #cdd6f4;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="acerola-ticket-brag-ptbr"
+      data-start="0"
+      data-duration="23.5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- ================= CENA 1 — GANCHO — 0s a 3.1s (visível até 2.5s) ================= -->
+      <div id="s1" class="clip transparent" data-start="0" data-duration="3.1" data-track-index="1">
+        <div id="s1-inner" class="scene">
+          <span id="s1-word" class="wordmark">Acerola Ticket</span>
+          <span id="s1-sub" class="subline">A TI da empresa num lugar só.</span>
+        </div>
+      </div>
+
+      <!-- ================= CENA 2 — O PAINEL — 2.5s a 6.1s (visível até 5.5s) ================= -->
+      <div id="s2" class="clip transparent" data-start="2.5" data-duration="3.6" data-track-index="2">
+        <div id="s2-inner" class="scene">
+          <span class="kicker">O parque inteiro, de relance.</span>
+          <div id="s2-card" class="card card-wide">
+            <img id="s2-img" data-layout-allow-overflow src="assets/images/infra-painel.jpg" alt="" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= CENA 3 — FLUXO: ABRIR → ACOMPANHAR — 5.5s a 11.6s (visível até 10.9s) ================= -->
+      <div id="s3" class="clip transparent" data-start="5.5" data-duration="6.1" data-track-index="3">
+        <div class="flow-stage">
+          <!-- sub-beat 01 — chamados (relativo 0s a 2.75s) -->
+          <div id="s3-open" class="flow-beat">
+            <span class="step-chip">01 — Chamados</span>
+            <div class="card card-flow">
+              <img id="s3-open-img" data-layout-allow-overflow src="assets/images/infra-chamados.jpg" alt="" />
+            </div>
+            <span class="step-line">Todo pedido vira chamado.</span>
+          </div>
+
+          <!-- sub-beat 02 — kanban (relativo 2.75s a 5.5s), cobre o beat anterior -->
+          <div id="s3-board" class="flow-beat" data-layout-allow-overlap>
+            <span class="step-chip">02 — Kanban</span>
+            <div id="s3-board-card" class="card card-flow">
+              <img id="s3-board-img" data-layout-allow-overflow src="assets/images/sistema-kanban.jpg" alt="" />
+            </div>
+            <span class="step-line">Da triagem ao concluído.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= CENA 4 — HERO: GITHUB — 10.9s a 17.1s (visível até 16.5s) ================= -->
+      <div id="s4" class="clip transparent" data-start="10.9" data-duration="6.2" data-track-index="4">
+        <div id="s4-inner" class="hero-frame">
+          <div id="s4-back" class="card hero-back">
+            <img src="assets/images/sistema-projetos.jpg" alt="" />
+          </div>
+          <div id="s4-front" class="card hero-front">
+            <img id="s4-front-img" data-layout-allow-overflow src="assets/images/sistema-cronograma.jpg" alt="" />
+          </div>
+          <div class="hero-caption">
+            <span id="s4-caption">Cada sistema ligado ao <em>GitHub</em>: PRs, issues e chamados no mesmo cronograma.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= CENA 5 — OS TRÊS FATOS — 16.5s a 21.6s (visível até 21.0s) ================= -->
+      <div id="s5" class="clip transparent" data-start="16.5" data-duration="5.1" data-track-index="5">
+        <div id="s5-inner" class="scene">
+          <div class="facts-row">
+            <div id="s5-fact-1" class="fact">
+              <span class="fact-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f5c2e7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg>
+              </span>
+              <span class="fact-label">Acesso por módulo</span>
+            </div>
+            <div id="s5-fact-2" class="fact">
+              <span class="fact-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f5c2e7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"></path><path d="M20 4v4h-4"></path><path d="M12 8v5l3 2"></path></svg>
+              </span>
+              <span class="fact-label">Agente Windows com auto-update</span>
+            </div>
+            <div id="s5-fact-3" class="fact">
+              <span class="fact-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f5c2e7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"></path><path d="M14 3v5h5"></path><path d="M9 13h6M9 17h6"></path></svg>
+              </span>
+              <span class="fact-label">Relatórios em Excel, Word e PDF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= CENA 6 — DESFECHO — 21.0s a 23.5s ================= -->
+      <div id="s6" class="clip transparent" data-start="21.0" data-duration="2.5" data-track-index="6">
+        <div id="s6-inner" class="scene" data-layout-allow-overlap>
+          <span class="wordmark">Acerola Ticket</span>
+          <span class="subline">Infra. Sistema. Manutenção.</span>
+        </div>
+      </div>
+
+      <!-- ================= ÁUDIO ================= -->
+      <!-- trilha: happy-beats vol-12 (steady and clean), fade-in / hold / swell no hero / fade-out -->
+      <audio
+        id="bg-music"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+        data-start="0"
+        data-duration="23.5"
+        data-track-index="10"
+        data-volume="0"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0},{"t":1.2,"v":0.32},{"t":10.6,"v":0.32},{"t":10.9,"v":0.42},{"t":13.5,"v":0.34},{"t":21.0,"v":0.34},{"t":23.5,"v":0}]}]}'
+      ></audio>
+
+      <audio id="sfx-hook" src="assets/sfx/interface/drop_001.ogg" data-start="0" data-track-index="20" data-volume="0.5"></audio>
+
+      <audio id="sfx-install" src="assets/sfx/interface/drop_002.ogg" data-start="5.5" data-track-index="21" data-volume="0.5"></audio>
+
+      <audio id="sfx-pair" src="assets/sfx/interface/drop_003.ogg" data-start="8.25" data-track-index="22" data-volume="0.5"></audio>
+
+      <audio id="sfx-scan" src="assets/sfx/interface/select_008.ogg" data-start="9.6" data-track-index="23" data-volume="0.45"></audio>
+
+      <!-- beat-locked: 10.9s — entrada do hero alinhada à batida forte da música (10.93s no preset) -->
+      <audio id="sfx-hero" src="assets/sfx/interface/bong_001.ogg" data-start="10.9" data-track-index="24" data-volume="0.55"></audio>
+
+      <audio id="sfx-fact-1" src="assets/sfx/interface/drop_001.ogg" data-start="17.47" data-track-index="25" data-volume="0.45"></audio>
+      <audio id="sfx-fact-2" src="assets/sfx/interface/drop_002.ogg" data-start="18.56" data-track-index="26" data-volume="0.45"></audio>
+      <audio id="sfx-fact-3" src="assets/sfx/interface/drop_003.ogg" data-start="19.66" data-track-index="27" data-volume="0.45"></audio>
+    </div>
+
+    <script>
+      var tl = gsap.timeline({ paused: true });
+
+      // ---------- cena 1: gancho ----------
+      tl.fromTo("#s1-word", { opacity: 0, y: 16, scale: 0.985 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power2.out" }, 0);
+      tl.fromTo("#s1-sub", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 0.35);
+
+      // ---------- cena 1 → cena 2: crossfade real (saída e entrada no mesmo instante T) ----------
+      tl.to("#s1-inner", { opacity: 0, duration: 0.6, ease: "sine.inOut" }, 2.5);
+      tl.fromTo("#s2-inner", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.inOut" }, 2.5);
+      tl.fromTo("#s2-card", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 2.62);
+      // push-in lento no painel enquanto a cena respira
+      tl.fromTo("#s2-img", { scale: 1 }, { scale: 1.05, duration: 3.6, ease: "none", transformOrigin: "50% 30%" }, 2.5);
+
+      // ---------- cena 2 → cena 3 (sub-beat 01 chamados): crossfade real ----------
+      tl.to("#s2-inner", { opacity: 0, duration: 0.6, ease: "sine.inOut" }, 5.5);
+      tl.fromTo("#s3-open", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.inOut" }, 5.5);
+      tl.fromTo("#s3-open .step-chip", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 5.6);
+      tl.fromTo("#s3-open .card-flow", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 5.65);
+      tl.fromTo("#s3-open .step-line", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 5.85);
+      tl.fromTo("#s3-open-img", { scale: 1 }, { scale: 1.04, duration: 3.2, ease: "none", transformOrigin: "50% 20%" }, 5.5);
+
+      // sub-beat 01 → sub-beat 02 (kanban): crossfade real dentro da mesma cena
+      tl.to("#s3-open", { opacity: 0, duration: 0.4, ease: "sine.inOut" }, 8.25);
+      tl.fromTo("#s3-board", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "sine.inOut" }, 8.25);
+      tl.fromTo("#s3-board .step-chip", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 8.35);
+      tl.fromTo("#s3-board-card", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 8.4);
+      tl.fromTo("#s3-board .step-line", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 8.6);
+      // o quadro desliza para a direita, como quem acompanha o card até a coluna Concluído
+      tl.fromTo("#s3-board-img", { scale: 1.08, xPercent: 3 }, { scale: 1.08, xPercent: -3, duration: 2.9, ease: "power1.inOut", transformOrigin: "50% 0%" }, 8.25);
+
+      // ---------- cena 3 → cena 4: crossfade real para o hero ----------
+      // beat-locked: 10.9s — entrada do hero alinhada à batida forte da música (10.93s no preset)
+      tl.to("#s3-board", { opacity: 0, duration: 0.7, ease: "sine.inOut" }, 10.9);
+      tl.fromTo("#s4-inner", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "sine.inOut" }, 10.9);
+      tl.fromTo("#s4-back", { opacity: 0, y: -20 }, { opacity: 0.45, y: 0, duration: 0.8, ease: "power2.out" }, 10.9);
+      tl.fromTo("#s4-front", { opacity: 0, y: 30, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "power2.out" }, 11.0);
+      tl.fromTo("#s4-caption", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 11.4);
+      tl.fromTo("#s4-front-img", { scale: 1 }, { scale: 1.05, duration: 5.6, ease: "none", transformOrigin: "40% 60%" }, 10.9);
+
+      // ---------- cena 4 → cena 5: crossfade real ----------
+      tl.to("#s4-inner", { opacity: 0, duration: 0.6, ease: "sine.inOut" }, 16.5);
+      tl.fromTo("#s5-inner", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "sine.inOut" }, 16.5);
+      // beat-grid: fato 1 em 17.47s, fato 2 em 18.56s, fato 3 em 19.66s — batidas fortes do preset
+      tl.fromTo("#s5-fact-1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 17.47);
+      tl.fromTo("#s5-fact-2", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 18.56);
+      tl.fromTo("#s5-fact-3", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 19.66);
+
+      // ---------- cena 5 → cena 6: crossfade real para o desfecho ----------
+      tl.to("#s5-inner", { opacity: 0, duration: 0.6, ease: "sine.inOut" }, 21.0);
+      tl.fromTo("#s6-inner .wordmark", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 21.0);
+      tl.fromTo("#s6-inner .subline", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 21.35);
+      // única saída permitida: a cena final se apaga suavemente no quadro-a-quadro final
+      tl.to("#s6-inner", { opacity: 0, duration: 0.4, ease: "sine.in" }, 23.1);
+
+      window.__timelines["acerola-ticket-brag-ptbr"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
