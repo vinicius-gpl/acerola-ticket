@@ -5,6 +5,7 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { BudgetDto } from '../dto/budget.dto';
 import { BudgetService } from '../service/budget.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service, e as réguas
@@ -14,6 +15,7 @@ import { BudgetService } from '../service/budget.service';
  * inventário contra o depósito.
  */
 @ApiTags('Orçamento')
+@ModuleContext('infra')
 @Controller('budget')
 export class BudgetController {
   constructor(private readonly service: BudgetService) {}

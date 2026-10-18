@@ -39,7 +39,7 @@
   const hasError = $derived(Boolean(error));
 </script>
 
-<div class={cn('flex flex-col gap-1.5', ui?.className)}>
+<div class={cn('flex min-w-0 max-w-full flex-col gap-1.5', ui?.className)}>
   <label for={inputId} class="text-ink-700 text-sm font-medium">{data.label}</label>
 
   <!-- `px-0!`: o `control-lg` traz o respiro lateral de um campo sozinho; aqui quem dá o

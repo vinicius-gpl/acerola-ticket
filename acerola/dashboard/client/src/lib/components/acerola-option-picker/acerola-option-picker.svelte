@@ -68,7 +68,7 @@
    * numa linha só.
    */
   const optionTrack = tv({
-    base: 'items-stretch gap-1 rounded-control border border-border/70 bg-muted/50 p-1 min-h-(--control-lg)',
+    base: 'items-stretch gap-1 rounded-control border border-border/70 bg-muted/50 p-1 min-h-(--control-lg) max-w-full min-w-0',
     variants: {
       layout: {
         filter: 'inline-flex flex-wrap',
@@ -171,22 +171,25 @@
 </script>
 
 <script lang="ts">
+  import { MediaQuery } from 'svelte/reactivity';
   import CheckIcon from '@lucide/svelte/icons/check';
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import SearchIcon from '@lucide/svelte/icons/search';
 
-  import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
+  import { Popover, PopoverTrigger } from '$lib/components/ui/popover';
+  import PopoverContent from '$lib/components/acerola-search-popover-content/acerola-search-popover-content.svelte';
   import { cn } from '$lib/utils/cn';
 
   let { data, ui, state: fieldState, actions }: AcerolaOptionPickerProps = $props();
 
+  const isMobile = new MediaQuery('(max-width: 639px)');
   let isOpen = $state(false);
   let query = $state('');
 
   const options = $derived(resolveOptions(data, ui?.allLabel));
   const layout = $derived(ui?.fullWidth ? 'form' : 'filter');
   const isPillMode = $derived(
-    ui?.mode !== 'combobox' && options.length <= PILL_MAX_OPTIONS[layout],
+    !isMobile.current && ui?.mode !== 'combobox' && options.length <= PILL_MAX_OPTIONS[layout],
   );
   const gridColumns = $derived(resolveGridColumns(options.length));
   const selectedOption = $derived(options.find((option) => option.value === data.value) ?? null);
@@ -218,6 +221,7 @@
       <button
         type="button"
         disabled={fieldState?.isDisabled}
+        aria-pressed={isSelected}
         onclick={() => select(option.value)}
         class={optionPill({ layout, isSelected, tone: option.tone })}
       >
@@ -239,7 +243,7 @@
         /* Os mesmos 40px do trilho de pastilhas e de todo campo: os dois modos deste componente
            moram lado a lado numa barra de filtro e têm de alinhar. */
         'control-lg',
-        'rounded-control inline-flex w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
+        'rounded-control inline-flex min-w-0 max-w-full w-full cursor-pointer items-center justify-between gap-2 border border-border/70 bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60',
         ui?.fullWidth ? 'sm:w-full' : 'sm:w-auto sm:min-w-[180px]',
         ui?.className,
       )}
@@ -266,7 +270,7 @@
       class="min-w-(--bits-popover-anchor-width) w-auto max-w-[min(26rem,calc(100vw-2rem))] p-0"
       align="start"
     >
-      <div class="relative border-b border-border/70 p-2">
+      <div class="relative shrink-0 border-b border-border/70 p-2">
         <SearchIcon
           class="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
@@ -286,7 +290,7 @@
       <!-- `overflow-x-hidden` ao lado do vertical: pelo CSS, pedir rolagem num eixo
            transforma o outro em `auto` sozinho, e uma opção de nome comprido daria barra de
            rolagem horizontal dentro do balão. -->
-      <div class="max-h-64 overflow-x-hidden overflow-y-auto p-1">
+      <div class="min-h-0 max-h-96 overflow-x-hidden overscroll-contain overflow-y-auto p-1">
         {#each filteredOptions as option (option.value || '__all__')}
           {@const isSelected = option.value === data.value}
           <button
@@ -294,7 +298,7 @@
             onclick={() => select(option.value)}
             class={cn(
               /* Item de lista dentro de um balão é MIUDEZA, não controle: raio `chip`. */
-              'flex w-full cursor-pointer items-center gap-2 rounded-chip px-2.5 py-1.5 text-left text-xs transition-colors',
+              'flex w-full cursor-pointer items-center gap-2 rounded-chip min-h-11 px-3 py-2.5 text-left text-sm transition-colors',
               isSelected
                 ? 'bg-primary/10 font-semibold text-primary'
                 : 'text-foreground hover:bg-muted/60',
@@ -305,7 +309,7 @@
             {:else if option.tone}
               <span class={optionDot({ tone: option.tone })} aria-hidden="true"></span>
             {/if}
-            <span class="flex-1 truncate">{option.label}</span>
+            <span class="min-w-0 flex-1 break-words">{option.label}</span>
             {#if isSelected}
               <CheckIcon class="size-3.5 shrink-0" aria-hidden="true" />
             {/if}

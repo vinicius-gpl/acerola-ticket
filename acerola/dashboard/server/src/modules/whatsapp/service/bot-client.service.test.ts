@@ -56,12 +56,20 @@ describe('BotClientService', () => {
     expect(calls[1]?.[1].method).toBe('DELETE');
   });
 
-  it('knows whether the integration is configured', () => {
+  it('knows whether the integration is configured and defaults to localhost:4005', async () => {
     expect(new BotClientService(configured).isConfigured).toBe(true);
+    expect(new BotClientService({ BOT_API_TOKEN: TOKEN } as Env).isConfigured).toBe(true);
     expect(new BotClientService({} as Env).isConfigured).toBe(false);
     expect(new BotClientService({ BOT_API_URL: 'http://bot.local' } as Env).isConfigured).toBe(
       false,
     );
+
+    const fetchMock = mockFetch(
+      jsonResponse({ state: 'disconnected', qr: null, phone: null }),
+    );
+    await new BotClientService({ BOT_API_TOKEN: TOKEN } as Env).status('user-1');
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).toBe(`http://127.0.0.1:4005/sessions/${botSessionId('user-1')}`);
   });
 
   // triste

@@ -14,7 +14,7 @@
   });
 </script>
 
-<Story name="Default" args={{ data: { label: 'Nova tarefa' }, ui: { icon: Plus } }} />
+<Story name="Default" args={{ data: { label: 'Novo chamado' }, ui: { icon: Plus } }} />
 
 <Story name="AllVariants" args={{ data: { label: 'Salvar' } }}>
   {#snippet template()}
@@ -33,7 +33,7 @@
 <Story
   name="IconOnly"
   args={{
-    data: { label: 'Excluir tarefa' },
+    data: { label: 'Excluir chamado' },
     ui: { icon: Trash2, isIconOnly: true, variant: 'ghost' },
   }}
 />
@@ -50,13 +50,13 @@
 
 <Story
   name="Disabled"
-  args={{ data: { label: 'Nova tarefa' }, ui: { icon: Plus }, state: { isDisabled: true } }}
+  args={{ data: { label: 'Novo chamado' }, ui: { icon: Plus }, state: { isDisabled: true } }}
 />
 
 <!-- Caso limite: rótulo longo numa coluna estreita. -->
 <Story
   name="LongLabelInNarrowColumn"
-  args={{ data: { label: 'Exportar todas as tarefas concluídas do mês' } }}
+  args={{ data: { label: 'Exportar todos os chamados resolvidos do mês' } }}
 >
   {#snippet template(args: ComponentProps<typeof ActionButton>)}
     <div class="border-ink-300 w-48 border border-dashed p-2">

@@ -41,7 +41,13 @@ var (
 	procFindWindow         = user32.NewProc("FindWindowW")
 	procSetWindowPos       = user32.NewProc("SetWindowPos")
 	procSetWindowRgn       = user32.NewProc("SetWindowRgn")
+	procShowWindow         = user32.NewProc("ShowWindow")
+	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
 	procCreateRoundRectRgn = gdi32.NewProc("CreateRoundRectRgn")
+)
+
+const (
+	swRestore = 9
 )
 
 // Handle localiza a janela nativa do agente. Devolve 0 se ela ainda não
@@ -139,3 +145,14 @@ var isWindows11 = sync.OnceValue(func() bool {
 
 	return version.MajorVersion == 10 && version.BuildNumber >= windows11FirstBuild
 })
+
+// Activate restaura a janela e a traz para o primeiro plano se já existir.
+func Activate(handle windows.HWND) {
+	if handle == 0 {
+		return
+	}
+
+	_, _, _ = procShowWindow.Call(uintptr(handle), uintptr(swRestore))
+	_, _, _ = procSetForegroundWindow.Call(uintptr(handle))
+}
+

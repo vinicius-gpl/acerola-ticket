@@ -98,8 +98,8 @@ describe('canModifyRecord', () => {
 describe('policy-assert', () => {
   // feliz
   it('says nothing when the action is allowed', () => {
-    expect(() => assertCanCreate('user', 'tarefas')).not.toThrow();
-    expect(() => assertCanModifyRecord('user', ANA, ANA, 'Esta tarefa')).not.toThrow();
+    expect(() => assertCanCreate('user', 'chamados')).not.toThrow();
+    expect(() => assertCanModifyRecord('user', ANA, ANA, 'Este chamado')).not.toThrow();
     expect(() => assertIsAdmin('admin', 'Gerenciar pessoas')).not.toThrow();
     expect(() => assertIsAdmin('superadmin', 'Gerenciar pessoas')).not.toThrow();
     expect(() => assertIsSuperAdmin('superadmin', 'Atribuir cargos')).not.toThrow();
@@ -108,10 +108,10 @@ describe('policy-assert', () => {
   // triste
   /* A mensagem é parte da regra: ela precisa dizer o que resolve, não só "sem permissão". */
   it('explains who can change a record from someone else', () => {
-    expect(() => assertCanModifyRecord('user', BIA, ANA, 'Esta tarefa')).toThrow(
+    expect(() => assertCanModifyRecord('user', BIA, ANA, 'Este chamado')).toThrow(
       ForbiddenException,
     );
-    expect(() => assertCanModifyRecord('user', BIA, ANA, 'Esta tarefa')).toThrow(/gerente/i);
+    expect(() => assertCanModifyRecord('user', BIA, ANA, 'Este chamado')).toThrow(/gerente/i);
   });
 
   it('refuses an admin action for a manager', () => {
@@ -175,8 +175,11 @@ describe('getRoleInContext & canManageInContext', () => {
   });
 
   // triste
-  it('falls back to default user role when user is null or undefined', () => {
-    expect(getRoleInContext(null, 'infra')).toBe('user');
+  /* Sem o módulo é sem acesso — nem leitura, nem o papel principal. */
+  it('gives no role to who has no identity or no such module', () => {
+    expect(getRoleInContext(null, 'infra')).toBeNull();
+    expect(getRoleInContext({ role: 'admin', roles: { sistema: 'admin' } }, 'infra')).toBeNull();
     expect(canManageInContext(null, 'manutencao')).toBe(false);
+    expect(canManageInContext({ role: 'admin', roles: {} }, 'manutencao')).toBe(false);
   });
 });

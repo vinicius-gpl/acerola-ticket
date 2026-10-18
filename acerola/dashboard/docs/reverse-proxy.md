@@ -11,8 +11,8 @@ Os exemplos usam `chamados.exemplo.com` e a porta `3005` (o valor de `API_PORT`)
 | O quê | Por quê |
 |---|---|
 | HTTPS | O login viaja nessas requisições. |
-| Limitar o tamanho da requisição | Abrir chamado é público e aceita anexos. Sem teto, alguém manda arquivos enormes e derruba o servidor. |
-| Limite apertado nas duas rotas públicas | `POST /api/tickets` (abrir chamado) e `GET /api/tickets/protocol/...` (consultar). O protocolo é sequencial; sem limite, dá para varrer todos os chamados. |
+| Limitar o tamanho da requisição | Abrir chamado é de qualquer pessoa com conta e aceita anexos. Sem teto, alguém manda arquivos enormes e derruba o servidor. |
+| Limite apertado nas duas rotas de quem pede socorro | `POST /api/tickets` (abrir chamado) e `GET /api/tickets/protocol/...` (consultar). Qualquer conta usa as duas, e o protocolo é sequencial; sem limite, uma conta só dá para tentar varrer os números. |
 | Fechar `/docs` e `/docs-json` | É a documentação da API. Não precisa estar aberta para a internet. |
 | Repassar WebSocket em `/agent` | É por onde o agente instalado nas máquinas conversa com o sistema. |
 
@@ -152,14 +152,14 @@ O certificado fica por sua conta (Certbot, por exemplo). As linhas `limit_req_zo
 `map` vão no contexto `http`, fora do `server`.
 
 ```nginx
-# Abrir chamado e listar chamados usam o MESMO caminho (/api/tickets): o POST é público, o GET
-# exige login. A chave fica vazia para tudo que não é POST, e o nginx não limita chave vazia.
+# Abrir chamado e listar chamados usam o MESMO caminho (/api/tickets): o POST é de quem pede
+# socorro, o GET é do painel. A chave fica vazia para tudo que não é POST, e o nginx não limita chave vazia.
 map $request_method $acerola_open_key {
     POST    $binary_remote_addr;
     default '';
 }
 
-# 10 por minuto por IP, um balde para cada rota pública.
+# 10 por minuto por IP, um balde para cada rota de quem pede socorro.
 limit_req_zone $acerola_open_key zone=acerola_open:10m rate=10r/m;
 limit_req_zone $binary_remote_addr zone=acerola_lookup:10m rate=10r/m;
 

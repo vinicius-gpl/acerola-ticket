@@ -68,7 +68,8 @@ describe('AcerolaUserProfileDialog', () => {
   });
 
   // triste
-  it('handles missing roles by defaulting to user level', () => {
+  /* Módulo sem nível é sem acesso: o cartão não promete "Usuário" onde a pessoa não entra. */
+  it('shows no access on every module the person does not have', () => {
     renderDialog({
       data: {
         user: {
@@ -80,7 +81,6 @@ describe('AcerolaUserProfileDialog', () => {
     });
 
     expect(screen.getByText('Pessoa Sem Cargos')).toBeInTheDocument();
-    const userBadges = screen.getAllByText('Usuário');
-    expect(userBadges.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Sem acesso')).toHaveLength(3);
   });
 });

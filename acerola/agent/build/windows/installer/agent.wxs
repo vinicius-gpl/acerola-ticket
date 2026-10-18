@@ -1,0 +1,70 @@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- wixl usa o formato WiX v3 como linguagem, sem depender do compilador WiX. -->
+  <Product Id="*" Name="Acerola Agent" Manufacturer="Acerola" Version="$(var.Version)"
+           UpgradeCode="E7C8A7F8-AC5E-4E7C-852B-55FF1B218B93" Language="1046" Codepage="1252">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
+    <MajorUpgrade DowngradeErrorMessage="Uma versão mais recente do Acerola Agent já está instalada." />
+    <Media Id="1" Cabinet="agent.cab" EmbedCab="yes" />
+    <!-- WindowsBuild pode informar 9600 por compatibilidade mesmo no Windows 10/11. -->
+    <Property Id="WINDOWS_CURRENT_BUILD">
+      <RegistrySearch Id="WindowsCurrentBuild" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="CurrentBuildNumber" Type="raw" Win64="yes" />
+    </Property>
+    <Condition Message="Este instalador exige Windows 10 1809 ou superior, ou Windows 11, em x64.">Installed OR (VersionNT64 AND WINDOWS_CURRENT_BUILD &gt;= 17763)</Condition>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="AcerolaFolder" Name="Acerola">
+          <Directory Id="INSTALLFOLDER" Name="Agent">
+            <Component Id="DesktopApp" Guid="*" Win64="yes">
+              <File Id="AgentExe" Source="$(var.BinDir)/Acerola Agent.exe" KeyPath="yes" />
+              <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="AcerolaAgent" Value="&quot;[#AgentExe]&quot; --background" Type="string" />
+            </Component>
+            <Component Id="AgentService" Guid="*" Win64="yes">
+              <File Id="ServiceExe" Source="$(var.BinDir)/acerola-agent-service.exe" KeyPath="yes" />
+              <ServiceInstall Id="InstallService" Name="AcerolaAgent" DisplayName="Acerola Agent" Description="Coleta de métricas e atualização automática do agente Acerola." Type="ownProcess" Start="auto" ErrorControl="normal" Account="LocalSystem" Vital="yes">
+                <ServiceDependency Id="Tcpip" />
+              </ServiceInstall>
+              <ServiceControl Id="ControlService" Name="AcerolaAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+            </Component>
+            <Component Id="SetupFiles" Guid="*" Win64="yes">
+              <File Id="ConfigureMachine" Source="$(var.SourceDir)/configure-machine.ps1" KeyPath="yes" />
+              <File Id="InstallCertificate" Source="$(var.SourceDir)/install-certificate.ps1" />
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Acerola Agent">
+          <Component Id="ApplicationShortcut" Guid="*" Win64="yes">
+            <Shortcut Id="ApplicationStartMenuShortcut" Name="Acerola Agent" Description="Acerola Agent" Target="[#AgentExe]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+            <RemoveFolder Id="CleanUpShortCut" On="uninstall" />
+            <RegistryValue Root="HKCU" Key="Software\Acerola\Agent" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop">
+        <Component Id="ApplicationDesktopShortcutComp" Guid="*" Win64="yes">
+          <Shortcut Id="ApplicationDesktopShortcut" Name="Acerola Agent" Description="Acerola Agent" Target="[#AgentExe]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+          <RegistryValue Root="HKCU" Key="Software\Acerola\Agent" Name="desktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+      <Directory Id="CommonAppDataFolder">
+          <Directory Id="AGENTDATA" Name="AcerolaAgent">
+            <Component Id="MachineDirectory" Guid="595EFC25-75C4-4284-A9DE-DC9BE4C967B4" Permanent="yes" Win64="yes">
+              <CreateFolder />
+            </Component>
+          </Directory>
+      </Directory>
+      <Directory Id="SystemFolder" />
+    </Directory>
+    <Icon Id="AppIcon.ico" SourceFile="$(var.SourceDir)/../icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Feature Id="Main" Title="Acerola Agent" Level="1">
+      <ComponentRef Id="DesktopApp" />
+      <ComponentRef Id="AgentService" />
+      <ComponentRef Id="SetupFiles" />
+      <ComponentRef Id="MachineDirectory" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="ApplicationDesktopShortcutComp" />
+    </Feature>
+  </Product>
+</Wix>

@@ -1,8 +1,8 @@
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import type { SoftwareScheduleModel } from '$lib/hooks/use-software-schedule/use-software-schedule.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,

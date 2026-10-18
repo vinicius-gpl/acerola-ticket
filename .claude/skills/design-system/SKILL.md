@@ -191,7 +191,7 @@ Tudo em `kebab-case`, inglês, singular para componente/hook, plural para módul
 | Story title | `Components/Acerola<Nome>` · feature: `Features/<Feature>/Acerola<Nome>` | `Features/Dashboard/AcerolaMaintenanceLog` |
 | Hook | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` | `use-media-query/use-media-query.svelte.ts` |
 | Hook harness | `use-<nome>-harness.test.svelte` | |
-| Slot de rota | `routes/(app)/<context>/<feature>/<nome>-slot.svelte` | `task-form-slot.svelte` |
+| Slot de rota | `routes/(app)/<context>/<feature>/<nome>-slot.svelte` | `part-form-slot.svelte` |
 | API client | `lib/api/<entities>.api.ts` | `tickets.api.ts` |
 | Util | `<nome>.util.ts` | `format-date.util.ts` |
 | Tipo | `<nome>.type.ts` | `form-field.type.ts` |

@@ -98,21 +98,7 @@ describe('IdentityProvider.resolve', () => {
     });
   });
 
-  /* Migração suave: se a pessoa não tem cargo interno cadastrado, lê o papel legado de neon_auth.user */
-  it('falls back to legacy role from neon_auth.user when internal_roles is empty', async () => {
-    const { provider } = makeProvider([userRow({ role: 'manager' })], []);
-
-    await expect(provider.resolve('token')).resolves.toMatchObject({
-      role: 'manager',
-      roles: {
-        infra: 'user',
-        sistema: 'manager',
-        manutencao: 'user',
-      },
-    });
-  });
-
-  it('recognizes superadmin from neon_auth.user and grants admin across all contexts by default', async () => {
+  it('recognizes superadmin from neon_auth.user and grants admin across all contexts', async () => {
     const { provider } = makeProvider([userRow({ role: 'superadmin' })], []);
 
     await expect(provider.resolve('token')).resolves.toMatchObject({
@@ -125,33 +111,37 @@ describe('IdentityProvider.resolve', () => {
     });
   });
 
-  // triste
-  /* Pessoa nova sem cargo atribuído em lugar nenhum cai no papel mais restrito (user) */
-  it('falls back to the most restricted role (user) when there is no role anywhere', async () => {
-    const { provider } = makeProvider([userRow({ role: null })], []);
-
-    await expect(provider.resolve('token')).resolves.toMatchObject({
-      role: 'user',
-      roles: {
-        infra: 'user',
-        sistema: 'user',
-        manutencao: 'user',
-      },
-    });
-  });
-
-  it('ignores invalid role in internal_roles and falls back to user', async () => {
-    const roles = [internalRoleRow({ context: 'sistema', role: 'superuser' as any })];
+  /* O papel principal é o maior nível que a pessoa tem em algum módulo. */
+  it('takes the highest module level as the main role', async () => {
+    const roles = [internalRoleRow({ context: 'manutencao', role: 'manager' })];
     const { provider } = makeProvider([userRow()], roles);
 
     await expect(provider.resolve('token')).resolves.toMatchObject({
-      role: 'user',
-      roles: {
-        infra: 'user',
-        sistema: 'user',
-        manutencao: 'user',
-      },
+      role: 'manager',
+      roles: { manutencao: 'manager' },
     });
+  });
+
+  // triste
+  /* Sem linha é sem acesso: o padrão "user" em tudo dava leitura de todos os módulos. */
+  it('gives no module at all to who has none released', async () => {
+    const { provider } = makeProvider([userRow({ role: null })], []);
+
+    await expect(provider.resolve('token')).resolves.toMatchObject({ role: 'user', roles: {} });
+  });
+
+  /* O papel antigo da conta no Neon não abre módulo: quem abre é o super-admin, em Acessos. */
+  it('does not turn the legacy Neon role into a module', async () => {
+    const { provider } = makeProvider([userRow({ role: 'manager' })], []);
+
+    await expect(provider.resolve('token')).resolves.toMatchObject({ role: 'user', roles: {} });
+  });
+
+  it('ignores an invalid level in internal_roles', async () => {
+    const roles = [internalRoleRow({ context: 'sistema', role: 'superuser' as never })];
+    const { provider } = makeProvider([userRow()], roles);
+
+    await expect(provider.resolve('token')).resolves.toMatchObject({ role: 'user', roles: {} });
   });
 
   it('lets an expired ban through', async () => {

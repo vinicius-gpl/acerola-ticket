@@ -9,33 +9,33 @@ describe('AcerolaPageHeader', () => {
   it('renders the title as the page heading', () => {
     render(PageHeader, {
       props: {
-        data: { title: 'Tarefas' },
+        data: { title: 'Chamados' },
       },
     });
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Tarefas' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Chamados' })).toBeInTheDocument();
   });
 
   it('renders the actions it receives', () => {
     const children = createRawSnippet(() => ({
-      render: () => '<button type="button">Nova tarefa</button>',
+      render: () => '<button type="button">Novo chamado</button>',
     }));
 
     render(PageHeader, {
       props: {
-        data: { title: 'Tarefas' },
+        data: { title: 'Chamados' },
         children,
       },
     });
 
-    expect(screen.getByRole('button', { name: 'Nova tarefa' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Novo chamado' })).toBeInTheDocument();
   });
 
   // triste
   it('does not draw an empty description line when there is none', () => {
     const { container } = render(PageHeader, {
       props: {
-        data: { title: 'Tarefas' },
+        data: { title: 'Chamados' },
       },
     });
 

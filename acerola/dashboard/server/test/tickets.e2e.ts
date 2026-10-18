@@ -9,7 +9,16 @@ import { internalRoles } from '../src/lib/db/schema/internal-roles.schema';
 import { ticketHistories } from '../src/lib/db/schema/ticket-histories.schema';
 import { ticketServiceOrders } from '../src/lib/db/schema/ticket-service-orders.schema';
 import { tickets } from '../src/lib/db/schema/tickets.schema';
-import { BIA, CAIO, asBia, asCaio, createE2eApp, type E2eApp } from './support/e2e-app.util';
+import {
+  ANA,
+  BIA,
+  CAIO,
+  asAna,
+  asBia,
+  asCaio,
+  createE2eApp,
+  type E2eApp,
+} from './support/e2e-app.util';
 
 /**
  * O FLUXO DO CHAMADO de ponta a ponta, que é onde o sistema realmente trabalha.
@@ -45,15 +54,53 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
   let started: E2eApp;
   let app: INestApplication;
 
-  const openTicket = () =>
+  /* Abrir chamado exige login: quem abre é a Ana, e o chamado fica ligado a ela. */
+  const openTicket = (extra: Record<string, unknown> = {}) =>
     request(app.getHttpServer())
       .post('/api/tickets')
-      .field('requesterName', PEDIDO.requesterName)
-      .field('area', PEDIDO.area)
-      .field('department', PEDIDO.department)
-      .field('problemType', PEDIDO.problemType)
-      .field('contactPhone', PEDIDO.contactPhone)
-      .field('description', PEDIDO.description);
+      .set(asAna())
+      .send({ ...PEDIDO, ...extra });
+
+  /**
+   * O ENVIO como o navegador faz: pede o link à API, "envia" o arquivo para a área temporária
+   * (o storage em memória faz o papel do PUT) e devolve o que vai no corpo da gravação.
+   *
+   * `sentAs` é o tipo que o arquivo de fato chegou com — o link aceita o que for enviado por ele,
+   * e é isto que a conferência da API mede.
+   */
+  const sendFile = async (
+    file: { content: Buffer; fileName: string; contentType: string; sentAs?: string },
+    link = { path: '/api/tickets/upload-url', as: asAna() },
+  ) => {
+    const ticket = await request(app.getHttpServer())
+      .post(link.path)
+      .set(link.as)
+      .send({
+        fileName: file.fileName,
+        contentType: file.contentType,
+        sizeBytes: file.content.length,
+      })
+      .expect(201);
+    await started.storage.put(
+      ticket.body.storageKey,
+      file.content,
+      file.sentAs ?? file.contentType,
+    );
+
+    return { storageKey: ticket.body.storageKey as string, fileName: file.fileName };
+  };
+
+  const nota = () => ({ content: NOTA_FISCAL, fileName: 'nota-fiscal.pdf', contentType: PDF });
+  const orcamento = () => ({
+    content: ORCAMENTO,
+    fileName: 'orcamento-da-peca.pdf',
+    contentType: PDF,
+  });
+  /* O link para juntar arquivo a um chamado aberto é de quem atende: o Caio. */
+  const asSupport = (ticketId: number) => ({
+    path: `/api/tickets/${ticketId}/attachments/upload-url`,
+    as: asCaio(),
+  });
 
   beforeAll(async () => {
     started = await createE2eApp(testDatabaseUrl!);
@@ -76,7 +123,9 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       'ticket_service_orders',
       'internal_roles',
     );
-    started.storage.files.clear();
+    await started.storage.remove(
+      (await started.storage.list('', 10_000, () => true)).map((file) => file.key),
+    );
 
     await started.db.insert(internalRoles).values([
       { userId: CAIO.id, userEmail: CAIO.email, context: 'infra', role: 'admin' },
@@ -88,24 +137,65 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     await app.close();
   });
 
+  // triste
+  /* Abrir chamado exige conta: sem login, o pedido nem chega ao service. */
+  it('refuses to open a ticket without identity', async () => {
+    await request(app.getHttpServer())
+      .post('/api/tickets')
+      .send({ description: PEDIDO.description })
+      .expect(401);
+  });
+
   // feliz
-  it('opens a ticket from the public portal, with no identity and with files', async () => {
-    const created = await openTicket()
-      .attach('screenshot', PRINT, { filename: 'erro.png', contentType: 'image/png' })
-      .attach('attachments', NOTA_FISCAL, { filename: 'nota-fiscal.pdf', contentType: PDF })
-      .expect(201);
+  it('opens a ticket logged in, linked to the person, with files', async () => {
+    const screenshot = await sendFile({
+      content: PRINT,
+      fileName: 'erro.png',
+      contentType: 'image/png',
+    });
+    const attachments = [await sendFile(nota())];
+
+    const created = await openTicket({ screenshot, attachments }).expect(201);
 
     expect(created.body).toMatchObject({
       protocol: 'CH-0001',
       status: 'open',
-      requesterName: PEDIDO.requesterName,
+      /* O nome é o da conta de quem abriu, não o digitado no formulário. */
+      requesterName: ANA.name,
       department: 'recepcao',
       problemType: 'printer',
       /* Todo chamado nasce sem responsável e sem solução: são do TI. */
       assignee: null,
       solution: null,
     });
-    expect(created.body.screenshotUrl).toContain('https://');
+    expect(created.body.screenshotUrl).toContain('memory://download/');
+    /* Os dois saíram da área temporária para o lugar definitivo. */
+    const keys = (await started.storage.list('', 100, () => true)).map((file) => file.key).sort();
+    expect(keys).toEqual([
+      expect.stringMatching(/^ticket-attachments\//),
+      expect.stringMatching(/^tickets\//),
+    ]);
+  });
+
+  // triste
+  /* O link de envio exige login como todo o resto: sem ele, ninguém ganha espaço no storage. */
+  it('gives no upload link without identity', async () => {
+    await request(app.getHttpServer())
+      .post('/api/tickets/upload-url')
+      .send({ fileName: 'nota.pdf', contentType: PDF, sizeBytes: 10 })
+      .expect(401);
+  });
+
+  // triste
+  it('refuses to open a ticket with a file that never reached the storage', async () => {
+    const missing = {
+      storageKey: 'tmp/00000000-0000-4000-8000-000000000001.png',
+      fileName: 'erro.png',
+    };
+
+    const refused = await openTicket({ screenshot: missing }).expect(404);
+
+    expect(refused.body.message).toContain('erro.png');
   });
 
   /**
@@ -158,19 +248,23 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       'resume',
       'closure_with_caveats',
     ]);
-    expect(timeline.body[0]).toMatchObject({ authorName: PEDIDO.requesterName, createdBy: null });
+    expect(timeline.body[0]).toMatchObject({ authorName: ANA.name, createdBy: null });
   });
 
   it('attaches the files sent with a history to that history', async () => {
     const created = await openTicket().expect(201);
 
+    const attachments = [await sendFile(orcamento(), asSupport(created.body.id))];
+
     const history = await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/histories`)
       .set(asCaio())
-      .field('type', 'note')
-      .field('description', 'Segue o orçamento da peça.')
-      .field('minutesSpent', '20')
-      .attach('attachments', ORCAMENTO, { filename: 'orcamento-da-peca.pdf', contentType: PDF })
+      .send({
+        type: 'note',
+        description: 'Segue o orçamento da peça.',
+        minutesSpent: 20,
+        attachments,
+      })
       .expect(201);
 
     expect(history.body.minutesSpent).toBe(20);
@@ -294,7 +388,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const attached = await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/attachments`)
       .set(asCaio())
-      .attach('attachments', ORCAMENTO, { filename: 'orcamento-da-peca.pdf', contentType: PDF })
+      .send({ attachments: [await sendFile(orcamento(), asSupport(created.body.id))] })
       .expect(201);
 
     expect(attached.body).toHaveLength(1);
@@ -306,9 +400,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
   });
 
   it('shows both sides of the files on the public lookup, and hides what is not for the requester', async () => {
-    const created = await openTicket()
-      .attach('attachments', NOTA_FISCAL, { filename: 'nota-fiscal.pdf', contentType: PDF })
-      .expect(201);
+    const created = await openTicket({ attachments: [await sendFile(nota())] }).expect(201);
 
     await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/histories`)
@@ -325,11 +417,12 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/attachments`)
       .set(asCaio())
-      .attach('attachments', ORCAMENTO, { filename: 'orcamento-da-peca.pdf', contentType: PDF })
+      .send({ attachments: [await sendFile(orcamento(), asSupport(created.body.id))] })
       .expect(201);
 
     const found = await request(app.getHttpServer())
       .get('/api/tickets/protocol/CH-0001')
+      .set(asCaio())
       .expect(200);
 
     /* OS DOIS LADOS aparecem: quem abriu confere que a nota chegou e vê o que o TI juntou. */
@@ -338,8 +431,8 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       'requester',
       'support',
     ]);
-    expect(found.body.attachments[0].viewUrl).toContain('https://');
-    expect(found.body.attachments[0].downloadUrl).toContain('https://');
+    expect(found.body.attachments[0].viewUrl).toContain('memory://download/');
+    expect(found.body.attachments[0].downloadUrl).toContain('memory://download/');
 
     /* E O QUE NÃO É DELA FICA DE FORA. A consulta é pública e o protocolo é sequencial: sem
        esta poda, chutar números viraria uma forma de ler o cadastro dos outros. */
@@ -396,6 +489,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     for (const typed of ['CH-0001', 'ch 1', '0001', '1']) {
       const found = await request(app.getHttpServer())
         .get(`/api/tickets/protocol/${encodeURIComponent(typed)}`)
+        .set(asCaio())
         .expect(200);
 
       expect(found.body.protocol).toBe('CH-0001');
@@ -425,10 +519,10 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     const attached = await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/attachments`)
       .set(asCaio())
-      .attach('attachments', ORCAMENTO, { filename: 'orcamento-da-peca.pdf', contentType: PDF })
+      .send({ attachments: [await sendFile(orcamento(), asSupport(created.body.id))] })
       .expect(201);
 
-    expect(started.storage.files.size).toBe(1);
+    expect(started.storage.size).toBe(1);
 
     await request(app.getHttpServer())
       .delete(`/api/tickets/${created.body.id}/attachments/${attached.body[0].id}`)
@@ -437,7 +531,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
 
     /* A regra é "sai do banco E do armazenamento". Sem a segunda metade sobraria um arquivo
        pago que ninguém alcança. */
-    expect(started.storage.files.size).toBe(0);
+    expect(started.storage.size).toBe(0);
 
     const left = await request(app.getHttpServer())
       .get(`/api/tickets/${created.body.id}/attachments`)
@@ -455,9 +549,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
    * sistema não pode deixar acontecer, nem por engano de clique.
    */
   it('refuses the IT side deleting a file sent by whoever opened the ticket', async () => {
-    const created = await openTicket()
-      .attach('attachments', NOTA_FISCAL, { filename: 'nota-fiscal.pdf', contentType: PDF })
-      .expect(201);
+    const created = await openTicket({ attachments: [await sendFile(nota())] }).expect(201);
 
     const files = await request(app.getHttpServer())
       .get(`/api/tickets/${created.body.id}/attachments`)
@@ -476,7 +568,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
     expect(refused.body.message).toContain('só quem enviou é dono do que enviou');
     /* E o arquivo continua onde estava: recusar e apagar mesmo assim seria pior que não ter
        regra nenhuma. */
-    expect(started.storage.files.size).toBe(1);
+    expect(started.storage.size).toBe(1);
   });
 
   /**
@@ -487,9 +579,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
    * um número apagaria arquivo de chamado alheio.
    */
   it('gives the requester no door to touch files, not even their own', async () => {
-    const created = await openTicket()
-      .attach('attachments', NOTA_FISCAL, { filename: 'nota-fiscal.pdf', contentType: PDF })
-      .expect(201);
+    const created = await openTicket({ attachments: [await sendFile(nota())] }).expect(201);
 
     const files = await request(app.getHttpServer())
       .get(`/api/tickets/${created.body.id}/attachments`)
@@ -504,44 +594,61 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
       .get(`/api/tickets/${created.body.id}/attachments`)
       .expect(401);
     await request(app.getHttpServer())
+      .post(`/api/tickets/${created.body.id}/attachments/upload-url`)
+      .send({ fileName: 'qualquer.pdf', contentType: PDF, sizeBytes: 10 })
+      .expect(401);
+    await request(app.getHttpServer())
       .post(`/api/tickets/${created.body.id}/attachments`)
-      .attach('attachments', ORCAMENTO, { filename: 'qualquer.pdf', contentType: PDF })
+      .send({ attachments: [] })
       .expect(401);
 
     /* E o arquivo dela continua lá, visível na consulta pública. */
     const found = await request(app.getHttpServer())
       .get('/api/tickets/protocol/CH-0001')
+      .set(asCaio())
       .expect(200);
 
     expect(found.body.attachments).toHaveLength(1);
   });
 
-  it('refuses a file that is not in the catalogue, and keeps the ticket', async () => {
-    await openTicket()
-      .attach('attachments', Buffer.from('MZ executavel'), {
-        filename: 'instalador.exe',
-        contentType: 'application/x-msdownload',
-      })
+  // triste
+  it('gives no upload link for a file that is not in the catalogue', async () => {
+    await request(app.getHttpServer())
+      .post('/api/tickets/upload-url')
+      .set(asAna())
+      .send({ fileName: 'instalador.exe', contentType: 'application/x-msdownload', sizeBytes: 10 })
       .expect(400);
+  });
+
+  /* O link foi pedido para um PDF, mas chegou um executável: a conferência é do que o storage
+     mediu, não do que a tela prometeu. */
+  it('refuses a file that is not in the catalogue, and keeps the ticket', async () => {
+    const disguised = await sendFile({
+      content: Buffer.from('MZ executavel'),
+      fileName: 'nota-fiscal.pdf',
+      contentType: PDF,
+      sentAs: 'application/x-msdownload',
+    });
+    /* Mesmo com o nome .pdf, o tipo medido não é de nenhum grupo — e o nome só desempata. */
+    disguised.fileName = 'instalador.exe';
+
+    await openTicket({ attachments: [disguised] }).expect(400);
+
+    /* Recusado, ele sai da área temporária: não tem como virar anexo. */
+    expect(started.storage.size).toBe(0);
 
     /* O CHAMADO FICA. Perder o pedido de socorro por causa de um arquivo recusado seria o pior
        dos dois males: quem enviou vê o protocolo e anexa o resto pelo painel. */
     const found = await request(app.getHttpServer())
       .get('/api/tickets/protocol/CH-0001')
+      .set(asCaio())
       .expect(200);
 
     expect(found.body.attachments).toHaveLength(0);
   });
 
   it('refuses an empty description with 4xx and names the field, in Portuguese', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/api/tickets')
-      .field('requesterName', PEDIDO.requesterName)
-      .field('area', PEDIDO.area)
-      .field('department', PEDIDO.department)
-      .field('problemType', PEDIDO.problemType)
-      .field('contactPhone', PEDIDO.contactPhone)
-      .field('description', '   ');
+    const response = await openTicket({ description: '   ' });
 
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(response.status).toBeLessThan(500);
@@ -552,14 +659,7 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
   });
 
   it('refuses a phone without enough digits, naming the field', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/api/tickets')
-      .field('requesterName', PEDIDO.requesterName)
-      .field('area', PEDIDO.area)
-      .field('department', PEDIDO.department)
-      .field('problemType', PEDIDO.problemType)
-      .field('contactPhone', '9999')
-      .field('description', PEDIDO.description);
+    const response = await openTicket({ contactPhone: '9999' });
 
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(response.body.details).toContainEqual({
@@ -571,18 +671,24 @@ describe.skipIf(!testDatabaseUrl)('Tickets API (e2e)', () => {
   /* O portal público não decide situação nem responsável: aceitar isso deixaria qualquer um
      abrir um chamado já resolvido por outra pessoa. */
   it('ignores status, assignee and solution sent to the public door', async () => {
-    const created = await openTicket()
-      .field('status', 'resolved')
-      .field('assignee', 'Alguem que nao existe')
-      .field('solution', 'Resolvido por mim mesmo')
-      .expect(201);
+    const created = await openTicket({
+      status: 'resolved',
+      assignee: 'Alguem que nao existe',
+      solution: 'Resolvido por mim mesmo',
+    }).expect(201);
 
     expect(created.body).toMatchObject({ status: 'open', assignee: null, solution: null });
   });
 
   it('answers 404 for a protocol that does not exist, and for one that is not a number', async () => {
-    await request(app.getHttpServer()).get('/api/tickets/protocol/CH-9999').expect(404);
-    await request(app.getHttpServer()).get('/api/tickets/protocol/nao-e-protocolo').expect(404);
+    await request(app.getHttpServer())
+      .get('/api/tickets/protocol/CH-9999')
+      .set(asCaio())
+      .expect(404);
+    await request(app.getHttpServer())
+      .get('/api/tickets/protocol/nao-e-protocolo')
+      .set(asCaio())
+      .expect(404);
   });
 
   /* A porta do PAINEL é fechada: a pública é só abrir e consultar por protocolo. */

@@ -22,9 +22,9 @@ const { githubIntegrationApi } = await import('$lib/api/github-integration.api')
 
 const signIn = vi.mocked(neonAuth.signIn.email);
 
-function mountModel(): LoginModel {
+function mountModel(returnTo?: string): LoginModel {
   let model!: LoginModel;
-  render(Harness, { props: { onReady: (ready: LoginModel) => (model = ready) } });
+  render(Harness, { props: { onReady: (ready: LoginModel) => (model = ready), returnTo } });
 
   return model;
 }
@@ -68,6 +68,15 @@ describe('useLoginModel', () => {
     await waitFor(() => expect(model.state.error).toBe('E-mail ou senha incorretos.'));
     expect(githubIntegrationApi.authorize).not.toHaveBeenCalled();
   });
+  /* O convite do WhatsApp atravessa o login: a pessoa volta para a tela de onde veio. */
+  it('goes back to the page the person was sent from', async () => {
+    const model = mountModel('/support?invite=abc.def');
+
+    await submit(model, 'ana@exemplo.com.br', 'senha-de-teste');
+
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/support?invite=abc.def'));
+  });
+
   it('signs in with what was typed and opens the system', async () => {
     const model = mountModel();
 

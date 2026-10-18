@@ -63,6 +63,7 @@
 </script>
 
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
   import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
   import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -76,7 +77,6 @@
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,

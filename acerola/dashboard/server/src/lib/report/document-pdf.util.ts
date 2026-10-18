@@ -32,6 +32,16 @@ const FONTS_DIRECTORY = join(__dirname, 'fonts');
 const FONT_FAMILY = 'LiberationSansNarrow';
 
 const PAGE_MARGIN = 36;
+/* A4 em pontos (1 pt = 1/72 de polegada), que é a unidade do PDF. */
+const A4 = { short: 595.28, long: 841.89 };
+const TABLE_FONT_SIZE = 8.5;
+const TABLE_CELL_PADDING = 5;
+const WEIGHT = { min: 5, textCap: 22 };
+/**
+ * Quanto ocupa uma letra da Liberation Sans Narrow, em fração do corpo — com folga para o
+ * negrito do cabeçalho. É a medida que garante a maior palavra de cada coluna inteira.
+ */
+const CHARACTER_WIDTH = 0.5;
 const FOOTER_HEIGHT = 44;
 const BRAND_LOGO_HEIGHT = 46;
 const QR_CODE_SIZE = 56;
@@ -77,7 +87,7 @@ export async function renderPdfDocument(definition: DocumentDefinition): Promise
     footer: (currentPage, pageCount) => drawFooter(definition.reference, currentPage, pageCount),
     content: [
       drawHeader(definition),
-      ...definition.blocks.map(drawBlock),
+      ...definition.blocks.map((block) => drawBlock(block, frameWidth(definition.orientation))),
       ...(definition.verification ? [drawVerification(definition.verification)] : []),
     ],
   };
@@ -132,7 +142,7 @@ function drawFooter(reference: string, currentPage: number, pageCount: number): 
   };
 }
 
-function drawBlock(block: DocumentBlock): Content {
+function drawBlock(block: DocumentBlock, frame: number): Content {
   switch (block.kind) {
     case 'heading':
       return drawHeading(block.text);
@@ -145,7 +155,7 @@ function drawBlock(block: DocumentBlock): Content {
     case 'entries':
       return drawEntries(block.items, block.emptyText);
     case 'table':
-      return drawTable(block.headers, block.rows, block.emptyText);
+      return drawTable(block.headers, block.rows, block.emptyText, frame);
   }
 }
 
@@ -272,20 +282,25 @@ const TABLE_LAYOUT: CustomTableLayout = {
   vLineWidth: () => 0,
   hLineColor: () => COLOR.border,
   fillColor: (rowIndex) => (rowIndex > 0 && rowIndex % 2 === 0 ? COLOR.surfaceAlt : null),
-  paddingLeft: () => 5,
-  paddingRight: () => 5,
+  paddingLeft: () => TABLE_CELL_PADDING,
+  paddingRight: () => TABLE_CELL_PADDING,
   paddingTop: () => 4,
   paddingBottom: () => 4,
 };
 
-function drawTable(headers: string[], rows: DocumentCell[][], emptyText: string): Content {
+function drawTable(
+  headers: string[],
+  rows: DocumentCell[][],
+  emptyText: string,
+  frame: number,
+): Content {
   const table: Content = {
-    fontSize: 8.5,
+    fontSize: TABLE_FONT_SIZE,
     table: {
       /* O cabeçalho se repete em toda página, e uma linha nunca é cortada ao meio. */
       headerRows: 1,
       dontBreakRows: true,
-      widths: headers.map(() => '*'),
+      widths: columnWidths(headers, rows, frame),
       body: [headers.map(drawHeaderCell), ...rows.map((row) => row.map(drawCell))],
     },
     layout: TABLE_LAYOUT,
@@ -293,6 +308,51 @@ function drawTable(headers: string[], rows: DocumentCell[][], emptyText: string)
   if (rows.length > 0) return table;
 
   return { stack: [table, drawEmptyState(emptyText)] };
+}
+
+/** A largura útil da folha, entre as margens. */
+function frameWidth(orientation: DocumentDefinition['orientation']): number {
+  const width = orientation === 'landscape' ? A4.long : A4.short;
+
+  return width - PAGE_MARGIN * 2;
+}
+
+/**
+ * Cada coluna recebe PRIMEIRO o espaço da maior palavra dela — coluna mais estreita que uma
+ * palavra a parte no meio ("Protoc-olo"), e data quebrada em duas linhas não se lê. O que sobra
+ * da folha é dividido pelo que cada coluna ainda carrega além disso: a de nomes fica larga, a de
+ * datas, estreita.
+ */
+export function columnWidths(headers: string[], rows: DocumentCell[][], frame: number): number[] {
+  const measures = headers.map((header, index) => {
+    const texts = [header, ...rows.map((row) => row[index]?.text ?? '')];
+    const longestText = Math.max(...texts.map((text) => text.length));
+    const longestWord = Math.max(
+      WEIGHT.min,
+      ...texts.flatMap((text) => text.split(/\s+/)).map((word) => word.length),
+    );
+
+    return {
+      word: longestWord,
+      extra: Math.max(0, Math.min(longestText, WEIGHT.textCap) - longestWord),
+    };
+  });
+  /* O que sobra para o texto, descontado o respiro de cada coluna. */
+  const columns = headers.length;
+  const available = frame - columns * TABLE_CELL_PADDING * 2;
+  const words = measures.map((measure) => measure.word * TABLE_FONT_SIZE * CHARACTER_WIDTH);
+  const wordsTotal = words.reduce((sum, width) => sum + width, 0);
+  /* Nem as palavras cabem: divide a folha na proporção delas, o melhor que dá. */
+  if (wordsTotal >= available) return words.map((width) => (available * width) / wordsTotal);
+
+  const extraTotal = measures.reduce((sum, measure) => sum + measure.extra, 0);
+  const spare = available - wordsTotal;
+
+  return words.map((width, index) => {
+    const extra = measures[index]?.extra ?? 0;
+
+    return width + (extraTotal === 0 ? spare / columns : (spare * extra) / extraTotal);
+  });
 }
 
 function drawHeaderCell(header: string): TableCell {

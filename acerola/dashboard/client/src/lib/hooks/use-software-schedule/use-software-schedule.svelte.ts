@@ -300,6 +300,87 @@ function selectedGithubDay(
   };
 }
 
+type CalendarInput = {
+  current: Date;
+  mode: ScheduleViewMode;
+  rawEvents: SoftwareScheduleEvent[];
+  rawGithubEvents: SoftwareTimelineEvent[];
+  projects: SoftwareProject[];
+  filters: ScheduleFilters;
+};
+
+/** Os eventos do GitHub agrupados pelo dia local — uma passada só, em vez de filtrar por dia. */
+function groupGithubByDay(events: SoftwareTimelineEvent[]): Map<string, SoftwareTimelineEvent[]> {
+  const byDay = new SvelteMap<string, SoftwareTimelineEvent[]>();
+  for (const event of events) {
+    const day = formatDateIso(new Date(event.eventDate));
+    const list = byDay.get(day);
+    if (list) list.push(event);
+    else byDay.set(day, [event]);
+  }
+  for (const list of byDay.values()) {
+    list.sort((a, b) => Date.parse(a.eventDate) - Date.parse(b.eventDate) || a.id - b.id);
+  }
+  return byDay;
+}
+
+function buildDays(
+  current: Date,
+  mode: ScheduleViewMode,
+  events: SoftwareScheduleEvent[],
+  githubEvents: SoftwareTimelineEvent[],
+): DayColumn[] {
+  const todayIso = formatDateIso(new Date());
+  const githubByDay = groupGithubByDay(githubEvents);
+  const { start, end } = visibleRange(current, mode);
+  const totalDays = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+
+  const days: DayColumn[] = [];
+  for (let i = 0; i < totalDays; i++) {
+    const d = addDays(start, i);
+    const dateString = formatDateIso(d);
+    days.push({
+      dateString,
+      dayNumber: d.getDate(),
+      weekdayShort: WEEKDAYS[(d.getDay() + 6) % 7] ?? '',
+      isToday: dateString === todayIso,
+      isCurrentMonth: d.getMonth() === current.getMonth(),
+      events: events
+        .filter((e) => e.date === dateString)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+      githubEvents: githubByDay.get(dateString) ?? [],
+    });
+  }
+  return days;
+}
+
+function buildCalendar(input: CalendarInput): Omit<SoftwareScheduleModel['data'], 'githubDay'> {
+  const { current, mode, rawEvents, rawGithubEvents, projects, filters } = input;
+  const events = rawEvents.filter(
+    (event) => !filters.project || String(event.projectId) === filters.project,
+  );
+  const githubEvents = filterGithubEvents(rawGithubEvents, filters);
+  const monthName = MONTHS_PT[current.getMonth()] ?? '';
+
+  return {
+    monthYearTitle:
+      mode === 'day'
+        ? `${current.getDate()} de ${monthName} ${current.getFullYear()}`
+        : `${monthName} ${current.getFullYear()}`,
+    viewMode: mode,
+    days: buildDays(current, mode, events, githubEvents),
+    events,
+    githubEvents,
+    mergedPullRequests: countGithubEvents(githubEvents, 'pr', 'merged'),
+    resolvedIssues: countGithubEvents(githubEvents, 'issue', 'closed'),
+    developerStats: summarizeDeveloperActivity(githubEvents),
+    projects,
+    nowTopPx: currentTimePosition(),
+    currentDate: current,
+    filters: scheduleFilterData(filters, rawGithubEvents, projects, rawEvents),
+  };
+}
+
 export function useSoftwareScheduleModel(): SoftwareScheduleModel {
   const queryClient = useQueryClient();
   const currentDate = writable<Date>(new SvelteDate());
@@ -374,74 +455,75 @@ export function useSoftwareScheduleModel(): SoftwareScheduleModel {
   const currentDateStore = mirrorStore(currentDate);
   const viewModeStore = mirrorStore(viewMode);
 
+  /*
+   * O calendário (dias, filtros, contagens) é calculado UMA vez e guardado: só refaz quando o
+   * período, a visão, os dados ou os filtros mudam. Antes ele era remontado a cada leitura —
+   * inclusive ao abrir a janela de um dia, que repintava a grade inteira e travava a tela por
+   * segundos num dia com dezenas de PRs.
+   */
+  const calendar = $derived.by(() =>
+    buildCalendar({
+      current: currentDateStore.current,
+      mode: viewModeStore.current,
+      rawEvents: query.current.data ?? [],
+      rawGithubEvents: githubQuery.current.data ?? [],
+      projects: projectsQuery.current.data?.items ?? [],
+      filters,
+    }),
+  );
+
+  /* A janela do dia depende só do dia aberto e da página — e do calendário, que não muda ao abri-la. */
+  const githubDay = $derived(
+    selectedGithubDay(calendar.days, githubDayDate, githubDayPage, githubDayPageSize, githubDayType),
+  );
+
+  /* Objeto estável, com cada campo lido na hora: quem lê `data.days` não é avisado quando só a
+     janela do dia (`data.githubDay`) mudou. */
+  const data: SoftwareScheduleModel['data'] = {
+    get monthYearTitle() {
+      return calendar.monthYearTitle;
+    },
+    get viewMode() {
+      return calendar.viewMode;
+    },
+    get days() {
+      return calendar.days;
+    },
+    get events() {
+      return calendar.events;
+    },
+    get githubEvents() {
+      return calendar.githubEvents;
+    },
+    get mergedPullRequests() {
+      return calendar.mergedPullRequests;
+    },
+    get resolvedIssues() {
+      return calendar.resolvedIssues;
+    },
+    get developerStats() {
+      return calendar.developerStats;
+    },
+    get projects() {
+      return calendar.projects;
+    },
+    get nowTopPx() {
+      return calendar.nowTopPx;
+    },
+    get currentDate() {
+      return calendar.currentDate;
+    },
+    get filters() {
+      return calendar.filters;
+    },
+    get githubDay() {
+      return githubDay;
+    },
+  };
+
   return {
     get data() {
-      const cur = currentDateStore.current;
-      const mode = viewModeStore.current;
-      const todayIso = formatDateIso(new SvelteDate());
-      const rawEvents = query.current.data ?? [];
-      const rawGithubEvents = githubQuery.current.data ?? [];
-      const allEvents = rawEvents.filter(
-        (event) => !filters.project || String(event.projectId) === filters.project,
-      );
-      const githubEvents = filterGithubEvents(rawGithubEvents, filters);
-      const projects = projectsQuery.current.data?.items ?? [];
-
-      const { start, end } = visibleRange(cur, mode);
-      const totalDays = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
-
-      const days: DayColumn[] = [];
-      for (let i = 0; i < totalDays; i++) {
-        const d = addDays(start, i);
-        const dateString = formatDateIso(d);
-        const weekdayIndex = (d.getDay() + 6) % 7;
-
-        days.push({
-          dateString,
-          dayNumber: d.getDate(),
-          weekdayShort: WEEKDAYS[weekdayIndex] ?? '',
-          isToday: dateString === todayIso,
-          isCurrentMonth: d.getMonth() === cur.getMonth(),
-          events: allEvents
-            .filter((e) => e.date === dateString)
-            .sort((a, b) => a.startTime.localeCompare(b.startTime)),
-          githubEvents: githubEvents
-            .filter((event) => formatDateIso(new SvelteDate(event.eventDate)) === dateString)
-            .sort((a, b) => Date.parse(a.eventDate) - Date.parse(b.eventDate) || a.id - b.id),
-        });
-      }
-
-      const monthName = MONTHS_PT[cur.getMonth()] ?? '';
-      const monthYearTitle =
-        mode === 'day'
-          ? `${cur.getDate()} de ${monthName} ${cur.getFullYear()}`
-          : `${monthName} ${cur.getFullYear()}`;
-
-      const developerStats = summarizeDeveloperActivity(githubEvents);
-
-      const nowTopPx = currentTimePosition();
-
-      return {
-        monthYearTitle,
-        viewMode: mode,
-        days,
-        events: allEvents,
-        githubEvents,
-        mergedPullRequests: countGithubEvents(githubEvents, 'pr', 'merged'),
-        resolvedIssues: countGithubEvents(githubEvents, 'issue', 'closed'),
-        developerStats,
-        projects,
-        nowTopPx,
-        currentDate: cur,
-        filters: scheduleFilterData(filters, rawGithubEvents, projects, rawEvents),
-        githubDay: selectedGithubDay(
-          days,
-          githubDayDate,
-          githubDayPage,
-          githubDayPageSize,
-          githubDayType,
-        ),
-      };
+      return data;
     },
     get state() {
       return {

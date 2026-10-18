@@ -44,7 +44,7 @@ describe('AcerolaTextAreaField', () => {
   // triste
   it('announces the error to assistive technology', () => {
     render(TextAreaField, {
-      props: { data, state: { error: 'Descreva a tarefa' } },
+      props: { data, state: { error: 'Descreva o problema' } },
     });
 
     const field = screen.getByLabelText('Descrição');

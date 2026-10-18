@@ -60,7 +60,7 @@ avise que é um passo de infraestrutura, não do Claude.
 npm run seed:all
 ```
 
-Cria as tabelas no banco e grava as tarefas de exemplo.
+Grava os dados de exemplo (chamados, computadores, peças…) no banco.
 
 ## 5. Subir
 
@@ -72,7 +72,7 @@ Diga à pessoa:
 - **A documentação da API (Swagger):** http://localhost:3005/docs
 - Para parar: `Ctrl+C` no terminal onde está rodando.
 
-Se puder, abra no navegador e confira que a lista de tarefas aparece.
+Se puder, abra no navegador e confira que a lista de chamados aparece.
 
 ## 6. Apresentar o projeto (curto)
 
@@ -82,8 +82,7 @@ Explique em até 10 linhas, em português simples:
   outras duas), `server` (a API, que guarda no banco) e `client` (as telas).
 - O banco é o **Postgres da Neon** — remoto, não um arquivo na máquina. As credenciais ficam no
   `server/.env`, que não vai para o git; os **dados de teste** vão, em `scripts/seed/`.
-- **Tarefas** é um exemplo completo, para servir de molde. Dá para remover depois
-  (`remove-example`).
+- **Peças** é a feature mais simples e completa, e serve de molde para as novas.
 - Não tem login por padrão: todo mundo entra como "Usuário de desenvolvimento". Se a ideia
   precisar de login, é só pedir.
 - Quem usar a mesma `DATABASE_URL` vê os mesmos dados — não é automático que cada máquina

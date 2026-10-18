@@ -8,20 +8,27 @@ const ROOT_ENV_PATH = resolve(process.cwd(), '.env');
 
 const envPath = existsSync(SERVER_ENV_PATH) ? SERVER_ENV_PATH : ROOT_ENV_PATH;
 
-if (!existsSync(envPath)) {
-  console.error(`❌ Arquivo de ambiente não encontrado em: ${envPath}`);
-  process.exit(1);
+/* Dentro do container não há `.env`: lá o DATABASE_URL já está no ambiente do processo. */
+function readDatabaseUrl() {
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL.trim().replace(/^['"]|['"]$/g, '');
+  }
+
+  if (!existsSync(envPath)) {
+    console.error(`❌ Arquivo de ambiente não encontrado em: ${envPath}`);
+    process.exit(1);
+  }
+
+  const match = readFileSync(envPath, 'utf-8').match(/^DATABASE_URL=(.+)$/m);
+  if (!match || !match[1]) {
+    console.error('❌ Variável DATABASE_URL não encontrada no arquivo .env nem no ambiente');
+    process.exit(1);
+  }
+
+  return match[1].trim().replace(/^['"]|['"]$/g, '');
 }
 
-const envContent = readFileSync(envPath, 'utf-8');
-const match = envContent.match(/^DATABASE_URL=(.+)$/m);
-
-if (!match || !match[1]) {
-  console.error('❌ Variável DATABASE_URL não encontrada no arquivo .env');
-  process.exit(1);
-}
-
-const dbUrl = match[1].trim().replace(/^['"]|['"]$/g, '');
+const dbUrl = readDatabaseUrl();
 
 const sql = postgres(dbUrl, {
   ssl: dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1') ? false : 'require',

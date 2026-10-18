@@ -21,7 +21,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "baileys": "6.7.24",
+    "baileys": "7.0.0-rc14",
     "pino": "^9.14.0",
     "zod": "^3.23.8"
   },

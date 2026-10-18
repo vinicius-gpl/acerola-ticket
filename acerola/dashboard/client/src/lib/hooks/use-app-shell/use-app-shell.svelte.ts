@@ -47,6 +47,7 @@ export type AppShellModel = {
       email: string;
       role: string;
       roles?: ContextRoles;
+      avatarUrl: string | null;
     };
     /**
      * Os contextos que esta pessoa atende — vazio quando ela não tem cargo em área nenhuma,
@@ -85,7 +86,7 @@ export type AppShellModel = {
  * nem pelo que está guardado no navegador —, e por isso não tem como montar o menu de um
  * módulo dentro de outro.
  *
- * Contador de menu (ex.: "3 tarefas atrasadas") é buscado AQUI, uma vez, e não em cada rota:
+ * Contador de menu (ex.: "3 chamados atrasados") é buscado AQUI, uma vez, e não em cada rota:
  * o menu é o mesmo em todas, e buscar de novo a cada navegação repetiria a mesma consulta a
  * cada clique. Falha de contador NÃO derruba o menu — `useQuery` sem `throwOnError`, e o selo
  * simplesmente não aparece.
@@ -146,6 +147,8 @@ export function useAppShellModel(input: {
         email: input.user.email,
         role: USER_ROLE_LABELS[input.user.role],
         roles: input.user.roles,
+        /* A foto da conta no Neon Auth, que chega no `/api/auth/me`. */
+        avatarUrl: input.user.image ?? null,
       },
       get areaOptions() {
         const mine = areas.current.data ?? [];

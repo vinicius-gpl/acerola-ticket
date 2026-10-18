@@ -4,13 +4,14 @@ import { formatTicketProtocol } from '@template/shared/domain/ticket-protocol.ut
 import { type PublicTicketHistory } from '@template/shared/schemas/ticket-history.schema';
 import {
   type CreateTicketInput,
+  type MyTicket,
   type PublicTicket,
   type Ticket,
   type UpdateTicketInput,
 } from '@template/shared/schemas/ticket.schema';
 
 import { mapDefined, setIfDefined } from '../../../lib/db/partial-update.util';
-import { type TicketInsert } from '../../../lib/db/schema/tickets.schema';
+import { type TicketInsert, type TicketRow } from '../../../lib/db/schema/tickets.schema';
 import { type TicketWithComputer } from '../repository/tickets.repository';
 
 /**
@@ -102,6 +103,35 @@ export function toPublicTicket(
   };
 }
 
+/** A conta do Neon Auth que abriu o chamado. */
+export type TicketRequester = { id: string; email: string; name: string };
+
+/** Um chamado na lista "Meus chamados" — só o resumo. */
+export function toMyTicket(row: TicketRow): MyTicket {
+  return {
+    id: row.id,
+    protocol: formatTicketProtocol(row.id),
+    status: row.status,
+    priority: row.priority,
+    area: row.area,
+    problemType: row.problemType,
+    description: row.description,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function requesterColumns(input: CreateTicketInput, requester: TicketRequester | null | undefined) {
+  if (!requester) {
+    return { requesterId: null, requesterEmail: null, requesterName: input.requesterName.trim() };
+  }
+
+  return {
+    requesterId: requester.id,
+    requesterEmail: requester.email,
+    requesterName: requester.name.trim(),
+  };
+}
+
 /**
  * O chamado recém-aberto. A situação NÃO vem do corpo: o padrão da coluna é `open`, e é ele
  * que vale. A chave do print vem de quem guardou o arquivo, não de quem enviou o formulário.
@@ -112,11 +142,14 @@ export function toTicketInsert(
   /* O responsável JÁ CONFERIDO pelo service (quem atende a área). O nome vem do cadastro
      dele, nunca do corpo: `input.assigneeId` sozinho não é de confiança. */
   assignee: { id: string; name: string } | null = null,
+  /* Quem abriu, pela IDENTIDADE — o nome do corpo só vale para quem entra sem login (o bot do
+     WhatsApp). Pela tela, o nome é o da conta, e o formulário nem deixa mudá-lo. */
+  requester?: TicketRequester | null,
 ): TicketInsert {
   return {
     assignee: assignee?.name ?? null,
     assigneeId: assignee?.id ?? null,
-    requesterName: input.requesterName.trim(),
+    ...requesterColumns(input, requester),
     area: input.area,
     department: input.department,
     problemType: input.problemType,

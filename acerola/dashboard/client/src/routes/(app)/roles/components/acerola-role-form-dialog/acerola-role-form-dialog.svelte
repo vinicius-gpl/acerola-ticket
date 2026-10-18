@@ -67,6 +67,8 @@
 </script>
 
 <script lang="ts">
+  import PopoverContent from '$lib/components/acerola-search-popover-content/acerola-search-popover-content.svelte';
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
@@ -75,7 +77,6 @@
   import TimelineStep from '$lib/components/acerola-timeline-step/acerola-timeline-step.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
@@ -83,7 +84,6 @@
   } from '$lib/components/acerola-dialog/acerola-dialog';
   import {
     Popover,
-    PopoverContent,
     PopoverTrigger,
   } from '$lib/components/acerola-popover/acerola-popover';
   import { cn } from '$lib/utils/cn';
@@ -161,7 +161,9 @@
 </script>
 
 <Dialog open={formState.isOpen} onOpenChange={(open) => !open && actions.onClose()}>
-  <DialogContent class="max-w-lg sm:max-w-xl">
+  <!-- 2xl, e não xl: com a pessoa escolhida, o cartão dela + "Trocar pessoa" e os três cartões
+       de módulo não cabem em 576px e vazavam pela borda direita. -->
+  <DialogContent class="max-w-lg sm:max-w-2xl">
     <DialogHeader class="gap-1.5">
       <div class="flex items-center gap-2.5">
         <span
@@ -180,7 +182,9 @@
       </DialogDescription>
     </DialogHeader>
 
-    <form novalidate onsubmit={handleSubmit} class="flex flex-col gap-4">
+    <!-- `min-w-0`: o DialogContent é grid, e item de grid não encolhe abaixo do conteúdo sem
+         isso — um nome ou e-mail longo empurrava o formulário inteiro para fora. -->
+    <form novalidate onsubmit={handleSubmit} class="flex min-w-0 flex-col gap-4">
       {#if formState.error}
         <ErrorState
           data={{ title: 'Não foi possível salvar', message: formState.error }}
@@ -200,7 +204,7 @@
         >
           {#if isEdit}
             <div
-              class="flex items-center justify-between gap-3 rounded-surface border border-border/80 bg-muted/20 p-3.5"
+              class="flex items-center justify-between gap-3 rounded-box border border-border bg-muted/20 p-3.5"
             >
               <div class="flex items-center gap-3 min-w-0">
                 <PersonAvatar
@@ -290,7 +294,7 @@
                       {:else}
                         <div class="flex items-center gap-2 truncate">
                           <User class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                          <span class="text-xs">
+                          <span class="text-sm">
                             {formState.isLoadingUsers
                               ? 'Carregando lista de pessoas…'
                               : 'Selecione uma pessoa da lista…'}
@@ -340,7 +344,7 @@
 
                       <div
                         bind:this={listboxEl}
-                        class="max-h-60 overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1 w-full"
+                        class="min-h-0 max-h-60 overscroll-contain overflow-x-hidden overflow-y-auto divide-y divide-border/40 p-1 w-full"
                         role="listbox"
                         aria-label="Lista de colaboradores"
                       >
@@ -413,11 +417,13 @@
                 </div>
 
                 {#if fields.userId.value}
-                  <ActionButton
-                    data={{ label: 'Trocar pessoa' }}
-                    ui={{ variant: 'ghost', size: 'sm' }}
-                    actions={{ onClick: handleClear }}
-                  />
+                  <div class="shrink-0">
+                    <ActionButton
+                      data={{ label: 'Trocar pessoa' }}
+                      ui={{ variant: 'ghost', size: 'lg' }}
+                      actions={{ onClick: handleClear }}
+                    />
+                  </div>
                 {/if}
               </div>
 
@@ -445,10 +451,10 @@
                 disabled={isEdit}
                 onclick={() => actions.onChange('context', ctx)}
                 class={cn(
-                  'flex flex-col items-start gap-1 p-3 rounded-surface border text-left transition-all',
+                  'flex flex-col items-start gap-1 p-3 rounded-box border text-left transition-colors',
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border/80 bg-card hover:bg-ink-100',
+                    : 'border-border bg-card hover:bg-muted/40',
                   isEdit && 'opacity-60 cursor-not-allowed',
                 )}
               >
@@ -460,7 +466,7 @@
                     <Check class="size-3.5 text-primary" aria-hidden="true" />
                   {/if}
                 </div>
-                <span class="text-xs text-muted-foreground leading-tight">
+                <span class="text-xs leading-snug text-muted-foreground">
                   {CONTEXT_DETAILS[ctx].description}
                 </span>
               </button>
@@ -484,10 +490,10 @@
                 type="button"
                 onclick={() => actions.onChange('role', r.value)}
                 class={cn(
-                  'flex flex-col items-start gap-1 p-3 rounded-surface border text-left transition-all',
+                  'flex flex-col items-start gap-1 p-3 rounded-box border text-left transition-colors',
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border/80 bg-card hover:bg-ink-100',
+                    : 'border-border bg-card hover:bg-muted/40',
                 )}
               >
                 <div class="flex w-full items-center justify-between">
@@ -496,7 +502,7 @@
                     <Check class="size-3.5 text-primary" aria-hidden="true" />
                   {/if}
                 </div>
-                <span class="text-xs text-muted-foreground leading-tight">{r.description}</span>
+                <span class="text-xs leading-snug text-muted-foreground">{r.description}</span>
               </button>
             {/each}
           </div>
@@ -513,7 +519,7 @@
         </TimelineStep>
       </Timeline>
 
-      <DialogFooter class="mt-4 flex justify-end gap-2 border-t border-border/80 pt-4">
+      <DialogFooter>
         <ActionButton
           data={{ label: 'Cancelar' }}
           ui={{ variant: 'secondary' }}

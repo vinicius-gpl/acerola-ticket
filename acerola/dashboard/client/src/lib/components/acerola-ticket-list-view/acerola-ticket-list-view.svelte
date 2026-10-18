@@ -350,7 +350,7 @@
            (pastilhas); a de baixo, as listas que abrem, e à direita o que age sobre a fila:
            limpar os filtros e trocar entre tabela e cards. Cada fileira ainda quebra sozinha
            no celular (`flex-wrap`). -->
-      <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <div class="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-4">
         <FilterField data={{ label: 'Situação' }}>
           <OptionPicker
             data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}
@@ -372,7 +372,7 @@
         </FilterField>
       </div>
 
-      <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <div class="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-4">
         <FilterField data={{ label: 'Departamento' }}>
           <OptionPicker
             data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
@@ -395,7 +395,7 @@
           />
         </FilterField>
 
-        <div class="ml-auto flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
           <!-- Só aparece quando há o que limpar: botão que nunca faz nada é ruído. Divide a
                fileira com campos, então tem a altura deles (`lg`). Quando o filtro escondeu
                tudo, quem oferece a limpeza é o aviso de lista vazia, logo abaixo — dois botões
@@ -466,7 +466,7 @@
               style:--fill-color={fillColorOf(ticketStatusTone(ticket.status))}
               class="hover-fill flex flex-col gap-3 rounded-surface border border-border bg-card p-4 shadow-xs"
             >
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
                 <span
                   class="font-mono text-xs font-semibold text-ink-900"
                 >
@@ -493,7 +493,7 @@
                 </span>
               </div>
 
-              <div class="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
+              <div class="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
                 <div class="flex flex-col gap-0.5">
                   <span
                     class="text-xs font-medium uppercase tracking-wider text-muted-foreground"

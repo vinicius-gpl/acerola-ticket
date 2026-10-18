@@ -80,7 +80,7 @@ git branch --show-current
    branch temporária a partir de onde estão (`git switch -c feature/<nome>`) e traga a develop
    para ela (`git merge develop`) — nunca descarte.
    `<nome>` em **inglês**, kebab-case, curto, do resultado: `customer-list`,
-   `task-due-date`, `fix-empty-title-error` → `bugfix/empty-title-error`.
+   `ticket-due-date`, `fix-empty-title-error` → `bugfix/empty-title-error`.
 4. Diga à pessoa, sem jargão: *"Criei um espaço de trabalho separado para isso
    (`feature/customer-list`). Nada do que eu fizer aqui afeta a versão principal até você
    aprovar."*
@@ -177,7 +177,7 @@ Sem remoto configurado: pare no merge e diga que está salvo só nesta máquina.
 
 Se a feature foi enviada e virou PR, o merge acontece no GitHub — e **o título do PR vira o
 commit de merge**. O repositório está configurado para isso, e o CI (`.github/workflows/
-pr-title.yml`) reprova título fora do formato. Então:
+checks-pr-title.yml`) reprova título fora do formato. Então:
 
 - **O PR nasce com o título do merge**, no mesmo formato do `-m` acima:
   ```bash

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,7 +14,12 @@ import {
   kindsUsedBy,
   refuseAttachmentRemoval,
 } from '@template/shared/domain/attachment-ownership.util';
-import { fileNameSchema } from '@template/shared/domain/file-name.util';
+import { refuseScreenshot } from '@template/shared/domain/screenshot-catalog.util';
+import {
+  type StagedFile,
+  type UploadRequest,
+  type UploadTicket,
+} from '@template/shared/schemas/staged-file.schema';
 import {
   type AttachmentOrigin,
   type TicketAttachment,
@@ -21,9 +27,13 @@ import {
 
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { type TicketAttachmentRow } from '../../../lib/db/schema/ticket-attachments.schema';
-import { decodeUploadedFileName } from '../../../lib/http/uploaded-file-name.util';
 import { assertCanAttendTicket, assertCanRead } from '../../../lib/policy/policy-assert.util';
-import { StorageService } from '../../../lib/storage/storage.service';
+import { DOWNLOAD_URL_TTL_SECONDS, type FileStorage } from '../../../lib/storage/file-storage.type';
+import {
+  type MeasuredFile,
+  StagedUploadsService,
+} from '../../../lib/storage/staged-uploads.service';
+import { STORAGE } from '../../../lib/storage/storage.token';
 import { TicketAttachmentsRepository } from '../repository/ticket-attachments.repository';
 import { TicketsRepository } from '../repository/tickets.repository';
 
@@ -33,13 +43,8 @@ const FOLDER = 'ticket-attachments';
 const TICKET_NOT_FOUND = 'Chamado não encontrado.';
 const ATTACHMENT_NOT_FOUND = 'Anexo não encontrado.';
 
-/** O arquivo como o Nest o entrega depois do interceptor de upload. */
-export type UploadedAttachment = {
-  originalname: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-};
+/** Um arquivo que passou pelo catálogo, com o grupo dele — pronto para sair da área temporária. */
+export type AcceptedAttachment = { file: MeasuredFile; kind: AttachmentKind };
 
 /**
  * Os ANEXOS de um chamado: guardar, listar e excluir.
@@ -49,18 +54,55 @@ export type UploadedAttachment = {
  * enviar. Duas listas de regras acabariam discordando, e a divergência apareceria como
  * "escolhi o arquivo e o envio falhou sem dizer por quê".
  *
- * **Quem pode o quê.** Anexar ao ABRIR o chamado não exige identidade — quem está sem
- * impressora não tem conta no painel. Anexar depois, e EXCLUIR, exigem: a consulta pública é
- * por protocolo, e protocolo é sequencial; sem identidade, quem chutasse um número apagaria
- * arquivo de chamado alheio.
+ * **Quem pode o quê.** Anexar ao ABRIR o chamado é de quem abre — qualquer pessoa logada.
+ * Anexar depois, e EXCLUIR, são do painel: quem abriu acompanha pela consulta, e protocolo é
+ * sequencial; um caminho de exclusão aberto a quem pede deixaria quem chutasse um número
+ * apagar arquivo de chamado alheio.
  */
 @Injectable()
 export class TicketAttachmentsService {
   constructor(
     private readonly repository: TicketAttachmentsRepository,
     private readonly tickets: TicketsRepository,
-    private readonly storage: StorageService,
+    private readonly staging: StagedUploadsService,
+    @Inject(STORAGE) private readonly storage: FileStorage,
   ) {}
+
+  /**
+   * O link para enviar um arquivo AO ABRIR o chamado — o print ou um anexo.
+   *
+   * Qualquer pessoa logada abre chamado, e por isso qualquer uma recebe o link: a identidade já
+   * foi exigida pelo guard. O que a tela declarou é conferido aqui só para recusar cedo o que
+   * nem adianta enviar; a conferência que vale é a do arquivo enviado, ao gravar.
+   */
+  async createOpeningUploadTicket(input: UploadRequest): Promise<UploadTicket> {
+    const asAttachment = refuseAttachment(input, []);
+    if (asAttachment && refuseScreenshot(input))
+      throw new BadRequestException(asAttachment.message);
+
+    return this.staging.createUploadTicket(input.fileName);
+  }
+
+  /**
+   * O link para juntar um arquivo a um chamado JÁ ABERTO — pela aba de anexos ou num histórico.
+   *
+   * A mesma régua de anexar: atender o chamado. Conferir o chamado ANTES de emitir o link é o que
+   * impede alguém de obter espaço de envio para um chamado que não existe.
+   */
+  async createUploadTicket(
+    user: RequestUser,
+    ticketId: number,
+    input: UploadRequest,
+  ): Promise<UploadTicket> {
+    assertCanAttendTicket(user.role);
+
+    await this.requireTicket(ticketId);
+
+    const refusal = refuseAttachment(input, []);
+    if (refusal) throw new BadRequestException(refusal.message);
+
+    return this.staging.createUploadTicket(input.fileName);
+  }
 
   /** Os anexos de um chamado, com os dois endereços prontos. */
   async list(ticketId: number): Promise<TicketAttachment[]> {
@@ -79,18 +121,17 @@ export class TicketAttachmentsService {
   }
 
   /**
-   * Guarda os arquivos de um chamado.
+   * Guarda os arquivos de um chamado — os que o navegador já enviou para a área temporária.
    *
-   * `author` nulo é o caminho público — o arquivo veio junto com a abertura do chamado, e ali
-   * não existe identidade para carimbar.
+   * `author` nulo é o arquivo que veio junto com a abertura do chamado.
    *
-   * Os arquivos são conferidos TODOS antes de qualquer um subir: aceitar três e recusar o
-   * quarto deixaria o chamado num meio-termo que ninguém pediu, e obrigaria quem enviou a
-   * descobrir sozinho o que entrou.
+   * Os arquivos são conferidos TODOS antes de qualquer um sair da área temporária: aceitar três
+   * e recusar o quarto deixaria o chamado num meio-termo que ninguém pediu, e obrigaria quem
+   * enviou a descobrir sozinho o que entrou.
    */
   async attach(
     ticketId: number,
-    files: readonly UploadedAttachment[],
+    files: readonly StagedFile[],
     author: string | null,
     origin: AttachmentOrigin,
     historyId: number | null = null,
@@ -108,46 +149,82 @@ export class TicketAttachmentsService {
        que dura semanas junta mais de cinco fotos, e contar tudo junto travaria o anexo do
        décimo histórico por causa do que entrou no primeiro. */
     const sameEntry = existing.filter((row) => row.historyId === historyId);
-    const kinds: AttachmentKind[] = kindsUsedBy(sameEntry, origin);
+    const accepted = await this.accept(files, kindsUsedBy(sameEntry, origin));
 
-    const accepted = files.map((file) => this.accept(file, kinds));
+    return this.store(ticketId, accepted, { author, origin, historyId });
+  }
 
+  /**
+   * Confere os arquivos enviados SEM gravar nada — para quem precisa saber se eles servem antes
+   * de gravar outra coisa (um histórico, por exemplo).
+   *
+   * A conferência é do arquivo que está no storage: tamanho e tipo MEDIDOS, não os que a tela
+   * declarou ao pedir o link. Um arquivo fora das regras recusa a leva inteira, com o motivo, e
+   * a leva sai da área temporária — não tem como virar anexo, e ficar lá só ocuparia espaço.
+   */
+  async accept(
+    files: readonly StagedFile[],
+    existingKinds: readonly AttachmentKind[],
+  ): Promise<AcceptedAttachment[]> {
+    const measured = await Promise.all(files.map((file) => this.staging.inspect(file)));
+    /* `kinds` cresce a cada arquivo de propósito: sem isso, mandar três vídeos de uma vez
+       passaria pelo teto de dois, porque cada um seria julgado contra o mesmo estado inicial. */
+    const kinds = [...existingKinds];
+    const accepted: AcceptedAttachment[] = [];
+
+    for (const file of measured) {
+      const refusal = refuseAttachment(file, kinds);
+      if (refusal) {
+        await this.staging.discard(files.map((staged) => staged.storageKey));
+        throw new BadRequestException(refusal.message);
+      }
+
+      /* O catálogo já disse que serve; aqui só se descobre de qual grupo, para contar a cota. */
+      const kind = attachmentKindOf(file.contentType, file.fileName) as AttachmentKind;
+      kinds.push(kind);
+      accepted.push({ file, kind });
+    }
+
+    return accepted;
+  }
+
+  /**
+   * Tira os arquivos aceitos da área temporária e grava a linha de cada um.
+   *
+   * A linha só nasce depois de o arquivo estar no lugar definitivo: a ordem inversa produziria
+   * anexo que a tela mostra e que não abre. Se a gravação falha depois do movimento, o arquivo
+   * sai do bucket para não ficar órfão.
+   */
+  async store(
+    ticketId: number,
+    accepted: readonly AcceptedAttachment[],
+    options: { author: string | null; origin: AttachmentOrigin; historyId: number | null },
+  ): Promise<TicketAttachment[]> {
     const saved: TicketAttachment[] = [];
-    for (const { file, fileName, kind } of accepted) {
-      const stored = await this.storage.upload({
-        fileName,
-        contentType: file.mimetype,
-        content: file.buffer,
-        folder: FOLDER,
-      });
+    for (const { file, kind } of accepted) {
+      const storageKey = await this.staging.promote(file, FOLDER);
 
-      const row = await this.repository.insert({
-        ticketId,
-        historyId,
-        kind,
-        origin,
-        fileName,
-        contentType: stored.contentType,
-        sizeBytes: stored.sizeBytes,
-        storageKey: stored.key,
-        createdBy: author,
-      });
+      const row = await this.repository
+        .insert({
+          ticketId,
+          historyId: options.historyId,
+          kind,
+          origin: options.origin,
+          fileName: file.fileName,
+          contentType: file.contentType,
+          sizeBytes: file.sizeBytes,
+          storageKey,
+          createdBy: options.author,
+        })
+        .catch(async (error: unknown) => {
+          await this.staging.discard([storageKey]);
+          throw error;
+        });
 
       saved.push(await this.toAttachment(row));
     }
 
     return saved;
-  }
-
-  /**
-   * Confere os arquivos SEM guardar nada — para quem precisa saber se eles servem antes de
-   * gravar outra coisa (um histórico, por exemplo). Um arquivo fora das regras recusa aqui,
-   * com o mesmo motivo que `attach` daria.
-   */
-  assertAcceptable(files: readonly UploadedAttachment[]): void {
-    const kinds: AttachmentKind[] = [];
-
-    for (const file of files) this.accept(file, kinds);
   }
 
   /**
@@ -160,7 +237,7 @@ export class TicketAttachmentsService {
   async attachAsUser(
     user: RequestUser,
     ticketId: number,
-    files: readonly UploadedAttachment[],
+    files: readonly StagedFile[],
   ): Promise<TicketAttachment[]> {
     /* A mesma régua de atender: juntar a nota fiscal da peça ao chamado é parte do
        atendimento, não um cadastro à parte com permissão própria. */
@@ -196,35 +273,7 @@ export class TicketAttachmentsService {
     if (refusal) throw new ForbiddenException(refusal);
 
     await this.repository.remove(row.id);
-    await this.storage.remove(row.storageKey);
-  }
-
-  /**
-   * Confere um arquivo contra o catálogo, contando o que já entrou nesta mesma leva.
-   *
-   * O `kinds` é mutado de propósito: sem isso, mandar três vídeos de uma vez passaria pelo
-   * teto de dois, porque cada um seria julgado contra o mesmo estado inicial.
-   */
-  private accept(file: UploadedAttachment, kinds: AttachmentKind[]) {
-    /* O nome chega com os acentos embaralhados (ver `decodeUploadedFileName`): é o nome
-       corrigido que se valida, se guarda e se mostra. */
-    const parsed = fileNameSchema.safeParse(decodeUploadedFileName(file.originalname));
-    if (!parsed.success) {
-      throw new BadRequestException(parsed.error.issues[0]?.message ?? 'Nome de arquivo inválido.');
-    }
-
-    const fileName = parsed.data;
-    const refusal = refuseAttachment(
-      { contentType: file.mimetype, fileName, sizeBytes: file.size },
-      kinds,
-    );
-    if (refusal) throw new BadRequestException(refusal.message);
-
-    /* O catálogo já disse que serve; aqui só se descobre de qual grupo, para contar a cota. */
-    const kind = attachmentKindOf(file.mimetype, fileName) as AttachmentKind;
-    kinds.push(kind);
-
-    return { file, fileName, kind };
+    await this.storage.remove([row.storageKey]);
   }
 
   private async requireTicket(ticketId: number): Promise<void> {
@@ -239,9 +288,11 @@ export class TicketAttachmentsService {
    * acesso permanente ao arquivo, e é o mesmo cuidado que o print do chamado já tinha.
    */
   private async toAttachment(row: TicketAttachmentRow): Promise<TicketAttachment> {
+    /* Abrir vai sem nome de download: o navegador mostra o que sabe mostrar (PDF, imagem,
+       vídeo), pelo tipo que o storage guardou no envio. */
     const [viewUrl, downloadUrl] = await Promise.all([
-      this.storage.createDownloadUrl(row.storageKey, { as: 'inline', fileName: row.fileName }),
-      this.storage.createDownloadUrl(row.storageKey, { as: 'attachment', fileName: row.fileName }),
+      this.storage.downloadUrl(row.storageKey, DOWNLOAD_URL_TTL_SECONDS, null),
+      this.storage.downloadUrl(row.storageKey, DOWNLOAD_URL_TTL_SECONDS, row.fileName),
     ]);
 
     return {

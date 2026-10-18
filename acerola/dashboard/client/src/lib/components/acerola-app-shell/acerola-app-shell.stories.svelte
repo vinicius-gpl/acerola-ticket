@@ -13,7 +13,7 @@
   const actions = { onLogout: fn() };
 
   const manyItems = [
-    { key: 'tasks', label: 'Tarefas', to: '/tasks', icon: ListChecks, context: 'infra', feature: 'tasks' },
+    { key: 'tickets', label: 'Chamados', to: '/tickets', icon: ListChecks, context: 'infra', feature: 'tickets' },
     { key: 'reports', label: 'Relatórios', to: '/reports', icon: BarChart3, context: 'infra', feature: 'reports' },
     {
       key: 'settings',
@@ -34,7 +34,7 @@
 </script>
 
 <Story name="Default">
-  <AppShell data={{ user }} state={{ activeKey: 'tasks' }} {actions}>
+  <AppShell data={{ user }} state={{ activeKey: 'tickets' }} {actions}>
     <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
 </Story>
@@ -43,8 +43,8 @@
 <Story name="WithBadges">
   <AppShell
     ui={{ items: manyItems }}
-    data={{ user, badges: { tasks: 3, reports: 12 } }}
-    state={{ activeKey: 'tasks' }}
+    data={{ user, badges: { tickets: 3, reports: 12 } }}
+    state={{ activeKey: 'tickets' }}
   >
     <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
@@ -54,8 +54,8 @@
 <Story name="Collapsed">
   <AppShell
     ui={{ items: manyItems }}
-    data={{ user, badges: { tasks: 3, reports: 12 } }}
-    state={{ isCollapsed: true, activeKey: 'tasks' }}
+    data={{ user, badges: { tickets: 3, reports: 12 } }}
+    state={{ isCollapsed: true, activeKey: 'tickets' }}
   >
     <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
   </AppShell>
@@ -74,7 +74,18 @@
         { value: 'manutencao', label: 'Manutenção', icon: Wrench },
       ],
     }}
-    state={{ activeKey: 'tasks', areaContext: 'manutencao' }}
+    state={{ activeKey: 'tickets', areaContext: 'manutencao' }}
+    {actions}
+  >
+    <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
+  </AppShell>
+</Story>
+
+<!-- Com a foto da conta no rodapé, no lugar das iniciais. -->
+<Story name="WithAvatar">
+  <AppShell
+    data={{ user: { ...user, avatarUrl: 'https://i.pravatar.cc/96?img=47' } }}
+    state={{ activeKey: 'tickets' }}
     {actions}
   >
     <div class="text-ink-700 p-8 text-sm">Conteúdo da rota entra aqui.</div>
@@ -90,7 +101,7 @@
 
 <!-- Caso limite: conteúdo mais alto que a tela não deve empurrar o menu para fora. -->
 <Story name="TallContent">
-  <AppShell data={{ user }} state={{ activeKey: 'tasks' }}>
+  <AppShell data={{ user }} state={{ activeKey: 'tickets' }}>
     <div class="text-ink-700 space-y-4 p-8 text-sm">
       {#each Array.from({ length: 30 }, (_, index) => index) as index (index)}
         <p>Linha de conteúdo {index + 1}, só para esticar a tela.</p>

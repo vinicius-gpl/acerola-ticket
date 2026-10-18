@@ -2,21 +2,25 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/machine"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/memory"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/metrics"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/reporting"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/screen"
 	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/tray"
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/version"
 )
 
 const (
@@ -26,7 +30,7 @@ const (
 	// A versão que o agente informa ao painel central no `hello`. É o que
 	// aparece na ficha do computador e permite descobrir, sem ir até a
 	// máquina, qual delas ainda está com o agente antigo.
-	agentVersion = "0.1.0"
+	agentVersion = version.Current
 
 	popupWidth  = 380
 	popupHeight = 650
@@ -54,6 +58,7 @@ type App struct {
 	actions         chan func(context.Context)
 	viewReady       chan struct{}
 	isWindowVisible bool
+	startupOpen     bool
 
 	// O envio ao painel central: o que está rodando agora, e como pará-lo.
 	// Trocar a chave na tela derruba o envio antigo e sobe um novo.
@@ -68,6 +73,12 @@ func NewApp() *App {
 		actions:     make(chan func(context.Context), 4),
 		viewReady:   make(chan struct{}, 1),
 	}
+}
+
+func (app *App) SetStartupOpen(open bool) {
+	app.mu.Lock()
+	app.startupOpen = open
+	app.mu.Unlock()
 }
 
 func (app *App) isVisible() bool {
@@ -120,6 +131,11 @@ func (app *App) startup(ctx context.Context) {
 // seja erro — nem toda instalação deste agente é de uma máquina que o TI
 // acompanha pelo painel.
 func (app *App) reportToDashboard(ctx context.Context) {
+	// O serviço é o dono da conexão quando o instalador de máquina está presente.
+	if machine.Installed() {
+		log.Print("reporting: managed by Windows service")
+		return
+	}
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
 		log.Printf("reporting: %v", configPathError)
@@ -172,6 +188,19 @@ func (app *App) stopReporting() {
 // existe um salvo. Devolvê-lo recolocaria em texto puro, na memória da tela,
 // o segredo que acabou de ser cifrado em disco.
 func (app *App) ReportingSettings() reporting.Settings {
+	if machine.Installed() {
+		if content, err := os.ReadFile(filepath.Join(machine.Directory(), "machine.json")); err == nil {
+			var cfg machine.Config
+			if err := json.Unmarshal(content, &cfg); err == nil {
+				return reporting.Settings{
+					ServerURL:       cfg.ServerURL,
+					HasToken:        cfg.TokenCipher != "",
+					IntervalSeconds: int(reporting.DefaultInterval.Seconds()),
+				}
+			}
+		}
+		return reporting.Settings{IntervalSeconds: int(reporting.DefaultInterval.Seconds())}
+	}
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
 		return reporting.Settings{}
@@ -182,6 +211,9 @@ func (app *App) ReportingSettings() reporting.Settings {
 
 // ReportingState é exposto ao frontend (via Bind): em que pé está a conexão.
 func (app *App) ReportingState() string {
+	if machine.Installed() {
+		return string(reporting.StateManaged)
+	}
 	app.mu.RLock()
 	reporter := app.reporter
 	app.mu.RUnlock()
@@ -199,6 +231,9 @@ func (app *App) ReportingState() string {
 // A mensagem de erro que volta daqui APARECE NA TELA, então ela é a única
 // coisa deste arquivo escrita em português.
 func (app *App) SaveReportingSettings(serverURL string, token string) string {
+	if machine.Installed() {
+		return "Esta instalação é gerenciada pelo TI. Use o script de configuração do serviço."
+	}
 	configPath, configPathError := reporting.DefaultConfigPath()
 	if configPathError != nil {
 		return "Não consegui achar a pasta de configuração desta máquina."

@@ -106,7 +106,7 @@ export const envSchema = z.object({
   /**
    * Credenciais do Cloudflare R2, que fala o protocolo do S3.
    *
-   * O endpoint é derivado do `R2_ACCOUNT_ID` (ver storage.service.ts) em vez de ser mais uma
+   * O endpoint é derivado do `R2_ACCOUNT_ID` (ver storage.module.ts) em vez de ser mais uma
    * variável: é sempre `https://<conta>.r2.cloudflarestorage.com`, e deixar isso configurável
    * só criaria uma forma a mais de errar.
    */
@@ -114,14 +114,6 @@ export const envSchema = z.object({
   R2_ACCESS_KEY_ID: z.string().trim().min(1, 'Informe a chave de acesso do R2'),
   R2_SECRET_ACCESS_KEY: z.string().trim().min(1, 'Informe o segredo do R2'),
   R2_BUCKET: z.string().trim().min(1, 'Informe o nome do bucket do R2'),
-
-  /**
-   * Por quantos segundos um link de download assinado continua valendo.
-   *
-   * Curto de propósito: o link dá acesso ao arquivo a quem o tiver, sem passar pela
-   * identidade. Ele existe para o navegador baixar AGORA, não para ser guardado.
-   */
-  R2_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
 
   /**
    * O segredo do webhook do UniFi.

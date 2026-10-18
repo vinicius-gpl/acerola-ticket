@@ -84,7 +84,7 @@
   );
 </script>
 
-<div class={cn('flex flex-col gap-1.5', ui?.className)}>
+<div class={cn('flex min-w-0 max-w-full flex-col gap-1.5', ui?.className)}>
   <label for={inputId} class="text-ink-700 text-sm font-medium">
     {data.label}
     {#if data.isRequired}
@@ -92,7 +92,7 @@
     {/if}
   </label>
 
-  <div class="relative">
+  <div class="relative min-w-0">
     <!-- O foco automático sozinho deixa o cursor no fim do texto: um valor mais comprido que
          a caixa nasce rolado, escondendo a primeira letra. Selecionar tudo (`onfocus`) mostra
          o valor inteiro e já deixa pronto para a pessoa digitar por cima. -->

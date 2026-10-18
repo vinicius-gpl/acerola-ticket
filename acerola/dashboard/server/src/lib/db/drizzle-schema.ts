@@ -4,6 +4,7 @@ import { computerAlerts } from './schema/computer-alerts.schema';
 import { computerSamples } from './schema/computer-samples.schema';
 import { computerTransfers } from './schema/computer-transfers.schema';
 import { computers } from './schema/computers.schema';
+import { history } from './schema/history.schema';
 import { internalRoles } from './schema/internal-roles.schema';
 import { inventoryItems } from './schema/inventory-items.schema';
 import { inventoryMovements } from './schema/inventory-movements.schema';
@@ -12,7 +13,6 @@ import { maintenances } from './schema/maintenances.schema';
 import { networkEvents } from './schema/network-events.schema';
 import { partMovements } from './schema/part-movements.schema';
 import { parts } from './schema/parts.schema';
-import { tasks } from './schema/tasks.schema';
 import { softwareProjects } from './schema/software-projects.schema';
 import { softwareTimelineEvents } from './schema/software-timeline-events.schema';
 import { softwareScheduleEvents } from './schema/software-schedule-events.schema';
@@ -36,7 +36,7 @@ import {
  *
  * Isto NÃO é um barril: barril é re-exportar uma pasta para esconder de onde o código vem.
  * Aqui o objeto é o dado — é o argumento que `drizzle(client, { schema })` recebe, e sem ele
- * `db.query.tasks.findMany()` não existe. Todo o resto do código continua importando a tabela
+ * `db.query.tickets.findMany()` não existe. Todo o resto do código continua importando a tabela
  * do arquivo dela.
  *
  * Tabela nova entra aqui, na mesma mudança em que o arquivo `<nome>.schema.ts` é criado.
@@ -49,7 +49,6 @@ export const drizzleSchema = {
   whatsappTemplates,
   whatsappConversations,
   whatsappInboundMessages,
-  tasks,
   softwareProjects,
   softwareTimelineEvents,
   softwareScheduleEvents,
@@ -70,6 +69,7 @@ export const drizzleSchema = {
   maintenanceQuotes,
   networkEvents,
   internalRoles,
+  history,
   /* Tabela do Neon Auth, só para leitura — ver `neon-auth-user.table.ts`. */
   neonAuthUsers,
 };

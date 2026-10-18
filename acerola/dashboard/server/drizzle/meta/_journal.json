@@ -225,6 +225,48 @@
       "when": 1791984882096,
       "tag": "0031_wide_vin_gonzales",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792248779401,
+      "tag": "0032_drop_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792248929893,
+      "tag": "0033_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792249132669,
+      "tag": "0034_ticket_requester",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792250205515,
+      "tag": "0035_module_access_by_account",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792250954316,
+      "tag": "0036_whatsapp_operator_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792296657619,
+      "tag": "0037_timeline_external_unique",
+      "breakpoints": true
     }
   ]
 }

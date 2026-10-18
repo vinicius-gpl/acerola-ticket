@@ -36,7 +36,11 @@
 
 <ProjectListView
   data={listModel.data}
-  state={{ ...listModel.state, canEdit: canEditSystem(page.data.user) }}
+  state={{
+    ...listModel.state,
+    canEdit: canEditSystem(page.data.user),
+    canSyncAll: page.data.user?.role === 'superadmin',
+  }}
   actions={{
     ...listModel.actions,
     onRegister: handleRegister,

@@ -5,6 +5,7 @@ package main
 
 import (
 	"embed"
+	"flag"
 	"os"
 
 	"github.com/wailsapp/wails/v2"
@@ -41,7 +42,13 @@ func init() {
 }
 
 func main() {
+	background := flag.Bool("background", false, "Start minimized in system tray")
+	flag.Parse()
+
+	handleSingleInstance(*background)
+
 	agentApp := NewApp()
+	agentApp.SetStartupOpen(!*background)
 
 	// A janela some ao perder o foco (ver svelte/src/views/popup) e volta via
 	// clique na bandeja — nunca fecha o processo sozinha: nasce escondida, e

@@ -1,6 +1,7 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { nextTicketStatus, refuseTicketHistory } from '@template/shared/domain/ticket-history.util';
 import { isClosedTicketStatus } from '@template/shared/domain/ticket-status.util';
+import { type StagedFile } from '@template/shared/schemas/staged-file.schema';
 import { type TicketAttachment } from '@template/shared/schemas/ticket-attachment.schema';
 import {
   type PublicTicketHistory,
@@ -21,7 +22,7 @@ import {
 } from '../mapper/ticket-histories.mapper';
 import { TicketHistoriesRepository } from '../repository/ticket-histories.repository';
 import { TicketAccessService, type TicketInReach } from './ticket-access.service';
-import { TicketAttachmentsService, type UploadedAttachment } from './ticket-attachments.service';
+import { TicketAttachmentsService } from './ticket-attachments.service';
 
 /**
  * A LINHA DO TEMPO do chamado — a ordem de serviço. É o ÚNICO caminho que muda o estágio de um
@@ -70,21 +71,23 @@ export class TicketHistoriesService {
   /**
    * Lança um histórico — e, com ele, muda o estágio do chamado quando o tipo leva a outro.
    *
-   * Os arquivos são conferidos ANTES de qualquer gravação: recusar um PDF grande demais depois
-   * de o histórico existir deixaria na linha do tempo um "segue a nota em anexo" sem anexo.
+   * Os arquivos — já enviados pelo navegador para a área temporária — são conferidos ANTES de
+   * qualquer gravação: recusar um PDF grande demais depois de o histórico existir deixaria na
+   * linha do tempo um "segue a nota em anexo" sem anexo.
    */
   async create(
     user: RequestUser,
     ticketId: number,
     entry: HistoryEntry,
-    files: readonly UploadedAttachment[] = [],
+    files: readonly StagedFile[] = [],
   ): Promise<TicketHistory> {
     assertCanAttendTicket(user.role);
 
     const reach = await this.access.reach(user, ticketId);
     this.access.assertCanWrite(reach);
     this.assertFits(reach, entry);
-    this.attachments.assertAcceptable(files);
+    /* Histórico novo não tem nada anexado ainda: a cota dele começa vazia. */
+    const accepted = await this.attachments.accept(files, []);
 
     const author = { name: user.name, email: user.email, id: user.id };
     const row = await this.repository.record(
@@ -92,7 +95,11 @@ export class TicketHistoriesService {
       toTicketMove(reach.ticket, entry, author),
     );
 
-    const saved = await this.attachments.attach(ticketId, files, user.email, 'support', row.id);
+    const saved = await this.attachments.store(ticketId, accepted, {
+      author: user.email,
+      origin: 'support',
+      historyId: row.id,
+    });
 
     return toTicketHistory(row, saved);
   }

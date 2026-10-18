@@ -15,6 +15,7 @@ import { Public } from '../../../lib/auth/public.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { PublicServiceOrderDto } from '../dto/service-order.dto';
 import { TicketServiceOrdersService } from '../service/ticket-service-orders.service';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
  * A ORDEM DE SERVIÇO como documento: emitir (pelo painel) e conferir (por qualquer pessoa).
@@ -26,6 +27,7 @@ import { TicketServiceOrdersService } from '../service/ticket-service-orders.ser
  * Não há `@Patch` nem `@Delete`: emissão não se corrige nem se apaga.
  */
 @ApiTags('Chamados')
+@AnyModule()
 @Controller()
 export class TicketServiceOrdersController {
   constructor(private readonly service: TicketServiceOrdersService) {}

@@ -1,4 +1,4 @@
-import { isJidUser, isLidUser, jidNormalizedUser, type WAMessage } from 'baileys';
+import { isLidUser, isPnUser, jidNormalizedUser, type WAMessage } from 'baileys';
 
 import { phoneFromJid } from './whatsapp-phone.util.js';
 
@@ -67,20 +67,23 @@ function textOf(message: WAMessage): string | null | undefined {
  * mensagem, e quando não vem é nulo — o formulário do chamado pergunta.
  */
 function phoneOf(message: WAMessage, chatId: string): string | null {
-  const alternate = (message.key as { senderPn?: string | null }).senderPn;
+  /* O Baileys 7 traz o endereço de telefone de uma conversa anônima em `remoteJidAlt`; o
+     `senderPn` é o nome antigo do mesmo campo, mantido para mensagem já guardada. */
+  const key = message.key as { remoteJidAlt?: string | null; senderPn?: string | null };
+  const alternate = key.remoteJidAlt ?? key.senderPn;
 
-  return phoneFromJid(isJidUser(chatId) ? chatId : alternate);
+  return phoneFromJid(isPnUser(chatId) ? chatId : alternate);
 }
 
 /* O telefone do número vinculado: entre os endereços dele, o que é de telefone (o outro é anônimo). */
 function ownPhoneOf(ownChatIds: readonly string[]): string | null {
-  return phoneFromJid(ownChatIds.find((id) => isJidUser(id)));
+  return phoneFromJid(ownChatIds.find((id) => isPnUser(id)));
 }
 
 /* Conversa privada tem dois formatos de endereço: o do telefone e o identificador anônimo
    (`@lid`) que o WhatsApp passou a usar no lugar dele. */
 function isPrivateChat(chatId: string): boolean {
-  return Boolean(isJidUser(chatId) || isLidUser(chatId));
+  return Boolean(isPnUser(chatId) || isLidUser(chatId));
 }
 
 /**

@@ -1,0 +1,28 @@
+name: Release/Bump
+on:
+  workflow_call:
+permissions:
+  contents: write
+# Serializa a escrita dos commits de versão nas branches do projeto.
+concurrency:
+  group: release-version-bump
+  cancel-in-progress: false
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Commit only version files to main and develop
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          node .github/scripts/release/commit-bump.mjs "$RELEASE_TAG"

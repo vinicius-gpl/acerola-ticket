@@ -19,6 +19,11 @@ export const whatsappConnections = pgTable('whatsapp_connections', {
   userId: text('user_id').primaryKey(),
   /** Só dígitos, com DDI. */
   phone: text('phone').notNull(),
+  /**
+   * O nome de quem vinculou, como estava no login. É a assinatura de toda mensagem do bot
+   * ("*Ana Lima BOT*"), e fica aqui para o bot assinar sem consultar a conta a cada envio.
+   */
+  operatorName: text('operator_name'),
   linkedAt: timestamp('linked_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 });

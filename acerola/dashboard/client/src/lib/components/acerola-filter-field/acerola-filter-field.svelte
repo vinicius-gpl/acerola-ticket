@@ -25,7 +25,7 @@
   let { data, ui, children }: AcerolaFilterFieldProps = $props();
 </script>
 
-<div class={cn('flex min-w-0 flex-col gap-1.5', ui?.className)}>
+<div class={cn('flex w-full min-w-0 max-w-full flex-col sm:w-auto gap-1.5', ui?.className)}>
   <span class="text-ink-700 text-sm font-medium">{data.label}</span>
   {@render children?.()}
 </div>

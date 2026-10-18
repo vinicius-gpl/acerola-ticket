@@ -5,9 +5,9 @@ description: Constrói uma funcionalidade inteira de ponta a ponta no padrão do
 
 # Nova feature
 
-**O molde é a feature de Tarefas.** Para cada passo, abra o arquivo equivalente de `task`/`tasks`
-e siga a mesma forma: nomes, comentários (o porquê, em português), estados, testes. Se o exemplo
-já foi removido, siga o CONTRIBUTING.
+**O molde é a feature de Peças.** Para cada passo, abra o arquivo equivalente de `part`/`parts`
+e siga a mesma forma: nomes, comentários (o porquê, em português), estados, testes. Na dúvida,
+o CONTRIBUTING manda.
 
 Nos caminhos abaixo, `<entity>` é o nome em inglês, singular, kebab-case (`customer`), e
 `<entities>` o plural (`customers`). Tudo relativo a `acerola/dashboard/`.
@@ -95,7 +95,7 @@ banco (unique, check, relação).
   `acerola-action-button`, `acerola-text-field`…), nunca `ui/*`. Siga `design-system`,
   `ui-component` e `ui-standards`. Faltou um genérico? Instale do shadcn e envolva — não recrie.
 - `routes/(app)/<context>/<entities>/+page.svelte` — só composição: hook + componente + classes de
-  cor/espaço/layout (modelo: `routes/(app)/infra/tasks/+page.svelte`). Formulário em diálogo ligado ao
+  cor/espaço/layout (modelo: `routes/(app)/infra/parts/+page.svelte`). Formulário em diálogo ligado ao
   hook vai em `<entity>-form-slot.svelte` ao lado.
 - `lib/navigation/navigation.ts` — uma linha no menu, ícone Lucide.
 

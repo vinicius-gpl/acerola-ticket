@@ -1,20 +1,7 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  UploadedFiles,
-  UseInterceptors,
-} from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { TICKET_UPLOAD_MAX_BYTES, uploadLimit } from '../../../lib/http/upload-limit.util';
-import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
-  ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
@@ -27,11 +14,8 @@ import {
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { CreateTicketHistoryDto, TicketHistoryDto } from '../dto/ticket-history.dto';
-import { type UploadedAttachment } from '../service/ticket-attachments.service';
 import { TicketHistoriesService } from '../service/ticket-histories.service';
-
-/** O teto de arquivos numa requisição — o limite de verdade é por formato, e é do domínio. */
-const MAX_FILES_PER_REQUEST = 25;
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
  * A LINHA DO TEMPO de um chamado — a ordem de serviço, pelo painel.
@@ -42,6 +26,7 @@ const MAX_FILES_PER_REQUEST = 25;
  * Não há `@Patch` nem `@Delete`: histórico não se corrige nem se apaga. Errou? Lance outro.
  */
 @ApiTags('Chamados')
+@AnyModule()
 @Controller('tickets/:id')
 export class TicketHistoriesController {
   constructor(private readonly service: TicketHistoriesService) {}
@@ -62,15 +47,10 @@ export class TicketHistoriesController {
   }
 
   @Post('histories')
-  @UseInterceptors(
-    UploadTooLargeInterceptor,
-    FilesInterceptor('attachments', MAX_FILES_PER_REQUEST, uploadLimit(TICKET_UPLOAD_MAX_BYTES)),
-  )
-  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Lança um histórico no chamado',
     description:
-      'É o ÚNICO caminho que muda o estágio de um chamado: o estágio resultante é consequência do tipo do histórico. Os tipos que encerram (e a reabertura) exigem administrar alguma área do chamado. Os arquivos viajam no campo `attachments`.',
+      'É o ÚNICO caminho que muda o estágio de um chamado: o estágio resultante é consequência do tipo do histórico. Os tipos que encerram (e a reabertura) exigem administrar alguma área do chamado. Os arquivos já foram enviados pelo link de `POST /tickets/:id/attachments/upload-url`; o campo `attachments` leva a `storageKey` e o nome de cada um.',
   })
   @ApiBody({ type: CreateTicketHistoryDto })
   @ApiCreatedResponse({ type: TicketHistoryDto })
@@ -84,8 +64,7 @@ export class TicketHistoriesController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateTicketHistoryDto,
-    @UploadedFiles() attachments?: UploadedAttachment[],
   ): Promise<TicketHistoryDto> {
-    return this.service.create(user, id, body, attachments ?? []);
+    return this.service.create(user, id, body, body.attachments);
   }
 }

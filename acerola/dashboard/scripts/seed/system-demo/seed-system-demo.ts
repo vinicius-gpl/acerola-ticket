@@ -133,7 +133,6 @@ const RESET_TABLES = [
   'software_projects',
   'software_schedule_events',
   'software_timeline_events',
-  'tasks',
   'ticket_areas',
   'ticket_attachments',
   'ticket_histories',

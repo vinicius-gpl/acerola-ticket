@@ -5,9 +5,11 @@
 # fica atrás de um Traefik, que já resolve o roteamento por domínio. Um segundo processo
 # só pra servir arquivo estático seria uma peça a mais sem função.
 #
-# Não é a imagem mais enxuta possível: a etapa final carrega o `node_modules` inteiro do
-# monorepo, em vez de reinstalar só as dependências de produção do server. Prioridade 0
-# do CONTRIBUTING — funcionar primeiro — vale aqui: enxugar é otimização para depois.
+# A etapa final leva só os pacotes de PRODUÇÃO do server e do shared, instalados num estágio
+# à parte (`prod-deps`). Antes ela copiava o `node_modules` inteiro do build — Vite, Storybook,
+# ESLint, Playwright e as dependências da tela, que em produção é só arquivo estático —: a
+# imagem ia de 1,41 GB para 790 MB com a troca, e gravar e descompactar esse peso era a maior
+# parte do tempo de deploy.
 #
 # `bookworm-slim` por simplicidade — nenhuma dependência atual exige compilar nada na
 # imagem, então trocar para `alpine` é uma otimização possível, não uma necessidade.
@@ -21,9 +23,11 @@ COPY package.json package-lock.json ./
 COPY shared/package.json shared/package.json
 COPY server/package.json server/package.json
 COPY client/package.json client/package.json
+COPY bot/package.json bot/package-lock.json bot/.npmrc ./bot/
 # `--ignore-scripts`: o `prepare` da raiz configura git e hooks, que não existem (nem fazem
 # sentido) dentro da imagem — e roda antes de os scripts serem copiados.
-RUN npm ci --ignore-scripts
+RUN --mount=type=cache,id=acerola-npm,target=/root/.npm,sharing=locked npm ci --prefer-offline --ignore-scripts \
+  && npm ci --prefix bot --prefer-offline --ignore-scripts
 
 FROM deps AS build
 COPY . .
@@ -31,23 +35,50 @@ ARG VITE_NEON_AUTH_URL
 ARG VITE_API_URL
 ENV VITE_NEON_AUTH_URL=$VITE_NEON_AUTH_URL
 ENV VITE_API_URL=$VITE_API_URL
+# `--ignore-scripts` no server: o `prebuild` dele recompila o shared, que acabou de sair.
 RUN npm run build -w @template/shared \
-  && npm run build -w server \
-  && npm run build -w client
+  && npm run build -w server --ignore-scripts \
+  && npm run build -w client \
+  && npm run build --prefix bot \
+  && npm prune --prefix bot --omit=dev --omit=peer --ignore-scripts
 
+# Só o que o server precisa para RODAR. Depende apenas dos manifestos e do lock — não do
+# código —, então num deploy sem dependência nova este estágio inteiro vem do cache.
+FROM node:24-bookworm-slim AS prod-deps
+WORKDIR /repo
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/package.json
+COPY server/package.json server/package.json
+COPY client/package.json client/package.json
+RUN --mount=type=cache,id=acerola-npm,target=/root/.npm,sharing=locked npm ci --omit=dev --prefer-offline --ignore-scripts -w server -w @template/shared
 
 FROM node:24-bookworm-slim AS app
 WORKDIR /repo
 ENV NODE_ENV=production
 COPY --from=typst /bin/typst /usr/local/bin/typst
-RUN typst --version
-COPY --from=build /repo/node_modules node_modules
+RUN typst --version && mkdir -p /data
+COPY --from=prod-deps /repo/node_modules node_modules
 COPY --from=build /repo/shared/package.json shared/package.json
 COPY --from=build /repo/shared/dist shared/dist
 COPY --from=build /repo/server/package.json server/package.json
+# O npm instala aqui o que não coube na raiz (versão diferente da de outro pacote — hoje
+# `docx` e `nanoid`). Sem esta cópia o server cai na partida com "Cannot find module".
+COPY --from=prod-deps /repo/server/node_modules server/node_modules
 COPY --from=build /repo/server/dist server/dist
 # As migrations vão junto: o server as aplica sozinho ao subir.
 COPY --from=build /repo/server/drizzle server/drizzle
 COPY --from=build /repo/client/dist client/dist
-EXPOSE 3336
-CMD ["node", "server/dist/main.js"]
+# O bot de WhatsApp vai na mesma imagem e sobe junto, só quando configurado (ver CMD). As
+# conexões cifradas dos números vinculados ficam em /data, que o compose monta num volume.
+COPY --from=build /repo/bot/package.json bot/package.json
+COPY --from=build /repo/bot/node_modules bot/node_modules
+COPY --from=build /repo/bot/dist bot/dist
+# Os scripts de administração (ex.: promover o super-admin) rodam de dentro do container.
+COPY --from=build /repo/scripts scripts
+ENV BOT_DATA_DIR=/data
+EXPOSE 3005
+# Consulta HTTP interna; falhas e timeouts ficam no histórico de saúde do Docker.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "Promise.all(['http://127.0.0.1:' + (process.env.API_PORT || 3005) + '/api/health'].map(async (url) => { const response = await fetch(url, { signal: AbortSignal.timeout(3000), redirect: 'error' }); if (!response.ok) throw new Error(url + ': HTTP ' + response.status); })).then(() => process.exit(0)).catch((error) => { console.error(error.message); process.exit(1); })"
+
+CMD ["sh", "-c", "if [ \"$BOT_API_URL\" = \"http://bot:4005\" ] || [ -z \"$BOT_API_URL\" ]; then export BOT_API_URL=\"http://127.0.0.1:${BOT_PORT:-4005}\"; fi; if [ -n \"$BOT_API_TOKEN\" ] && [ -n \"$BOT_SESSION_KEY\" ]; then BOT_SERVER_URL=\"${BOT_SERVER_URL:-http://127.0.0.1:${API_PORT:-3005}/api}\" node bot/dist/main.js & fi; exec node server/dist/main.js"]

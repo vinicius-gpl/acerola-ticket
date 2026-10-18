@@ -10,12 +10,12 @@
    * contexto da barra para existir. Não é peça pública — só o `AppShell` o usa —, mas tem
    * história porque os estados dele (aceso, com contador) são os que mais quebram na tela.
    */
-  const tasks = {
-    key: 'tasks',
-    label: 'Tarefas',
-    to: '/tasks',
+  const tickets = {
+    key: 'tickets',
+    label: 'Chamados',
+    to: '/tickets',
     icon: ListChecks,
-    context: 'infra', feature: 'tasks',
+    context: 'infra', feature: 'tickets',
   } as const;
   const reports = {
     key: 'reports',
@@ -31,9 +31,9 @@
   });
 </script>
 
-<Story name="Default" args={{ item: tasks }} />
+<Story name="Default" args={{ item: tickets }} />
 
-<Story name="Active" args={{ item: tasks, isActive: true }} />
+<Story name="Active" args={{ item: tickets, isActive: true }} />
 
 <Story name="WithBadge" args={{ item: reports, badge: 4 }} />
 

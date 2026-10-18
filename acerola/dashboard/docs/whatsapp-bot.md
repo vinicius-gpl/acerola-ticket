@@ -30,14 +30,26 @@ e é separado do resto: o servidor de chamados não conhece o WhatsApp, só a AP
   o texto). A mesma mensagem entregue de novo pelo WhatsApp (numa reconexão) é ignorada, sem
   fechar a conversa.
 - **Chamado a partir do WhatsApp.** Quem manda `/chamado` para o número de um responsável
-  recebe UMA mensagem com um link assinado. O link abre o `/support` já com o responsável, o
-  telefone de quem escreveu e, quando o responsável atende uma área só, a área. O chamado é
+  recebe UMA mensagem com um link assinado. O link abre o `/support` (depois do login, se a
+  pessoa ainda não entrou — o convite atravessa o login) já com o responsável, o telefone de
+  quem escreveu e, quando o responsável atende uma área só, a área. O chamado é
   preenchido na tela, e a confirmação com o protocolo chega pelo WhatsApp do responsável.
   O link vale 30 minutos e não pode ser alterado: a assinatura é conferida pelo servidor.
+- **Pedido de usuário (`/acesso`).** É para quem ainda não tem conta. O bot pergunta, uma por
+  mensagem, o nome completo, o e-mail, o telefone (só quando o WhatsApp esconde) e o setor, e
+  abre UM chamado de Sistema do tipo "Pedido de acesso", sem sistema — quem atende cria a conta.
+  Depois do nome, o bot procura a pessoa nas contas do Neon Auth: achou uma, o pedido fica
+  ligado a ela e o e-mail não é perguntado; achou várias, desempata por quem já abriu chamado
+  com aquele telefone e, sem desempate, pergunta "qual delas é você?". Falhou ao registrar, a
+  pessoa recebe o aviso na hora, e nada fica aberto pela metade. O chamado entra no histórico
+  do sistema, sem autor (quem fez foi o bot).
+- **Assinatura.** Toda mensagem do bot começa com "*<nome de quem vinculou> BOT*": quem recebe
+  sabe que a resposta é automática e de qual atendimento vem. O nome é guardado no vínculo do
+  número (`whatsapp_connections.operator_name`).
 - **Link de consulta.** Toda mensagem de um chamado ("recebi o seu chamado", "ficou pronto")
-  leva um link assinado que abre direto AQUELE chamado na consulta pública, sem digitar
-  protocolo. Não vence. Trocar o número dentro do link não abre o chamado de outra pessoa: a
-  assinatura deixa de conferir.
+  leva um link assinado que abre direto AQUELE chamado na consulta, sem digitar protocolo —
+  depois do login, e só para quem abriu o chamado ou atende uma área dele. Não vence. Trocar o
+  número dentro do link não abre o chamado de outra pessoa: a assinatura deixa de conferir.
 - **Textos.** O super admin edita cada mensagem em **Meu Perfil › Textos do bot**, com variáveis
   entre chaves duplas (`{{protocolo}}`) e prévia.
 - **Limite.** Cada número manda no máximo `WHATSAPP_DAILY_LIMIT` mensagens automáticas por dia
@@ -89,8 +101,10 @@ e **qual número** — a conexão em si nunca sai do bot.
    que não é oficial. No dia em que a API oficial do WhatsApp entrar, troca-se só a camada de
    transporte do bot (`src/modules/sessions/`); o servidor e a tela não mudam.
 2. **Licença.** O Baileys depende de código GPL-3.0 (`libsignal`). Num programa à parte — com
-   instalação, processo e imagem Docker próprios — essa licença não alcança o resto do projeto,
-   que é MIT. Detalhes em `THIRD-PARTY-NOTICES.md`.
+   instalação e processo próprios, falando com o servidor só por HTTP — essa licença não alcança o
+   código do resto do projeto, que é MIT. O bot roda na MESMA imagem Docker do sistema (como um
+   segundo processo), então quem distribuir essa imagem a terceiros entrega junto um programa
+   GPL-3.0 e precisa oferecer o código-fonte do bot. Detalhes em `THIRD-PARTY-NOTICES.md`.
 
 Por isso o bot **não** é um workspace do `package.json` da raiz: tem `package.json` e
 `package-lock.json` próprios, e o `npm install` do painel não instala nada dele.
@@ -126,12 +140,14 @@ Para subir só o bot: `npm run dev:bot`. Para conferir lint, tipos e testes dele
 
 ```bash
 cd acerola/dashboard
-docker compose -f docker/compose.yml --profile whatsapp up --build
+docker compose -f docker/compose.yml up --build
 ```
 
-O bot tem o único volume do projeto (`bot-data`): as conexões cifradas dos números vinculados.
-Perder o volume não perde dado de chamado — só obriga cada pessoa a ler o QR code de novo.
-O sistema roda com **uma instância só** do bot: a conexão com o WhatsApp fica viva dentro dele.
+O bot sobe dentro do mesmo container (`docker/dockerfile`) quando `BOT_API_TOKEN` e
+`BOT_SESSION_KEY` estão definidos, escutando em `127.0.0.1:4005`. O volume (`bot-data`, em `/data`)
+guarda as conexões cifradas dos números vinculados. Perder o volume não perde dado de chamado — só
+obriga cada pessoa a ler o QR code de novo. O sistema roda com **uma instância só** do bot: a
+conexão com o WhatsApp fica viva dentro dele.
 
 ## A API
 
@@ -151,9 +167,9 @@ Respostas de erro do envio: `409` (`not_connected`) quando o número não está 
 
 ## Segurança
 
-- **A API não fica na internet.** O bot escuta só em `127.0.0.1` por padrão; no Docker, só na
-  rede interna do compose. Quem tem o `BOT_API_TOKEN` manda mensagem pelo WhatsApp de qualquer
-  pessoa vinculada.
+- **A API não fica na internet.** O bot escuta só em `127.0.0.1` (inclusive dentro do container
+  Docker), então só o servidor que roda ao lado dele consegue chamá-lo. Quem tem o `BOT_API_TOKEN`
+  manda mensagem pelo WhatsApp de qualquer pessoa vinculada.
 - **A conexão é cifrada em disco** (AES-256-GCM, chave em `BOT_SESSION_KEY`). Quem tem esses
   dados é aquele WhatsApp: lê e manda mensagem como a pessoa. Nem o nome dos arquivos revela
   telefone.

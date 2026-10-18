@@ -37,6 +37,7 @@ import {
   UpdatePartDto,
 } from '../dto/part.dto';
 import { PartsService } from '../service/parts.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -47,6 +48,7 @@ import { PartsService } from '../service/parts.service';
  * próprio, porque não existem sem a peça: é o extrato dela.
  */
 @ApiTags('Depósito')
+@ModuleContext('infra')
 @Controller('parts')
 export class PartsController {
   constructor(private readonly service: PartsService) {}

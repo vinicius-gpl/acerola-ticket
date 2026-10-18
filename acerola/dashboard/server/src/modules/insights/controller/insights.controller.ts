@@ -5,6 +5,7 @@ import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
 import { InsightQueryDto, InsightsDto } from '../dto/insight.dto';
 import { InsightsService } from '../service/insights.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service, e as réguas
@@ -14,6 +15,7 @@ import { InsightsService } from '../service/insights.service';
  * registraram e diz o que isso significa junto.
  */
 @ApiTags('Inteligência')
+@ModuleContext('infra')
 @Controller('insights')
 export class InsightsController {
   constructor(private readonly service: InsightsService) {}

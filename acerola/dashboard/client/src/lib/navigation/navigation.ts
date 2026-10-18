@@ -1,4 +1,5 @@
 import type { LucideIcon } from '@lucide/svelte';
+import Download from '@lucide/svelte/icons/download';
 import Boxes from '@lucide/svelte/icons/boxes';
 import Calendar from '@lucide/svelte/icons/calendar';
 import Code2 from '@lucide/svelte/icons/code-2';
@@ -7,7 +8,6 @@ import FileText from '@lucide/svelte/icons/file-text';
 import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 import Lightbulb from '@lucide/svelte/icons/lightbulb';
 import LifeBuoy from '@lucide/svelte/icons/life-buoy';
-import ListChecks from '@lucide/svelte/icons/list-checks';
 import Package from '@lucide/svelte/icons/package';
 import Trash2 from '@lucide/svelte/icons/trash-2';
 import Wifi from '@lucide/svelte/icons/wifi';
@@ -103,9 +103,7 @@ export const INFRA_NAV_ITEMS: readonly NavItem[] = [
   navItem('infra', 'network', 'Rede', Wifi),
   navItem('infra', 'insights', 'Inteligência', Lightbulb),
   navItem('infra', 'budget', 'Orçamento', FileText),
-  /* A feature de exemplo do template. Sai quando não servir mais de molde (skill
-     `remove-example`) — ela não faz parte do sistema de TI. */
-  navItem('infra', 'tasks', 'Tarefas', ListChecks),
+  navItem('infra', 'agent', 'Agente Windows', Download),
 ];
 
 /** SISTEMA — os sistemas da empresa, cronograma, kanban e os chamados deles. */
@@ -115,6 +113,7 @@ export const SYSTEM_NAV_ITEMS: readonly NavItem[] = [
   navItem('sistema', 'kanban', 'Kanban', Columns3),
   navItem('sistema', 'schedule', 'Cronograma', Calendar),
   navItem('sistema', 'projects', 'Projetos', Code2),
+  navItem('sistema', 'agent', 'Agente Windows', Download),
 ];
 
 /**
@@ -150,7 +149,7 @@ export const NAV_ITEMS_BY_CONTEXT: Record<RoleContext, readonly NavItem[]> = {
 
 /**
  * O item aceso, DENTRO DOS ITENS QUE A CASCA RECEBEU — o prefixo mais longo que casar vence,
- * para `/infra/tasks/archive` acender "Arquivo" e não "Tarefas", se os dois existirem.
+ * para `/infra/computers/archive` acender "Arquivo" e não "Computadores", se os dois existirem.
  *
  * `items` é obrigatório de propósito: com um padrão que conhecesse as três listas, a casca de
  * um módulo poderia acender o item de outro.
@@ -199,7 +198,9 @@ export function fallbackContextOf(
 
 /** O item de menu que responde por um caminho: o casamento mais específico. */
 function navItemOf(pathname: string, items: readonly NavItem[]): NavItem | undefined {
-  const matches = items.filter((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
+  const matches = items.filter(
+    (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
+  );
 
   return matches.sort((a, b) => b.to.length - a.to.length)[0];
 }

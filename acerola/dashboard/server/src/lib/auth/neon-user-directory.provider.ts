@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type DirectoryUser } from '@template/shared/schemas/user.schema';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, ilike, or } from 'drizzle-orm';
 
 import { runMaybe, runQuery } from '../db/db-error.util';
 import { DB } from '../db/db.token';
@@ -11,6 +11,9 @@ import { type UserDirectoryProvider } from './user-directory.type';
 /**
  * Converte a linha lida da tabela externa `neon_auth.user` no tipo limpo `DirectoryUser`.
  */
+/* Busca por um primeiro nome comum ("Ana") traz bastante gente; o desempate é de quem chama. */
+const SEARCH_LIMIT = 50;
+
 function toDirectoryUser(row: NeonAuthUserRow): DirectoryUser {
   return {
     id: row.id,
@@ -50,4 +53,24 @@ export class NeonUserDirectoryProvider implements UserDirectoryProvider {
 
     return row ? toDirectoryUser(row) : null;
   }
+
+  async searchUsers(term: string): Promise<DirectoryUser[]> {
+    const pattern = `%${escapeLike(term.trim())}%`;
+    const rows = await runQuery(
+      this.db
+        .select()
+        .from(neonAuthUsers)
+        .where(or(ilike(neonAuthUsers.name, pattern), ilike(neonAuthUsers.email, pattern)))
+        .orderBy(asc(neonAuthUsers.name))
+        .limit(SEARCH_LIMIT),
+      'procurar pessoas no diretório Neon Auth',
+    );
+
+    return rows.map(toDirectoryUser);
+  }
+}
+
+/* `%` e `_` são curingas no LIKE: escritos pela pessoa, valem como letra. */
+function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/g, (char) => `\\${char}`);
 }

@@ -3,7 +3,7 @@
    * A pergunta antes do que não tem volta: excluir, arquivar, enviar.
    *
    * Três decisões de propósito:
-   *  - O botão diz o VERBO ("Excluir tarefa"), nunca "OK" nem "Sim". Quem lê só o botão precisa
+   *  - O botão diz o VERBO ("Excluir chamado"), nunca "OK" nem "Sim". Quem lê só o botão precisa
    *    saber o que vai acontecer.
    *  - A recusa do servidor aparece DENTRO do modal, e ele continua aberto. Fechar e mostrar o
    *    erro em outro lugar faria a pessoa achar que deu certo.
@@ -23,9 +23,9 @@
 </script>
 
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,

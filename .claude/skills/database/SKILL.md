@@ -23,7 +23,7 @@ Usuários, sessões, contas, senhas, tokens, logins: identidade é do auth-forwa
 
 ## Criar tabela
 
-1. `server/src/lib/db/schema/<entities>.schema.ts` (modelo: `tasks.schema.ts`):
+1. `server/src/lib/db/schema/<entities>.schema.ts` (modelo: `parts.schema.ts`):
    - `pgTable('<entities>', {...}, (table) => [índices, checks])`
    - `id: serial('id').primaryKey()`
    - colunas em **snake_case** no banco, camelCase no TS: `createdAt: timestamp('created_at', ...)`

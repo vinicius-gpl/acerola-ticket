@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import {
     SCHEDULE_EVENT_CATEGORIES,
     SCHEDULE_EVENT_CATEGORY_LABELS,
@@ -11,7 +12,6 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
@@ -193,7 +193,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-[1.25fr_1fr_1fr]">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1.25fr_1fr_1fr]">
         <TextField
           data={{
             label: 'Data',
@@ -201,7 +201,7 @@
             value: model.data.fields.date.value,
             isRequired: true,
           }}
-          ui={{ type: 'date', className: 'col-span-2 min-w-0 sm:col-span-1' }}
+          ui={{ type: 'date', className: 'min-w-0' }}
           state={{
             error: model.data.fields.date.error,
             isDisabled: model.state.isSubmitting,

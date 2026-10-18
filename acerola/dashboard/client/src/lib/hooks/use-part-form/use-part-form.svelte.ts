@@ -76,7 +76,7 @@ export function usePartFormModel({
     defaultValues: toFormValues(part),
     /* As MESMAS regras que o servidor usa. Um validador só, em `onChange`: com o schema
        também em `onSubmit`, o erro de um envio vazio fica PRESO no campo mesmo depois de
-       corrigido — ver o comentário em `use-task-form`. */
+       corrigido — ver o comentário em `use-open-ticket`. */
     validators: { onChange: partFormSchema },
     /* `mutate`, e não `await mutateAsync`: a recusa do servidor já chega à tela por
        `save.error`. Relançá-la daqui viraria uma rejeição sem dono no `handleSubmit`. */

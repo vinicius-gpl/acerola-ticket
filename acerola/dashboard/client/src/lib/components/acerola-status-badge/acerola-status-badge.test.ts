@@ -6,21 +6,21 @@ import StatusBadge from './acerola-status-badge.svelte';
 describe('AcerolaStatusBadge', () => {
   // feliz
   it('shows the label', () => {
-    render(StatusBadge, { props: { data: { label: 'Em andamento' } } });
+    render(StatusBadge, { props: { data: { label: 'Em atendimento' } } });
 
-    expect(screen.getByText('Em andamento')).toBeInTheDocument();
+    expect(screen.getByText('Em atendimento')).toBeInTheDocument();
   });
 
   it('paints the tone it was given', () => {
     const { container } = render(StatusBadge, {
-      props: { data: { label: 'Concluída' }, ui: { tone: 'success' } },
+      props: { data: { label: 'Resolvido' }, ui: { tone: 'success' } },
     });
 
     expect(container.firstElementChild?.className).toContain('success');
   });
 
   it('falls back to neutral when no tone was given, instead of having no color', () => {
-    const { container } = render(StatusBadge, { props: { data: { label: 'A fazer' } } });
+    const { container } = render(StatusBadge, { props: { data: { label: 'Aberto' } } });
 
     expect(container.firstElementChild?.className).toContain('ink');
   });
@@ -43,7 +43,7 @@ describe('AcerolaStatusBadge', () => {
 
   it('accepts an extra class without losing its own', () => {
     const { container } = render(StatusBadge, {
-      props: { data: { label: 'Concluída' }, ui: { tone: 'success', className: 'ml-4' } },
+      props: { data: { label: 'Resolvido' }, ui: { tone: 'success', className: 'ml-4' } },
     });
 
     expect(container.firstElementChild?.className).toContain('ml-4');

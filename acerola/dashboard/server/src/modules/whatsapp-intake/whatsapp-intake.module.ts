@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { AuthModule } from '../../lib/auth/auth.module';
+import { HistoryModule } from '../history/history.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { WhatsappIntakeController } from './controller/whatsapp-intake.controller';
@@ -13,7 +15,7 @@ import { WhatsappIntakeService } from './service/whatsapp-intake.service';
  * os chamados — sem que um precise conhecer o outro.
  */
 @Module({
-  imports: [TicketsModule, WhatsappModule],
+  imports: [AuthModule, TicketsModule, WhatsappModule, HistoryModule],
   controllers: [WhatsappIntakeController],
   providers: [
     WhatsappIntakeService,

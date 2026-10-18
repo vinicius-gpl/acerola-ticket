@@ -10,6 +10,7 @@ import {
   TransferListDto,
 } from '../dto/transfer.dto';
 import { TransfersService } from '../service/transfers.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 /**
  * O controller só recebe e entrega. Nenhuma regra aqui: ela vive no service.
@@ -22,6 +23,7 @@ import { TransfersService } from '../service/transfers.service';
  * `responsible` é outra coisa: é quem levou a máquina, e pode ser alguém sem login.
  */
 @ApiTags('Transferências')
+@ModuleContext('infra')
 @Controller('computers/:computerId/transfers')
 export class TransfersController {
   constructor(private readonly service: TransfersService) {}

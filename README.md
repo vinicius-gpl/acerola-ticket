@@ -1,12 +1,129 @@
-# acerola-ticket
+# Acerola Ticket
 
-MVP para validar uma ideia com gente de verdade usando, construído a partir de um template de código com padrão consistente.
+<p align="center">
+  <a href="docs/brag/brag.mp4">
+    <img src="docs/brag/brag.jpg" alt="Assista ao vídeo de apresentação do Acerola Ticket" width="85%">
+  </a>
+</p>
 
-Foi feito para ser usado **com o Claude Code no VS Code**. Você descreve o que o sistema precisa fazer, em português; o Claude constrói seguindo as regras deste repositório. As regras não dependem de você decorar nada: elas estão escritas para o Claude (`CLAUDE.md`), viram passo a passo nas skills (`.claude/skills/`) e são conferidas por máquina (lint, testes, commit).
+**A TI da empresa num lugar só.** Chamados, inventário de computadores, kanban de sistemas,
+cronograma ligado ao GitHub, manutenção do escritório e um agente Windows que se atualiza
+sozinho, divididos em três módulos: **Infraestrutura**, **Sistema** e **Manutenção**.
 
-O template já vem com uma funcionalidade de exemplo — **Tarefas** — funcionando de ponta a ponta: banco, API, tela, testes e dados de teste. Ela é o molde para as próximas. Quando não servir mais, peça ao Claude: **"remove o exemplo de tarefas"**.
+Cada pessoa da empresa entra com a própria conta para abrir chamado; quem atende recebe acesso
+por módulo, com um nível em cada um.
+
+## O que tem dentro
+
+### Infraestrutura
+
+<p align="center">
+  <img src="docs/prints/infra-painel.jpg" alt="Painel da Infraestrutura" width="85%">
+</p>
+
+O **Painel** mostra o parque de relance: chamados abertos, máquinas críticas, preventivas
+vencidas, peças sem estoque e o que entrou, saiu e foi feito nos últimos 7, 30 ou 90 dias.
+
+| Tela | O que faz |
+| --- | --- |
+| **Chamados** | O que o pessoal pediu e em que pé está, com problemas por tipo, departamentos que mais pedem e exportação em Excel, Word e PDF |
+| **Inventário** | Os computadores da empresa, com as medições enviadas pelo agente e o histórico de cada máquina |
+| **Manutenção** | O que foi feito em cada máquina e as preventivas planejadas para o dia |
+| **Depósito** | Peças na prateleira, entradas e saídas |
+| **Descarte** | O que saiu do parque e por quê |
+| **Rede** | Os eventos do link de internet |
+| **Inteligência** · **Orçamento** | Leituras do parque e os gastos da Infra |
+| **Agente Windows** | Baixa a versão LTS do agente e lista todas as versões publicadas |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/prints/infra-chamados.jpg" alt="Chamados da Infraestrutura"></td>
+    <td width="50%"><img src="docs/prints/infra-agente-windows.jpg" alt="Downloads do agente Windows"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Chamados</sub></td>
+    <td align="center"><sub>Agente Windows</sub></td>
+  </tr>
+</table>
+
+### Sistema
+
+<p align="center">
+  <img src="docs/prints/sistema-kanban.jpg" alt="Kanban de Sistema" width="85%">
+</p>
+
+Os chamados dos softwares da empresa andam num **Kanban** — da triagem ao concluído, arrastando
+os cards e rotulando por prioridade. Cada sistema é um repositório do GitHub: o **Cronograma**
+junta PRs mergeados, issues fechadas e agendamentos, com a produtividade de cada pessoa no
+período.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/prints/sistema-cronograma.jpg" alt="Cronograma de Sistema"></td>
+    <td width="50%"><img src="docs/prints/sistema-projetos.jpg" alt="Sistemas e projetos"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Cronograma</sub></td>
+    <td align="center"><sub>Sistemas e projetos sincronizados com o GitHub</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/prints/sistema-chamados.jpg" alt="Chamados de Sistema"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Chamados de Sistema</sub></td>
+    <td></td>
+  </tr>
+</table>
+
+### Manutenção
+
+<p align="center">
+  <img src="docs/prints/manutencao-inventario.jpg" alt="Inventário da Manutenção" width="85%">
+</p>
+
+O que existe no escritório além dos computadores — mobiliário, eletrodomésticos, mercadinho,
+limpeza — com foto, patrimônio, depósito, descarte, orçamentos e os chamados da área.
+
+### Para todo mundo
+
+- **Abrir chamado** com print e anexos, e acompanhar os seus em "Meus chamados".
+- **Validar documento**: a ordem de serviço impressa traz um código que qualquer pessoa confere
+  em `/verify`, sem login.
+- **WhatsApp**: o bot recebe o pedido de acesso e reconhece a pessoa pelo cadastro do Acerola.
+
+## Como as peças se conectam
+
+```mermaid
+flowchart LR
+    Agent["Agente Windows\n(acerola/agent)"] -->|"medições"| API
+    Web["Tela SvelteKit\n(acerola/dashboard/client)"] --> API["API NestJS\n(acerola/dashboard/server)"]
+    Bot["Bot de WhatsApp\n(acerola/dashboard/bot)"] --> API
+    API --> Neon[("Postgres + Auth\nna Neon")]
+    API --> R2[("Cloudflare R2\narquivos e releases do agente")]
+    API -->|"PRs e issues"| GitHub["GitHub"]
+    Agent -->|"auto-update da LTS"| R2
+```
+
+API, tela e bot sobem na **mesma imagem Docker**. O banco e os arquivos são remotos (Neon e R2),
+e os arquivos vão do navegador direto para o R2 por link assinado, sem passar pela API.
+
+| Pasta | O que é | Stack | Leia mais |
+| --- | --- | --- | --- |
+| [`acerola/dashboard/`](acerola/dashboard/) | API, tela e contrato compartilhado | NestJS · SvelteKit · Zod · Drizzle | este README |
+| [`acerola/dashboard/bot/`](acerola/dashboard/bot/) | Bot de WhatsApp | Node · Baileys | [whatsapp-bot.md](acerola/dashboard/docs/whatsapp-bot.md) |
+| [`acerola/agent/`](acerola/agent/) | Agente Windows (serviço + tela) | Go · Wails · Svelte | [releases.md](acerola/agent/docs/releases.md) · [architecture.md](acerola/agent/docs/architecture.md) |
+| [`docs/`](docs/) | Vídeo de apresentação e prints | HyperFrames | [brag-plan.md](docs/brag/brag-plan.md) |
 
 ---
+
+## Desenvolvendo com o Claude Code
+
+O projeto nasceu de um template feito para ser usado **com o Claude Code no VS Code**. Você
+descreve o que o sistema precisa fazer, em português; o Claude constrói seguindo as regras deste
+repositório. As regras não dependem de você decorar nada: elas estão escritas para o Claude
+(`CLAUDE.md`), viram passo a passo nas skills (`.claude/skills/`) e são conferidas por máquina
+(lint, testes, commit).
 
 ## O que você precisa ter instalado
 
@@ -91,7 +208,6 @@ Skills são receitas prontas. O Claude usa sozinho quando o pedido combina, e vo
 | `/git-fluxo`         | O ciclo de toda mudança: branch de feature → trabalho → seu OK → develop  |
 | `/resolver-conflito` | Explica e resolve conflito pela tela afetada, com quem mudou e quando     |
 | `/verificar`         | Conferir se está tudo pronto para entregar (lint, testes, build)          |
-| `/remover-exemplo`   | Tirar a feature de exemplo de Tarefas                                     |
 | `/socorro`           | Os problemas mais comuns e como resolver                                  |
 | `/limites-do-mvp`    | O que o MVP não faz e a quem pedir                                        |
 | `/suporte`           | Erro grande: para, guarda o trabalho e prepara o relatório para o suporte |
@@ -227,8 +343,43 @@ Em produção o container fica atrás de um proxy (Traefik, Caddy ou nginx), e p
 configurada nele — tamanho máximo de upload, limite das rotas públicas, `API_TRUST_PROXY_HOPS`.
 Os exemplos prontos estão em [`acerola/dashboard/docs/reverse-proxy.md`](acerola/dashboard/docs/reverse-proxy.md).
 
-O bot de WhatsApp é um programa à parte, com imagem própria (`docker/bot.dockerfile`) e que só
-sobe com o perfil `whatsapp` do compose — ver [`acerola/dashboard/docs/whatsapp-bot.md`](acerola/dashboard/docs/whatsapp-bot.md).
+O bot de WhatsApp é um programa à parte (`acerola/dashboard/bot/`) que sobe dentro do mesmo
+container quando `BOT_API_TOKEN` e `BOT_SESSION_KEY` estão configurados — ver
+[`acerola/dashboard/docs/whatsapp-bot.md`](acerola/dashboard/docs/whatsapp-bot.md).
+
+---
+
+### Os arquivos vão direto para o R2
+
+**O arquivo nunca passa pela API.** Todo envio — o print e os anexos do chamado, os anexos de um
+histórico, a foto do inventário, o documento do orçamento — segue três passos:
+
+1. a tela pede o link (`POST .../upload-url`); a API confere **quem pode** (no service) e devolve
+   uma chave na área temporária (`tmp/`) e um link assinado de envio (PUT, 5 minutos);
+2. o navegador envia o arquivo **direto** para o R2 por esse link;
+3. a tela grava o chamado, o histórico, o produto ou o orçamento levando a chave. Só então a API
+   confere o arquivo **de verdade** (tamanho e tipo medidos pelo R2, não os declarados pela
+   tela), recusa o que não serve e move o resto para a pasta definitiva (`tickets/`,
+   `ticket-attachments/`, `inventory/`, `maintenance-quotes/`).
+
+O que fica na área temporária sem ser gravado é apagado de hora em hora, depois de 24 horas.
+Para **abrir ou baixar**, a API devolve um link assinado de GET (5 minutos). Os arquivos gravados
+antes deste fluxo continuam onde estavam: mesmas chaves, mesmo bucket.
+
+Como o navegador fala direto com o R2, o bucket precisa de uma **regra de CORS** que aceite
+`PUT` e `GET` vindos do endereço do sistema, com o cabeçalho `Content-Type`. No painel da
+Cloudflare: R2 → bucket → Settings → CORS policy, por exemplo:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://chamados.exemplo.com"],
+    "AllowedMethods": ["GET", "PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
 
 ---
 
@@ -251,11 +402,52 @@ Quando houver autenticação, as responsabilidades são separadas:
 
 Login não concede autorização automaticamente. Mesmo autenticado, o usuário continua sujeito aos papéis e às policies.
 
+### Quem acessa o quê no acerola
+
+Toda pessoa da empresa tem conta no Neon Auth: abrir chamado exige login. Ter conta, porém, não
+abre módulo nenhum.
+
+| Quem                         | O que faz                                                         |
+|------------------------------|-------------------------------------------------------------------|
+| Qualquer conta               | abre chamado, acompanha os seus em "Meus chamados", valida documento |
+| Com o módulo, como Usuário   | consulta o módulo, cria e cuida do que é seu                      |
+| Com o módulo, como Gestor    | também mexe no que é dos outros e atende chamados                 |
+| Com o módulo, como Administrador | tudo no módulo, inclusive encerrar chamado                   |
+| Super Admin                  | tudo, em todos os módulos, e a tela de Acessos                    |
+
+Os módulos (Infraestrutura, Sistema, Manutenção) são liberados pelo **Super Admin** na tela de
+Acessos, já com o nível. **Módulo sem linha é sem acesso** — não "Usuário". O Super Admin só é
+criado por comando: `npm run user:promote -- <e-mail>`.
+
+No código, a regra está em `shared/src/domain/module-access.util.ts`. Toda rota da API declara o
+módulo dela (`@ModuleContext('infra')`) ou que não é de um módulo só (`@AnyModule()`, como os
+chamados); a trava global (`RolesGuard`) recusa quem não tem o módulo e entrega ao service o
+nível DAQUELE módulo. Rota sem declaração nasce **fechada** (403). O acesso é ligado ao id da
+conta, nunca ao e-mail.
+
+**Histórico.** Toda mudança feita pela API (criar, alterar, apagar) vira uma linha em `history`:
+ação, quem (`actor_id`, `actor_email`; nulo quando foi máquina), alvo, IP, navegador e os campos
+enviados (`changes`). Segredo não entra, e texto longo é cortado. A gravação é automática
+(`HistoryInterceptor`); falha no histórico vai para o log e não desfaz a mudança.
+
 Sessões não devem ser armazenadas em `localStorage`. Quando baseadas em cookie, devem usar as proteções adequadas ao ambiente, incluindo `HttpOnly`, `Secure` quando aplicável e `SameSite` compatível com o fluxo.
 
 Senhas devem ser armazenadas somente por meio de mecanismo de hash apropriado. Nunca devem aparecer em texto puro em banco, logs, seeds, fixtures, respostas da API ou mensagens de erro.
 
 Mudanças de autenticação devem possuir testes para login válido, credencial inválida, requisição sem autenticação, sessão inválida ou expirada, logout, usuário sem permissão, tentativa de escalada de privilégio e tentativa de substituir a identidade autenticada por dados enviados pelo cliente.
+
+---
+
+## Agente Windows: releases e atualização
+
+O agente é publicado por tag (`agent/v1.2.3`): a CI compila, gera o MSI assinado e envia os
+arquivos ao **mesmo bucket do R2** do dashboard, em `agent/releases/<versão>/`. Uma versão só vai
+para as máquinas depois de promovida a **LTS** (workflow **Release/Agent LTS**). O serviço
+`AcerolaAgent` consulta a LTS a cada hora e se atualiza sozinho, sem janela nem login.
+
+No dashboard, **Agente Windows** (em Infraestrutura e Sistema) baixa a LTS e lista **todas as
+versões publicadas** no R2. O passo a passo — segredos do GitHub, certificado, primeira
+instalação e diagnóstico — está em [`acerola/agent/docs/releases.md`](acerola/agent/docs/releases.md).
 
 ---
 
@@ -291,6 +483,10 @@ Nada é obrigatório para rodar na sua máquina: todo valor tem padrão. Os exem
 ---
 
 ## Versões
+
+A tag `agent/vX.Y.Z` gera os arquivos do agente e os publica no mesmo bucket S3 privado
+usado pelo dashboard. O agente instalado pode coletar e se atualizar antes do login. Configuração de Secrets, certificado e primeira instalação:
+[guia de releases do agente](acerola/agent/docs/releases.md).
 
 Node na linha **LTS, com a faixa fechada** — `>=24.0.0 <25.0.0`. As travas (ESLint 9, TypeScript 5, NestJS 11) e o motivo de cada uma estão na [seção 13 do CONTRIBUTING](CONTRIBUTING.md#13-versões--só-o-que-ainda-tem-suporte).
 

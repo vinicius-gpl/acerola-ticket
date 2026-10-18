@@ -5,12 +5,12 @@ import { describe, expect, it } from 'vitest';
 import Harness from './acerola-app-shell-nav-entry-harness.test.svelte';
 
 const item = {
-  key: 'tasks',
-  label: 'Tarefas',
-  to: '/tasks',
+  key: 'tickets',
+  label: 'Chamados',
+  to: '/tickets',
   icon: ListChecks,
   context: 'infra',
-  feature: 'tasks',
+  feature: 'tickets',
 } as const;
 
 describe('AcerolaAppShellNavEntry', () => {
@@ -18,9 +18,9 @@ describe('AcerolaAppShellNavEntry', () => {
   it('draws a link with the item label and address', () => {
     render(Harness, { props: { item } });
 
-    const link = screen.getByRole('link', { name: 'Tarefas' });
+    const link = screen.getByRole('link', { name: 'Chamados' });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/tasks');
+    expect(link).toHaveAttribute('href', '/tickets');
   });
 
   it('shows the counter when there is one', () => {
@@ -33,7 +33,7 @@ describe('AcerolaAppShellNavEntry', () => {
   it('marks the entry as active', () => {
     render(Harness, { props: { item, isActive: true } });
 
-    expect(screen.getByRole('link', { name: 'Tarefas' }).closest('[data-active]')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Chamados' }).closest('[data-active]')).not.toBeNull();
   });
 
   // triste

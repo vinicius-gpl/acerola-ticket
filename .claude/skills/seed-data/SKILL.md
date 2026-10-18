@@ -5,7 +5,7 @@ description: Cria ou altera os dados de teste (seeds) — uma pasta por entidade
 
 # Dados de teste (seeds)
 
-Caminhos relativos a `acerola/dashboard/`. Modelo: `scripts/seed/tasks/`.
+Caminhos relativos a `acerola/dashboard/`. Modelo: `scripts/seed/parts/`.
 
 ## Estrutura
 
@@ -47,7 +47,7 @@ Regras:
 
 ## Gravar — `seed-<entities>.ts`
 
-Copie `seed-tasks.ts` e troque tabela/dados. O `onConflictDoUpdate` lista **todas** as colunas
+Copie `seed-parts.ts` e troque tabela/dados. O `onConflictDoUpdate` lista **todas** as colunas
 editáveis com `sql\`excluded.<coluna_no_banco>\`` e zera `updatedAt/updatedBy`.
 
 ## Registrar — `seed-all.ts`
@@ -59,7 +59,7 @@ report('clientes', await seedCustomers(db));
 report('pedidos', await seedOrders(db));   // pedido aponta para cliente
 ```
 
-E um script individual em `acerola/dashboard/package.json`, no padrão de `seed:tasks`:
+E um script individual em `acerola/dashboard/package.json`, no padrão de `seed:parts`:
 
 ```json
 "seed:customers": "npm run build -w @template/shared && tsx scripts/seed/customers/seed-customers.ts"

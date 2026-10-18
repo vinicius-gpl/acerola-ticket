@@ -4,8 +4,8 @@
   /**
    * Um selo de situação: texto curto sobre fundo de cor.
    *
-   * O TOM É PASSADO, NÃO ESCOLHIDO AQUI. Quem sabe que "Concluída" é verde é o domínio (ex.:
-   * `taskStatusTone` em `shared/src/domain`) — deixar cada tela escolher a cor é como a mesma
+   * O TOM É PASSADO, NÃO ESCOLHIDO AQUI. Quem sabe que "Resolvido" é verde é o domínio (ex.:
+   * `ticketStatusTone` em `shared/src/domain`) — deixar cada tela escolher a cor é como a mesma
    * situação aparece verde numa lista e cinza em outra.
    */
   export type StatusBadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand';
@@ -36,7 +36,7 @@
 {:else}
   <span
     class={cn(
-      'inline-flex items-center rounded-full font-semibold whitespace-nowrap',
+      'inline-flex max-w-full items-center rounded-full font-semibold whitespace-normal break-words',
       ui?.size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs',
       TONE_CLASSES[ui?.tone ?? 'neutral'],
       ui?.className,

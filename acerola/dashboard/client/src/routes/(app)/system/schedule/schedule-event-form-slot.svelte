@@ -8,6 +8,7 @@
   let {
     event = null,
     defaultDate,
+    defaultStartTime,
     projects = [],
     onDelete,
     deleteError = null,
@@ -16,6 +17,7 @@
   }: {
     event: SoftwareScheduleEvent | null;
     defaultDate?: string;
+    defaultStartTime?: string;
     projects?: SoftwareProject[];
     onDelete?: () => void;
     deleteError?: string | null;
@@ -26,6 +28,7 @@
   const model = useSoftwareScheduleFormModel({
     event,
     defaultDate,
+    defaultStartTime,
     onSaved: onClose,
   });
 </script>

@@ -15,6 +15,8 @@ const ticket: TicketWithComputer = {
   id: 7,
   status: 'resolved_with_caveats',
   priority: 'high',
+  requesterId: null,
+  requesterEmail: null,
   requesterName: 'Bia Costa',
   area: 'infra',
   department: 'financeiro',

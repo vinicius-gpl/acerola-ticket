@@ -26,7 +26,6 @@ describe('parseEnv', () => {
       API_WEBHOOK_RATE_LIMIT: 12,
       API_TRUST_PROXY_HOPS: 0,
       WHATSAPP_DAILY_LIMIT: 100,
-      R2_SIGNED_URL_TTL_SECONDS: 300,
     });
   });
 
@@ -84,13 +83,6 @@ describe('parseEnv', () => {
   it('refuses a port out of range, naming the variable', () => {
     expect(() => parseEnv({ ...secrets, API_PORT: '0' })).toThrow(/API_PORT/);
     expect(() => parseEnv({ ...secrets, API_PORT: '99999' })).toThrow(/API_PORT/);
-  });
-
-  /* Link assinado eterno deixa de ser "baixe agora" e vira um endereço público. */
-  it('refuses a signed url lifetime longer than an hour', () => {
-    expect(() => parseEnv({ ...secrets, R2_SIGNED_URL_TTL_SECONDS: '7200' })).toThrow(
-      /R2_SIGNED_URL_TTL_SECONDS/,
-    );
   });
 
   it('refuses an unknown NODE_ENV', () => {

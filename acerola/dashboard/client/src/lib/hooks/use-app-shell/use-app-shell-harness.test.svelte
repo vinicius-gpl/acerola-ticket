@@ -9,7 +9,7 @@
   /**
    * O hook usa `useQueryClient()` (para `onLogout` limpar o cache) — só existe dentro de um
    * componente, com um `QueryClient` no contexto. Este apoio monta o model e o entrega ao
-   * teste, do mesmo jeito que `use-task-list-harness.test.svelte`.
+   * teste, do mesmo jeito que os outros `*-harness.test.svelte` dos hooks.
    *
    * `context` e `items` chegam como chegam de verdade: do layout do módulo.
    */

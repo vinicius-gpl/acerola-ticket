@@ -19,11 +19,11 @@ describe('AcerolaActionButton', () => {
 
   it('keeps the name for screen readers when only the icon shows', () => {
     render(ActionButton, {
-      props: { data: { label: 'Excluir tarefa' }, ui: { icon: Trash2, isIconOnly: true } },
+      props: { data: { label: 'Excluir chamado' }, ui: { icon: Trash2, isIconOnly: true } },
     });
 
-    expect(screen.getByRole('button', { name: 'Excluir tarefa' })).toBeInTheDocument();
-    expect(screen.queryByText('Excluir tarefa')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Excluir chamado' })).toBeInTheDocument();
+    expect(screen.queryByText('Excluir chamado')).not.toBeInTheDocument();
   });
 
   // triste

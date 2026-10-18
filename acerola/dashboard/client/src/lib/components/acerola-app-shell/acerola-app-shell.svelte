@@ -32,6 +32,8 @@
         email: string;
         role: string;
         roles?: ContextRoles;
+        /** A foto da conta (endereço completo). Sem ela, as iniciais. */
+        avatarUrl?: string | null;
       };
       /**
        * O seletor de contexto (#13) — os contextos que a pessoa atende. Vazio (o padrão)
@@ -68,6 +70,8 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import LogOut from '@lucide/svelte/icons/log-out';
+  import { MediaQuery } from 'svelte/reactivity';
+  import SidebarControls from '$lib/components/acerola-sidebar-controls/acerola-sidebar-controls.svelte';
   import { BrandMark } from '$lib/components/acerola-brand-mark/acerola-brand-mark';
   import { fadeInUp } from '$lib/motion/motion';
   import {
@@ -82,7 +86,6 @@
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider,
-    SidebarRail,
     SidebarSeparator,
     SidebarTrigger,
   } from '$lib/components/ui/sidebar';
@@ -111,7 +114,9 @@
   const userName = $derived(data?.user?.name ?? 'Visitante');
 
   let contentEl: HTMLDivElement | undefined = $state();
+  const isMobile = new MediaQuery('(max-width: 767px)');
   let sidebarOpen = $state(untrack(() => initialSidebarOpen));
+  const canShowTooltip = $derived(!sidebarOpen && !isMobile.current);
 
   /* A troca de tela nasce com um fade sutil — sem isso, uma rota substitui a outra num corte
      seco, e o sistema inteiro parece uma sucessão de telas desconectadas em vez de um só
@@ -140,7 +145,7 @@
         >
           {#each data.areaOptions as option (option.value)}
             {@const Icon = option.icon}
-            <Tooltip.Root>
+            <Tooltip.Root disabled={!canShowTooltip}>
               <Tooltip.Trigger>
                 {#snippet child({ props })}
                   <button
@@ -217,7 +222,7 @@
       <SidebarMenu class="gap-1">
         {#each PUBLIC_LINKS as link (link.href)}
           <SidebarMenuItem>
-            <SidebarMenuButton tooltipContent={link.label}>
+            <SidebarMenuButton tooltipContent={canShowTooltip ? link.label : undefined}>
               {#snippet child({ props })}
                 <a href={link.href} target="_blank" rel="noopener" {...props}>
                   <link.icon aria-hidden="true" />
@@ -234,11 +239,11 @@
         <SidebarMenuItem>
           <SidebarMenuButton
             size="lg"
-            tooltipContent={userName}
+            tooltipContent={canShowTooltip ? userName : undefined}
             onclick={actions?.onOpenProfile}
             aria-label="Abrir perfil do usuário"
           >
-            <PersonAvatar name={userName} ui={{ size: 'md' }} />
+            <PersonAvatar name={userName} avatarUrl={data?.user?.avatarUrl} ui={{ size: 'md' }} />
             <span class="grid flex-1 text-left leading-tight">
               <span class="truncate text-sm font-semibold">{userName}</span>
               <span class="truncate text-xs tracking-wider uppercase opacity-70">
@@ -261,7 +266,7 @@
     </SidebarFooter>
 
     <!-- A borda arrastável: recolher também pela lateral, sem procurar o botão. -->
-    <SidebarRail />
+    <SidebarControls />
   </Sidebar>
 
   <!-- `min-w-0`: sem isto a área de conteúdo não encolhe abaixo da largura natural da tabela,
@@ -274,7 +279,7 @@
     <!-- A MARGEM DO CONTEÚDO É DA CASCA, e não de cada tela: quando cada tela definia a sua,
          uma esquecia o respiro de cima, outra usava uma medida diferente, e trocar de tela (ou
          de contexto) fazia o conteúdo "pular" de lugar. A tela decide só a largura máxima. -->
-    <div bind:this={contentEl} class="min-w-0 flex-1 px-4 pt-4 pb-10 sm:px-6">
+    <div bind:this={contentEl} class="app-content min-w-0 w-full flex-1 px-3 pt-3 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-4">
       {@render children()}
     </div>
   </SidebarInset>

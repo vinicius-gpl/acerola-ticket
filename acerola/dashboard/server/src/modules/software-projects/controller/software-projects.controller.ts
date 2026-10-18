@@ -29,11 +29,16 @@ import {
   SoftwareProjectListResponseDto,
   UpdateSoftwareProjectDto,
 } from '../dto/software-project.dto';
-import { SoftwareProjectsService } from '../service/software-projects.service';
+import {
+  type GithubSyncAllResult,
+  SoftwareProjectsService,
+} from '../service/software-projects.service';
 import { UseGuards } from '@nestjs/common';
 import { GithubLinkedGuard } from '../../github-integration/github-linked.guard';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 @ApiTags('Sistemas e Projetos de Software')
+@ModuleContext('sistema')
 @Controller('software-projects')
 @UseGuards(GithubLinkedGuard)
 export class SoftwareProjectsController {
@@ -90,6 +95,17 @@ export class SoftwareProjectsController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<void> {
     return this.service.remove(user, id);
+  }
+
+  @Post('sync-github')
+  @ApiOperation({
+    summary: 'Sincroniza PRs e issues de TODOS os sistemas com o GitHub',
+    description:
+      'Exclusivo de Super Administrador. Busca o histórico inteiro de cada repositório; um sistema que falhar não impede os outros, e a resposta lista quais ficaram para trás. A mesma sincronização roda sozinha toda meia-noite (Brasília), olhando só as últimas 48 horas.',
+  })
+  @ApiOkResponse()
+  async syncAllGithub(@CurrentUser() user: RequestUser): Promise<GithubSyncAllResult> {
+    return this.service.syncAllGithub(user);
   }
 
   @Post(':id/sync-github')

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -7,16 +8,11 @@ import {
   Param,
   ParseIntPipe,
   Post,
-  UploadedFiles,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { TICKET_UPLOAD_MAX_BYTES, uploadLimit } from '../../../lib/http/upload-limit.util';
-import { UploadTooLargeInterceptor } from '../../../lib/http/upload-too-large.interceptor';
 import {
   ApiBadRequestResponse,
-  ApiConsumes,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -26,31 +22,26 @@ import { ApiOperation } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../lib/auth/current-user.decorator';
 import { type RequestUser } from '../../../lib/auth/request-user.type';
-import { TicketAttachmentDto } from '../dto/ticket-attachment.dto';
+import { SkipHistory } from '../../history/interceptor/skip-history.decorator';
 import {
-  TicketAttachmentsService,
-  type UploadedAttachment,
-} from '../service/ticket-attachments.service';
-
-/**
- * Quantos arquivos cabem numa requisição.
- *
- * É a soma dos tetos do catálogo, com folga: o limite de verdade é por formato e quem o aplica
- * é o domínio. Este número existe só para o interceptor não aceitar um envio de mil arquivos
- * antes de qualquer regra ser consultada.
- */
-const MAX_FILES_PER_REQUEST = 25;
+  AttachFilesDto,
+  TicketAttachmentDto,
+  UploadRequestDto,
+  UploadTicketDto,
+} from '../dto/ticket-attachment.dto';
+import { TicketAttachmentsService } from '../service/ticket-attachments.service';
+import { AnyModule } from '../../../lib/auth/module-context.decorator';
 
 /**
  * Os ANEXOS de um chamado, pelo painel.
  *
- * Nenhuma rota aqui é `@Public()`, e isso é a decisão de segurança da feature: a consulta
- * pública é por protocolo, e protocolo é sequencial. Se excluir fosse público, quem chutasse
- * um número apagaria arquivo de chamado alheio. Quem abre o chamado anexa junto com a
- * abertura (ver `POST /tickets`) e vê os arquivos na consulta por protocolo — só não mexe
- * neles depois.
+ * Estas rotas são do PAINEL, e isso é a decisão de segurança da feature: protocolo é
+ * sequencial, e um caminho de exclusão aberto a quem pede deixaria quem chutasse um número
+ * apagar arquivo de chamado alheio. Quem abre o chamado anexa junto com a abertura (ver
+ * `POST /tickets`) e vê os arquivos na consulta por número — só não mexe neles depois.
  */
 @ApiTags('Chamados')
+@AnyModule()
 @Controller('tickets/:id/attachments')
 export class TicketAttachmentsController {
   constructor(private readonly service: TicketAttachmentsService) {}
@@ -70,28 +61,44 @@ export class TicketAttachmentsController {
     return this.service.listForUser(user, id);
   }
 
+  @Post('upload-url')
+  @SkipHistory()
+  @ApiOperation({
+    summary: 'Pede o link para enviar um arquivo a um chamado',
+    description:
+      'O arquivo vai do navegador DIRETO para o storage, por este link (PUT, assinado, vale 5 minutos), para a área temporária. Depois, `POST /tickets/:id/attachments` (ou o histórico) leva a `storageKey`. Só quem atende o chamado recebe o link.',
+  })
+  @ApiCreatedResponse({ type: UploadTicketDto })
+  @ApiBadRequestResponse({ description: 'O arquivo está fora do formato ou do tamanho aceito.' })
+  @ApiForbiddenResponse({ description: 'Quem pediu não atende chamados.' })
+  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
+  async createUploadUrl(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UploadRequestDto,
+  ): Promise<UploadTicketDto> {
+    return this.service.createUploadTicket(user, id, body);
+  }
+
   @Post()
-  @UseInterceptors(
-    UploadTooLargeInterceptor,
-    FilesInterceptor('attachments', MAX_FILES_PER_REQUEST, uploadLimit(TICKET_UPLOAD_MAX_BYTES)),
-  )
-  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Anexa arquivos a um chamado',
     description:
-      'Os arquivos viajam no campo `attachments`. Cada formato tem o teto dele, de tamanho e de quantidade — PDF, Word, Excel, PNG/JPG e MP4. Um arquivo fora das regras recusa a requisição inteira, dizendo qual e por quê.',
+      'Os arquivos já foram enviados pelo link de `upload-url`; o corpo leva a `storageKey` e o nome de cada um em `attachments`. O servidor confere cada arquivo de verdade (formato, tamanho, quantidade — PDF, Word, Excel, PNG/JPG e MP4). Um arquivo fora das regras recusa a leva inteira, dizendo qual e por quê.',
   })
   @ApiCreatedResponse({ type: [TicketAttachmentDto] })
   @ApiBadRequestResponse({
     description: 'Algum arquivo está fora do formato, do tamanho ou da quantidade aceita.',
   })
-  @ApiNotFoundResponse({ description: 'Chamado não encontrado.' })
+  @ApiNotFoundResponse({
+    description: 'Chamado não encontrado, ou algum arquivo não chegou ao armazenamento.',
+  })
   async attach(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
-    @UploadedFiles() attachments?: UploadedAttachment[],
+    @Body() body: AttachFilesDto,
   ): Promise<TicketAttachmentDto[]> {
-    return this.service.attachAsUser(user, id, attachments ?? []);
+    return this.service.attachAsUser(user, id, body.attachments);
   }
 
   @Delete(':attachmentId')

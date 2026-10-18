@@ -108,6 +108,22 @@ const DEFAULT_SAMPLE_HOURS = 24;
 
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 
+/**
+ * Quantos dias de medição o banco guarda. O gráfico mostra 24 horas; a semana é folga para
+ * olhar "o que aconteceu com esta máquina" depois. Com 60 máquinas, fica em torno de 75 MB.
+ */
+export const SAMPLE_RETENTION_DAYS = 7;
+
+/**
+ * O intervalo mínimo entre duas medições GRAVADAS da mesma máquina.
+ *
+ * Com a ficha aberta o agente manda leitura a cada segundo, para a tela ficar ao vivo — e
+ * gravar todas multiplicava o histórico por 30 sem o gráfico ganhar nada. A leitura de 1s
+ * continua indo para a tela; só o histórico fica no ritmo normal. 25s, e não os 30s do agente,
+ * para a folga de rede não fazer pular uma leitura sim, outra não.
+ */
+export const SAMPLE_MIN_INTERVAL_MS = 25_000;
+
 /** Por que uma conexão de agente foi recusada — o agente registra isso no log dele. */
 export type AgentRejection = 'invalid-token' | 'blocked';
 
@@ -129,6 +145,10 @@ export type AgentAuthResult =
  */
 @Injectable()
 export class ComputersService {
+  /** Quando foi gravada a última medição de cada máquina — só deste processo, de propósito:
+      depois de reiniciar, a primeira leitura de cada uma é gravada, e o ritmo volta sozinho. */
+  private readonly lastSampleAt = new Map<number, number>();
+
   constructor(
     private readonly repository: ComputersRepository,
     private readonly presence: AgentPresenceService,
@@ -354,6 +374,29 @@ export class ComputersService {
   }
 
   /**
+   * Apaga as medições com mais de `SAMPLE_RETENTION_DAYS` dias. Chamada pela rotina da
+   * madrugada, não por uma pessoa — por isso não passa pela policy. Devolve quantas saíram.
+   */
+  async deleteOldSamples(now = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - SAMPLE_RETENTION_DAYS * 24 * MILLISECONDS_PER_HOUR);
+
+    return this.repository.deleteSamplesOlderThan(cutoff);
+  }
+
+  /** Grava a medição no histórico, a não ser que a última desta máquina seja recente demais. */
+  private async recordSample(
+    computerId: number,
+    sample: ReturnType<typeof toSample>,
+    now = Date.now(),
+  ): Promise<void> {
+    const last = this.lastSampleAt.get(computerId);
+    if (last !== undefined && now - last < SAMPLE_MIN_INTERVAL_MS) return;
+
+    await this.repository.insertSample(sample);
+    this.lastSampleAt.set(computerId, now);
+  }
+
+  /**
    * Grava uma leitura: atualiza a ficha, guarda a amostra e mexe nos alertas.
    *
    * A ordem importa. A ficha primeiro, porque é o que a tela mostra; a amostra depois, porque
@@ -373,7 +416,7 @@ export class ComputersService {
     await this.repository.update(computer.id, update);
 
     const sample = toSample(computer.id, snapshot);
-    await this.repository.insertSample(sample);
+    await this.recordSample(computer.id, sample);
 
     await this.applyAlerts(
       computer.id,

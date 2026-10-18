@@ -154,7 +154,7 @@ export function useTicketDataFormModel({ ticket }: { ticket: Ticket }): TicketDa
 
   const form = createForm(() => ({
     defaultValues: toFormValues(ticket),
-    /* UM validador só, em `onChange` — ver o comentário em `use-task-form`. */
+    /* UM validador só, em `onChange` — ver o comentário em `use-open-ticket`. */
     validators: { onChange: ticketDataFormSchema },
     /* `mutate`, e não `await mutateAsync`: a recusa do servidor já chega por `save.error`. */
     onSubmit: ({ value }: { value: TicketDataFormValues }) => {

@@ -9,8 +9,10 @@ import {
   SoftwareTimelineListResponseDto,
 } from '../dto/software-project.dto';
 import { SoftwareTimelineService } from '../service/software-timeline.service';
+import { ModuleContext } from '../../../lib/auth/module-context.decorator';
 
 @ApiTags('Timeline e Pull Requests de Software')
+@ModuleContext('sistema')
 @Controller('software-timeline')
 @UseGuards(GithubLinkedGuard)
 export class SoftwareTimelineController {

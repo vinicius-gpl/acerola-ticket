@@ -10,7 +10,7 @@
     component: ErrorState,
   });
 
-  const longTechnicalMessage = `Falha ao listar tarefas: ${'SQLITE_IOERR_SHORT_READ'.repeat(6)}`;
+  const longTechnicalMessage = `Falha ao listar chamados: ${'SQLITE_IOERR_SHORT_READ'.repeat(6)}`;
 </script>
 
 <Story
@@ -44,7 +44,7 @@
 <Story
   name="Inline"
   args={{
-    data: { message: 'Seu perfil é somente leitura e não permite alterar as tarefas.' },
+    data: { message: 'Seu perfil é somente leitura e não permite alterar os chamados.' },
     ui: { variant: 'inline' },
   }}
 />

@@ -26,3 +26,16 @@ export function triggerBrowserDownload(blob: Blob, fileName: string): void {
     URL.revokeObjectURL(url);
   }
 }
+
+/** Um attachment assinado vem direto do bucket: não carrega o MSI inteiro em um Blob. */
+export function triggerUrlDownload(url: string): void {
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.referrerPolicy = 'no-referrer';
+  document.body.appendChild(anchor);
+  try {
+    anchor.click();
+  } finally {
+    document.body.removeChild(anchor);
+  }
+}

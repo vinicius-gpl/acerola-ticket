@@ -15,6 +15,7 @@ import {
   getTableColumns,
   ilike,
   inArray,
+  isNotNull,
   or,
   sql,
   type SQL,
@@ -50,6 +51,10 @@ export type TicketPage = {
 /**
  * As colunas do chamado mais o apelido da máquina e nome do projeto.
  */
+/* Quantos dígitos do fim do telefone identificam o número, com ou sem DDI e nono dígito. */
+const PHONE_MATCH_DIGITS = 8;
+const PHONE_OWNERS_LIMIT = 20;
+
 const ticketColumns = {
   ...getTableColumns(tickets),
   computerName: sql<string | null>`coalesce(${computers.displayName}, ${computers.name})`,
@@ -193,6 +198,65 @@ export class TicketsRepository {
   }
 
   /**
+   * Os chamados que UMA PESSOA abriu — "Meus chamados". Mais recentes primeiro, com teto: é
+   * uma lista para acompanhar o que está em andamento, não o arquivo da vida inteira.
+   */
+  async listByRequester(requesterId: string, limit = 50): Promise<TicketRow[]> {
+    return runQuery(
+      this.db
+        .select()
+        .from(tickets)
+        .where(eq(tickets.requesterId, requesterId))
+        .orderBy(desc(tickets.createdAt), desc(tickets.id))
+        .limit(limit),
+      'listar os chamados de quem abriu',
+    );
+  }
+
+  /**
+   * O telefone e o departamento que a pessoa deixou no ÚLTIMO chamado — o que o formulário
+   * sugere no próximo. A conta do Neon Auth não guarda nenhum dos dois.
+   */
+  async lastContactOf(
+    requesterId: string,
+  ): Promise<Pick<TicketRow, 'contactPhone' | 'department'> | null> {
+    return runMaybe(
+      this.db
+        .select({ contactPhone: tickets.contactPhone, department: tickets.department })
+        .from(tickets)
+        .where(eq(tickets.requesterId, requesterId))
+        .orderBy(desc(tickets.createdAt), desc(tickets.id))
+        .limit(1),
+      'ler o último contato de quem abriu',
+    );
+  }
+
+  /**
+   * Quem já abriu chamado com este telefone. Compara os oito últimos dígitos: o WhatsApp manda
+   * o número com 55 e às vezes sem o nono dígito, e o formulário guarda com máscara.
+   */
+  async requesterIdsByPhone(digits: string): Promise<string[]> {
+    const ending = digits.replace(/\D/g, '').slice(-PHONE_MATCH_DIGITS);
+    if (ending.length < PHONE_MATCH_DIGITS) return [];
+
+    const rows = await runQuery(
+      this.db
+        .selectDistinct({ requesterId: tickets.requesterId })
+        .from(tickets)
+        .where(
+          and(
+            isNotNull(tickets.requesterId),
+            sql`right(regexp_replace(${tickets.contactPhone}, '[^0-9]', '', 'g'), ${PHONE_MATCH_DIGITS}) = ${ending}`,
+          ),
+        )
+        .limit(PHONE_OWNERS_LIMIT),
+      'procurar quem já usou o telefone',
+    );
+
+    return rows.flatMap((row) => (row.requesterId ? [row.requesterId] : []));
+  }
+
+  /**
    * As colunas que os indicadores usam, de TODOS os chamados — sem paginação de propósito:
    * média e contagem calculadas só sobre a página visível responderiam outra pergunta que
    * não a que o painel faz.
@@ -259,19 +323,13 @@ export class TicketsRepository {
    * `roleInContext` aplicaria. A AUSÊNCIA de linha aqui É a resposta "sem acesso" (#13):
    * diferente do cargo interno (#11), chamado não tem cargo mínimo implícito.
    */
-  async contextRolesFor(
-    userId: string,
-    userEmail: string | null,
-  ): Promise<Partial<Record<TicketArea, UserRole>>> {
+  async contextRolesFor(userId: string): Promise<Partial<Record<TicketArea, UserRole>>> {
+    /* Só pelo id da conta, como a identidade (ver `IdentityProvider.fetchInternalRoles`). */
     const rows = await runQuery(
       this.db
         .select({ context: internalRoles.context, role: internalRoles.role })
         .from(internalRoles)
-        .where(
-          userEmail
-            ? or(eq(internalRoles.userId, userId), eq(internalRoles.userEmail, userEmail))
-            : eq(internalRoles.userId, userId),
-        ),
+        .where(eq(internalRoles.userId, userId)),
       'ler cargos por área do chamado',
     );
 
