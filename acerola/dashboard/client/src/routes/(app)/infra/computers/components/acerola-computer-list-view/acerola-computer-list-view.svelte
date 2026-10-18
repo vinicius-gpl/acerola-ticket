@@ -235,7 +235,7 @@
     <!-- Uma fileira, cada filtro com o nome em cima. "Arquivadas" era uma caixa de seleção
          solta embaixo dos outros; agora é um filtro como os demais, com as duas escolhas à
          vista. À direita, o que age sobre a lista: limpar os filtros. -->
-    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+    <div class="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-4">
       <FilterField data={{ label: 'Departamento' }}>
         <OptionPicker
           data={{ value: data.filter.department, options: DEPARTMENT_FILTER_OPTIONS }}
@@ -266,7 +266,7 @@
            tabela e cards (que morava no cabeçalho da página, longe da lista). "Limpar filtros"
            só aparece quando há o que limpar; quando o filtro escondeu tudo, quem o oferece é o
            aviso de lista vazia — dois botões iguais só confundem. -->
-      <div class="ml-auto flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
         {#if hasActiveFilter && !state.isFilteredOut}
           <ActionButton
             data={{ label: 'Limpar filtros' }}
@@ -328,10 +328,10 @@
         <div
           use:fillFromPointer
           style:--fill-color={fillColorOf(healthStatusTone(computer.healthStatus))}
-          class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
+          class="hover-fill border-border/70 bg-card min-w-0 rounded-surface border p-4 shadow-xs"
         >
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0 flex-1 basis-40">
               <span class="block font-medium text-ink-900 break-words leading-snug">
                 {displayNameOf(computer)}
               </span>
@@ -350,7 +350,7 @@
             </div>
           </div>
 
-          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="mt-4 grid grid-cols-1 gap-3 rounded-box bg-muted/40 p-3 text-sm min-[380px]:grid-cols-2">
             <div>
               <span class="text-muted-foreground block text-xs">Responsável</span>
               <span class="font-medium text-ink-700 break-words"
@@ -377,7 +377,7 @@
             </div>
           </div>
 
-          <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
+          <div class="border-border/60 mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
             <span class="text-xs text-ink-500">
               Chamados no mês: <strong class="text-foreground">{computer.ticketsThisMonth}</strong>
             </span>
@@ -390,7 +390,7 @@
         </div>
       {/each}
       <!-- Legenda da lista, não um cartão: ocupa a linha inteira embaixo da grade. -->
-      <div class="text-muted-foreground col-span-full flex justify-between px-1 text-xs">
+      <div class="text-muted-foreground col-span-full flex flex-wrap justify-between gap-2 px-1 text-xs">
         <span>Parque de computadores sincronizado</span>
         <span>{data.computers.length} computador(es) listado(s)</span>
       </div>

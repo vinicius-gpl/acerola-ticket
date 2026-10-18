@@ -177,7 +177,7 @@ describe('AcerolaAppShell', () => {
     );
   });
 
-  /* O seletor de módulos é sempre só ícones; o nome aparece no tooltip, aberto ou recolhido. */
+  /* O seletor preserva os nomes acessíveis mesmo quando o tooltip está desativado. */
   it('keeps the modules horizontal when expanded and vertical when collapsed with accessible names', () => {
     renderShell({
       data: {
@@ -252,3 +252,4 @@ describe('AppShell logout', () => {
     expect(onLogout).toHaveBeenCalledOnce();
   });
 });
+

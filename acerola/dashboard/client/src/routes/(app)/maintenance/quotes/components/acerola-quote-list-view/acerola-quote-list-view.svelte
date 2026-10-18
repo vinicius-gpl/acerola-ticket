@@ -121,7 +121,7 @@
       actions={{ onChange: actions.onSearchChange }}
     />
 
-    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+    <div class="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-4">
       <FilterField data={{ label: 'Situação' }}>
         <OptionPicker
           data={{ value: data.filter.status, options: STATUS_FILTER_OPTIONS }}

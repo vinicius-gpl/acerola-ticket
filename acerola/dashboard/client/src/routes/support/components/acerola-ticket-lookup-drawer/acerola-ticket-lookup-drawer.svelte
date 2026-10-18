@@ -55,6 +55,7 @@
 </script>
 
 <script lang="ts">
+  import SheetContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import Building2 from '@lucide/svelte/icons/building-2';
   import CalendarPlus from '@lucide/svelte/icons/calendar-plus';
   import Clock from '@lucide/svelte/icons/clock';
@@ -75,7 +76,6 @@
   import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
     Sheet,
-    SheetContent,
     SheetDescription,
     SheetHeader,
     SheetTitle,
@@ -134,8 +134,7 @@
        ele, o `w-3/4` e o `max-w-sm` de lá ganham do que vier daqui e o drawer fica estreito,
        com a linha do tempo espremida numa coluna. -->
   <SheetContent
-    side="right"
-    class="gap-0 overflow-y-auto p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl"
+    class="sm:max-w-2xl"
   >
     <SheetHeader class="border-b border-border/70">
       <SheetTitle class="text-lg">Consultar chamado</SheetTitle>

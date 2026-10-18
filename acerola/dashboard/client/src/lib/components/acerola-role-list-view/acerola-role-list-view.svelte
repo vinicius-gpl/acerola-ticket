@@ -412,7 +412,7 @@
     <!-- 2. Visualização em Tabela para Desktop (>= xl) -->
     <div
       class={cn(
-        'overflow-x-auto rounded-box border border-border bg-card shadow-xs',
+        'min-w-0',
         tableView.forceCards ? 'hidden' : 'hidden xl:block',
       )}
       data-slot="role-table-desktop"

@@ -7,7 +7,6 @@
 export {
   Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -16,3 +15,5 @@ export {
   DialogTitle,
   DialogTrigger,
 } from '$lib/components/ui/dialog';
+
+export { default as DialogContent } from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';

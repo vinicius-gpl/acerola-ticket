@@ -41,6 +41,7 @@
 </script>
 
 <script lang="ts">
+  import DialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import LogOut from '@lucide/svelte/icons/log-out';
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import Users from '@lucide/svelte/icons/users';
@@ -49,7 +50,6 @@
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import {
     Dialog,
-    DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,

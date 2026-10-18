@@ -22,9 +22,9 @@
   )}
 >
   <div class="min-w-0">
-    <h1 class="text-ink-900 text-xl font-bold">{data.title}</h1>
+    <h1 class="text-ink-900 text-xl font-bold break-words">{data.title}</h1>
     {#if data.description}
-      <p class="text-ink-500 mt-0.5 text-sm">{data.description}</p>
+      <p class="text-ink-500 mt-0.5 text-sm break-words">{data.description}</p>
     {/if}
   </div>
   {#if children}
@@ -32,7 +32,7 @@
          de botões pequenos ao lado de um botão maior — os de exportar ao lado de "Cadastrar
          computador" — encosta no topo em vez de ficar na mesma linha do meio. Com o
          `flex-wrap`, o mesmo vale para a segunda linha quando a tela é estreita. -->
-    <div class="flex shrink-0 flex-wrap items-center gap-2">
+    <div class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
       {@render children()}
     </div>
   {/if}

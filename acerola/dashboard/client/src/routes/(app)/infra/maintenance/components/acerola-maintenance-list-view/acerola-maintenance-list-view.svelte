@@ -169,7 +169,7 @@
          limpar os filtros e trocar entre tabela e cards. O seletor de formato morava no
          cabeçalho da página, ao lado de "Registrar manutenção" e acima do quadro de
          preventivas — longe da lista que ele controla. -->
-    <div class="flex flex-wrap items-end gap-x-4 gap-y-3">
+    <div class="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-4">
       <FilterField data={{ label: 'Tipo' }}>
         <OptionPicker
           data={{ value: data.filter.type, options: TYPE_FILTER_OPTIONS }}
@@ -180,7 +180,7 @@
         />
       </FilterField>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
         {#if hasActiveFilter && !viewState.isFilteredOut}
           <ActionButton
             data={{ label: 'Limpar filtros' }}

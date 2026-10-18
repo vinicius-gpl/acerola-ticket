@@ -253,7 +253,7 @@
     <!-- Só aparece quando há o que limpar. Quando o filtro escondeu tudo, quem oferece a
          limpeza é o aviso de lista vazia, logo abaixo — dois botões iguais só confundem. O
          período (no cabeçalho) não conta: ele é o recorte da tela, não um filtro da lista. -->
-    <div class="ml-auto flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
       {#if hasActiveFilter && !viewState.isFilteredOut}
         <ActionButton
           data={{ label: 'Limpar filtros' }}
@@ -313,7 +313,7 @@
           style:--fill-color={fillColorOf(networkSeverityTone(event.severity))}
           class="hover-fill border-border/70 bg-card rounded-surface border p-4 shadow-xs"
         >
-          <div class="flex items-start justify-between gap-2">
+          <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
               <StatusBadge
                 data={{ label: networkSeverityLabel(event.severity) }}
@@ -335,7 +335,7 @@
             <span class="text-ink-500 block text-xs break-words mt-0.5">{event.message}</span>
           {/if}
 
-          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="mt-3 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 text-sm">
             <div>
               <span class="text-muted-foreground block text-xs">Link</span>
               <span class="text-ink-700 font-medium break-words">{event.linkName ?? '—'}</span>
@@ -346,7 +346,7 @@
             </div>
           </div>
 
-          <div class="border-border/60 mt-3 flex items-center justify-between border-t pt-2">
+          <div class="border-border/60 mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
             <span class="text-ink-500 text-xs">
               {formatDateTime(event.occurredAt)}
             </span>

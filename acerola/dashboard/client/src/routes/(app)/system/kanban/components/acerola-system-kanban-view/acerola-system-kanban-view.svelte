@@ -165,7 +165,7 @@
     }}
   >
     <div class="flex items-center gap-2">
-      <div class="w-64">
+      <div class="w-full min-w-0 sm:w-64">
         <OptionPicker
           data={{
             value: data.selectedProjectId ? String(data.selectedProjectId) : '',

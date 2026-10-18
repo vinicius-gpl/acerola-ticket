@@ -36,7 +36,7 @@
 {:else}
   <span
     class={cn(
-      'inline-flex items-center rounded-full font-semibold whitespace-nowrap',
+      'inline-flex max-w-full items-center rounded-full font-semibold whitespace-normal break-words',
       ui?.size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs',
       TONE_CLASSES[ui?.tone ?? 'neutral'],
       ui?.className,

@@ -9,6 +9,7 @@
     DialogTitle,
   } from '$lib/components/ui/dialog';
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import FormHarness from './acerola-responsive-dialog-content-harness.test.svelte';
   import ResponsiveDialogContent from './acerola-responsive-dialog-content.svelte';
 
   const { Story } = defineMeta({
@@ -65,4 +66,9 @@
       </div>
     </ResponsiveDialogContent>
   </Dialog>
+</Story>
+
+<!-- Conferir no celular: foco do último campo, abertura da lista e busca com teclado. -->
+<Story name="FormWithSearchAndKeyboard">
+  <FormHarness withFields={true} onOpenChange={() => {}} />
 </Story>
