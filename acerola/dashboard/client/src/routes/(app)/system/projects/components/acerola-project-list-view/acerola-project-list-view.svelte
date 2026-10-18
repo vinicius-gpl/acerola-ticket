@@ -18,12 +18,15 @@
     };
     state: {
       canEdit?: boolean;
+      /** Só Super Administrador vê o "Sincronizar todos". */
+      canSyncAll?: boolean;
       isLoading: boolean;
       isRefetching?: boolean;
       isEmpty: boolean;
       isFilteredOut: boolean;
       isDeleting: boolean;
       isSyncing: boolean;
+      isSyncingAll?: boolean;
       error: string | null;
       deleteError: string | null;
       syncMessage: string | null;
@@ -41,6 +44,7 @@
       onCancelDelete: () => void;
       onConfirmDelete: () => void;
       onSyncGithub: (id: number) => void;
+      onSyncAllGithub?: () => void;
     };
   };
 
@@ -89,6 +93,14 @@
         'Cadastre os softwares da empresa, acompanhe Pull Requests e vincule chamados de suporte.',
     }}
   >
+    {#if state.canSyncAll}
+      <ActionButton
+        data={{ label: 'Sincronizar todos', loadingLabel: 'Sincronizando…' }}
+        ui={{ variant: 'secondary', icon: RefreshCw }}
+        state={{ isLoading: state.isSyncingAll, isDisabled: state.isSyncingAll }}
+        actions={{ onClick: actions.onSyncAllGithub }}
+      />
+    {/if}
     {#if state.canEdit !== false}
       <ActionButton
         data={{ label: 'Novo Sistema' }}

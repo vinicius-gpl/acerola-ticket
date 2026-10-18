@@ -28,6 +28,47 @@ describe('GithubService', () => {
       Authorization: 'Bearer installation-token',
     });
   });
+  // feliz
+  it('asks only for issues changed since the date when one is given', async () => {
+    const service = new GithubService({} as Database);
+    const fetcher = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('[]'));
+
+    await service.fetchIssues('org', 'repo', undefined, new Date('2026-10-16T03:00:00Z'));
+
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain('since=2026-10-16T03%3A00%3A00.000Z');
+  });
+
+  // feliz
+  it('stops paging pull requests once they are older than the date', async () => {
+    const service = new GithubService({} as Database);
+    const pr = (number: number, updatedAt: string) => ({
+      number,
+      title: `PR ${number}`,
+      html_url: `https://github.com/org/repo/pull/${number}`,
+      user: { login: 'dev' },
+      state: 'closed',
+      merged_at: updatedAt,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: updatedAt,
+    });
+    const fetcher = vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify([pr(2, '2026-10-17T10:00:00Z'), pr(1, '2026-10-01T10:00:00Z')]), {
+        headers: { link: '<https://api.github.com/x?page=2>; rel="next"' },
+      }),
+    );
+
+    const result = await service.fetchPullRequests(
+      'org',
+      'repo',
+      undefined,
+      new Date('2026-10-16T03:00:00Z'),
+    );
+
+    expect(result.map((item) => item.externalId)).toEqual(['#2']);
+    expect(fetcher.mock.calls.filter(([url]) => String(url).includes('/pulls'))).toHaveLength(1);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain('sort=updated&direction=desc');
+  });
+
   it('excludes pull requests returned by the issues endpoint', async () => {
     const service = new GithubService({} as Database);
     vi.spyOn(global, 'fetch').mockResolvedValue(

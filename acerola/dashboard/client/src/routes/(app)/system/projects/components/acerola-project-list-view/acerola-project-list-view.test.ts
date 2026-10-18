@@ -42,6 +42,7 @@ function renderView(
     onCancelDelete: vi.fn(),
     onConfirmDelete: vi.fn(),
     onSyncGithub: vi.fn(),
+    onSyncAllGithub: vi.fn(),
   };
 
   render(ProjectListView, {
@@ -106,6 +107,29 @@ describe('AcerolaProjectListView', () => {
     await userEvent.click(syncBtn);
 
     expect(actions.onSyncGithub).toHaveBeenCalledWith(1);
+  });
+
+  // feliz
+  it('lets a super administrator sync every project at once', async () => {
+    const actions = renderView({ state: { canSyncAll: true } });
+
+    await userEvent.click(screen.getByRole('button', { name: /sincronizar todos/i }));
+
+    expect(actions.onSyncAllGithub).toHaveBeenCalledOnce();
+  });
+
+  // triste
+  it('hides Sincronizar todos from anyone who is not a super administrator', () => {
+    renderView({ state: { canSyncAll: false } });
+
+    expect(screen.queryByRole('button', { name: /sincronizar todos/i })).not.toBeInTheDocument();
+  });
+
+  // triste
+  it('blocks a second click while every project is still syncing', () => {
+    renderView({ state: { canSyncAll: true, isSyncingAll: true } });
+
+    expect(screen.getByRole('button', { name: /sincronizando/i })).toBeDisabled();
   });
 
   // triste

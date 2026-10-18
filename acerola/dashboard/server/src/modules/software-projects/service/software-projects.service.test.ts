@@ -17,6 +17,13 @@ const admin: RequestUser = {
   roles: { infra: 'user', sistema: 'admin', manutencao: 'user' },
 };
 
+const superAdmin: RequestUser = {
+  id: '9',
+  email: 'super@empresa.com.br',
+  name: 'Super Admin',
+  role: 'superadmin',
+};
+
 const user: RequestUser = {
   id: '2',
   email: 'dev@empresa.com.br',
@@ -61,7 +68,7 @@ function makeService(
   } as unknown as SoftwareProjectsRepository;
 
   const timelineRepository = {
-    upsertPr: vi.fn().mockResolvedValue(undefined),
+    upsertMany: vi.fn().mockResolvedValue(0),
     ...timelineOverrides,
   } as unknown as SoftwareTimelineRepository;
 
@@ -148,6 +155,128 @@ describe('SoftwareProjectsService', () => {
 
       expect(repository.insert).toHaveBeenCalled();
       expect(project.id).toBe(1);
+    });
+
+    // feliz
+    it('syncs pull requests and issues right after the project is created', async () => {
+      const issue = {
+        externalId: '#7',
+        title: 'Corrige login',
+        url: 'https://github.com/owner/repo/issues/7',
+        author: 'ana',
+        authorName: 'Ana Lima',
+        status: 'closed' as const,
+        eventDate: new Date('2026-10-10T12:00:00Z'),
+      };
+      const { service, timelineRepository, githubService } = makeService(
+        {},
+        {},
+        { fetchIssues: vi.fn().mockResolvedValue([issue]) },
+      );
+
+      await service.create(admin, {
+        name: 'Novo Sistema',
+        repositoryUrl: 'owner/repo',
+        status: 'active',
+        color: 'green',
+      });
+
+      await vi.waitFor(() => expect(timelineRepository.upsertMany).toHaveBeenCalledTimes(2));
+      expect(githubService.fetchIssues).toHaveBeenCalledWith(
+        'vinicius-gpl',
+        'acerola-ticket',
+        admin.id,
+        undefined,
+      );
+      expect(timelineRepository.upsertMany).toHaveBeenLastCalledWith([
+        expect.objectContaining({ projectId: 1, type: 'issue', externalId: '#7', status: 'closed' }),
+      ]);
+    });
+
+    // triste
+    it('still creates the project when the initial GitHub sync fails', async () => {
+      const { service, timelineRepository } = makeService(
+        {},
+        {},
+        { fetchPullRequests: vi.fn().mockRejectedValue(new Error('GitHub fora do ar')) },
+      );
+
+      const project = await service.create(admin, {
+        name: 'Novo Sistema',
+        repositoryUrl: 'owner/repo',
+        status: 'active',
+        color: 'green',
+      });
+
+      expect(project.id).toBe(1);
+      expect(timelineRepository.upsertMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('syncAllGithub', () => {
+    // feliz
+    it('syncs every project and tells which ones failed', async () => {
+      const { service, githubService } = makeService(
+        {
+          listAll: vi.fn().mockResolvedValue([
+            projectRow({ id: 1, name: 'Chamados', githubRepoOwner: 'org', githubRepoName: 'ok' }),
+            projectRow({ id: 2, name: 'Paralegal', githubRepoOwner: 'org', githubRepoName: 'fora' }),
+          ]),
+        },
+        {},
+        {
+          fetchPullRequests: vi.fn(async (_owner: string, repo: string) => {
+            if (repo === 'fora') throw new Error('sem acesso');
+            return [];
+          }),
+        },
+      );
+
+      const result = await service.syncAllGithub(superAdmin);
+
+      expect(result.projects).toBe(1);
+      expect(result.failed).toEqual(['Paralegal']);
+      expect(result.message).toContain('Não foi possível sincronizar: Paralegal');
+      expect(githubService.fetchIssues).toHaveBeenCalledWith('org', 'ok', superAdmin.id, undefined);
+    });
+
+    // triste
+    it('refuses anyone who is not a super administrator, even a Sistema admin', async () => {
+      const { service, repository } = makeService({ listAll: vi.fn().mockResolvedValue([]) });
+
+      await expect(service.syncAllGithub(admin)).rejects.toThrow('Super Administrador');
+      expect(repository.listAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('syncAllGithubSince', () => {
+    // feliz
+    it('asks GitHub only for what changed since the given date, as the system', async () => {
+      const since = new Date('2026-10-16T03:00:00Z');
+      const { service, githubService } = makeService({
+        listAll: vi.fn().mockResolvedValue([
+          projectRow({ githubRepoOwner: 'org', githubRepoName: 'repo' }),
+        ]),
+      });
+
+      await service.syncAllGithubSince(since);
+
+      expect(githubService.fetchPullRequests).toHaveBeenCalledWith('org', 'repo', undefined, since);
+      expect(githubService.fetchIssues).toHaveBeenCalledWith('org', 'repo', undefined, since);
+    });
+
+    // triste
+    it('skips projects whose repository address cannot be read', async () => {
+      const { service, githubService } = makeService({
+        listAll: vi.fn().mockResolvedValue([
+          projectRow({ githubRepoOwner: null, githubRepoName: null, repositoryUrl: 'sem-repo' }),
+        ]),
+      });
+
+      const result = await service.syncAllGithubSince(new Date());
+
+      expect(result.projects).toBe(0);
+      expect(githubService.fetchPullRequests).not.toHaveBeenCalled();
     });
   });
 
@@ -241,7 +370,9 @@ describe('SoftwareProjectsService', () => {
       const result = await service.syncGithubPrs(admin, 1);
 
       expect(result.synced).toBe(1);
-      expect(timelineRepository.upsertPr).toHaveBeenCalledTimes(1);
+      /* Um lote para os PRs e um para as issues — nunca uma gravação por item. */
+      expect(timelineRepository.upsertMany).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(timelineRepository.upsertMany).mock.calls[0]?.[0]).toHaveLength(1);
     });
   });
 });

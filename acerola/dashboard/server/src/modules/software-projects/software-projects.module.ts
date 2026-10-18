@@ -8,9 +8,11 @@ import { SoftwareDashboardController } from './controller/software-dashboard.con
 import { SoftwareProjectsController } from './controller/software-projects.controller';
 import { SoftwareScheduleController } from './controller/software-schedule.controller';
 import { SoftwareTimelineController } from './controller/software-timeline.controller';
+import { SoftwareDashboardRepository } from './repository/software-dashboard.repository';
 import { SoftwareProjectsRepository } from './repository/software-projects.repository';
 import { SoftwareScheduleRepository } from './repository/software-schedule.repository';
 import { SoftwareTimelineRepository } from './repository/software-timeline.repository';
+import { GithubDailySyncService } from './service/github-daily-sync.service';
 import { GithubService } from './service/github.service';
 import { SoftwareDashboardService } from './service/software-dashboard.service';
 import { SoftwareProjectsService } from './service/software-projects.service';
@@ -32,7 +34,9 @@ import { SoftwareTimelineService } from './service/software-timeline.service';
     SoftwareProjectsRepository,
     SoftwareTimelineRepository,
     SoftwareScheduleRepository,
+    SoftwareDashboardRepository,
     GithubService,
+    GithubDailySyncService,
     SoftwareProjectsService,
     SoftwareTimelineService,
     SoftwareScheduleService,

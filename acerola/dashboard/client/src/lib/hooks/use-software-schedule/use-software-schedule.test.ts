@@ -97,7 +97,7 @@ describe('daily GitHub PRs', () => {
   it('filters by author without removing available choices', async () => {
     const model = await mount();
     model.actions.onAuthorFilterChange('autor-sem-atividade');
-    expect(model.data.githubEvents).toHaveLength(0);
+    expect(model.data.githubEvents.every((event) => event.type === 'issue')).toBe(true);
     expect(model.data.filters.authorOptions).toContainEqual({ value: 'ana', label: 'ana' });
     expect(model.data.filters.authorOptions).toContainEqual({
       value: 'autor-sem-atividade',
@@ -127,7 +127,7 @@ describe('daily GitHub PRs', () => {
   it('keeps filter options available when there are no matching activities', async () => {
     const model = await mount();
     model.actions.onProjectFilterChange('999');
-    expect(model.data.githubEvents).toHaveLength(0);
+    expect(model.data.githubEvents.every((event) => event.type === 'issue')).toBe(true);
     expect(model.data.days.every((day) => !day.githubEvents?.length)).toBe(true);
     expect(model.data.filters.authorOptions).toContainEqual({ value: 'ana', label: 'ana' });
     expect(model.data.filters.projectOptions).toContainEqual({ value: '1', label: 'Acerola' });
@@ -194,5 +194,32 @@ describe('daily GitHub PRs', () => {
     model.actions.onOpenGithubDay(today);
     expect(model.data.githubDay?.page).toBe(1);
     expect(model.data.githubDay?.items[0]?.id).toBe(1);
+  });
+
+  // feliz
+  /* Abrir e paginar a janela de um dia não pode remontar o calendário: era isso que travava a
+     tela por segundos num dia cheio de PRs. */
+  it('keeps the same calendar while the day dialog opens and pages', async () => {
+    const model = await mount();
+    const days = model.data.days;
+    const today = new Date().toLocaleDateString('sv-SE');
+
+    model.actions.onOpenGithubDay(today);
+    model.actions.onGithubDayPageChange(2);
+
+    expect(model.data.githubDay?.page).toBe(2);
+    expect(model.data.days).toBe(days);
+  });
+
+  // triste
+  /* Já filtro muda o que aparece no calendário: aí ele precisa ser refeito. */
+  it('rebuilds the calendar when a filter changes', async () => {
+    const model = await mount();
+    const days = model.data.days;
+
+    model.actions.onTypeFilterChange('issue');
+
+    await waitFor(() => expect(model.data.days).not.toBe(days));
+    expect(model.data.githubEvents.every((event) => event.type === 'issue')).toBe(true);
   });
 });

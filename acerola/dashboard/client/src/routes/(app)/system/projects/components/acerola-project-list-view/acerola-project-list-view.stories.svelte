@@ -86,6 +86,7 @@
     onCancelDelete: fn(),
     onConfirmDelete: fn(),
     onSyncGithub: fn(),
+    onSyncAllGithub: fn(),
   };
 
   const { Story } = defineMeta({
@@ -136,6 +137,40 @@
   args={{
     data: { ...baseData, items: [], total: 0 },
     state: { ...idleState, error: 'Falha ao carregar sistemas do servidor.' },
+    actions: baseActions,
+  }}
+/>
+
+<!-- Super Administrador: aparece o "Sincronizar todos". -->
+<Story
+  name="SuperAdmin"
+  args={{
+    data: baseData,
+    state: { ...idleState, canSyncAll: true },
+    actions: baseActions,
+  }}
+/>
+
+<Story
+  name="SyncingAll"
+  args={{
+    data: baseData,
+    state: { ...idleState, canSyncAll: true, isSyncingAll: true },
+    actions: baseActions,
+  }}
+/>
+
+<!-- Caso limite: um sistema falhou e a mensagem diz qual. -->
+<Story
+  name="SyncAllPartialFailure"
+  args={{
+    data: baseData,
+    state: {
+      ...idleState,
+      canSyncAll: true,
+      syncMessage:
+        '15 sistemas sincronizados: 312 Pull Requests e 48 issues. Não foi possível sincronizar: Paralegal.',
+    },
     actions: baseActions,
   }}
 />

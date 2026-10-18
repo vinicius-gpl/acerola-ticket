@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type SoftwareTimelineListQuery } from '@template/shared/schemas/software-timeline.schema';
-import { and, count, desc, eq, gte, lt, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm';
 
 import { runOne, runQuery } from '../../../lib/db/db-error.util';
 import { DB } from '../../../lib/db/db.token';
@@ -11,6 +11,24 @@ import {
   type SoftwareTimelineEventInsert,
   type SoftwareTimelineEventRow,
 } from '../../../lib/db/schema/software-timeline-events.schema';
+
+/**
+ * Quantas linhas por consulta. Cada linha leva ~11 parâmetros e o Postgres aceita até 65.535 por
+ * consulta: 500 deixa folga larga sem fazer centenas de idas ao banco num repositório grande.
+ */
+const UPSERT_BATCH = 500;
+
+/**
+ * Um item repetido na mesma consulta faz o Postgres recusar o lote inteiro ("não dá para
+ * atualizar a mesma linha duas vezes"). Acontece de verdade: um PR alterado enquanto as páginas
+ * do GitHub são lidas aparece em duas delas. Vale a última versão.
+ */
+function lastPerKey(rows: readonly SoftwareTimelineEventInsert[]): SoftwareTimelineEventInsert[] {
+  const byKey = new Map<string, SoftwareTimelineEventInsert>();
+  for (const row of rows) byKey.set(`${row.projectId}|${row.type}|${row.externalId}`, row);
+
+  return [...byKey.values()];
+}
 
 export type TimelineEventWithProject = SoftwareTimelineEventRow & {
   projectName?: string | null;
@@ -99,46 +117,44 @@ export class SoftwareTimelineRepository {
     );
   }
 
-  async upsertPr(data: SoftwareTimelineEventInsert): Promise<SoftwareTimelineEventRow> {
-    if (!data.externalId) {
-      return this.insert(data);
-    }
-
-    // Procura se já existe evento com o mesmo externalId e projectId
-    const existing = await runQuery(
-      this.db
-        .select()
-        .from(softwareTimelineEvents)
-        .where(
-          and(
-            eq(softwareTimelineEvents.projectId, data.projectId),
-            eq(softwareTimelineEvents.externalId, data.externalId),
-            eq(softwareTimelineEvents.type, data.type),
-          ),
-        )
-        .limit(1),
-      'verificar PR existente',
-    );
-
-    if (existing.length > 0 && existing[0]) {
-      return runOne(
+  /**
+   * Grava PRs e issues vindos do GitHub de uma vez: insere os novos e atualiza os que já existem
+   * (mesmo sistema, tipo e número), numa consulta por lote em vez de duas por item.
+   *
+   * Quem gravou primeiro (`createdBy`, `createdAt`) fica: atualizar não reescreve a autoria.
+   * Devolve quantos foram gravados.
+   */
+  async upsertMany(input: readonly SoftwareTimelineEventInsert[]): Promise<number> {
+    const rows = lastPerKey(input);
+    let written = 0;
+    for (let start = 0; start < rows.length; start += UPSERT_BATCH) {
+      const batch = rows.slice(start, start + UPSERT_BATCH);
+      const result = await runQuery(
         this.db
-          .update(softwareTimelineEvents)
-          .set({
-            title: data.title,
-            status: data.status,
-            url: data.url,
-            author: data.author,
-            authorName: data.authorName,
-            eventDate: data.eventDate,
-          })
-          .where(eq(softwareTimelineEvents.id, existing[0].id))
-          .returning(),
-        'atualizar PR na timeline',
+          .insert(softwareTimelineEvents)
+          .values([...batch])
+          .onConflictDoUpdate({
+            target: [
+              softwareTimelineEvents.projectId,
+              softwareTimelineEvents.type,
+              softwareTimelineEvents.externalId,
+            ],
+            set: {
+              title: sql.raw('excluded.title'),
+              status: sql.raw('excluded.status'),
+              url: sql.raw('excluded.url'),
+              author: sql.raw('excluded.author'),
+              authorName: sql.raw('excluded.author_name'),
+              eventDate: sql.raw('excluded.event_date'),
+            },
+          }),
+        'gravar PRs e issues na timeline',
       );
+      /* `count` é o que o driver `postgres` devolve: as linhas inseridas ou atualizadas. */
+      written += result.count ?? batch.length;
     }
 
-    return this.insert(data);
+    return written;
   }
 
   private buildWhere(query: SoftwareTimelineListQuery): SQL | undefined {

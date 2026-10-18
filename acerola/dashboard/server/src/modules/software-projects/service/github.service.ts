@@ -27,6 +27,7 @@ type RawGithubPr = {
   state: string;
   merged_at?: string | null;
   created_at: string;
+  updated_at?: string;
 };
 
 type RawGithubUser = { name?: string | null };
@@ -47,6 +48,22 @@ function mapRawPr(pr: RawGithubPr): FetchedPr {
     status: resolvePrStatus(pr.merged_at, pr.state),
     eventDate: new Date(pr.merged_at ?? pr.created_at),
   };
+}
+
+function isUpdatedSince(pr: RawGithubPr, since: Date): boolean {
+  return Date.parse(pr.updated_at ?? pr.created_at) >= since.getTime();
+}
+
+/**
+ * Há próxima página que interessa? Sem `since`, toda página que o GitHub anunciar. Com `since`,
+ * para quando o último PR já lido é anterior à data: a lista vem em ordem de alteração.
+ */
+function hasNextPage(response: Response, list: RawGithubPr[], since?: Date): boolean {
+  if (!response.headers?.get('link')?.includes('rel="next"')) return false;
+  const last = list.at(-1);
+  if (!since || !last) return true;
+
+  return isUpdatedSince(last, since);
 }
 
 @Injectable()
@@ -113,10 +130,20 @@ export class GithubService {
 
   /**
    * Busca os Pull Requests de um repositório no GitHub.
+   *
+   * Com `since`, traz só os que mudaram desde então: a lista vem do mais recentemente alterado
+   * para trás, e a paginação para assim que uma página já começa antes da data. É o que deixa a
+   * rodada da meia-noite barata mesmo em repositório com centenas de PRs.
    */
-  async fetchPullRequests(owner: string, repo: string, userId?: string): Promise<FetchedPr[]> {
+  async fetchPullRequests(
+    owner: string,
+    repo: string,
+    userId?: string,
+    since?: Date,
+  ): Promise<FetchedPr[]> {
     const token = this.app ? await this.app.accessToken() : this.token;
-    const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`;
+    const order = since ? '&sort=updated&direction=desc' : '';
+    const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100${order}`;
 
     try {
       const response = await fetch(url, {
@@ -129,8 +156,9 @@ export class GithubService {
       }
 
       const list = (await response.json()) as RawGithubPr[];
-      await this.fetchSubsequentPrPages(url, token, response, list);
-      return this.addAuthorNames(list.map(mapRawPr), token);
+      await this.fetchSubsequentPrPages(url, token, response, list, since);
+      const recent = since ? list.filter((pr) => isUpdatedSince(pr, since)) : list;
+      return this.addAuthorNames(recent.map(mapRawPr), token);
     } catch (error) {
       return this.handlePrCatchError(error, owner, repo, userId);
     }
@@ -154,9 +182,10 @@ export class GithubService {
     token: string | undefined,
     initialResponse: Response,
     list: RawGithubPr[],
+    since?: Date,
   ): Promise<void> {
     let response = initialResponse;
-    for (let page = 2; response.headers?.get('link')?.includes('rel="next"'); page++) {
+    for (let page = 2; hasNextPage(response, list, since); page++) {
       response = await fetch(`${url}&page=${page}`, {
         headers: this.headers(token),
         signal: AbortSignal.timeout(10_000),
@@ -184,12 +213,22 @@ export class GithubService {
     throw new BadGatewayException('Não foi possível sincronizar com o GitHub. Tente novamente.');
   }
 
-  async fetchIssues(owner: string, repo: string, userId?: string): Promise<FetchedPr[]> {
+  /**
+   * Busca as issues — abertas e fechadas. Com `since`, só as que mudaram desde então (o
+   * próprio GitHub filtra: fechar uma issue conta como mudança).
+   */
+  async fetchIssues(
+    owner: string,
+    repo: string,
+    userId?: string,
+    since?: Date,
+  ): Promise<FetchedPr[]> {
     const token = this.app ? await this.app.accessToken() : this.token;
     const items: FetchedPr[] = [];
+    const sinceParam = since ? `&since=${encodeURIComponent(since.toISOString())}` : '';
     for (let page = 1; ; page++) {
       const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=100&page=${page}`,
+        `https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=100&page=${page}${sinceParam}`,
         {
           headers: this.headers(token),
           signal: AbortSignal.timeout(10_000),
