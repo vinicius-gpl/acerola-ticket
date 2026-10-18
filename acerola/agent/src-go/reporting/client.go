@@ -249,14 +249,16 @@ func (reporter *Reporter) pump(
 	ticker := time.NewTicker(reporter.config.Interval)
 	defer ticker.Stop()
 
-	var initialSent bool
-	/* A primeira leitura vai na hora: quem acabou de instalar o agente quer
-	   ver a máquina aparecer no painel, não esperar meio minuto por ela. */
-	if sendError := reporter.send(connection); sendError != nil {
-		return finalError(closed, sendError)
-	} else if !reporter.source.Latest().Timestamp.IsZero() {
-		initialSent = true
+	sender := snapshotSender{reporter: reporter, connection: connection, ticker: ticker}
+	if err := sender.send(); err != nil {
+		return finalError(closed, err)
 	}
+
+	return sender.run(ctx, closed, cadence, updates)
+}
+
+func (sender *snapshotSender) run(ctx context.Context, closed <-chan error, cadence <-chan time.Duration, updates <-chan metrics.Snapshot) error {
+	ticker := sender.ticker
 
 	for {
 		select {
@@ -265,44 +267,53 @@ func (reporter *Reporter) pump(
 		case closeError := <-closed:
 			return closeError
 		case <-ticker.C:
-			if sendError := reporter.send(connection); sendError != nil {
-				return finalError(closed, sendError)
+			if err := sender.send(); err != nil {
+				return finalError(closed, err)
 			}
-			initialSent = true
 		case interval := <-cadence:
-			/* O servidor pediu outro ritmo — alguém abriu a ficha desta máquina no
-			   painel, ou fechou. Trocar o ticker aqui, e não reconectar, mantém a
-			   conexão de pé e o efeito é imediato na próxima leitura. */
 			log.Printf("reporting: server asked for readings every %v", interval)
 			ticker.Reset(interval)
-
-			if sendError := reporter.send(connection); sendError != nil {
-				return finalError(closed, sendError)
+			if err := sender.send(); err != nil {
+				return finalError(closed, err)
 			}
-			initialSent = true
 		case snap := <-updates:
-			/* Se a primeira leitura foi ignorada por ainda não haver coleta (boot),
-			   envia na hora assim que o primeiro snapshot chegar. */
-			if !initialSent && !snap.Timestamp.IsZero() {
-				initialSent = true
-				if sendError := reporter.send(connection); sendError != nil {
-					return finalError(closed, sendError)
-				}
-				ticker.Reset(reporter.config.Interval)
+			if err := sender.sendInitial(snap); err != nil {
+				return finalError(closed, err)
 			}
 		}
 	}
 }
 
-func (reporter *Reporter) send(connection *websocket.Conn) error {
-	snapshot := reporter.source.Latest()
+// snapshotSender concentra o estado da primeira leitura e a cadência da conexão.
+type snapshotSender struct {
+	reporter    *Reporter
+	connection  *websocket.Conn
+	ticker      *time.Ticker
+	initialSent bool
+}
+
+func (sender *snapshotSender) send() error {
+	snapshot := sender.reporter.source.Latest()
 	if snapshot.Timestamp.IsZero() {
-		/* Ainda não houve coleta nenhuma. Mandar um snapshot vazio gravaria
-		   uma máquina sem processador e sem memória no inventário. */
 		return nil
 	}
+	if err := write(sender.connection, snapshotMessage{Type: "snapshot", Snapshot: snapshot}); err != nil {
+		return err
+	}
+	sender.initialSent = true
+	return nil
+}
 
-	return write(connection, snapshotMessage{Type: "snapshot", Snapshot: snapshot})
+// Uma coleta que chega depois do boot não deve esperar pelo próximo tick.
+func (sender *snapshotSender) sendInitial(snapshot metrics.Snapshot) error {
+	if sender.initialSent || snapshot.Timestamp.IsZero() {
+		return nil
+	}
+	if err := sender.send(); err != nil {
+		return err
+	}
+	sender.ticker.Reset(sender.reporter.config.Interval)
+	return nil
 }
 
 func write(connection *websocket.Conn, message any) error {

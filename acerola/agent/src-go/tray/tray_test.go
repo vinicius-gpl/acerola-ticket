@@ -24,13 +24,13 @@ func TestCallbacksInvocationHappyPath(testingContext *testing.T) {
 	callbacksStructure.Quit()
 
 	if !popupCalled {
-		testingContext.Error("ShowPopup deveria ter sido executado")
+		testingContext.Error("ShowPopup should have run")
 	}
 	if !dashboardCalled {
-		testingContext.Error("ShowDashboard deveria ter sido executado")
+		testingContext.Error("ShowDashboard should have run")
 	}
 	if !quitCalled {
-		testingContext.Error("Quit deveria ter sido executado")
+		testingContext.Error("Quit should have run")
 	}
 }
 
@@ -77,7 +77,7 @@ func TestWatchMenuStopsAfterQuit(testingContext *testing.T) {
 	select {
 	case <-finished:
 	case <-time.After(time.Second):
-		testingContext.Fatal("watchMenu deveria ter terminado depois do Sair")
+		testingContext.Fatal("watchMenu should stop after Quit")
 	}
 }
 
@@ -87,9 +87,9 @@ func expectDone(testingContext *testing.T, done <-chan string, expected string) 
 	select {
 	case got := <-done:
 		if got != expected {
-			testingContext.Errorf("esperava %q, veio %q", expected, got)
+			testingContext.Errorf("expected %q, got %q", expected, got)
 		}
 	case <-time.After(time.Second):
-		testingContext.Fatalf("timeout esperando %q", expected)
+		testingContext.Fatalf("timed out waiting for %q", expected)
 	}
 }

@@ -26,8 +26,8 @@
               <ServiceControl Id="ControlService" Name="AcerolaAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
             </Component>
             <Component Id="SetupFiles" Guid="*" Win64="yes">
-              <File Id="ConfigureMachine" Source="$(var.SourceDir)/configure-machine.ps1" KeyPath="yes" />
-              <File Id="InstallCertificate" Source="$(var.SourceDir)/install-certificate.ps1" />
+              <File Id="ConfigureMachine" Source="$(var.ScriptDir)/configure-machine.ps1" KeyPath="yes" />
+              <File Id="InstallCertificate" Source="$(var.ScriptDir)/install-certificate.ps1" />
             </Component>
           </Directory>
         </Directory>

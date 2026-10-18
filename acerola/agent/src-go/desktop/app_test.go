@@ -1,4 +1,4 @@
-package main
+package desktop
 
 import (
 	"testing"
@@ -12,34 +12,34 @@ func TestNewAppInstanceHappyPath(testingContext *testing.T) {
 	applicationInstance := NewApp()
 
 	if applicationInstance == nil {
-		testingContext.Fatal("esperava instância válida de App, mas veio nil")
+		testingContext.Fatal("expected valid App instance, got nil")
 	}
 
 	if applicationInstance.broadcaster == nil {
-		testingContext.Error("broadcaster de métricas não deveria ser nil")
+		testingContext.Error("metrics broadcaster must not be nil")
 	}
 
 	if applicationInstance.actions == nil {
-		testingContext.Error("canal de ações de janela não deveria ser nil")
+		testingContext.Error("window action channel must not be nil")
 	}
 
 	if applicationInstance.viewReady == nil {
-		testingContext.Error("canal viewReady não deveria ser nil")
+		testingContext.Error("viewReady channel must not be nil")
 	}
 }
 
 func TestAppDimensionsAndConstants(testingContext *testing.T) {
 	// feliz: as dimensões configuradas para modo minificado e expandido devem ser positivas e consistentes
 	if popupWidth <= 0 || popupHeight <= 0 {
-		testingContext.Errorf("dimensões do popup inválidas: width=%d, height=%d", popupWidth, popupHeight)
+		testingContext.Errorf("invalid popup dimensions: width=%d, height=%d", popupWidth, popupHeight)
 	}
 
 	if dashboardWidth <= popupWidth {
-		testingContext.Errorf("dashboardWidth (%d) deveria ser maior que popupWidth (%d)", dashboardWidth, popupWidth)
+		testingContext.Errorf("dashboardWidth (%d) must exceed popupWidth (%d)", dashboardWidth, popupWidth)
 	}
 
 	if dashboardHeight <= 0 {
-		testingContext.Errorf("dashboardHeight inválido: %d", dashboardHeight)
+		testingContext.Errorf("invalid dashboardHeight: %d", dashboardHeight)
 	}
 
 	expectedMargin := 16
@@ -58,7 +58,7 @@ func TestViewReadySignalChannel(testingContext *testing.T) {
 	case <-applicationInstance.viewReady:
 		// Notificação recebida com sucesso
 	case <-time.After(100 * time.Millisecond):
-		testingContext.Error("esperava sinal no canal viewReady após chamada")
+		testingContext.Error("expected viewReady signal after call")
 	}
 }
 
@@ -79,7 +79,7 @@ func TestViewReadyBufferNonBlocking(testingContext *testing.T) {
 	case <-doneNotification:
 		// Não travou, seguiu com segurança
 	case <-time.After(200 * time.Millisecond):
-		testingContext.Fatal("ViewReady bloqueou a execução quando o buffer já estava cheio")
+		testingContext.Fatal("ViewReady blocked when buffer was already full")
 	}
 }
 

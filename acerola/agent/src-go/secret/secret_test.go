@@ -28,15 +28,15 @@ func TestSaveThenLoadRoundTrip(testingContext *testing.T) {
 	const token = "79N2ec-_eMMppRjjVDgSt8UtYbQUFB-zK4VWNSHAZUQ"
 
 	if saveError := Save(token); saveError != nil {
-		testingContext.Fatalf("não consegui salvar no cofre: %v", saveError)
+		testingContext.Fatalf("cannot save to vault: %v", saveError)
 	}
 
 	loaded, loadError := Load()
 	if loadError != nil {
-		testingContext.Fatalf("não consegui ler do cofre: %v", loadError)
+		testingContext.Fatalf("cannot read from vault: %v", loadError)
 	}
 	if loaded != token {
-		testingContext.Errorf("esperava o token de volta, veio %q", loaded)
+		testingContext.Errorf("expected original token, got %q", loaded)
 	}
 }
 
@@ -44,19 +44,19 @@ func TestSaveOverwritesThePreviousToken(testingContext *testing.T) {
 	// feliz: reconfigurar a máquina troca o token, não acumula
 	useTestAccount(testingContext)
 
-	if saveError := Save("token-antigo"); saveError != nil {
-		testingContext.Fatalf("não consegui salvar no cofre: %v", saveError)
+	if saveError := Save("old-token"); saveError != nil {
+		testingContext.Fatalf("cannot save to vault: %v", saveError)
 	}
-	if saveError := Save("token-novo"); saveError != nil {
-		testingContext.Fatalf("não consegui sobrescrever no cofre: %v", saveError)
+	if saveError := Save("new-token"); saveError != nil {
+		testingContext.Fatalf("cannot overwrite vault value: %v", saveError)
 	}
 
 	loaded, loadError := Load()
 	if loadError != nil {
-		testingContext.Fatalf("não consegui ler do cofre: %v", loadError)
+		testingContext.Fatalf("cannot read from vault: %v", loadError)
 	}
-	if loaded != "token-novo" {
-		testingContext.Errorf("esperava o token mais recente, veio %q", loaded)
+	if loaded != "new-token" {
+		testingContext.Errorf("expected latest token, got %q", loaded)
 	}
 }
 
@@ -65,7 +65,7 @@ func TestLoadRefusesWhenNothingIsSaved(testingContext *testing.T) {
 	useTestAccount(testingContext)
 
 	if _, loadError := Load(); !errors.Is(loadError, ErrNotFound) {
-		testingContext.Errorf("esperava ErrNotFound, veio %v", loadError)
+		testingContext.Errorf("expected ErrNotFound, got %v", loadError)
 	}
 }
 
@@ -74,6 +74,6 @@ func TestSaveRefusesEmpty(testingContext *testing.T) {
 	useTestAccount(testingContext)
 
 	if saveError := Save(""); saveError == nil {
-		testingContext.Error("esperava recusa para um segredo vazio")
+		testingContext.Error("expected rejection of empty secret")
 	}
 }
