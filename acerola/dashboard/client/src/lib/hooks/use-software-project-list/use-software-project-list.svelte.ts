@@ -27,6 +27,7 @@ export type SoftwareProjectListModel = {
     isFilteredOut: boolean;
     isDeleting: boolean;
     isSyncing: boolean;
+    isSyncingAll: boolean;
     error: string | null;
     deleteError: string | null;
     syncMessage: string | null;
@@ -41,6 +42,7 @@ export type SoftwareProjectListModel = {
     onCancelDelete: () => void;
     onConfirmDelete: () => void;
     onSyncGithub: (id: number) => void;
+    onSyncAllGithub: () => void;
   };
 };
 
@@ -91,6 +93,20 @@ export function useSoftwareProjectListModel(): SoftwareProjectListModel {
     }),
   );
 
+  /* Sincronizar todos: mesma mensagem e mesmo aviso de erro do botão de cada sistema. */
+  const syncAllMutation = mirrorStore(
+    createMutation({
+      mutationFn: () => softwareProjectsApi.syncAllGithub(),
+      onSuccess: (data) => {
+        syncMessage.set(data.message);
+        setTimeout(() => syncMessage.set(null), 8000);
+        void queryClient.invalidateQueries({ queryKey: SOFTWARE_PROJECTS_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: ['software-timeline'] });
+        void queryClient.invalidateQueries({ queryKey: ['software-dashboard'] });
+      },
+    }),
+  );
+
   const filterStore = mirrorStore(filter);
   const deletingStore = mirrorStore(deleting);
   const syncMessageStore = mirrorStore(syncMessage);
@@ -117,10 +133,11 @@ export function useSoftwareProjectListModel(): SoftwareProjectListModel {
         isFilteredOut: total === 0 && isFiltered,
         isDeleting: deleteMutation.current.isPending,
         isSyncing: syncMutation.current.isPending,
+        isSyncingAll: syncAllMutation.current.isPending,
         error: readError(query.current.error),
         deleteError: readError(deleteMutation.current.error),
         syncMessage: syncMessageStore.current,
-        syncError: readError(syncMutation.current.error),
+        syncError: readError(syncMutation.current.error) ?? readError(syncAllMutation.current.error),
       };
     },
     actions: {
@@ -143,6 +160,11 @@ export function useSoftwareProjectListModel(): SoftwareProjectListModel {
         if (syncMutation.current.isPending) return;
         syncMessage.set(null);
         syncMutation.current.mutate(id);
+      },
+      onSyncAllGithub: () => {
+        if (syncAllMutation.current.isPending) return;
+        syncMessage.set(null);
+        syncAllMutation.current.mutate();
       },
     },
   };

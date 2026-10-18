@@ -42,4 +42,14 @@ export const softwareProjectsApi = {
     apiRequest<{ synced: number; message: string }>(`/software-projects/${id}/sync-github`, {
       method: 'POST',
     }),
+
+  /** Todos os sistemas de uma vez — só Super Administrador. */
+  syncAllGithub: () =>
+    apiRequest<{
+      projects: number;
+      prs: number;
+      issues: number;
+      failed: string[];
+      message: string;
+    }>('/software-projects/sync-github', { method: 'POST' }),
 };
