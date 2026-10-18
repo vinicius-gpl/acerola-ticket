@@ -11,7 +11,11 @@ import { AgentPresenceService } from '../presence/agent-presence.service';
 import { LiveWatchService } from '../presence/live-watch.service';
 import { type ComputersRepository } from '../repository/computers.repository';
 import { hashComputerToken } from '../token/computer-token.util';
-import { ComputersService } from './computers.service';
+import {
+  ComputersService,
+  SAMPLE_MIN_INTERVAL_MS,
+  SAMPLE_RETENTION_DAYS,
+} from './computers.service';
 
 const GB = 1024 ** 3;
 
@@ -419,6 +423,74 @@ describe('ComputersService.ingest', () => {
     await service.ingest(computerRow(), snapshot({ cpu: 99 }), '1.0.0');
 
     expect(insertAlert).not.toHaveBeenCalled();
+  });
+});
+
+describe('ComputersService history pace', () => {
+  // feliz
+  /* Ficha aberta: o agente manda a cada segundo, mas o histórico guarda no ritmo normal. */
+  it('records at most one sample per machine inside the minimum interval', async () => {
+    const insertSample = vi.fn().mockResolvedValue(undefined);
+    const { service } = makeService({
+      update: vi.fn().mockResolvedValue(computerRow()),
+      findByName: vi.fn().mockResolvedValue(null),
+      insertSample,
+      findActiveAlert: vi.fn().mockResolvedValue(null),
+    });
+    vi.useFakeTimers({ now: new Date('2026-10-17T12:00:00Z') });
+
+    try {
+      await service.ingest(computerRow(), snapshot(), '1.0.0');
+      vi.advanceTimersByTime(1_000);
+      await service.ingest(computerRow(), snapshot(), '1.0.0');
+      vi.advanceTimersByTime(SAMPLE_MIN_INTERVAL_MS);
+      await service.ingest(computerRow(), snapshot(), '1.0.0');
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(insertSample).toHaveBeenCalledTimes(2);
+  });
+
+  // triste
+  /* O ritmo é por máquina: uma ocupada não pode calar a outra. */
+  it('does not let one machine hold back the samples of another', async () => {
+    const insertSample = vi.fn().mockResolvedValue(undefined);
+    const { service } = makeService({
+      update: vi.fn().mockResolvedValue(computerRow()),
+      findByName: vi.fn().mockResolvedValue(null),
+      insertSample,
+      findActiveAlert: vi.fn().mockResolvedValue(null),
+    });
+
+    await service.ingest(computerRow({ id: 1 }), snapshot(), '1.0.0');
+    await service.ingest(computerRow({ id: 2 }), snapshot(), '1.0.0');
+
+    expect(insertSample).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('ComputersService.deleteOldSamples', () => {
+  // feliz
+  it('deletes the samples older than the retention window', async () => {
+    const deleteSamplesOlderThan = vi.fn().mockResolvedValue(42);
+    const { service } = makeService({ deleteSamplesOlderThan });
+
+    const deleted = await service.deleteOldSamples(new Date('2026-10-17T06:00:00Z'));
+
+    expect(deleted).toBe(42);
+    expect(deleteSamplesOlderThan).toHaveBeenCalledWith(
+      new Date(`2026-10-${17 - SAMPLE_RETENTION_DAYS}T06:00:00Z`),
+    );
+  });
+
+  // triste
+  it('lets the database refusal reach the caller', async () => {
+    const { service } = makeService({
+      deleteSamplesOlderThan: vi.fn().mockRejectedValue(new Error('banco fora do ar')),
+    });
+
+    await expect(service.deleteOldSamples()).rejects.toThrow('banco fora do ar');
   });
 });
 
