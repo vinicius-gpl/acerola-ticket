@@ -29,7 +29,7 @@ um commit `[chore](agent): Atualiza versão para … [skip ci]` nas duas branche
 O commit contém só os arquivos de versão. A tag original não é movida: aponta para o código-fonte
 antes do bump, como no fluxo de referência do `acerola-reader`.
 
-O agente atualiza `wails.json`, `src-go/version/version.go`, `svelte/package.json` e seu lockfile.
+O agente atualiza `wails.json`, `src-go/lib/version/version.go`, `svelte/package.json` e seu lockfile.
 Não altera versões de dependências. O bump tenta push normal até três
 vezes em checkouts temporários, sem force push ou rebase; nunca diminui uma versão mais recente.
 

@@ -32,7 +32,7 @@ function fixture() {
   };
   write("acerola/agent/wails.json", { info: { productVersion: "0.1.0" } });
   write(
-    "acerola/agent/src-go/version/version.go",
+    "acerola/agent/src-go/lib/version/version.go",
     'package version\nconst Current = "0.1.0"\n',
   );
   write("acerola/agent/svelte/package.json", { version: "0.1.0" });

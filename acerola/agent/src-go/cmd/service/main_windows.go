@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/machine"
-	agentservice "github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/service"
+	agentservice "github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/app/service"
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/lib/infra/machine"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )

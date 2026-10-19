@@ -3,7 +3,7 @@
 O agente continua fazendo tudo o que fazia sozinho. O envio é uma camada a mais, **opcional**:
 sem configuração, nada disso sobe e a bandeja segue local, como antes.
 
-Quem faz o trabalho é `src-go/reporting`, e ele é só mais um assinante do `metrics.Broadcaster`
+Quem faz o trabalho é `src-go/modules/reporting`, e ele é só mais um assinante do `metrics.Broadcaster`
 (`Subscribe()`), do mesmo jeito que a janela do próprio agente — a coleta não muda nem fica mais
 cara por existir envio.
 
@@ -52,7 +52,7 @@ recusada* · *Bloqueada pelo TI*.
 ### Como a chave fica guardada
 
 No **cofre de credenciais do sistema operacional** — Credential Manager no Windows, Keychain no
-macOS (ver `src-go/secret`) — e não mais num arquivo. O `%APPDATA%\Acerola Agent\config.json`
+macOS (ver `src-go/lib/infra/credentials`) — e não mais num arquivo. O `%APPDATA%\Acerola Agent\config.json`
 guarda só o endereço do painel e o intervalo; a chave em si nunca passa por ali.
 
 O cofre é por **usuário do sistema**, amarrado à conta que salvou. Na prática:
