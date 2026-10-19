@@ -26,7 +26,7 @@ Duas categorias, com propósitos diferentes:
 | Uptime / ligado desde | `host.Info()` | Sinal indireto de manutenção pendente (ex: atualização pedindo reinício há dias). |
 
 MAC e IP só consideram a **primeira interface de rede ativa, não-loopback, com endereço IPv4** —
-critério documentado em `src-go/metrics/collector.go` (`primaryInterface`). Numa máquina com
+critério documentado em `src-go/modules/metrics/collector.go` (`primaryInterface`). Numa máquina com
 várias interfaces (Wi-Fi + Ethernet + VPN), isso escolhe "a que a máquina está realmente usando
 para ser alcançada na rede", que é o dado útil para provisionamento; não listamos todas as
 interfaces no inventário para não poluir a bandeja com ruído (a lista completa de tráfego por

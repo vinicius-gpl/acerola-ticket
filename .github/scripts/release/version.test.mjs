@@ -52,7 +52,7 @@ test("updates all owned version files and lock entries without changing dependen
     const agent = "acerola/agent/";
     write(agent + "wails.json", { info: { productVersion: "0.1.0" } });
     write(
-      agent + "src-go/version/version.go",
+      agent + "src-go/lib/version/version.go",
       'package version\nconst Current = "0.1.0"\n',
     );
     write(agent + "svelte/package.json", {
@@ -86,7 +86,7 @@ test("updates all owned version files and lock entries without changing dependen
     bumpVersion(root, "agent/v1.2.3");
     assert.equal(read(agent + "wails.json").info.productVersion, "1.2.3");
     assert.match(
-      readFileSync(join(root, agent + "src-go/version/version.go"), "utf8"),
+      readFileSync(join(root, agent + "src-go/lib/version/version.go"), "utf8"),
       /Current = "1.2.3"/,
     );
     assert.equal(

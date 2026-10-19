@@ -38,7 +38,7 @@ Direção prevista:
 - Ícone monocromático (`icons/ic_launcher_monochrome.svg`, já convertido para SVG mas não usado
   hoje) é candidato natural para uma bandeja em modo "serviço rodando", separado do ícone colorido
   de "app interativo aberto".
-- **Cuidado com o token (`src-go/secret`):** o cofre do sistema (Credential Manager/Keychain) é
+- **Cuidado com o token (`src-go/lib/infra/credentials`):** o cofre do sistema (Credential Manager/Keychain) é
   POR USUÁRIO. Hoje isso não importa porque quem grava e quem lê o token é a mesma conta logada.
   Um serviço roda sob outra conta (geralmente `LocalSystem`) e não vai enxergar o que a pessoa
   logada salvou — o agente subiria como serviço e pareceria "nunca configurado". Resolver isto é
