@@ -37,7 +37,7 @@ export function versionFiles(component) {
   if (component === "agent")
     return [
       "acerola/agent/wails.json",
-      "acerola/agent/src-go/version/version.go",
+      "acerola/agent/src-go/lib/version/version.go",
       "acerola/agent/svelte/package.json",
       "acerola/agent/svelte/package-lock.json",
     ];

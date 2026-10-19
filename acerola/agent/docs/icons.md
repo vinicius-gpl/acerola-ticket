@@ -40,7 +40,7 @@ buildar com só o Go instalado. A conversão foi feita com uma ferramenta própr
 
 Essa ferramenta **não faz parte do binário final** do agente — é rodada uma vez, o resultado
 (`icons/tray.ico`, `build/appicon.png`) é commitado, e o agente só embute o `.ico` já pronto (via
-`src-go/assets`, ver `architecture.md`). Isso mantém o binário do agente livre de uma dependência
+`src-go/lib/assets`, ver `architecture.md`). Isso mantém o binário do agente livre de uma dependência
 de rasterização de SVG que ele nunca usa em produção.
 
 ## Como gerar (ou regenerar)
@@ -48,11 +48,11 @@ de rasterização de SVG que ele nunca usa em produção.
 ```bash
 cd acerola/agent
 go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.ico -sizes 16,32,48,256 -zoom 1.44
-cp icons/tray.ico src-go/assets/tray.ico     # cópia embutida no binário — ver architecture.md
+cp icons/tray.ico src-go/lib/assets/tray.ico     # cópia embutida no binário — ver architecture.md
 cp icons/tray.ico build/windows/icon.ico     # ícone do .exe e do instalador (convenção do Wails)
 
 go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out icons/tray.png -sizes 64 -zoom 1.44
-cp icons/tray.png src-go/assets/tray.png     # bandeja fora do Windows — o systray de lá só lê PNG
+cp icons/tray.png src-go/lib/assets/tray.png     # bandeja fora do Windows — o systray de lá só lê PNG
 
 go run ./src-go/cmd/icongen -src icons/ic_launcher_foreground.svg -out build/appicon.png -sizes 512 -zoom 1.44
 cp icons/ic_launcher_foreground.svg svelte/public/favicon.svg

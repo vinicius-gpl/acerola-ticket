@@ -4,16 +4,19 @@ package main
 import (
 	"embed"
 
-	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/desktop"
+	ipc "github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/lib/ipc/wails"
+
+	"github.com/vinicius-gpl/acerola-ticket/acerola/agent/src-go/app/desktop"
 )
 
 //go:embed all:svelte/dist
 var assets embed.FS
 
 // App preserva window.go.main.App para os bindings existentes do frontend.
-type App struct{ *desktop.App }
+type App struct{ *ipc.Bindings }
 
 func main() {
-	app := &App{App: desktop.NewApp()}
-	desktop.Run(assets, app.App, app)
+	backend := desktop.NewApp()
+	app := &App{Bindings: ipc.New(backend)}
+	desktop.Run(assets, backend, app)
 }

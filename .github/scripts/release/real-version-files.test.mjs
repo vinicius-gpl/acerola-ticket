@@ -15,7 +15,7 @@ const root = resolve(import.meta.dirname, "../../..");
 const script = join(root, ".github/scripts/release/version.mjs");
 const files = [
   "acerola/agent/wails.json",
-  "acerola/agent/src-go/version/version.go",
+  "acerola/agent/src-go/lib/version/version.go",
   "acerola/agent/svelte/package.json",
   "acerola/agent/svelte/package-lock.json",
 ];
